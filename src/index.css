@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* ── Ink (dark blue) ── */
+  --color-ink: #0F1E29;
+  --color-ink-soft: #243B4A;
+  --color-ink-muted: #455C6B;
+
+  /* ── Paper ── */
+  --color-paper: #FFFFFF;
+  --color-paper-2: #F8F8F8;
+  --color-paper-3: #F2F2F2;
+
+  /* ── Accent: Amber ── */
+  --color-amber: #E08A3C;
+  --color-amber-dark: #A85E22;
+  --color-amber-light: #F5DFC5;
+
+  /* ── Accent: Blue ── */
+  --color-blue-accent: #2E6B8A;
+  --color-blue-dark: #1F4C63;
+
+  /* ── Gold ── */
+  --color-gold: #B98A22;
+
+  /* ── Line (borders) ── */
+  --color-line: #DCD4BC;
+  --color-line-light: #E8E2CE;
+
+  /* ── Semantic ── */
+  --color-primary-950: #1E2B22;
+  --color-accent-500: #E08A3C;
+
+  /* ── Legacy blue scale (for existing pages) ── */
+  --color-blue-50: #f0f7ff;
+  --color-blue-100: #e0f0fe;
+  --color-blue-105: #bfdbfe;
+  --color-blue-200: #93c5fd;
+  --color-blue-300: #60a5fa;
+  --color-blue-400: #3b82f6;
+  --color-blue-500: #2563eb;
+  --color-blue-600: #1d4ed8;
+  --color-blue-700: #1e40af;
+  --color-blue-800: #1e3a8a;
+  --color-blue-900: #172554;
+
+  /* ── Legacy orange (for existing pages) ── */
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #ff6b35;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-850: #9a3412;
+  --color-orange-900: #7c2d12;
+
+  --color-slate-50: #fafafb;
+
+  /* ── Typography ──
+   * Two fonts only:
+   *   Outfit    — body, labels, buttons, data, everything
+   *   Fraunces  — display headlines on the landing page only
+   *
+   * font-mono now maps to Outfit so data/stats don't introduce a
+   * third visual identity. The old JetBrains Mono scattered across
+   * every timestamp and label created a tech-terminal feel that
+   * clashed with the warm paper/amber brand.
+   */
+  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-mono: "Outfit", system-ui, sans-serif;
+
+  /* ── Motion ── */
+  --animate-fadeIn: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-cloud: cloud 45s linear infinite;
+  --animate-cloud-slow: cloud 65s linear infinite;
+  --animate-sway: sway 10s ease-out infinite;
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes cloud {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-120%); }
+  }
+
+  @keyframes sway {
+    0%, 70%, 100% { transform: rotate(0deg); }
+    75% { transform: rotate(-0.8deg); }
+    80% { transform: rotate(0.4deg); }
+    85% { transform: rotate(-0.2deg); }
+    90% { transform: rotate(0.1deg); }
+  }
+}
+
+/* ── Global ── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #FFFFFF;
+  color: #1E2B22;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: #E08A3C;
+  color: white;
+}
+
+/* ── Logo ── */
+img[alt*="Volunteer North York"],
+img[alt*="Logo"],
+.logo-clean {
+  /* Logo styling if needed */
+}
+
+/* ── SVG rendering ── */
+svg {
+  shape-rendering: geometricPrecision;
+}
+
+/* ── Focus ring ── */
+:focus-visible {
+  outline: 2px solid #1F4C63;
+  outline-offset: 2px;
+}
+
+button { border-radius: 9999px !important; }
+

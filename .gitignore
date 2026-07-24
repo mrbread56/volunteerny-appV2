@@ -1,0 +1,18 @@
+node_modules/
+build/
+dist/
+coverage/
+.DS_Store
+*.log
+.env*
+!.env.example
+
+# Firebase config — contains API keys / secrets; move to .env
+firebase-applet-config.json
+firebase-blueprint.json
+
+# Office binaries (tracked as exploded XML in .cortex/)
+*.{xlsx,xlsm,docx,dotx,pptx}
+# Sync manifests (local cache, regenerable)
+.cortex/manifests/
+.vercel

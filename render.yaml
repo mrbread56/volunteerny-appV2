@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: volunteerny-backend
+    env: node
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GOOGLE_CLOUD_PROJECT
+        sync: false
+      - key: RESEND_API_KEY
+        sync: false
+      - key: VITE_DEVELOPER_EMAILS
+        sync: false

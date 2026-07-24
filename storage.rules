@@ -1,0 +1,65 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions for security
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+    
+    function isValidPdf() {
+      return request.resource.contentType == 'application/pdf';
+    }
+    
+    function isSafeSize(maxSizeMB) {
+      return request.resource.size <= maxSizeMB * 1024 * 1024;
+    }
+
+    match /{allPaths=**} {
+      // Default deny
+      allow read, write: if false;
+    }
+    
+    // Students can upload resumes and profile pictures (max 5MB)
+    match /students/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId 
+                   && (isValidImage() || isValidPdf()) 
+                   && isSafeSize(5);
+    }
+    
+    // Organizations can upload logos (max 2MB, images only)
+    match /organizations/{userId}/{fileName} {
+      allow read: if true; // Public logos
+      allow write: if isSignedIn() && request.auth.uid == userId 
+                   && isValidImage() 
+                   && isSafeSize(2);
+    }
+    
+    // Chat attachments (max 10MB, images/PDFs) - restricted to the chat's
+    // actual participants, verified against the Firestore chat document.
+    function isChatParticipant(chatId) {
+      return isSignedIn() &&
+        request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
+    }
+
+    match /chat_attachments/{chatId}/{fileName} {
+      allow read: if isChatParticipant(chatId);
+      allow write: if isChatParticipant(chatId)
+                   && (isValidImage() || isValidPdf()) 
+                   && isSafeSize(10);
+    }
+    
+    // Feedback attachments (max 5MB, images/PDFs)
+    match /feedbacks/{userId}/{fileName} {
+      allow read: if isSignedIn();
+      allow write: if isSignedIn() && request.auth.uid == userId
+                   && (isValidImage() || isValidPdf())
+                   && isSafeSize(5);
+    }
+  }
+}
