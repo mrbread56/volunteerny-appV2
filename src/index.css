@@ -63,7 +63,7 @@
   --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
   --font-display: "Fraunces", Georgia, serif;
   --font-serif: "Fraunces", Georgia, serif;
-  --font-mono: "JetBrains Mono", SFMono-Regular, monospace;
+  --font-mono: "Outfit", system-ui, monospace;
 
   /* ── Motion ── */
   --animate-fadeIn: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
