@@ -281,7 +281,7 @@ export default function OrgDashboard() {
 
         if (approved) {
           const newLogItem = {
-            id: "log-req-" + Date.now(),
+            id: "log-req-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
             activity: req.activity + ` (${orgProfile?.organizationName || "Verified Partner"})`,
             hours: req.hours,
             date: req.date,
@@ -300,7 +300,7 @@ export default function OrgDashboard() {
       } else {
         if (approved) {
           const newLogItem = {
-            id: "log-req-" + Date.now(),
+            id: "log-req-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
             activity: req.activity + ` (${orgProfile?.organizationName || req.organization})`,
             hours: req.hours,
             date: req.date,
@@ -778,7 +778,7 @@ export default function OrgDashboard() {
 
     const parsedHours = Number(parseFloat(logHours).toFixed(1));
     const newLogItem = {
-      id: "log-org-" + Date.now(),
+      id: "log-org-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8),
       activity:
         logActivity + ` (${orgProfile?.organizationName || "Verified Org"})`,
       hours: parsedHours,
