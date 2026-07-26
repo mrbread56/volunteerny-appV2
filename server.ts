@@ -278,19 +278,15 @@ app.use(express.json());
           console.log('[send-otp] Generated new OTP for:', authContext.email);
         }
       } catch (dbErr: any) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[send-otp] Firestore unavailable, falling back to memory store:', dbErr.message);
-          const existing = devOtpStore.get(authContext.uid);
-          if (existing && existing.expires > Date.now()) {
-            otp = existing.otp;
-            console.log('[send-otp] (Memory) Reusing existing unexpired OTP for:', authContext.email);
-          } else {
-            otp = crypto.randomInt(100000, 999999).toString();
-            devOtpStore.set(authContext.uid, { otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-            console.log('[send-otp] (Memory) Generated new OTP for:', authContext.email);
-          }
+        console.warn('[send-otp] Firestore unavailable, falling back to memory store:', dbErr.message);
+        const existing = devOtpStore.get(authContext.uid);
+        if (existing && existing.expires > Date.now()) {
+          otp = existing.otp;
+          console.log('[send-otp] (Memory) Reusing existing unexpired OTP for:', authContext.email);
         } else {
-          throw dbErr;
+          otp = crypto.randomInt(100000, 999999).toString();
+          devOtpStore.set(authContext.uid, { otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
+          console.log('[send-otp] (Memory) Generated new OTP for:', authContext.email);
         }
       }
 
@@ -357,12 +353,8 @@ app.use(express.json());
           stored = doc.data() as { otp: string; expires: number; attempts: number };
         }
       } catch (dbErr: any) {
-        if (process.env.NODE_ENV !== 'production') {
-          console.warn('[verify-otp] Firestore unavailable, using memory store:', dbErr.message);
-          stored = devOtpStore.get(authContext.uid);
-        } else {
-          throw dbErr;
-        }
+        console.warn('[verify-otp] Firestore unavailable, using memory store:', dbErr.message);
+        stored = devOtpStore.get(authContext.uid);
       }
 
       if (!stored) {
@@ -371,29 +363,27 @@ app.use(express.json());
 
       if (Date.now() > stored.expires) {
         if (otpRef) await otpRef.delete().catch(() => {});
-        if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
+        devOtpStore.delete(authContext.uid);
         return res.status(400).json({ error: 'Your code has expired. Please request a new one.' });
       }
 
       if (stored.attempts >= 5) {
         if (otpRef) await otpRef.delete().catch(() => {});
-        if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
+        devOtpStore.delete(authContext.uid);
         return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
       }
 
       if (stored.otp !== code.trim()) {
         stored.attempts += 1;
         if (otpRef) await otpRef.update({ attempts: stored.attempts }).catch(() => {});
-        if (process.env.NODE_ENV !== 'production') {
-           const mem = devOtpStore.get(authContext.uid);
-           if (mem) mem.attempts = stored.attempts;
-        }
+        const mem = devOtpStore.get(authContext.uid);
+        if (mem) mem.attempts = stored.attempts;
         return res.status(400).json({ error: 'Incorrect code. Please check and try again.' });
       }
 
       // ── Code is correct. Set the MFA custom claim. ──
       if (otpRef) await otpRef.delete().catch(() => {});
-      if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
+      devOtpStore.delete(authContext.uid);
 
       if (!authContext.isDemo) {
         try {
