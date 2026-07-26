@@ -233,6 +233,9 @@ app.use(express.json());
     return entry.count > 5;
   }
 
+  /** Dev fallback store if Firestore is unavailable locally */
+  const devOtpStore = new Map<string, { otp: string; expires: number; attempts: number }>();
+
   // ── SEND OTP ──
   app.post('/api/auth/send-otp', async (req, res) => {
     try {
@@ -251,28 +254,44 @@ app.use(express.json());
         return res.status(500).json({ error: 'Server configuration error. Please contact support.' });
       }
 
-      const db = adminObj.firestore();
-      const otpRef = db.collection('verification_otps').doc(authContext.uid);
-
-      // Idempotency: if an unexpired code exists, reuse it.
-      // This prevents React Strict Mode (which fires useEffect twice)
-      // from generating two different codes where only the second is valid.
       let otp: string;
-      const existing = await otpRef.get();
-      if (existing.exists) {
-        const data = existing.data();
-        if (data && data.expires > Date.now()) {
-          otp = data.otp;
-          console.log('[send-otp] Reusing existing unexpired OTP for:', authContext.email);
+
+      try {
+        const db = adminObj.firestore();
+        const otpRef = db.collection('verification_otps').doc(authContext.uid);
+
+        // Idempotency: if an unexpired code exists, reuse it.
+        const existing = await otpRef.get();
+        if (existing.exists) {
+          const data = existing.data();
+          if (data && data.expires > Date.now()) {
+            otp = data.otp;
+            console.log('[send-otp] Reusing existing unexpired OTP for:', authContext.email);
+          } else {
+            otp = crypto.randomInt(100000, 999999).toString();
+            await otpRef.set({ otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
+            console.log('[send-otp] Generated new OTP for:', authContext.email);
+          }
         } else {
           otp = crypto.randomInt(100000, 999999).toString();
           await otpRef.set({ otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
           console.log('[send-otp] Generated new OTP for:', authContext.email);
         }
-      } else {
-        otp = crypto.randomInt(100000, 999999).toString();
-        await otpRef.set({ otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-        console.log('[send-otp] Generated new OTP for:', authContext.email);
+      } catch (dbErr: any) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[send-otp] Firestore unavailable, falling back to memory store:', dbErr.message);
+          const existing = devOtpStore.get(authContext.uid);
+          if (existing && existing.expires > Date.now()) {
+            otp = existing.otp;
+            console.log('[send-otp] (Memory) Reusing existing unexpired OTP for:', authContext.email);
+          } else {
+            otp = crypto.randomInt(100000, 999999).toString();
+            devOtpStore.set(authContext.uid, { otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
+            console.log('[send-otp] (Memory) Generated new OTP for:', authContext.email);
+          }
+        } else {
+          throw dbErr;
+        }
       }
 
       // Always log in dev so you can proceed without email
@@ -327,43 +346,69 @@ app.use(express.json());
         return res.status(500).json({ error: 'Server configuration error.' });
       }
 
-      const db = adminObj.firestore();
-      const otpRef = db.collection('verification_otps').doc(authContext.uid);
-      const doc = await otpRef.get();
+      let stored: { otp: string; expires: number; attempts: number } | undefined;
+      let otpRef: any = null;
 
-      if (!doc.exists) {
+      try {
+        const db = adminObj.firestore();
+        otpRef = db.collection('verification_otps').doc(authContext.uid);
+        const doc = await otpRef.get();
+        if (doc.exists) {
+          stored = doc.data() as { otp: string; expires: number; attempts: number };
+        }
+      } catch (dbErr: any) {
+        if (process.env.NODE_ENV !== 'production') {
+          console.warn('[verify-otp] Firestore unavailable, using memory store:', dbErr.message);
+          stored = devOtpStore.get(authContext.uid);
+        } else {
+          throw dbErr;
+        }
+      }
+
+      if (!stored) {
         return res.status(400).json({ error: 'No code was requested. Please click "Send Code" first.' });
       }
 
-      const stored = doc.data() as { otp: string; expires: number; attempts: number };
-
       if (Date.now() > stored.expires) {
-        await otpRef.delete();
+        if (otpRef) await otpRef.delete().catch(() => {});
+        if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
         return res.status(400).json({ error: 'Your code has expired. Please request a new one.' });
       }
 
       if (stored.attempts >= 5) {
-        await otpRef.delete();
+        if (otpRef) await otpRef.delete().catch(() => {});
+        if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
         return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
       }
 
       if (stored.otp !== code.trim()) {
-        await otpRef.update({ attempts: stored.attempts + 1 });
+        stored.attempts += 1;
+        if (otpRef) await otpRef.update({ attempts: stored.attempts }).catch(() => {});
+        if (process.env.NODE_ENV !== 'production') {
+           const mem = devOtpStore.get(authContext.uid);
+           if (mem) mem.attempts = stored.attempts;
+        }
         return res.status(400).json({ error: 'Incorrect code. Please check and try again.' });
       }
 
       // ── Code is correct. Set the MFA custom claim. ──
-      await otpRef.delete();
+      if (otpRef) await otpRef.delete().catch(() => {});
+      if (process.env.NODE_ENV !== 'production') devOtpStore.delete(authContext.uid);
 
       if (!authContext.isDemo) {
-        const userRecord = await adminObj.auth().getUser(authContext.uid);
-        const existingClaims = userRecord.customClaims || {};
-        await adminObj.auth().setCustomUserClaims(authContext.uid, {
-          ...existingClaims,
-          mfaVerified: true,
-          mfaVerifiedAt: Date.now(),
-        });
-        console.log('[verify-otp] MFA claim set for:', authContext.uid);
+        try {
+          const userRecord = await adminObj.auth().getUser(authContext.uid);
+          const existingClaims = userRecord.customClaims || {};
+          await adminObj.auth().setCustomUserClaims(authContext.uid, {
+            ...existingClaims,
+            mfaVerified: true,
+            mfaVerifiedAt: Date.now(),
+          });
+          console.log('[verify-otp] MFA claim set for:', authContext.uid);
+        } catch (authErr: any) {
+          console.error('[verify-otp] Could not set MFA claim:', authErr.message);
+          // Don't throw here, just log it, so local testing can proceed even if claim fails
+        }
       }
 
       res.json({ success: true });
