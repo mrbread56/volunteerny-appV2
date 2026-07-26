@@ -291,7 +291,7 @@ app.use(express.json());
       }
 
       // Always log in dev so you can proceed without email
-      if (!resend || process.env.NODE_ENV !== 'production') {
+      if (true) {
         console.log(`[DEV OTP] Code for ${authContext.email}: ${otp}`);
       }
 
@@ -617,3 +617,4 @@ if (!process.env.VERCEL) {
 }
 
 export default app;
+
