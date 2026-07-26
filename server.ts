@@ -324,7 +324,7 @@ app.use(express.json());
       res.json({ success: true });
     } catch (err: any) {
       console.error('[send-otp] Crash:', err);
-      res.status(500).json({ error: 'Something went wrong sending your code. Please try again.' });
+      res.status(500).json({ error: `Crash: ${err.message}. Please check server logs.` });
     }
   });
 
