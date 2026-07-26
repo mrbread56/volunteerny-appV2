@@ -184,7 +184,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Auto-resolve developer session safely
         if (isDevEmail) {
           data.role = 'developer';
-          data.twoFactorEnabled = false; // Completely bypass MFA for developers
           if (data.isBanned) {
             data.isBanned = false;
             try {
@@ -218,7 +217,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: currentUser.uid,
           email: userEmail,
           role: 'developer',
-          twoFactorEnabled: false, // Completely bypass MFA for developers
+          twoFactorEnabled: true,
           createdAt: new Date(),
         };
         setUserProfile(devProfile);
@@ -228,7 +227,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uid: currentUser.uid,
             email: userEmail,
             role: 'developer',
-            twoFactorEnabled: false, // Completely bypass MFA for developers
+            twoFactorEnabled: true,
             createdAt: serverTimestamp(),
           });
         } catch (dbErr) {
@@ -273,7 +272,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uid: currentUser.uid,
             email: userEmail,
             role: 'developer',
-            twoFactorEnabled: false, // Completely bypass MFA for developers
+            twoFactorEnabled: true,
             createdAt: new Date(),
           });
           setAuthError(null);

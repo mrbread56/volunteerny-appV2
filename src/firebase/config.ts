@@ -17,15 +17,7 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
 const app = initializeApp(firebaseConfig);
 
-// Force long-polling with a 15s timeout to bypass AI Studio proxy drops
-export const db = initializeFirestore(
-  app, 
-  { 
-    experimentalForceLongPolling: true,
-    experimentalLongPollingOptions: { timeoutSeconds: 15 }
-  }, 
-  firestoreDatabaseId || undefined
-);
+export const db = getFirestore(app);
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
