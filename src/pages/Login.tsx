@@ -73,7 +73,9 @@ export default function Login() {
       const credential = await signInWithPopup(auth, provider);
       
       const isNewUser = credential.user.metadata.creationTime === credential.user.metadata.lastSignInTime;
-      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
+      const envDevs = import.meta.env.VITE_DEVELOPER_EMAILS || '';
+      const rawDevs = envDevs ? envDevs : 'kiamehrmetanat@gmail.com'; // Hardcode fallback
+      const AUTHORIZED_DEVS = rawDevs.split(',').map((e: string) => e.trim().toLowerCase());
       const userEmail = (credential.user.email || '').toLowerCase();
       const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
 

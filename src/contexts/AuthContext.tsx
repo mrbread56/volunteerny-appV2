@@ -175,7 +175,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfiles = async (currentUser: User | { uid: string }) => {
     try {
-      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
+      const envDevs = import.meta.env.VITE_DEVELOPER_EMAILS || '';
+      const rawDevs = envDevs ? envDevs : 'kiamehrmetanat@gmail.com'; // Hardcode fallback
+      const AUTHORIZED_DEVS = rawDevs.split(',').map((e: string) => e.trim().toLowerCase());
       const userEmail = ((currentUser as any).email || '').toLowerCase();
       const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
       console.log('[AuthContext] AUTHORIZED_DEVS:', AUTHORIZED_DEVS);
