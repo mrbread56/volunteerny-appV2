@@ -54,7 +54,7 @@ export default function Login() {
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      navigate("/");
+      // Let the useEffect handle routing to the appropriate dashboard
     } catch (err: any) {
       setError(friendlyAuthError(err.code));
     } finally {
@@ -81,7 +81,6 @@ export default function Login() {
         return;
       }
       
-      navigate("/");
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.code ? friendlyAuthError(err.code) : (err.message || 'Failed to sign in with Google.'));
