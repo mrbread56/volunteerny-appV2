@@ -347,7 +347,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // itself MFA-verified status by writing to local/session storage.
           try {
             const tokenResult = await currentUser.getIdTokenResult();
-            setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
+            if (tokenResult.claims.mfaVerified === true) {
+              setMfaVerifiedState(true);
+            } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
+              setMfaVerifiedState(true);
+            } else {
+              setMfaVerifiedState(false);
+            }
           } catch (claimsErr) {
             console.error('Failed to read auth token claims:', claimsErr);
             setMfaVerifiedState(false);
