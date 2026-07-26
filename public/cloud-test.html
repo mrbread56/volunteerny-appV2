@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body { background: #F6F1E4; margin: 0; padding: 0; overflow: hidden; }
+  .cloud { fill: #1F4C63; opacity: 0.15; }
+  
+  @keyframes cloud-slow {
+    from { transform: translateX(100vw); }
+    to { transform: translateX(-120vw); }
+  }
+  
+  .animate-cloud-slow {
+    animation: cloud-slow 45s linear infinite;
+  }
+</style>
+</head>
+<body>
+  <div class="animate-cloud-slow" style="position: absolute; top: 10%; width: 100%;">
+    <svg viewBox="0 0 200 150" width="300" height="200" style="position: absolute; left: 10%;">
+      <path class="cloud" d="M50 100 C 10 100 10 40 50 40 C 60 10 120 10 130 40 C 170 40 170 100 130 100 Z" />
+    </svg>
+    <svg viewBox="0 0 180 130" width="400" height="300" style="position: absolute; left: 50%;">
+      <!-- Better cloud path: -->
+      <path class="cloud" d="M40.4 121.3c-21.7 0-39.3-17.6-39.3-39.3 0-21.7 17.6-39.3 39.3-39.3 2.1 0 4.1.2 6.1.5C52 23 71.3 6.9 94.6 6.9c25.4 0 46 20.6 46 46 0 1.2-.1 2.3-.2 3.5 2.1-.5 4.3-.8 6.6-.8 16.6 0 30 13.4 30 30s-13.4 30-30 30H40.4z" />
+    </svg>
+  </div>
+</body>
+</html>

@@ -1,0 +1,6 @@
+{
+  "name": "Volunteer North York",
+  "description": "Volunteer North York connects local students with meaningful community service opportunities in North York and beyond.",
+  "requestFramePermissions": ["geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

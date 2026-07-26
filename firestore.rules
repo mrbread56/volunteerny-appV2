@@ -1,0 +1,433 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 0. Default Deny Catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- Helpers ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isVerifiedStudent() {
+      return isSignedIn() && (
+        isDeveloper() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
+      );
+    }
+
+    function isVerifiedOrg() {
+      return isSignedIn() && (
+        isDeveloper() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization'
+      );
+    }
+
+    function isDeveloper() {
+      return isSignedIn() && (
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer' || 
+        request.auth.token.email == 'kiamehrmetanat@gmail.com'
+      );
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // --- Entity Validators ---
+
+    function isValidUser(data) {
+      return data.uid == request.auth.uid &&
+             data.email is string &&
+             data.role in ['student', 'organization'] &&
+             (data.twoFactorEnabled == null || data.twoFactorEnabled is bool) &&
+             data.createdAt == request.time;
+    }
+
+    function isValidStudent(data) {
+       return data.uid == request.auth.uid &&
+              data.fullName is string && data.fullName.size() <= 100 &&
+              (data.school == null || (data.school is string && data.school.size() <= 100)) &&
+              (data.grade == null || data.grade in ['9', '10', '11', '12', '']) &&
+              (data.neighborhood == null || data.neighborhood is string) &&
+              (data.interests == null || data.interests is list) &&
+              (data.skills == null || data.skills is list) &&
+              (data.availability == null || data.availability is list) &&
+              (data.previousExperience == null || data.previousExperience is string) &&
+              (data.resumeUrl == null || data.resumeUrl is string) &&
+              (data.passportUrl == null || data.passportUrl is string) &&
+              (data.loggedHours == null || data.loggedHours is list) &&
+              (data.isBanned == null || data.isBanned is bool);
+    }
+
+    function isValidOrganization(data) {
+      return data.uid == request.auth.uid &&
+             data.organizationName is string && data.organizationName.size() <= 100 &&
+             (data.mission == null || (data.mission is string && data.mission.size() <= 2000)) &&
+             data.contactEmail is string &&
+             data.northYorkConfirmed is bool &&
+             (data.phone == null || data.phone is string) &&
+             (data.websiteUrl == null || data.websiteUrl is string) &&
+             (data.organizationType == null || data.organizationType is string) &&
+             (data.address == null || data.address is string) &&
+             (data.isBanned == null || data.isBanned is bool) &&
+             (data.coordinates == null || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number));
+    }
+
+    function isValidOpportunity(data) {
+      return data.orgId == request.auth.uid &&
+             data.title is string && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.location is string &&
+             data.category is string &&
+             (data.orgName == null || data.orgName is string) &&
+             (data.requirements == null || data.requirements is string) &&
+             (data.maxVolunteers == null || data.maxVolunteers is int) &&
+             (data.skillsNeeded == null || data.skillsNeeded is list) &&
+             (data.exclusives == null || data.exclusives is list) &&
+             (data.timeCommitment == null || data.timeCommitment is string) &&
+             (data.isVirtual == null || data.isVirtual is bool) &&
+             (data.scheduleType == null || data.scheduleType is string) &&
+             (data.shifts == null || data.shifts is list) &&
+             (data.coordinates == null || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number)) &&
+             data.createdAt == (resource == null ? request.time : resource.data.createdAt);
+    }
+
+    function isValidApplication(data) {
+       return data.studentId == (resource == null ? request.auth.uid : resource.data.studentId) &&
+              data.opportunityId is string &&
+              data.status in ['pending', 'accepted', 'rejected', 'terminated', 'waitlist'] &&
+              (data.opportunityTitle == null || data.opportunityTitle is string) &&
+              (data.studentName == null || data.studentName is string) &&
+              (data.previousExperience == null || data.previousExperience is string) &&
+              (data.message == null || data.message is string) &&
+              data.appliedAt == (resource == null ? request.time : resource.data.appliedAt) &&
+              (data.resumeUrl == null || data.resumeUrl is string);
+    }
+
+    function isValidSavedOpportunity(data) {
+      return data.studentId == request.auth.uid &&
+             data.opportunityId is string &&
+             data.savedAt == request.time;
+    }
+
+    function isValidFeedback(data) {
+      return data.userId == request.auth.uid &&
+             data.userEmail is string &&
+             data.type in ['bug', 'feature', 'ux', 'other'] &&
+             data.subject is string && data.subject.size() <= 200 &&
+             data.message is string && data.message.size() <= 10000 &&
+             (data.userRole == null || data.userRole is string) &&
+             (data.id == null || data.id is string) &&
+             (data.attachmentName == null || data.attachmentName is string) &&
+             (data.attachmentSize == null || data.attachmentSize is string) &&
+             (data.attachmentDescription == null || data.attachmentDescription is string) &&
+             (data.attachmentData == null || data.attachmentData is string) &&
+             (data.aiOverview == null || data.aiOverview is map) &&
+             (data.developerReply == null || data.developerReply is string) &&
+             (data.repliedAt == null || data.repliedAt is string || data.repliedAt is timestamp) &&
+             data.createdAt == (resource == null ? request.time : resource.data.createdAt);
+    }
+
+    function isValidReport(data) {
+      return data.reportingUserId == request.auth.uid &&
+             data.reportingUserEmail is string &&
+             data.reportedUserId is string &&
+             data.reason is string &&
+             data.description is string &&
+             data.status in ['pending', 'resolved', 'dismissed'] &&
+             (data.reportingUserName == null || data.reportingUserName is string) &&
+             (data.reportedUserName == null || data.reportedUserName is string) &&
+             (data.reportedUserRole == null || data.reportedUserRole is string) &&
+             (data.id == null || data.id is string) &&
+             (data.attachmentName == null || data.attachmentName is string) &&
+             (data.attachmentSize == null || data.attachmentSize is string) &&
+             (data.attachmentDescription == null || data.attachmentDescription is string) &&
+             (data.attachmentData == null || data.attachmentData is string) &&
+             (data.aiOverview == null || data.aiOverview is map) &&
+             data.createdAt == (resource == null ? request.time : resource.data.createdAt);
+    }
+
+    function isValidHoursRequest(data) {
+      return data.studentId is string &&
+             data.studentName is string &&
+             data.studentEmail is string &&
+             data.activity is string &&
+             data.organization is string &&
+             data.hours is number &&
+             data.date is string &&
+             data.coordinatorName is string &&
+             data.coordinatorContact is string &&
+             data.status in ['pending', 'approved', 'declined'] &&
+             data.requestedAt is string;
+    }
+
+    function isValidInterestRequest(data) {
+      return data.studentId == request.auth.uid &&
+             data.studentName is string &&
+             data.email is string &&
+             data.categories is list &&
+             data.description is string &&
+             data.createdAt == request.time &&
+             data.status == 'pending';
+    }
+
+    function isValidChat(data) {
+      return data.type in ['group', 'direct'] &&
+             data.participants is list &&
+             data.participants.size() >= 2 && data.participants.size() <= 200 &&
+             (data.type == 'direct' ? data.participants.size() == 2 : true) &&
+             request.auth.uid in data.participants &&
+             (data.opportunityId == null || (data.opportunityId is string && data.opportunityId.size() <= 128)) &&
+             (data.opportunityTitle == null || (data.opportunityTitle is string && data.opportunityTitle.size() <= 200)) &&
+             (data.lastMessage == null || (data.lastMessage is string && data.lastMessage.size() <= 500)) &&
+             (data.updatedAt == null || data.updatedAt == request.time);
+    }
+
+    function isValidMessage(data) {
+      return data.senderId == request.auth.uid &&
+             data.text is string && data.text.size() <= 4000 &&
+             data.createdAt == request.time &&
+             (data.attachmentUrl == null || (data.attachmentUrl is string && data.attachmentUrl.size() <= 1500));
+    }
+
+    // --- Match Blocks ---
+
+    match /users/{uid} {
+      allow read: if isSignedIn() && (request.auth.uid == uid || isDeveloper()) && isValidId(uid);
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidUser(incoming());
+      allow update: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && 
+                      incoming().role == existing().role &&
+                      incoming().uid == existing().uid &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().email == existing().email &&
+                      (incoming().twoFactorEnabled == null || incoming().twoFactorEnabled is bool);
+      allow delete: if false;
+      allow read, write: if isDeveloper();
+    }
+
+    match /students/{uid} {
+      // Allow single document get if the user is signed in (owners, verifiers, developers)
+      allow get: if isSignedIn() && (isOwner(uid) || isVerifiedOrg() || isDeveloper()) && isValidId(uid);
+      // Only students and developers can run list queries
+      allow list: if isSignedIn() && (isOwner(uid) || isDeveloper());
+      
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidStudent(incoming()) && 
+                    (!('loggedHours' in incoming()) || incoming().loggedHours.size() == 0);
+      allow update: if isSignedIn() && isValidId(uid) && (
+        (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours'])) ||
+        (isVerifiedOrg() && incoming().diff(existing()).affectedKeys().hasOnly(['loggedHours'])) ||
+        isDeveloper()
+      );
+      allow delete: if isDeveloper();
+    }
+
+    match /organizations/{uid} {
+      allow read: if isSignedIn() && isValidId(uid);
+      // craVerified / verificationStatus are trust signals shown to students
+      // choosing who to volunteer with. An organization must never be able to
+      // set them on itself - the client used to write craVerified: true purely
+      // because the org typed a number, and these rules allowed it, so any org
+      // could self-issue a verified badge with a single request.
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidOrganization(incoming()) &&
+                      incoming().get('craVerified', false) == false;
+      allow update: if isSignedIn() && isValidId(uid) && (
+        (request.auth.uid == uid && isValidOrganization(incoming()) &&
+         !incoming().diff(existing()).affectedKeys().hasAny(['craVerified', 'verificationStatus'])) ||
+        isDeveloper()
+      );
+      allow delete: if isDeveloper();
+    }
+
+    match /opportunities/{opportunityId} {
+      allow read: if true; // Public access to browse
+      allow create: if isVerifiedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId);
+      allow update: if isVerifiedOrg() && isValidId(opportunityId) &&
+                      existing().orgId == request.auth.uid && 
+                      isValidOpportunity(incoming());
+      allow delete: if isVerifiedOrg() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
+    }
+
+    match /applications/{applicationId} {
+      allow read: if isSignedIn() && isValidId(applicationId) && (
+        resource.data.studentId == request.auth.uid ||
+        (exists(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)) &&
+         get(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)).data.orgId == request.auth.uid) ||
+        isDeveloper()
+      );
+      
+      // Allow students to apply either directly (pending) or to waitlist (waitlist)
+      allow create: if isVerifiedStudent() && isValidId(applicationId) && isValidApplication(incoming()) && 
+                    (incoming().status == 'pending' || incoming().status == 'waitlist');
+                    
+      allow update: if isSignedIn() && isValidId(applicationId) && isValidApplication(incoming()) && (
+        // Student can withdraw (status changes to terminated) or update message/resume
+        (isOwner(existing().studentId) && 
+         (incoming().status == existing().status || incoming().status == 'terminated') &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['message', 'resumeUrl', 'status'])) ||
+        // Org can update status, rejectionReason, and rejectionNote
+        (exists(/databases/$(database)/documents/opportunities/$(existing().opportunityId)) &&
+         get(/databases/$(database)/documents/opportunities/$(existing().opportunityId)).data.orgId == request.auth.uid &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectionNote'])) ||
+        isDeveloper()
+      );
+      allow delete: if isOwner(resource.data.studentId) || isDeveloper();
+    }
+
+    match /savedOpportunities/{savedId} {
+      allow read: if isOwner(resource.data.studentId) || isDeveloper();
+      allow create: if isVerifiedStudent() && isValidSavedOpportunity(incoming()) && isValidId(savedId);
+      allow delete: if isOwner(resource.data.studentId) || isDeveloper();
+    }
+
+    match /feedbacks/{feedbackId} {
+      allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper()) && isValidId(feedbackId);
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming());
+      allow update: if isSignedIn() && isValidId(feedbackId) && (
+        isDeveloper() || 
+        (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))
+      );
+      allow delete: if isDeveloper();
+    }
+
+    match /reports/{reportId} {
+      allow read: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || resource.data.reportedUserId == request.auth.uid || isDeveloper()) && isValidId(reportId);
+      allow create: if isSignedIn() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming());
+      allow update, delete: if isDeveloper();
+    }
+
+    match /leaderboards/{leaderboardId} {
+      allow read: if isSignedIn();
+      allow write: if isDeveloper();
+    }
+
+    match /hoursRequests/{reqId} {
+      allow read: if isSignedIn() && isValidId(reqId) && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.coordinatorContact == request.auth.token.email ||
+        isDeveloper()
+      );
+      allow create: if isSignedIn() && isValidId(reqId) && (
+        (incoming().studentId == request.auth.uid && isValidHoursRequest(incoming()) && incoming().status == 'pending') ||
+        isDeveloper()
+      );
+      allow update: if isSignedIn() && isValidId(reqId) && (
+        // Only student owner can edit their own pending requests
+        (existing().studentId == request.auth.uid && 
+         existing().status == 'pending' &&
+         isValidHoursRequest(incoming()) && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['activity', 'organization', 'hours', 'date', 'coordinatorName', 'coordinatorContact'])) ||
+        // Coordinator can update status
+        (existing().coordinatorContact == request.auth.token.email && 
+         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
+         incoming().status in ['approved', 'declined']) ||
+        isDeveloper()
+      );
+      allow delete: if isSignedIn() && (
+        existing().studentId == request.auth.uid ||
+        isDeveloper()
+      );
+    }
+
+    match /interestRequests/{reqId} {
+      allow read: if isSignedIn() && (resource.data.studentId == request.auth.uid || isDeveloper()) && isValidId(reqId);
+      allow create: if isSignedIn() && isValidId(reqId) && (
+        (incoming().studentId == request.auth.uid && isValidInterestRequest(incoming())) || 
+        isDeveloper()
+      );
+      allow update: if isSignedIn() && isValidId(reqId) && (
+        (existing().studentId == request.auth.uid && isValidInterestRequest(incoming())) || 
+        isDeveloper()
+      );
+      allow delete: if isDeveloper();
+    }
+
+    match /chats/{chatId} {
+      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isDeveloper());
+      allow create: if isVerifiedOrg() && isValidId(chatId) && isValidChat(incoming());
+      // Any participant can bump lastMessage/updatedAt (i.e. send a message).
+      // Only the organization side can change who's actually in the chat
+      // (adding an accepted student, removing a terminated one), and the
+      // chat's type can never change after creation.
+      allow update: if isSignedIn() && isValidId(chatId) && (request.auth.uid in existing().participants) &&
+                      incoming().type == existing().type &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'participants', 'lastRead']) &&
+                      (
+                        !incoming().diff(existing()).affectedKeys().hasAny(['participants']) ||
+                        (isVerifiedOrg() && incoming().participants is list &&
+                         incoming().participants.size() >= 1 && incoming().participants.size() <= 200 &&
+                         request.auth.uid in incoming().participants)
+                      ) &&
+                      (!incoming().diff(existing()).affectedKeys().hasAny(['lastRead']) || incoming().lastRead is map);
+      // Developers can always clean up; an org can delete a chat it's part of
+      // (used when an opportunity/group chat is deleted).
+      allow delete: if isDeveloper() || (isVerifiedOrg() && request.auth.uid in existing().participants);
+
+      match /messages/{messageId} {
+        allow read: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || isDeveloper());
+        allow create: if isSignedIn() && 
+                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+                         isValidMessage(incoming());
+        allow update: if isDeveloper();
+        // Allow the org that owns the chat to delete messages as part of
+        // cascading a chat/opportunity deletion; developers can always clean up.
+        allow delete: if isDeveloper() ||
+                         (isVerifiedOrg() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+      }
+    }
+
+    // ── Org → Student recommendations ──
+    // An org writes a reference for a student after working with them.
+    // ID format: {orgUid}_{studentUid}_{opportunityId}
+    match /recommendations/{recId} {
+      // Students can read their own recommendations; orgs and devs can read all.
+      allow read: if isSignedIn() && (
+        resource.data.studentId == request.auth.uid ||
+        resource.data.orgId == request.auth.uid ||
+        isVerifiedOrg() ||
+        isDeveloper()
+      );
+      // Only the org that worked with the student can write. One per opportunity.
+      allow create: if isVerifiedOrg() && isValidId(recId) &&
+                       incoming().orgId == request.auth.uid &&
+                       incoming().studentId is string &&
+                       incoming().opportunityId is string &&
+                       incoming().text is string && incoming().text.size() <= 1000 &&
+                       incoming().rating is number && incoming().rating >= 1 && incoming().rating <= 5;
+      allow update: if isVerifiedOrg() && existing().orgId == request.auth.uid &&
+                       !incoming().diff(existing()).affectedKeys().hasAny(['orgId', 'studentId', 'opportunityId']);
+      allow delete: if isDeveloper() || (isVerifiedOrg() && existing().orgId == request.auth.uid);
+    }
+
+    // ── Student → Org ratings ──
+    // A student rates an org after completing volunteer work with them.
+    // ID format: {studentUid}_{orgUid}_{opportunityId}
+    match /orgRatings/{ratingId} {
+      // Anyone signed in can read ratings (they're shown on org profiles).
+      allow read: if isSignedIn();
+      // Only the student who volunteered can rate. One per opportunity.
+      allow create: if isSignedIn() && isValidId(ratingId) &&
+                       incoming().studentId == request.auth.uid &&
+                       incoming().orgId is string &&
+                       incoming().opportunityId is string &&
+                       incoming().stars is number && incoming().stars >= 1 && incoming().stars <= 5 &&
+                       incoming().comment is string && incoming().comment.size() <= 500;
+      // Students can edit their own rating within a window (enforced client-side).
+      allow update: if isSignedIn() && existing().studentId == request.auth.uid &&
+                       !incoming().diff(existing()).affectedKeys().hasAny(['studentId', 'orgId', 'opportunityId']);
+      allow delete: if isDeveloper();
+    }
+  }
+}

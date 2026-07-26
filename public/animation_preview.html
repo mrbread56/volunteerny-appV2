@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logo Animation Preview</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom Animations */
+        @keyframes float {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(-3deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+
+        @keyframes revealText {
+            0% { opacity: 0; transform: translateX(-20px); filter: blur(10px); }
+            100% { opacity: 1; transform: translateX(0); filter: blur(0px); }
+        }
+
+        @keyframes shine {
+            0% { background-position: -200% center; }
+            100% { background-position: 200% center; }
+        }
+
+        @keyframes spinSlow {
+            0% { transform: rotate(0deg) scale(0.5); opacity: 0; }
+            50% { transform: rotate(180deg) scale(1.2); opacity: 0.8; }
+            100% { transform: rotate(360deg) scale(1); opacity: 1; }
+        }
+
+        .animate-float {
+            animation: float 4s ease-in-out infinite;
+        }
+
+        .animate-reveal-text {
+            animation: revealText 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        .animate-spin-in {
+            animation: spinSlow 1.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+            opacity: 0;
+        }
+
+        .text-gradient-shine {
+            background: linear-gradient(
+                to right,
+                #2563eb 20%,
+                #60a5fa 40%,
+                #60a5fa 60%,
+                #2563eb 80%
+            );
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 4s linear infinite;
+        }
+
+        /* Staggered text reveal */
+        .char-1 { animation-delay: 0.3s; }
+        .char-2 { animation-delay: 0.4s; }
+        .char-3 { animation-delay: 0.5s; }
+    </style>
+</head>
+<body class="bg-slate-900 min-h-screen flex flex-col items-center justify-center overflow-hidden font-sans">
+    
+    <!-- Ambient Background Glow -->
+    <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-blue-500/20 rounded-full blur-[100px]"></div>
+
+    <div class="relative z-10 flex flex-col items-center gap-8 cursor-pointer group" onclick="location.reload()">
+        <!-- Animated Logo -->
+        <div class="relative w-40 h-40 flex items-center justify-center">
+            <!-- Glow ring behind logo -->
+            <div class="absolute inset-0 bg-blue-500/30 rounded-full blur-2xl group-hover:bg-blue-400/50 transition-colors duration-500"></div>
+            <!-- The Logo Image -->
+            <img 
+                src="/logo.png" 
+                alt="Logo" 
+                class="w-32 h-32 object-contain animate-spin-in drop-shadow-[0_0_15px_rgba(59,130,246,0.5)] z-10 group-hover:animate-float"
+            />
+        </div>
+
+        <!-- Animated Text -->
+        <div class="flex flex-col items-center">
+            <h1 class="text-5xl md:text-7xl font-extrabold tracking-tight flex gap-3">
+                <span class="animate-reveal-text char-1 text-white">Volunteer</span>
+                <span class="animate-reveal-text char-2 text-white">North</span>
+                <span class="animate-reveal-text char-3 text-gradient-shine">York</span>
+            </h1>
+            <p class="text-slate-400 mt-4 text-lg tracking-widest uppercase font-medium animate-reveal-text" style="animation-delay: 1s;">
+                Interactive Animation Demo
+            </p>
+        </div>
+
+        <button class="mt-12 px-6 py-2 rounded-full border border-slate-700 text-slate-400 text-sm hover:bg-slate-800 hover:text-white transition-all animate-reveal-text" style="animation-delay: 1.5s;">
+            Click anywhere to replay
+        </button>
+    </div>
+
+</body>
+</html>

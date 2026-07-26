@@ -1,0 +1,169 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* ── Ink: text hierarchy (video 15: "don't use pure black, use dark gray") ── */
+  --color-ink: #1A2B36;
+  --color-ink-soft: #2D4A5A;
+  --color-ink-muted: #5C7483;
+
+  /* ── Paper: background layers (video 12: "4 layers of backgrounds") ── */
+  --color-paper: #FFFFFF;
+  --color-paper-2: #F9F9F7;
+  --color-paper-3: #F3F2EE;
+
+  /* ── Accent: 10% of the UI only (video 1: "60/30/10 rule") ── */
+  --color-amber: #E08A3C;
+  --color-amber-dark: #A85E22;
+  --color-amber-light: #F5DFC5;
+
+  --color-blue-accent: #2E6B8A;
+  --color-blue-dark: #1F4C63;
+
+  --color-gold: #B98A22;
+
+  /* ── Lines: subtle, not bold (video 15: "use ~85% white for borders") ── */
+  --color-line: #E5E2D9;
+  --color-line-light: #EDEAE3;
+
+  /* ── Semantic (video 15: "red for danger, green for success") ── */
+  --color-primary-950: #1E2B22;
+  --color-accent-500: #E08A3C;
+
+  /* ── Legacy scales (preserved for existing pages) ── */
+  --color-blue-50: #f0f7ff;
+  --color-blue-100: #e0f0fe;
+  --color-blue-105: #bfdbfe;
+  --color-blue-200: #93c5fd;
+  --color-blue-300: #60a5fa;
+  --color-blue-400: #3b82f6;
+  --color-blue-500: #2563eb;
+  --color-blue-600: #1d4ed8;
+  --color-blue-700: #1e40af;
+  --color-blue-800: #1e3a8a;
+  --color-blue-900: #172554;
+
+  --color-orange-50: #fff7ed;
+  --color-orange-100: #ffedd5;
+  --color-orange-200: #fed7aa;
+  --color-orange-300: #fdba74;
+  --color-orange-400: #fb923c;
+  --color-orange-500: #ff6b35;
+  --color-orange-600: #ea580c;
+  --color-orange-700: #c2410c;
+  --color-orange-850: #9a3412;
+  --color-orange-900: #7c2d12;
+
+  --color-slate-50: #fafafb;
+
+  /* ── Typography ──
+   * Two fonts: Outfit (everything) + Fraunces (hero display only)
+   * Video 10: "you'll never need more than one font"
+   * Video 10: "tighten letter-spacing -2% to -3% on headers"
+   */
+  --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", Georgia, serif;
+  --font-serif: "Fraunces", Georgia, serif;
+  --font-mono: "Outfit", system-ui, sans-serif;
+
+  /* ── Radius: one system (video 6: "set corner radius of all components") ── */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Shadows: subtle (video 10: "change shadow color, increase blur") ── */
+  --shadow-subtle: 0 1px 3px rgba(26,43,54,0.04);
+  --shadow-card: 0 1px 3px rgba(26,43,54,0.04), 0 1px 2px rgba(26,43,54,0.02);
+  --shadow-elevated: 0 4px 12px rgba(26,43,54,0.08), 0 1px 3px rgba(26,43,54,0.04);
+  --shadow-modal: 0 8px 30px rgba(26,43,54,0.12), 0 2px 8px rgba(26,43,54,0.06);
+
+  /* ── Motion: snappy (video 5: "snappy, fast dashboard") ── */
+  --animate-fadeIn: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  --animate-cloud: cloud 45s linear infinite;
+  --animate-cloud-slow: cloud 65s linear infinite;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes cloud {
+  from { transform: translateX(100%); }
+  to { transform: translateX(-120%); }
+}
+
+/* ── Global ── */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: #FFFFFF;
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/*
+ * Video 10: "tighten letter-spacing -2% to -3% and drop line height
+ * to 110-120% — it instantly makes any larger text look super pro"
+ *
+ * Applied globally to all headings so every page benefits without
+ * touching individual files.
+ */
+h1, h2, h3 {
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+}
+
+h4, h5, h6 {
+  letter-spacing: -0.01em;
+  line-height: 1.3;
+}
+
+/*
+ * Video 10: "every button needs at least four states: default, hovered,
+ * active/pressed, and disabled"
+ *
+ * Global transition so all interactive elements feel responsive.
+ */
+button, a, [role="button"] {
+  transition: all 0.15s ease;
+}
+
+button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* ── Selection ── */
+::selection {
+  background-color: #E08A3C;
+  color: white;
+}
+
+/* ── Focus ring (video 10: "inputs need a focus state") ── */
+:focus-visible {
+  outline: 2px solid var(--color-blue-dark);
+  outline-offset: 2px;
+}
+
+/* ── SVG rendering ── */
+svg {
+  shape-rendering: geometricPrecision;
+}
+
+/*
+ * Video 5: "keep margins well spaced so content isn't tightly packed"
+ * Video 8: "fonts actually get LARGER on smaller screens"
+ *
+ * Ensure readable base size on all devices.
+ */
+@media (max-width: 640px) {
+  html {
+    font-size: 16px;
+  }
+}
