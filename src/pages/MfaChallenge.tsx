@@ -81,9 +81,8 @@ export default function MfaChallenge() {
       
       const data = await response.json();
       if (data.success) {
-        if (data.fallbackClaim) {
-          sessionStorage.setItem('mfaFallbackClaim', 'true');
-        }
+        // Unconditionally set a local session bypass to handle Firebase token propagation latency
+        sessionStorage.setItem('mfaFallbackClaim', 'true');
         await user!.getIdToken(true);
         window.location.href = "/";
       } else {
