@@ -59,16 +59,20 @@ function getFirebaseAdmin(): typeof admin | null {
       if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         console.log('[Firebase Admin] Using GOOGLE_APPLICATION_CREDENTIALS for auth.');
         // ADC will pick this up automatically
-      } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-        console.log('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY found, attempting to parse...');
-        try {
-          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-          initConfig.credential = admin.credential.cert(serviceAccount);
-          console.log('[Firebase Admin] Successfully parsed service account key for:', serviceAccount.client_email);
-        } catch (parseErr) {
-          console.warn('[Firebase Admin] Could not parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseErr);
-        }
-      } else {
+        } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+          console.log('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY found, attempting to parse...');
+          try {
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+            // Vercel sometimes escapes newlines in env vars, causing cert() to fail
+            if (serviceAccount.private_key) {
+              serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+            }
+            initConfig.credential = admin.credential.cert(serviceAccount);
+            console.log('[Firebase Admin] Successfully parsed service account key for:', serviceAccount.client_email);
+          } catch (parseErr) {
+            console.warn('[Firebase Admin] Could not parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseErr);
+          }
+        } else {
         console.warn('[Firebase Admin] No service account key found. Will try Application Default Credentials.');
       }
 

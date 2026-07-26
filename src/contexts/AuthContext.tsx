@@ -178,11 +178,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
       const userEmail = ((currentUser as any).email || '').toLowerCase();
       const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
+      console.log('[AuthContext] AUTHORIZED_DEVS:', AUTHORIZED_DEVS);
+      console.log('[AuthContext] userEmail:', userEmail);
+      console.log('[AuthContext] isDevEmail:', isDevEmail);
 
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      console.log('[AuthContext] userDoc.exists():', userDoc.exists());
       if (userDoc.exists()) {
         setProfileMissing(false);
         const data = userDoc.data() as UserProfile;
+        
+        // If the profile exists but has NO role, we should still fallback to dev if applicable
+        if (!data.role && isDevEmail) {
+          console.log('[AuthContext] userDoc exists but has no role. Falling back to dev profile.');
+          data.role = 'developer';
+        }
+
         if (data.twoFactorEnabled === undefined) {
           // Older accounts predate this field. Default to the same policy as
           // signup: required for organizations and developers, optional for students (who can
