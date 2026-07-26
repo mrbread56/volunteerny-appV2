@@ -73,7 +73,11 @@ export default function Login() {
       const credential = await signInWithPopup(auth, provider);
       
       const isNewUser = credential.user.metadata.creationTime === credential.user.metadata.lastSignInTime;
-      if (isNewUser) {
+      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
+      const userEmail = (credential.user.email || '').toLowerCase();
+      const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
+
+      if (isNewUser && !isDevEmail) {
         // Don't delete the user - that's destructive. Just sign them out
         // and redirect to signup so they can complete registration properly.
         await auth.signOut();
