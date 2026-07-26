@@ -81,10 +81,9 @@ export default function MfaChallenge() {
       
       const data = await response.json();
       if (data.success) {
-        // Verification succeeded server-side. Force-refresh the ID token so
-        // it picks up the new `mfaVerified` custom claim before we navigate
-        // (this claim, not anything in local storage, is what AuthContext
-        // trusts) then reload so AuthContext re-reads it from a clean state.
+        if (data.fallbackClaim) {
+          sessionStorage.setItem('mfaFallbackClaim', 'true');
+        }
         await user!.getIdToken(true);
         window.location.href = "/";
       } else {

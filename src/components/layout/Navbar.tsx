@@ -40,7 +40,7 @@ export default function Navbar() {
           <Link to="/" onClick={close} className="flex items-center gap-2.5 group">
             <img
               src="/logo.png"
-              alt="Volunteer North York"
+              alt=""
               className="w-8 h-8 object-contain transition-transform duration-300 group-hover:scale-105"
             />
             <span className="text-[15px] font-semibold tracking-[-0.03em] text-ink hidden sm:inline">

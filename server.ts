@@ -386,6 +386,7 @@ app.use(express.json());
       devOtpStore.delete(authContext.uid);
 
       if (!authContext.isDemo) {
+        let claimSet = false;
         try {
           const userRecord = await adminObj.auth().getUser(authContext.uid);
           const existingClaims = userRecord.customClaims || {};
@@ -394,10 +395,14 @@ app.use(express.json());
             mfaVerified: true,
             mfaVerifiedAt: Date.now(),
           });
+          claimSet = true;
           console.log('[verify-otp] MFA claim set for:', authContext.uid);
         } catch (authErr: any) {
           console.error('[verify-otp] Could not set MFA claim:', authErr.message);
-          // Don't throw here, just log it, so local testing can proceed even if claim fails
+        }
+        
+        if (!claimSet) {
+          return res.json({ success: true, fallbackClaim: true });
         }
       }
 

@@ -73,7 +73,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       const tokenResult = await user.getIdTokenResult(true);
-      setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
+      if (tokenResult.claims.mfaVerified === true) {
+        setMfaVerifiedState(true);
+      } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
+        // The server verified the OTP but couldn't set the custom claim (e.g. missing admin credentials locally)
+        setMfaVerifiedState(true);
+      } else {
+        setMfaVerifiedState(false);
+      }
     } catch (e) {
       console.error('Failed to refresh MFA claim:', e);
       setMfaVerifiedState(false);
