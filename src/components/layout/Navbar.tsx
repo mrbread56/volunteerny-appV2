@@ -11,7 +11,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
-  const authed = !!user && !loading && !profileMissing && isVerified && location.pathname !== '/mfa';
+  const authed = !!user && !loading && !profileMissing && isVerified;
 
   const handleLogout = async () => {
     setOpen(false);

@@ -290,34 +290,66 @@ app.use(express.json());
         }
       }
 
-      // Always log in dev so you can proceed without email
-      if (true) {
+      // Dev-only convenience so you can proceed without email in local/preview.
+      // NEVER log OTPs in production - this leaks codes into your log aggregator.
+      if (process.env.NODE_ENV !== 'production') {
         console.log(`[DEV OTP] Code for ${authContext.email}: ${otp}`);
       }
 
       // Send the email
-      if (resend) {
-        const { error } = await resend.emails.send({
-          from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
-          to: authContext.email,
-          subject: 'Your Volunteer NY Security Code',
-          html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
-            <h2 style="margin: 0 0 8px; font-size: 18px; color: #1A2B36;">Your Security Code</h2>
-            <p style="margin: 0 0 24px; color: #5C7483; font-size: 14px;">Enter this code to complete your sign-in:</p>
-            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1F4C63; padding: 16px; background: #F9F9F7; border-radius: 8px;">${otp}</div>
-            <p style="margin: 24px 0 0; color: #5C7483; font-size: 12px;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
-          </div>`
-        });
-        if (error) {
-          console.error('[send-otp] Resend error:', { message: error.message, from: process.env.MAIL_FROM || '(fallback)' });
-          return res.status(500).json({
-            error: 'Could not send the verification email. Please try again.',
-            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
-          });
+      if (!resend) {
+        // Hard fail rather than returning success:true. Previously this silently
+        // "succeeded" without sending anything, which is exactly the failure
+        // mode you're seeing — a 200 with no email.
+        console.error('[send-otp] RESEND_API_KEY not configured; cannot send OTP.');
+        if (process.env.NODE_ENV !== 'production') {
+          // In dev, surface the code to the client so you can keep working.
+          return res.json({ success: true, devOtp: otp, transport: 'none' });
         }
+        return res.status(503).json({
+          error: 'Email service is not configured. Please contact support.',
+        });
       }
 
-      res.json({ success: true });
+      const { data, error } = await resend.emails.send({
+        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+        to: authContext.email,
+        subject: 'Your Volunteer NY Security Code',
+        html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
+          <h2 style="margin: 0 0 8px; font-size: 18px; color: #1A2B36;">Your Security Code</h2>
+          <p style="margin: 0 0 24px; color: #5C7483; font-size: 14px;">Enter this code to complete your sign-in:</p>
+          <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1F4C63; padding: 16px; background: #F9F9F7; border-radius: 8px;">${otp}</div>
+          <p style="margin: 24px 0 0; color: #5C7483; font-size: 12px;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
+        </div>`
+      });
+
+      if (error) {
+        console.error('[send-otp] Resend error:', {
+          message: error.message,
+          name: (error as any).name,
+        });
+        return res.status(502).json({
+          error: 'Could not send the verification email. Please try again.',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
+      }
+
+      // Resend accepted the send. Log the message id so you can look it up in
+      // the Resend dashboard when a user reports "code never arrived" — this
+      // is how you tell "we never sent it" from "recipient's mail server
+      // dropped it".
+      console.log('[send-otp] Resend accepted:', {
+        id: data?.id,
+        to: authContext.email,
+        from: process.env.MAIL_FROM || '(fallback)',
+      });
+
+      return res.status(200).json({ 
+        success: true, 
+        messageId: data?.id,
+        message: 'OTP generated and sent.',
+        ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {})
+      });
     } catch (err: any) {
       console.error('[send-otp] Crash:', err);
       res.status(500).json({ error: `Crash: ${err.message}. Please check server logs.` });

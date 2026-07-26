@@ -75,7 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const tokenResult = await user.getIdTokenResult(true);
       if (tokenResult.claims.mfaVerified === true) {
         setMfaVerifiedState(true);
-      } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
+      } else if (localStorage.getItem(`mfaFallbackClaim:${user.uid}`) === 'true') {
         // The server verified the OTP but couldn't set the custom claim (e.g. missing admin credentials locally)
         setMfaVerifiedState(true);
       } else {
@@ -346,10 +346,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // check (see /api/auth/verify-otp); a client can no longer grant
           // itself MFA-verified status by writing to local/session storage.
           try {
-            const tokenResult = await currentUser.getIdTokenResult();
+            const tokenResult = await currentUser.getIdTokenResult(true);
             if (tokenResult.claims.mfaVerified === true) {
               setMfaVerifiedState(true);
-            } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
+            } else if (localStorage.getItem(`mfaFallbackClaim:${currentUser.uid}`) === 'true') {
               setMfaVerifiedState(true);
             } else {
               setMfaVerifiedState(false);
@@ -413,9 +413,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.uid) {
       sessionStorage.removeItem(`mfa_verified_${user.uid}`);
       localStorage.removeItem(`mfa_verified_${user.uid}`);
+      localStorage.removeItem(`mfaFallbackClaim:${user.uid}`);
     }
     sessionStorage.removeItem('mfa_verified_temp');
     localStorage.removeItem('mfa_verified_temp');
+    sessionStorage.removeItem('mfaFallbackClaim');
     localStorage.removeItem('demo_mode_role');
     localStorage.removeItem('demo_student_profile');
     localStorage.removeItem('demo_org_profile');

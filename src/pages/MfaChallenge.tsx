@@ -16,7 +16,7 @@ export default function MfaChallenge() {
   const [hasSentOTP, setHasSentOTP] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile, mfaVerified, loading } = useAuth();
+  const { user, userProfile, mfaVerified, loading, setMfaVerified } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -81,10 +81,21 @@ export default function MfaChallenge() {
       
       const data = await response.json();
       if (data.success) {
-        // Unconditionally set a local session bypass to handle Firebase token propagation latency
-        sessionStorage.setItem('mfaFallbackClaim', 'true');
+        // If the server couldn't set the real custom claim, remember that in
+        // localStorage so other tabs and reloads treat this session as verified.
+        if (data.fallbackClaim) {
+          localStorage.setItem(`mfaFallbackClaim:${user!.uid}`, 'true');
+        }
+
+        // Force a token refresh so downstream code sees the new claim.
         await user!.getIdToken(true);
-        window.location.href = "/";
+
+        // Poke AuthContext directly rather than relying on a hard reload to
+        // re-run onAuthStateChanged. The navbar re-renders synchronously.
+        await setMfaVerified(true);
+
+        // Soft nav so we keep the SPA and don't blank the screen.
+        navigate('/', { replace: true });
       } else {
         setError(data.error || "Invalid verification code.");
       }

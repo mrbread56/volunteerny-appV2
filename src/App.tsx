@@ -177,7 +177,11 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
 
   // Authenticated, but the account has no profile document. Without this the
   // user bounces to /mfa forever with no way out. Tell them what happened.
-  if (profileMissing) return <AccountSetupIncomplete />;
+  if (profileMissing) return (
+    <PublicLayout>
+      <AccountSetupIncomplete />
+    </PublicLayout>
+  );
 
   // Perform strict checking using the dedicated verifyMfaClaim middleware function
   const isMfaClaimValid = verifyMfaClaim(user, userProfile, mfaVerified);
@@ -234,12 +238,14 @@ function ScrollToTop() {
 import SplashScreen from './components/SplashScreen';
 
 const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
-  const { user, userProfile, mfaVerified, loading } = useAuth();
+  const { user, userProfile, mfaVerified, loading, profileMissing } = useAuth();
   const location = useLocation();
 
   if (loading) return <>{children}</>;
 
   if (user) {
+    if (profileMissing) return <>{children}</>;
+
     const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
     if (!isVerified && location.pathname !== '/mfa' && location.pathname !== '/login' && location.pathname !== '/signup') {
       return <Navigate to="/mfa" replace />;
