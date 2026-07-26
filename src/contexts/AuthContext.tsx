@@ -279,6 +279,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network')) {
         console.warn('Offline mode: Could not fetch profiles from Firestore.');
         setAuthError('Network error while connecting to the database. Please check your internet connection and try again.');
+        
+        // Developer fallback: if we can't connect to Firestore, still let developers in!
+        const envDevs = import.meta.env.VITE_DEVELOPER_EMAILS || '';
+        const rawDevs = envDevs ? envDevs : 'kiamehrmetanat@gmail.com'; // Hardcode fallback
+        const AUTHORIZED_DEVS = rawDevs.split(',').map((e: string) => e.trim().toLowerCase());
+        const userEmail = ((currentUser as any).email || '').toLowerCase();
+        
+        if (AUTHORIZED_DEVS.includes(userEmail)) {
+          console.warn('[AuthContext] Offline mode: Bypassing Firestore for developer profile.');
+          setProfileMissing(false);
+          setUserProfile({
+            uid: currentUser.uid,
+            email: userEmail,
+            role: 'developer',
+            twoFactorEnabled: true,
+            createdAt: new Date(),
+          });
+        }
       } else {
         console.error('Error fetching profiles:', error);
         setAuthError('An unexpected error occurred while loading your profile. Please try again.');
