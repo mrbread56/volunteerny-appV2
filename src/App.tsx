@@ -233,6 +233,22 @@ function ScrollToTop() {
 
 import SplashScreen from './components/SplashScreen';
 
+const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
+  const { user, userProfile, mfaVerified, loading } = useAuth();
+  const location = useLocation();
+
+  if (loading) return <>{children}</>;
+
+  if (user) {
+    const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
+    if (!isVerified && location.pathname !== '/mfa' && location.pathname !== '/login' && location.pathname !== '/signup') {
+      return <Navigate to="/mfa" replace />;
+    }
+  }
+
+  return <>{children}</>;
+};
+
 function App() {
   return (
     <ErrorBoundary>
@@ -240,8 +256,9 @@ function App() {
         <Router>
           <ScrollToTop />
           <SplashScreen>
-            <Suspense fallback={<LoadingFallback />}>
-              <Routes>
+            <GlobalAuthGuard>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
                 {/* Public Routes — traditional navbar + footer */}
                 <Route path="/" element={<PublicLayout><Home /></PublicLayout>} />
                 <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
@@ -324,8 +341,9 @@ function App() {
                 } />
 
                 <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </Suspense>
+                </Routes>
+              </Suspense>
+            </GlobalAuthGuard>
           </SplashScreen>
         </Router>
       </AuthProvider>
