@@ -351,12 +351,12 @@ export default function StudentProfile() {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="max-w-7xl mx-auto py-12 px-6 md:px-10 space-y-12 bg-paper-2 min-h-screen"
     >
-      <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-6 sm:p-8 rounded-lg  border-none relative overflow-hidden group">
+      <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-6 sm:p-8 rounded-lg border-none relative overflow-hidden group">
         <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 scale-150 transform group-hover:scale-175 transition-transform duration-700">
           <UserCheck className="w-48 h-48 text-ink" />
         </div>
 
-        <div className="w-24 h-24 md:w-32 md:h-32 bg-[#1F4C63] rounded-lg flex items-center justify-center  shrink-0 relative z-10 group-hover:scale-105 transition-transform duration-500">
+        <div className="w-24 h-24 md:w-32 md:h-32 bg-blue-dark rounded-lg flex items-center justify-center shrink-0 relative z-10 group-hover:scale-105 transition-transform duration-500">
           <UserCheck className="text-white w-12 h-12 md:w-16 md:h-16" />
         </div>
 
@@ -386,7 +386,7 @@ export default function StudentProfile() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h2 className="text-lg font-bold text-ink flex items-center gap-2">
-              <Trophy className="text-[#1F4C63] w-5 h-5" />
+              <Trophy className="text-blue-dark w-5 h-5" />
               Badges
             </h2>
             <p className="text-sm text-ink-soft mt-1">
@@ -399,8 +399,8 @@ export default function StudentProfile() {
           {evaluateBadges(studentProfile).map(({ badge, isUnlocked }) => {
 
             const categoryColor = (cat: string) => {
-              if (cat === "milestone") return "bg-[#1F4C63]";
-              if (cat === "skill") return "bg-[#E08A3C]";
+              if (cat === "milestone") return "bg-blue-dark";
+              if (cat === "skill") return "bg-amber";
               return "bg-slate-600";
             };
 
@@ -464,7 +464,7 @@ export default function StudentProfile() {
                 <div className="mt-4 pt-3 border-t border-line">
                   <span className={cn(
                     "text-xs font-medium",
-                    isUnlocked ? "text-[#E08A3C]" : "text-ink-muted"
+                    isUnlocked ? "text-amber" : "text-ink-muted"
                   )}>
                     {isUnlocked ? "Unlocked ✓" : badge.requirement}
                   </span>
@@ -480,10 +480,10 @@ export default function StudentProfile() {
         className="grid grid-cols-1 lg:grid-cols-12 gap-12"
       >
         <div className="lg:col-span-8 space-y-12">
-          <Card className="border-none  rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1F4C63]/10 rounded-lg flex items-center justify-center text-[#1F4C63]">
+                <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <School className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
@@ -616,7 +616,7 @@ export default function StudentProfile() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-6 border-t border-line">
                 <div className="space-y-3">
                   <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-[#1F4C63]" /> Contact Email (visible to organizations)
+                    <Mail className="w-3.5 h-3.5 text-blue-dark" /> Contact Email (visible to organizations)
                   </label>
                   <Input
                     type="email"
@@ -640,7 +640,7 @@ export default function StudentProfile() {
                 </div>
                 <div className="space-y-3">
                   <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-[#1F4C63]" /> Phone Number (visible to organizations)
+                    <Phone className="w-3.5 h-3.5 text-blue-dark" /> Phone Number (visible to organizations)
                   </label>
                   <Input
                     type="tel"
@@ -665,10 +665,10 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none  rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1F4C63]/10 rounded-lg flex items-center justify-center text-[#1F4C63]">
+                <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <GraduationCap className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
@@ -699,7 +699,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         interests.includes(interest)
                           ? "bg-slate-900 border-slate-900 text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-[#1F4C63]/10 hover:text-[#1F4C63] hover:scale-[1.02]",
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark hover:scale-[1.02]",
                         errors.interests && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -730,8 +730,8 @@ export default function StudentProfile() {
                       className={cn(
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         skills.includes(skill)
-                          ? "bg-[#1F4C63] border-[#1F4C63] text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-[#1F4C63]/10 hover:text-[#1F4C63] hover:scale-[1.02]",
+                          ? "bg-blue-dark border-blue-dark text-white  scale-105"
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark hover:scale-[1.02]",
                         errors.skills && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -762,8 +762,8 @@ export default function StudentProfile() {
                       className={cn(
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
-                          ? "bg-[#E08A3C] border-[#E08A3C] text-white  shadow-orange-500/15 scale-105"
-                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-[#E08A3C] hover:scale-[1.02]",
+                          ? "bg-amber border-amber text-white  shadow-orange-500/15 scale-105"
+                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber hover:scale-[1.02]",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -775,10 +775,10 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none  rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1F4C63]/10 rounded-lg flex items-center justify-center text-[#1F4C63]">
+                <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <FileText className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
@@ -795,7 +795,7 @@ export default function StudentProfile() {
                   value={previousExperience}
                   onChange={(e) => setPreviousExperience(e.target.value)}
                   placeholder="Tell us where else you've volunteered and what motivates you to help..."
-                  className="w-full min-h-[250px] p-6 rounded-lg bg-paper-2 border-line font-medium text-ink-soft  focus:ring-2 focus:ring-[#1F4C63] focus:outline-none transition-all"
+                  className="w-full min-h-[250px] p-6 rounded-lg bg-paper-2 border-line font-medium text-ink-soft focus:ring-2 focus:ring-blue-dark focus:outline-none transition-all"
                 />
                 <p className="text-xs text-ink-soft italic ml-2">
                   This helps organizations understand your background and
@@ -805,10 +805,10 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none  rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
-                <div className="w-12 h-12 bg-[#1F4C63]/10 rounded-lg flex items-center justify-center text-[#1F4C63]">
+                <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <FileText className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
@@ -858,17 +858,17 @@ export default function StudentProfile() {
                     </p>
                   )}
                   {fileUploadSuccess && (
-                    <p className="mt-2 text-xs font-semibold text-[#E08A3C]">
+                    <p className="mt-2 text-xs font-semibold text-amber">
                       {fileUploadSuccess}
                     </p>
                   )}
                 </div>
                 {resumeUrl && (
-                  <div className="mt-4 flex items-center justify-center gap-2 p-3 bg-[#1F4C63]/5 rounded-lg border border-[#1F4C63]/10">
-                    <div className="w-8 h-8 bg-[#1F4C63] rounded-lg flex items-center justify-center text-white">
+                  <div className="mt-4 flex items-center justify-center gap-2 p-3 bg-blue-dark/5 rounded-lg border border-blue-dark/10">
+                    <div className="w-8 h-8 bg-blue-dark rounded-lg flex items-center justify-center text-white">
                       <FileText className="w-4 h-4" />
                     </div>
-                    <p className="text-xs font-semibold text-[#1F4C63]">
+                    <p className="text-xs font-semibold text-blue-dark">
                       Resume Attached
                     </p>
                   </div>
@@ -880,7 +880,7 @@ export default function StudentProfile() {
 
         <div className="lg:col-span-4 space-y-8">
           {/* Leaderboard Preferences Card */}
-          <Card className="rounded-lg border border-line  bg-white p-8 space-y-6">
+          <Card className="rounded-lg border border-line bg-white p-8 space-y-6">
             <div>
               <h3 className="text-lg font-bold text-ink mb-1">
                 Leaderboard Options
@@ -905,7 +905,7 @@ export default function StudentProfile() {
                   onClick={() => setTrackerEnabled(!trackerEnabled)}
                   className={cn(
                     "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                    trackerEnabled ? "bg-[#1F4C63]" : "bg-slate-200",
+                    trackerEnabled ? "bg-blue-dark" : "bg-slate-200",
                   )}
                 >
                   <span
@@ -933,7 +933,7 @@ export default function StudentProfile() {
                   className={cn(
                     "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
                     trackerAnonymous && trackerEnabled
-                      ? "bg-[#E08A3C]"
+                      ? "bg-amber"
                       : "bg-slate-200",
                     !trackerEnabled && "opacity-50 cursor-not-allowed",
                   )}
@@ -948,7 +948,7 @@ export default function StudentProfile() {
               </div>
             </div>
           </Card>
-          <Card className="rounded-lg border border-line  bg-white p-5 sm:p-8 space-y-8 sticky top-24">
+          <Card className="rounded-lg border border-line bg-white p-5 sm:p-8 space-y-8 sticky top-24">
             <div>
               <h3 className="text-lg font-bold text-ink mb-2">
                 My Profile
@@ -991,7 +991,7 @@ export default function StudentProfile() {
                 <span
                   className={cn(
                     "font-semibold",
-                    resumeUrl ? "text-[#1F4C63]" : "text-[#E08A3C]",
+                    resumeUrl ? "text-blue-dark" : "text-amber",
                   )}
                 >
                   {resumeUrl ? "Uploaded" : "Optional"}
@@ -1006,13 +1006,13 @@ export default function StudentProfile() {
                 </div>
               )}
               {success ? (
-                <div className="bg-[#1F4C63] text-white h-14 rounded-lg flex items-center justify-center text-xs font-semibold tracking-wide animate-in zoom-in duration-300">
+                <div className="bg-blue-dark text-white h-14 rounded-lg flex items-center justify-center text-xs font-semibold tracking-wide animate-in zoom-in duration-300">
                   <UserCheck className="w-4 h-4 mr-2" /> Changes Saved!
                 </div>
               ) : (
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-[#1F4C63] hover:bg-[#1F4C63] rounded-lg font-semibold text-xs"
+                  className="w-full h-14 bg-blue-dark hover:bg-blue-dark rounded-lg font-semibold text-xs"
                   isLoading={isSaving}
                 >
                   Save Profile
@@ -1069,7 +1069,7 @@ export default function StudentProfile() {
                           type="button"
                           disabled={isDeleting}
                           onClick={handleDeleteAccountInput}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg  rounded-full"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg rounded-full"
                         >
                           {isDeleting ? "Deleting..." : "Delete Account"}
                         </button>

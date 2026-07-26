@@ -16,7 +16,7 @@ export default function MfaChallenge() {
   const [hasSentOTP, setHasSentOTP] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile, mfaVerified, loading, setMfaVerified } = useAuth();
+  const { user, userProfile, mfaVerified, loading } = useAuth();
 
   useEffect(() => {
     if (loading) return;
@@ -82,17 +82,9 @@ export default function MfaChallenge() {
       const data = await response.json();
       if (data.success) {
         // Unconditionally set a local session bypass to handle Firebase token propagation latency
-        localStorage.setItem(`mfaFallbackClaim:${user!.uid}`, 'true');
-
-        // Force a token refresh so downstream code sees the new claim.
+        sessionStorage.setItem('mfaFallbackClaim', 'true');
         await user!.getIdToken(true);
-
-        // Poke AuthContext directly rather than relying on a hard reload to
-        // re-run onAuthStateChanged. The navbar re-renders synchronously.
-        await setMfaVerified(true);
-
-        // Soft nav so we keep the SPA and don't blank the screen.
-        navigate('/', { replace: true });
+        window.location.href = "/";
       } else {
         setError(data.error || "Invalid verification code.");
       }
@@ -124,9 +116,9 @@ export default function MfaChallenge() {
         transition={{ duration: 0.3 }}
         className="w-full max-w-md relative z-10"
       >
-        <Card className="w-full border-[#1F4C63]/10  overflow-hidden rounded-lg">
+        <Card className="w-full border-blue-dark/10 overflow-hidden rounded-lg">
           <CardHeader className="text-center pb-2 pt-10">
-            <div className="mx-auto w-16 h-16 bg-[#1F4C63] rounded-lg flex items-center justify-center mb-6  shadow-blue-200">
+            <div className="mx-auto w-16 h-16 bg-blue-dark rounded-lg flex items-center justify-center mb-6 shadow-blue-200">
               <ShieldAlert className="w-8 h-8 text-white" />
             </div>
             <CardTitle className="text-3xl font-semibold tracking-tight text-ink">Security Check</CardTitle>
@@ -168,7 +160,7 @@ export default function MfaChallenge() {
                 type="button" 
                 onClick={handleResend}
                 disabled={isLoading}
-                className="text-sm font-bold text-ink-muted hover:text-[#1F4C63] transition-colors rounded-full"
+                className="text-sm font-bold text-ink-muted hover:text-blue-dark transition-colors rounded-full"
               >
                 Didn't receive it? Resend code
               </button>

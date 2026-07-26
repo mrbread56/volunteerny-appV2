@@ -224,7 +224,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
 
         {status === 'success' ? (
           <div className="p-10 text-center space-y-4 flex-1 overflow-y-auto flex flex-col justify-center items-center">
-            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center mx-auto  border border-emerald-100 animate-bounce">
+            <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-lg flex items-center justify-center mx-auto border border-emerald-100 animate-in zoom-in-50 duration-500">
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <h3 className="text-xl font-bold text-ink uppercase tracking-tight">Report Logged Safely</h3>

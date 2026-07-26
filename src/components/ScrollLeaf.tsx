@@ -26,7 +26,7 @@ export default function ScrollLeaf() {
         {/* Center line that draws down */}
         <div className="absolute left-1/2 -translate-x-1/2 top-0 w-[2px] h-full overflow-hidden z-20">
           <motion.div 
-            className="w-full  from-[#1F4C63] via-[#1F4C63] to-[#E08A3C]"
+            className="w-full bg-gradient-to-b from-blue-dark via-blue-dark to-amber"
             style={{ height: lineHeight }}
           />
         </div>
@@ -53,7 +53,7 @@ export default function ScrollLeaf() {
                250 200, 270 200, 280 180
                290 160, 280 140, 260 100
                240 60, 180 20, 160 20 Z"
-            stroke="#1F4C63"
+            stroke="var(--color-blue-dark)"
             strokeWidth="3"
             strokeLinecap="round"
             strokeLinejoin="round"
@@ -70,7 +70,7 @@ export default function ScrollLeaf() {
                C65 300, 80 280, 90 260 
                C95 280, 100 310, 110 330 
                C120 350, 140 360, 160 380 Z"
-            fill="#1F4C63"
+            fill="var(--color-blue-dark)"
             style={{ opacity: leftColorOpacity }}
           />
           {/* Right half fill */}
@@ -84,7 +84,7 @@ export default function ScrollLeaf() {
                C255 300, 240 280, 230 260
                C225 280, 220 310, 210 330
                C200 350, 180 360, 160 380 Z"
-            fill="#E08A3C"
+            fill="var(--color-amber)"
             style={{ opacity: rightColorOpacity }}
           />
         </svg>

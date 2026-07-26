@@ -22,7 +22,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 const DefaultIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-6 h-6 bg-[#1F4C63]/15 rounded-lg blur-sm"></div>
+      <div class="absolute w-6 h-6 bg-blue-dark/15 rounded-lg blur-sm"></div>
       <div class="w-8 h-8    border-2 border-white rounded-lg  flex items-center justify-center transition-all duration-300 transform hover:scale-110">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
           <path d="M12 21C12 21 4 14 4 9C4 5.96 6.46 3.5 9.5 3.5C11.18 3.5 12.69 4.25 13.7 5.43" />
@@ -40,8 +40,8 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-[#E08A3C]/40 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-[#E08A3C] border-2 border-white rounded-lg  flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
+      <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg  flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />
           <circle cx="12" cy="12" r="4" fill="white" />
@@ -302,12 +302,12 @@ export default function StudentOpportunities() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Local Community Involvement Banner card */}
-      <div className="relative overflow-hidden rounded-lg   /10 text-ink border border-[#1F4C63]/10/70  p-6 sm:p-10">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-[#1F4C63]/15 rounded-lg blur-3xl pointer-events-none" />
+      <div className="relative overflow-hidden rounded-lg bg-blue-dark/5 text-ink border border-blue-dark/10 p-6 sm:p-10">
+        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-dark/15 rounded-lg blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-60 h-60 bg-[#FF6B35]/10 rounded-lg blur-3xl pointer-events-none" />
         <div className="relative max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 bg-[#E08A3C]/10 border border-[#E08A3C]/20/50 px-3 py-1 rounded-lg text-[#E08A3C] text-xs font-semibold tracking-wide leading-none">
-            <MapPin className="w-3 h-3 text-[#E08A3C] fill-orange-500/10 animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber text-xs font-semibold tracking-wide leading-none">
+            <MapPin className="w-3 h-3 text-amber fill-orange-500/10 animate-pulse" />
             North York, Toronto Sector
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
@@ -325,12 +325,12 @@ export default function StudentOpportunities() {
           <p className="text-ink-muted text-xs font-semibold">Discover high school-approved community involvement opportunities in real-time.</p>
         </div>
         
-        <div className="bg-white p-1.5 rounded-lg border border-line flex  w-fit">
+        <div className="bg-white p-1.5 rounded-lg border border-line flex w-fit">
           <button 
             onClick={() => setView('list')}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
-              view === 'list' ? "bg-[#1F4C63] text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
+              view === 'list' ? "bg-blue-dark text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
             )}
           >
             <List className="w-4 h-4" /> List
@@ -339,7 +339,7 @@ export default function StudentOpportunities() {
             onClick={() => setView('map')}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
-              view === 'map' ? "bg-[#1F4C63] text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
+              view === 'map' ? "bg-blue-dark text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
             )}
           >
             <MapIcon className="w-4 h-4" /> Map
@@ -387,7 +387,7 @@ export default function StudentOpportunities() {
                  type="checkbox" 
                  checked={virtualOnly} 
                  onChange={(e) => setVirtualOnly(e.target.checked)}
-                 className="w-5 h-5 rounded-lg text-[#1F4C63] focus:ring-[#1F4C63] border-line"
+                 className="w-5 h-5 rounded-lg text-blue-dark focus:ring-blue-dark border-line"
               />
               <span className="text-sm font-bold text-ink-muted group-hover:text-ink">Virtual / Remote Only</span>
            </label>
@@ -397,7 +397,7 @@ export default function StudentOpportunities() {
       {/* Main View */}
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20 space-y-4">
-           <div className="animate-spin rounded-lg h-12 w-12 border-4 border-[#1F4C63] border-t-transparent" />
+           <div className="animate-spin rounded-lg h-12 w-12 border-4 border-blue-dark border-t-transparent" />
            <p className="text-ink-muted font-medium">Finding the best matches for you...</p>
         </div>
       ) : view === 'list' ? (
@@ -443,7 +443,7 @@ export default function StudentOpportunities() {
                       <Popup className="rounded-lg overflow-hidden">
                          <div className="p-2 text-center text-xs space-y-1">
                             <div className="font-bold text-ink font-sans">Your Location</div>
-                            <div className="text-xs text-[#E08A3C] font-mono font-bold uppercase tracking-wider">{coords ? "Live GPS Tracker" : "Neighborhood Location"}</div>
+                            <div className="text-xs text-amber font-mono font-bold uppercase tracking-wider">{coords ? "Live GPS Tracker" : "Neighborhood Location"}</div>
                             <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}</div>
                          </div>
                       </Popup>
@@ -481,7 +481,7 @@ export default function StudentOpportunities() {
       {sharingOpp && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSharingOpp(null)} />
-           <Card className="relative w-full max-w-md bg-white rounded-lg  animate-in fade-in zoom-in duration-300 border-none overflow-hidden">
+           <Card className="relative w-full max-w-md bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden">
               <button aria-label="Close dialog" 
                 onClick={() => setSharingOpp(null)}
                 className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
@@ -490,7 +490,7 @@ export default function StudentOpportunities() {
               </button>
 
               <div className="p-6 sm:p-10 space-y-6">
-                 <div className="w-16 h-16 bg-[#1F4C63]/5 rounded-lg flex items-center justify-center mx-auto text-[#1F4C63] mb-2">
+                 <div className="w-16 h-16 bg-blue-dark/5 rounded-lg flex items-center justify-center mx-auto text-blue-dark mb-2">
                     <Share2 className="w-8 h-8" />
                  </div>
                  <div className="text-center">

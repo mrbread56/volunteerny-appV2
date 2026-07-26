@@ -267,7 +267,7 @@ export default function StudentOpportunityDetail() {
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       <button 
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-ink-muted hover:text-[#1F4C63] font-medium transition-colors mb-6"
+        className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-medium transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Back to results
       </button>
@@ -281,7 +281,7 @@ export default function StudentOpportunityDetail() {
                   {opportunity.category}
                </Badge>
                {opportunity.exclusives?.map(exc => (
-                  <Badge key={exc} variant="info" className="px-3 py-1 font-bold text-xs tracking-widest uppercase bg-[#E08A3C]/10 text-amber-700 border-amber-100">
+                  <Badge key={exc} variant="info" className="px-3 py-1 font-bold text-xs tracking-widest uppercase bg-amber/10 text-amber-700 border-amber-100">
                      {exc}
                   </Badge>
                ))}
@@ -289,8 +289,8 @@ export default function StudentOpportunityDetail() {
             <h1 className="text-4xl font-semibold text-ink tracking-tight leading-[1.1]">{opportunity.title}</h1>
             <div className="flex flex-wrap items-center gap-6 pt-4 border-y border-line-light py-6">
                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 rounded-lg flex items-center justify-center">
-                    <Building2 className="text-[#1F4C63] w-6 h-6" />
+                  <div className="w-12 h-12 bg-blue-dark/5 rounded-lg flex items-center justify-center">
+                    <Building2 className="text-blue-dark w-6 h-6" />
                   </div>
                   <div>
                     <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-0.5">Organization</p>
@@ -304,7 +304,7 @@ export default function StudentOpportunityDetail() {
                     </div>
                     <div>
                       <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-0.5">Contact Email</p>
-                      <a href={`mailto:${organization.contactEmail}`} className="font-bold text-ink hover:text-[#1F4C63]">{organization.contactEmail}</a>
+                      <a href={`mailto:${organization.contactEmail}`} className="font-bold text-ink hover:text-blue-dark">{organization.contactEmail}</a>
                     </div>
                  </div>
                )}
@@ -357,7 +357,7 @@ export default function StudentOpportunityDetail() {
 
         {/* Sidebar Actions */}
         <div className="lg:col-span-1 space-y-6">
-           <Card className="sticky top-24 border-[#1F4C63]/10 ring-4 ring-blue-50 overflow-hidden">
+           <Card className="sticky top-24 border-blue-dark/10 ring-4 ring-blue-50 overflow-hidden">
               <CardContent className="p-8 space-y-6">
                  <div className="space-y-4">
                     {opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
@@ -369,7 +369,7 @@ export default function StudentOpportunityDetail() {
                        <div className="space-y-3">
                           <div className="flex items-center justify-between text-sm mb-2">
                              <span className="text-ink-muted font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Schedule</span>
-                             <Badge variant="info" className="text-xs font-semibold tracking-wide bg-[#1F4C63]/5 text-[#153343] border-none">
+                             <Badge variant="info" className="text-xs font-semibold tracking-wide bg-blue-dark/5 text-[#153343] border-none">
                                 {opportunity.scheduleType === 'recurring' ? 'Weekly' : 'Multi-day'}
                              </Badge>
                           </div>
@@ -402,23 +402,23 @@ export default function StudentOpportunityDetail() {
 
                  <div className="pt-6 border-t border-line-light flex flex-col gap-3">
                     {hasApplied ? (
-                      <div className="flex flex-col items-center gap-3 p-4 bg-[#1F4C63]/5 rounded-lg border border-[#1F4C63]/10">
-                         <CheckCircle2 className="w-8 h-8 text-[#1F4C63]" />
-                         <span className="font-bold text-[#1F4C63]">You've Applied!</span>
-                         <Link to="/student/dashboard" className="text-xs text-[#1F4C63] hover:underline">View in dashboard</Link>
+                      <div className="flex flex-col items-center gap-3 p-4 bg-blue-dark/5 rounded-lg border border-blue-dark/10">
+                         <CheckCircle2 className="w-8 h-8 text-blue-dark" />
+                         <span className="font-bold text-blue-dark">You've Applied!</span>
+                         <Link to="/student/dashboard" className="text-xs text-blue-dark hover:underline">View in dashboard</Link>
                       </div>
                     ) : (
-                      <Button size="lg" className="w-full text-lg font-bold  shadow-blue-200" onClick={() => setShowApplyModal(true)}>
+                      <Button size="lg" className="w-full text-lg font-bold shadow-blue-200" onClick={() => setShowApplyModal(true)}>
                          Apply Now
                       </Button>
                     )}
                     <div className="flex gap-2">
                        <Button 
                          variant="outline" 
-                         className={cn("flex-1 gap-2", isSaved && "bg-[#1F4C63]/5 text-[#153343] border-[#1F4C63]/20")} 
+                         className={cn("flex-1 gap-2", isSaved && "bg-blue-dark/5 text-[#153343] border-blue-dark/20")} 
                          onClick={handleToggleSave}
                        >
-                         <Bookmark className={cn("w-4 h-4", isSaved && "fill-blue-600 text-[#1F4C63]")} /> 
+                         <Bookmark className={cn("w-4 h-4", isSaved && "fill-blue-600 text-blue-dark")} /> 
                          {isSaved ? 'Saved' : 'Save'}
                        </Button>
                        <Button variant="outline" className="flex-1 gap-2" onClick={handleShare}>
@@ -429,7 +429,7 @@ export default function StudentOpportunityDetail() {
                     <Button 
                       variant="outline" 
                       onClick={() => setShowReportModal(true)}
-                      className="w-full text-xs font-bold text-red-600 text-red-600 border-red-100 hover:bg-red-50/50 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border"
+                      className="w-full text-xs font-bold text-red-600 border-red-100 hover:bg-red-50/50 flex items-center justify-center gap-1.5 py-2.5 rounded-lg border"
                     >
                       <ShieldAlert className="w-3.5 h-3.5" /> Report Safety Concern
                     </Button>
@@ -454,7 +454,7 @@ export default function StudentOpportunityDetail() {
       {showApplyModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowApplyModal(false)} />
-          <Card className="relative w-full max-w-xl mx-auto  rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
+          <Card className="relative w-full max-w-xl mx-auto rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
             <button 
               onClick={() => setShowApplyModal(false)}
               className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
@@ -473,14 +473,14 @@ export default function StudentOpportunityDetail() {
                      </div>
                   )}
                   <div className="space-y-3">
-                     <p className="text-xs text-ink-muted bg-[#1F4C63]/5 p-4 rounded-lg italic">
+                     <p className="text-xs text-ink-muted bg-blue-dark/5 p-4 rounded-lg italic">
                         Your profile description and previous experience will automatically be shared with the organization.
                      </p>
                   </div>
                   
                   <Button 
                      type="submit" 
-                     className="w-full h-16 rounded-lg bg-[#1F4C63] hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide  shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                     className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]" 
                      disabled={isApplying}
                   >
                      {isApplying ? 'Submitting...' : 'Send Application'}

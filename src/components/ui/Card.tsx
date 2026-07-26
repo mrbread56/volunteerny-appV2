@@ -3,14 +3,22 @@ import { cn } from '../../lib/utils';
 
 export function Card({ children, className, onClick, style }: { children: React.ReactNode; className?: string, onClick?: () => void, key?: React.Key, style?: React.CSSProperties }) {
   return (
-    <div 
+    <div
       className={cn(
         'bg-white border border-line rounded-lg shadow-[0_1px_2px_rgba(15,30,41,0.04)] overflow-hidden transition-all duration-200',
-        onClick && 'cursor-pointer hover:border-ink/20 active:scale-[0.99]',
+        onClick && 'cursor-pointer hover:border-ink/20 active:scale-[0.99] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-dark',
         className
       )}
       onClick={onClick}
       style={style}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      } : undefined}
     >
       {children}
     </div>

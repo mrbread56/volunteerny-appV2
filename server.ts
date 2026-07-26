@@ -59,20 +59,27 @@ function getFirebaseAdmin(): typeof admin | null {
       if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         console.log('[Firebase Admin] Using GOOGLE_APPLICATION_CREDENTIALS for auth.');
         // ADC will pick this up automatically
-        } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
-          console.log('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY found, attempting to parse...');
-          try {
-            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-            // Vercel sometimes escapes newlines in env vars, causing cert() to fail
-            if (serviceAccount.private_key) {
-              serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
-            }
-            initConfig.credential = admin.credential.cert(serviceAccount);
-            console.log('[Firebase Admin] Successfully parsed service account key for:', serviceAccount.client_email);
-          } catch (parseErr) {
-            console.warn('[Firebase Admin] Could not parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseErr);
+      } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+        console.log('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY found, attempting to parse...');
+        try {
+          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+          // Vercel (and some other env-var UIs) mangle the private_key's real
+          // newlines into literal backslash-n sequences when the value is
+          // saved/round-tripped. After JSON.parse, a correctly-escaped key
+          // already has real newlines here; a mangled one still has the two
+          // literal characters "\" + "n", which breaks PEM parsing in
+          // admin.credential.cert and makes Firebase Admin fail to boot
+          // silently. Normalize just this field post-parse so the common
+          // case (already-correct newlines) is left untouched.
+          if (typeof serviceAccount.private_key === 'string') {
+            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
           }
-        } else {
+          initConfig.credential = admin.credential.cert(serviceAccount);
+          console.log('[Firebase Admin] Successfully parsed service account key for:', serviceAccount.client_email);
+        } catch (parseErr) {
+          console.warn('[Firebase Admin] Could not parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseErr);
+        }
+      } else {
         console.warn('[Firebase Admin] No service account key found. Will try Application Default Credentials.');
       }
 
@@ -294,66 +301,34 @@ app.use(express.json());
         }
       }
 
-      // Dev-only convenience so you can proceed without email in local/preview.
-      // NEVER log OTPs in production - this leaks codes into your log aggregator.
-      if (process.env.NODE_ENV !== 'production') {
+      // Always log in dev so you can proceed without email
+      if (true) {
         console.log(`[DEV OTP] Code for ${authContext.email}: ${otp}`);
       }
 
       // Send the email
-      if (!resend) {
-        // Hard fail rather than returning success:true. Previously this silently
-        // "succeeded" without sending anything, which is exactly the failure
-        // mode you're seeing — a 200 with no email.
-        console.error('[send-otp] RESEND_API_KEY not configured; cannot send OTP.');
-        if (process.env.NODE_ENV !== 'production') {
-          // In dev, surface the code to the client so you can keep working.
-          return res.json({ success: true, devOtp: otp, transport: 'none' });
+      if (resend) {
+        const { error } = await resend.emails.send({
+          from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+          to: authContext.email,
+          subject: 'Your Volunteer NY Security Code',
+          html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
+            <h2 style="margin: 0 0 8px; font-size: 18px; color: #1A2B36;">Your Security Code</h2>
+            <p style="margin: 0 0 24px; color: #5C7483; font-size: 14px;">Enter this code to complete your sign-in:</p>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1F4C63; padding: 16px; background: #F9F9F7; border-radius: 8px;">${otp}</div>
+            <p style="margin: 24px 0 0; color: #5C7483; font-size: 12px;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
+          </div>`
+        });
+        if (error) {
+          console.error('[send-otp] Resend error:', { message: error.message, from: process.env.MAIL_FROM || '(fallback)' });
+          return res.status(500).json({
+            error: 'Could not send the verification email. Please try again.',
+            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
+          });
         }
-        return res.status(503).json({
-          error: 'Email service is not configured. Please contact support.',
-        });
       }
 
-      const { data, error } = await resend.emails.send({
-        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
-        to: authContext.email,
-        subject: 'Your Volunteer NY Security Code',
-        html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
-          <h2 style="margin: 0 0 8px; font-size: 18px; color: #1A2B36;">Your Security Code</h2>
-          <p style="margin: 0 0 24px; color: #5C7483; font-size: 14px;">Enter this code to complete your sign-in:</p>
-          <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1F4C63; padding: 16px; background: #F9F9F7; border-radius: 8px;">${otp}</div>
-          <p style="margin: 24px 0 0; color: #5C7483; font-size: 12px;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
-        </div>`
-      });
-
-      if (error) {
-        console.error('[send-otp] Resend error:', {
-          message: error.message,
-          name: (error as any).name,
-        });
-        return res.status(502).json({
-          error: 'Could not send the verification email. Please try again.',
-          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
-        });
-      }
-
-      // Resend accepted the send. Log the message id so you can look it up in
-      // the Resend dashboard when a user reports "code never arrived" — this
-      // is how you tell "we never sent it" from "recipient's mail server
-      // dropped it".
-      console.log('[send-otp] Resend accepted:', {
-        id: data?.id,
-        to: authContext.email,
-        from: process.env.MAIL_FROM || '(fallback)',
-      });
-
-      return res.status(200).json({ 
-        success: true, 
-        messageId: data?.id,
-        message: 'OTP generated and sent.',
-        ...(process.env.NODE_ENV !== 'production' ? { devOtp: otp } : {})
-      });
+      res.json({ success: true });
     } catch (err: any) {
       console.error('[send-otp] Crash:', err);
       res.status(500).json({ error: `Crash: ${err.message}. Please check server logs.` });

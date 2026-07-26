@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(impeccable)",
+      "Skill(impeccable:*)",
+      "Bash(node \"C:/Users/ASUS/.claude/skills/impeccable/scripts/context.mjs\" --target src/pages)",
+      "Bash(node \"C:/Users/ASUS/.claude/skills/impeccable/scripts/detect.mjs\" --json src/pages src/components src/index.css)",
+      "Bash(node -e ' *)",
+      "Bash(xargs grep -ln \"<div[^>]*onClick\")",
+      "Bash(npx tsc *)",
+      "Bash(node -e \"require\\('@babel/core'\\)\")",
+      "Bash(python3 -c \"print\\('checking manually instead'\\)\")"
+    ]
+  }
+}

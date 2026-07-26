@@ -473,7 +473,7 @@ export default function OrgOpportunityApplicants() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#1F4C63] text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide  shadow-[#1F4C63]/20 flex items-center gap-2"
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
           >
             <CheckCircle className="w-4 h-4" />
             {successMessage}
@@ -483,7 +483,7 @@ export default function OrgOpportunityApplicants() {
 
       <button
         onClick={() => navigate(-1)}
-        className="flex items-center gap-2 text-ink-muted hover:text-[#1F4C63] font-bold uppercase text-xs tracking-widest transition-colors"
+        className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-bold uppercase text-xs tracking-widest transition-colors"
       >
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </button>
@@ -507,8 +507,8 @@ export default function OrgOpportunityApplicants() {
                   className={cn(
                     "px-6 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all",
                     filterTab === tab
-                      ? "bg-white text-[#1F4C63] "
-                      : "text-ink-muted hover:text-ink-muted",
+                      ? "bg-white text-blue-dark"
+                      : "text-ink-muted hover:text-ink",
                   )}
                 >
                   {tab}
@@ -527,14 +527,14 @@ export default function OrgOpportunityApplicants() {
             .map((app) => (
               <Card
                 key={app.id}
-                className="overflow-hidden border-none  shadow-slate-100 rounded-lg bg-white"
+                className="overflow-hidden border-none shadow-slate-100 rounded-lg bg-white"
               >
                 <CardContent className="p-5 sm:p-10">
                   <div className="flex flex-col md:flex-row justify-between gap-8">
                     <div className="space-y-6 flex-grow">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <div className="flex items-center gap-4">
-                          <div className="w-16 h-16 bg-[#1F4C63]/5 rounded-lg flex items-center justify-center text-[#153343] text-3xl font-bold shrink-0">
+                          <div className="w-16 h-16 bg-blue-dark/5 rounded-lg flex items-center justify-center text-[#153343] text-3xl font-bold shrink-0">
                             {app.studentName?.[0] || "S"}
                           </div>
                           <div className="min-w-0">
@@ -553,14 +553,14 @@ export default function OrgOpportunityApplicants() {
                           {app.status === "accepted" && (
                             <Button
                               variant="ghost"
-                              className="w-12 h-12 rounded-lg text-[#1F4C63] hover:text-[#1F4C63] hover:bg-[#1F4C63]/5"
+                              className="w-12 h-12 rounded-lg text-blue-dark hover:bg-blue-dark/5"
                               title="Official Enrollment Slip / Receipt"
                               onClick={() => {
                                 setSelectedReceiptApp(app);
                                 setShowReceiptModal(true);
                               }}
                             >
-                              <FileText className="w-5 h-5 text-[#1F4C63] text-[#1F4C63] animate-pulse" />
+                              <FileText className="w-5 h-5 text-blue-dark animate-pulse" />
                             </Button>
                           )}
                           <Button
@@ -620,7 +620,7 @@ export default function OrgOpportunityApplicants() {
                         <div className="space-y-2 w-full animate-fadeIn">
                           <Button 
                             variant="outline" 
-                            className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-[#1F4C63]/20 text-[#1F4C63] hover:bg-[#1F4C63]/5/50 flex items-center justify-center gap-2 "
+                            className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-blue-dark/20 text-blue-dark hover:bg-blue-dark/5 flex items-center justify-center gap-2"
                             onClick={() => {
                               setSelectedReceiptApp(app);
                               setShowReceiptModal(true);
@@ -648,7 +648,7 @@ export default function OrgOpportunityApplicants() {
                       {app.status === "terminated" && (
                         <Button 
                           variant="outline" 
-                          className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-[#1F4C63]/20 text-[#1F4C63] bg-[#1F4C63]/5 hover:bg-[#1F4C63]/5 flex items-center justify-center gap-2  animate-fadeIn"
+                          className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-blue-dark/20 text-blue-dark bg-blue-dark/5 hover:bg-blue-dark/5 flex items-center justify-center gap-2 animate-fadeIn"
                           onClick={() => updateStatus(app.id, "accepted")}
                         >
                           Un-terminate Placement
@@ -661,7 +661,7 @@ export default function OrgOpportunityApplicants() {
                           className={cn(
                             "w-full font-bold uppercase text-xs tracking-widest h-12 rounded-lg",
                             app.status === "pending"
-                              ? "bg-[#1F4C63] hover:bg-[#153343] text-white  shadow-blue-100"
+                              ? "bg-blue-dark hover:bg-[#153343] text-white shadow-blue-100"
                               : "text-ink-muted",
                           )}
                           onClick={() => openReview(app)}
@@ -758,7 +758,7 @@ export default function OrgOpportunityApplicants() {
               onChange={e => setRecText(e.target.value)}
               placeholder="Describe this volunteer's contribution (required, 1000 char max)"
               maxLength={1000}
-              className="w-full h-28 p-3 border border-line text-sm resize-none focus:outline-none focus:border-[#1F4C63]"
+              className="w-full h-28 p-3 border border-line text-sm resize-none focus:outline-none focus:border-blue-dark"
             />
             <button
               onClick={handleSubmitRec}

@@ -236,9 +236,9 @@ export default function FeedbackPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           {submittedFeedback ? (
-            <Card className="rounded-lg border border-orange-100  overflow-hidden bg-white animate-fadeIn">
+            <Card className="rounded-lg border border-orange-100 overflow-hidden bg-white animate-fadeIn">
               <div className="p-8 text-center space-y-5">
-                <div className="w-16 h-16 bg-[#E08A3C]/10 text-[#E08A3C] rounded-lg flex items-center justify-center mx-auto  border border-orange-100 animate-pulse">
+                <div className="w-16 h-16 bg-amber/10 text-amber rounded-lg flex items-center justify-center mx-auto border border-orange-100 animate-pulse">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div className="space-y-2">
@@ -261,10 +261,10 @@ export default function FeedbackPage() {
               </div>
             </Card>
           ) : (
-            <Card className="rounded-lg border border-line  overflow-hidden bg-white">
+            <Card className="rounded-lg border border-line overflow-hidden bg-white">
               <CardHeader className="border-b border-line py-6">
                 <CardTitle className="text-[16px] flex items-center gap-2 text-ink font-semibold">
-                  <MessageSquare className="w-4 h-4 text-[#1F4C63]" /> Support Ticket
+                  <MessageSquare className="w-4 h-4 text-blue-dark" /> Support Ticket
                 </CardTitle>
                 <p className="text-[12px] text-ink-muted mt-1">
                   Categorize and detail your report.
@@ -281,7 +281,7 @@ export default function FeedbackPage() {
                   />
 
                   {type === 'ux' && (
-                    <div className="p-4 bg-[#1F4C63]/5/70 text-blue-900 text-xs rounded-lg border border-[#1F4C63]/10 leading-relaxed font-semibold animate-fadeIn">
+                    <div className="p-4 bg-blue-dark/5 text-blue-900 text-xs rounded-lg border border-blue-dark/10 leading-relaxed font-semibold animate-fadeIn">
                       <span className="font-semibold block mb-1">💡 What does "UX" mean?</span> 
                       <strong>UX</strong> stands for <strong>User Experience</strong>. It represents how easy, natural, and friendly the website is to navigate. Submit a UX ticket if you feel a page is confusing, if buttons are hard to click on a phone, or if you have suggestions on how we can improve the layout styling!
                     </div>
@@ -300,7 +300,7 @@ export default function FeedbackPage() {
                     <textarea
                       rows={5}
                       placeholder="Please describe the issue or suggestion in detail..."
-                      className="w-full border border-line p-3.5 text-[14px] text-ink focus:outline-none focus:border-[#1F4C63] focus:ring-1 focus:ring-[#1F4C63] transition-colors"
+                      className="w-full border border-line p-3.5 text-[14px] text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       required
@@ -318,7 +318,7 @@ export default function FeedbackPage() {
                         onDrop={handleDrop}
                         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
                           isDragging 
-                            ? 'border-[#1F4C63] bg-[#1F4C63]/5/20' 
+                            ? 'border-blue-dark bg-blue-dark/10'
                             : 'border-line hover:border-slate-300 bg-paper-2/40 hover:bg-paper-2'
                         }`}
                         onClick={() => document.getElementById('file-uploader-element')?.click()}
@@ -332,7 +332,7 @@ export default function FeedbackPage() {
                         />
                         <UploadCloud className="w-8 h-8 text-ink-soft animate-pulse" />
                         <p className="text-xs font-bold text-ink-soft">
-                          Drag and drop file here, or <span className="text-[#1F4C63] underline">browse computer</span>
+                          Drag and drop file here, or <span className="text-blue-dark underline">browse computer</span>
                         </p>
                         <p className="text-xs text-ink-soft">Supports PNG, JPG, or PDF up to 5MB</p>
                       </div>
@@ -340,7 +340,7 @@ export default function FeedbackPage() {
                       <div className="border border-line rounded-lg p-4 bg-paper-2/60 flex flex-col gap-3 animate-fadeIn">
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2">
-                            <Paperclip className="w-4 h-4 text-[#1F4C63] shrink-0" />
+                            <Paperclip className="w-4 h-4 text-blue-dark shrink-0" />
                             <div className="text-left">
                               <p className="text-xs font-semibold text-ink-soft line-clamp-1">{file.name}</p>
                               <p className="text-xs text-ink-soft font-bold font-mono">{formatBytes(file.size)}</p>
@@ -349,7 +349,7 @@ export default function FeedbackPage() {
                           <button
                             type="button"
                             onClick={handleRemoveFile}
-                            className="p-1.5 rounded-full hover:bg-red-50 text-red-500 text-red-500 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-red-50 text-red-500 transition-colors"
                             title="Remove file"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -371,7 +371,7 @@ export default function FeedbackPage() {
                   </div>
 
                   {error && (
-                    <div className="p-4 rounded-lg bg-red-50 text-red-600 text-red-600 text-xs font-bold border border-red-100">
+                    <div className="p-4 rounded-lg bg-red-50 text-red-600 text-xs font-bold border border-red-100">
                       {error}
                     </div>
                   )}
@@ -386,18 +386,18 @@ export default function FeedbackPage() {
         </div>
 
         <div className="md:col-span-1 space-y-6">
-          <Card className="p-6 border border-line rounded-lg bg-white space-y-4 ">
+          <Card className="p-6 border border-line rounded-lg bg-white space-y-4">
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
-              <Clock className="w-4 h-4 text-[#1F4C63]" /> Response Expectations
+              <Clock className="w-4 h-4 text-blue-dark" /> Response Expectations
             </h3>
             <p className="text-xs leading-relaxed text-ink-soft font-semibold">
               Our team operates standard hours. Tickets generally receive manual diagnostic responses within 24 to 48 hours. Please check the "My Submitted Tickets" index below regularly to check feedback outcomes and messages.
             </p>
           </Card>
 
-          <Card className="p-6 border border-line rounded-lg bg-white space-y-4 ">
+          <Card className="p-6 border border-line rounded-lg bg-white space-y-4">
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-[#E08A3C]" /> Service Policy
+              <AlertTriangle className="w-4 h-4 text-amber" /> Service Policy
             </h3>
             <p className="text-xs leading-relaxed text-ink-soft font-semibold">
               We strictly audit spam or duplicate submissions. Ensure detailed reports to help maintain an accessible community environment for all high school students and public organizations around York region.
@@ -421,7 +421,7 @@ export default function FeedbackPage() {
         </div>
 
         {myFeedbacks.length === 0 ? (
-          <div className="text-center py-12 bg-paper-2 border border-line rounded-lg text-ink-soft font-semibold text-xs py-12 max-w-md mx-auto space-y-3">
+          <div className="text-center py-12 bg-paper-2 border border-line rounded-lg text-ink-soft font-semibold text-xs max-w-md mx-auto space-y-3">
             <MessageSquare className="w-8 h-8 mx-auto text-ink-soft animate-pulse" />
             <h4 className="text-ink-soft font-bold">No tickets logged yet</h4>
             <p className="text-ink-soft font-medium px-4">
@@ -431,17 +431,17 @@ export default function FeedbackPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6">
             {myFeedbacks.map((fb) => (
-              <Card key={fb.id} className="rounded-lg border border-line  bg-white overflow-hidden relative group hover:border-[#1F4C63]/30 transition-all duration-300">
-                <div className={`absolute top-0 left-0 w-1.5 h-full ${fb.developerReply ? 'bg-[#1F4C63]' : 'bg-[#1F4C63]'}`} />
+              <Card key={fb.id} className="rounded-lg border border-line bg-white overflow-hidden relative group hover:border-blue-dark/30 transition-all duration-300">
+                <div className={`absolute top-0 left-0 w-1.5 h-full ${fb.developerReply ? 'bg-blue-dark' : 'bg-blue-dark'}`} />
                 
                 <CardContent className="p-6 md:p-8 space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                          fb.type === 'bug' ? 'bg-red-50 text-red-600 text-red-600 border border-red-100' :
-                          fb.type === 'feature' ? 'bg-[#E08A3C]/10 text-[#E08A3C] border border-orange-100' :
-                          fb.type === 'ux' ? 'bg-[#1F4C63]/5 text-[#1F4C63] border border-[#1F4C63]/10' :
+                          fb.type === 'bug' ? 'bg-red-50 text-red-600 border border-red-100' :
+                          fb.type === 'feature' ? 'bg-amber/10 text-amber border border-orange-100' :
+                          fb.type === 'ux' ? 'bg-blue-dark/5 text-blue-dark border border-blue-dark/10' :
                           'bg-paper-3 text-ink-soft border border-line'
                         }`}>
                           {fb.type?.toUpperCase() || 'SUPPORT'}
@@ -455,28 +455,28 @@ export default function FeedbackPage() {
                         </span>
                       </div>
                       
-                      <h3 className="text-base font-bold text-ink group-hover:text-[#1F4C63] transition-colors leading-snug pt-1">
+                      <h3 className="text-base font-bold text-ink group-hover:text-blue-dark transition-colors leading-snug pt-1">
                         {fb.subject}
                       </h3>
                     </div>
 
                     <span className={`self-start text-xs font-semibold px-2.5 py-1 rounded-lg ${
                       fb.developerReply 
-                        ? 'bg-[#1F4C63]/10 text-[#1F4C63] border border-[#1F4C63]/20' 
-                        : 'bg-[#E08A3C]/10/60 text-amber-800 border-amber-200/40 border animate-pulse'
+                        ? 'bg-blue-dark/10 text-blue-dark border border-blue-dark/20' 
+                        : 'bg-amber/10 text-amber-800 border-amber-200/40 border animate-pulse'
                     }`}>
                       {fb.developerReply ? 'Replied' : 'Pending Review'}
                     </span>
                   </div>
 
-                  <p className="text-ink-soft text-xs leading-relaxed font-semibold bg-paper-2/75 p-4 rounded-lg border border-line ">
+                  <p className="text-ink-soft text-xs leading-relaxed font-semibold bg-paper-2/75 p-4 rounded-lg border border-line">
                     "{fb.message}"
                   </p>
 
                   {/* Display attachment info to student/user if attached */}
                   {fb.attachmentName && (
                     <div className="flex items-center gap-2 bg-paper-2 border border-line rounded-lg px-4 py-2.5 text-xs animate-fadeIn">
-                      <Paperclip className="w-3.5 h-3.5 text-[#1F4C63] shrink-0" />
+                      <Paperclip className="w-3.5 h-3.5 text-blue-dark shrink-0" />
                       <span className="font-bold text-ink-soft font-mono text-xs">
                         Attachment: {fb.attachmentName} ({fb.attachmentSize})
                       </span>
@@ -489,23 +489,23 @@ export default function FeedbackPage() {
                   )}
                   {/* DISPLAY DEVELOPER REPLY */}
                   {fb.developerReply ? (
-                    <div className="border border-[#1F4C63]/20 bg-[#1F4C63]/5 p-5 rounded-lg space-y-2.5 animate-fadeIn">
+                    <div className="border border-blue-dark/20 bg-blue-dark/5 p-5 rounded-lg space-y-2.5 animate-fadeIn">
                       <div className="flex items-center gap-1.5 text-[#0F1E29] font-semibold text-xs">
-                        <UserCheck className="w-4 h-4 text-[#1F4C63] animate-bounce" />
+                        <UserCheck className="w-4 h-4 text-blue-dark" />
                         <span>Official Support Reply</span>
                       </div>
                       <p className="text-xs text-ink-soft font-semibold leading-relaxed">
                         {fb.developerReply}
                       </p>
-                      <span className="block text-xs text-[#1F4C63] font-mono font-bold">
+                      <span className="block text-xs text-blue-dark font-mono font-bold">
                         RESPONSE TIMESTAMP: {new Date(fb.repliedAt).toLocaleString()}
                       </span>
                     </div>
                   ) : (
                     <div className="bg-[#FAF9F6] border border-orange-100/60 rounded-lg px-5 py-4 text-xs text-ink-soft font-semibold flex flex-col gap-2 relative overflow-hidden">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#E08A3C]/10/10 rounded-lg blur-xl" />
-                      <div className="flex items-center gap-2 font-semibold text-xs text-[#E08A3C]">
-                        <span className="w-2 h-2 rounded-lg bg-[#E08A3C] animate-pulse" />
+                      <div className="absolute top-0 right-0 w-24 h-24 bg-amber/10 rounded-lg blur-xl" />
+                      <div className="flex items-center gap-2 font-semibold text-xs text-amber">
+                        <span className="w-2 h-2 rounded-lg bg-amber animate-pulse" />
                         <span>Logged safely under review</span>
                       </div>
                       <p className="leading-relaxed">

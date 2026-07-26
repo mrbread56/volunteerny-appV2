@@ -6,7 +6,7 @@ export default function Footer() {
   return (
     <footer className="bg-gradient-to-b from-[#1F2E38] to-[#1A2830] text-paper/80 relative overflow-hidden">
       {/* Ambient glow */}
-      <div className="absolute top-[-60px] left-[30%] w-[300px] h-[200px] bg-[#1F4C63]/[0.06] rounded-full blur-[100px] pointer-events-none" />
+      <div className="absolute top-[-60px] left-[30%] w-[300px] h-[200px] bg-blue-dark/[0.06] rounded-full blur-[100px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-6 relative z-10">
         {/* Main */}

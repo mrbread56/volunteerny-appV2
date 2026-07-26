@@ -11,7 +11,7 @@ export default function Navbar() {
   const [open, setOpen] = useState(false);
 
   const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
-  const authed = !!user && !loading && !profileMissing && isVerified;
+  const authed = !!user && !loading && !profileMissing && isVerified && location.pathname !== '/mfa';
 
   const handleLogout = async () => {
     setOpen(false);
@@ -21,12 +21,12 @@ export default function Navbar() {
 
   const close = () => setOpen(false);
 
-  const navLink = 'text-ink-soft hover:text-ink px-3 py-2 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200 relative after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-[#1F4C63] after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300 after:origin-left';
+  const navLink = 'text-ink-soft hover:text-ink px-3 py-2 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200 relative after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-blue-dark after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300 after:origin-left';
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-line/60">
       {isDemoMode && (
-        <div className="bg-gradient-to-r from-[#1F4C63] to-[#153343] text-paper text-xs font-semibold uppercase tracking-wide py-1.5 text-center">
+        <div className="bg-gradient-to-r from-blue-dark to-[#153343] text-paper text-xs font-semibold uppercase tracking-wide py-1.5 text-center">
           Demo Mode
           <button onClick={handleLogout} className="ml-4 text-paper/60 hover:text-paper underline text-xs rounded-full">
             Exit
@@ -119,7 +119,7 @@ export default function Navbar() {
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-[#1F4C63] text-paper text-[13px] font-medium px-5 py-2 rounded-full hover:bg-[#153343] transition-all duration-300 shadow-[0_1px_2px_rgba(31,76,99,0.15)]"
+                  className="bg-blue-dark text-paper text-[13px] font-medium px-5 py-2 rounded-full hover:bg-[#153343] transition-all duration-300 shadow-[0_1px_2px_rgba(31,76,99,0.15)]"
                 >
                   Sign Up
                 </Link>
@@ -179,7 +179,7 @@ export default function Navbar() {
           ) : (
             <>
               <Link to="/login" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Log in</Link>
-              <Link to="/signup" onClick={close} className="block w-full text-center bg-[#1F4C63] text-paper py-2.5 text-sm font-medium mt-2 rounded-full">Sign Up</Link>
+              <Link to="/signup" onClick={close} className="block w-full text-center bg-blue-dark text-paper py-2.5 text-sm font-medium mt-2 rounded-full">Sign Up</Link>
             </>
           )}
         </div>

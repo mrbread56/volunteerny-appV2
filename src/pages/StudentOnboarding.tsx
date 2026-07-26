@@ -161,7 +161,7 @@ export default function StudentOnboarding() {
     <div className="min-h-screen bg-paper-2 py-12 px-6 flex flex-col justify-center items-center">
       <div className="w-full max-w-3xl space-y-8 animate-fadeIn">
         <div className="text-center space-y-3">
-          <span className="text-xs font-bold tracking-widest uppercase text-[#1F4C63] bg-[#1F4C63]/5 px-3.5 py-1.5 rounded-lg border border-[#1F4C63]/10">
+          <span className="text-xs font-bold tracking-widest uppercase text-blue-dark bg-blue-dark/5 px-3.5 py-1.5 rounded-lg border border-blue-dark/10">
             Initial Account Onboarding
           </span>
           <h1 className="text-4xl md:text-5xl font-bold text-ink tracking-tight leading-none">
@@ -178,11 +178,11 @@ export default function StudentOnboarding() {
             <div key={i} className="flex flex-col items-center space-y-2">
               <div className={cn(
                 "h-2 w-full rounded-lg transition-all duration-300",
-                step >= i ? "bg-[#1F4C63]" : "bg-slate-200"
+                step >= i ? "bg-blue-dark" : "bg-slate-200"
               )} />
               <span className={cn(
                 "text-xs font-semibold uppercase hidden sm:block",
-                step === i ? "text-[#1F4C63]" : "text-ink-muted"
+                step === i ? "text-blue-dark" : "text-ink-muted"
               )}>
                 Step {i}
               </span>
@@ -201,10 +201,10 @@ export default function StudentOnboarding() {
         <div className="max-w-2xl mx-auto">
           {/* Step 1: Academic Identity */}
           {step === 1 && (
-            <Card className="rounded-lg border-none  shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <SchoolIcon className="w-6 h-6" />
                   </div>
                   <div>
@@ -291,10 +291,10 @@ export default function StudentOnboarding() {
 
           {/* Step 2: Interests */}
           {step === 2 && (
-            <Card className="rounded-lg border-none  shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] text-[#1F4C63] rounded-lg flex items-center justify-center w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Award className="w-6 h-6" />
                   </div>
                   <div>
@@ -327,10 +327,10 @@ export default function StudentOnboarding() {
 
           {/* Step 3: Skills */}
           {step === 3 && (
-            <Card className="rounded-lg border-none  shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div>
@@ -349,8 +349,8 @@ export default function StudentOnboarding() {
                       className={cn(
                         "px-6 py-3.5 rounded-lg text-xs font-semibold uppercase border-2 transition-all duration-200",
                         skills.includes(item)
-                          ? "bg-[#1F4C63] border-[#1F4C63] text-white scale-105  shadow-blue-100"
-                          : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-[#1F4C63]"
+                          ? "bg-blue-dark border-blue-dark text-white scale-105  shadow-blue-100"
+                          : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-blue-dark"
                       )}
                     >
                       {item}
@@ -363,10 +363,10 @@ export default function StudentOnboarding() {
 
           {/* Step 4: Availability */}
           {step === 4 && (
-            <Card className="rounded-lg border-none  shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Calendar className="w-6 h-6" />
                   </div>
                   <div>
@@ -385,12 +385,12 @@ export default function StudentOnboarding() {
                       className={cn(
                         "p-5 rounded-lg text-xs font-bold text-left border-2 transition-all flex items-center justify-between",
                         availability.includes(item)
-                          ? "bg-[#E08A3C]/10 border-[#E08A3C] text-orange-900 "
+                          ? "bg-amber/10 border-amber text-orange-900 "
                           : "bg-white border-line-light text-ink-muted hover:border-line"
                       )}
                     >
                       <span>{item}</span>
-                      {availability.includes(item) && <Check className="w-4 h-4 text-[#E08A3C] shrink-0" />}
+                      {availability.includes(item) && <Check className="w-4 h-4 text-amber shrink-0" />}
                     </button>
                   ))}
                 </div>
@@ -400,10 +400,10 @@ export default function StudentOnboarding() {
 
           {/* Step 5: Optional Experience & Resume */}
           {step === 5 && (
-            <Card className="rounded-lg border-none  shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#1F4C63]/5 text-[#1F4C63] rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <FileText className="w-6 h-6" />
                   </div>
                   <div>
@@ -419,7 +419,7 @@ export default function StudentOnboarding() {
                     value={previousExperience}
                     onChange={(e) => setPreviousExperience(e.target.value)}
                     placeholder="E.g., tutee support, neighborhood cleanups, school clubs, community events..."
-                    className="w-full h-32 p-4 text-sm border-2 border-line-light rounded-lg focus:border-[#1F4C63] focus:ring-0 resize-none font-medium text-ink-soft outline-none placeholder-slate-300"
+                    className="w-full h-32 p-4 text-sm border-2 border-line-light rounded-lg focus:border-blue-dark focus:ring-0 resize-none font-medium text-ink-soft outline-none placeholder-slate-300"
                   />
                 </div>
                 
@@ -438,7 +438,7 @@ export default function StudentOnboarding() {
           )}
 
           {/* Navigation Controls */}
-          <div className="flex items-center justify-between mt-8 p-4 bg-white/70 backdrop-blur-md rounded-lg  border border-line-light max-w-2xl mx-auto">
+          <div className="flex items-center justify-between mt-8 p-4 bg-white/70 backdrop-blur-md rounded-lg border border-line-light max-w-2xl mx-auto">
             {step > 1 ? (
               <Button 
                 variant="outline" 
@@ -454,7 +454,7 @@ export default function StudentOnboarding() {
             {step < 5 ? (
               <Button 
                 onClick={handleNextStep}
-                className="h-12 bg-[#1F4C63] hover:bg-[#1F4C63] text-white px-8 rounded-lg font-bold uppercase text-xs tracking-widest gap-2"
+                className="h-12 bg-blue-dark hover:bg-blue-dark text-white px-8 rounded-lg font-bold uppercase text-xs tracking-widest gap-2"
               >
                 Continue <ArrowRight className="w-3.5 h-3.5" />
               </Button>
@@ -470,7 +470,7 @@ export default function StudentOnboarding() {
                 <Button 
                   onClick={(e) => handleSubmit(e as any, false)}
                   isLoading={isSubmitting}
-                  className="h-12 bg-[#E08A3C] hover:bg-[#E08A3C] text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2  shadow-orange-500/10"
+                  className="h-12 bg-amber hover:bg-amber text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 shadow-orange-500/10"
                 >
                   Complete Onboarding <Check className="w-3.5 h-3.5" />
                 </Button>

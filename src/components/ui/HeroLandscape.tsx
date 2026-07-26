@@ -35,7 +35,7 @@ export default function HeroLandscape() {
     <div className="absolute inset-x-0 bottom-0 top-0 overflow-hidden pointer-events-none select-none z-0">
       {/* ── CLOUDS ── */}
       {/* Background Cloud Layer (Slower) */}
-      <div className="absolute inset-x-0 top-[-5%] h-[300px] animate-cloud-slow text-[#1F4C63]">
+      <div className="absolute inset-x-0 top-[-5%] h-[300px] animate-cloud-slow text-blue-dark">
         <InteractiveCloud className="top-10 left-[5%]">
           <CloudOne className="w-64 h-auto" opacity={0.15} />
         </InteractiveCloud>
@@ -50,7 +50,7 @@ export default function HeroLandscape() {
       </div>
 
       {/* Foreground Cloud Layer (Faster) */}
-      <div className="absolute inset-x-0 top-[2%] h-[300px] animate-cloud text-[#1F4C63]">
+      <div className="absolute inset-x-0 top-[2%] h-[300px] animate-cloud text-blue-dark">
         <InteractiveCloud className="top-5 left-[25%]">
           <CloudTwo className="w-56 h-auto" opacity={0.25} />
         </InteractiveCloud>

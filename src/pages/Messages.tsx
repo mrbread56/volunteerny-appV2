@@ -398,13 +398,13 @@ export default function Messages() {
                     onClick={() => setActiveChatId(chat.id)}
                     className={cn(
                       "w-full bg-white p-3.5 rounded-lg border text-left flex items-start gap-3 transition-all",
-                      chat.id === activeChatId ? "border-[#1F4C63] ring-1 ring-[#1F4C63]/20" : "border-line hover:border-[#1F4C63]/20"
+                      chat.id === activeChatId ? "border-blue-dark ring-1 ring-blue-dark/20" : "border-line hover:border-blue-dark/20"
                     )}
                   >
                     <div
                       className={cn(
                         "w-11 h-11 rounded-lg flex items-center justify-center shrink-0",
-                        chat.type === "group" ? "bg-indigo-50 text-indigo-600" : "bg-[#1F4C63]/5 text-[#1F4C63]"
+                        chat.type === "group" ? "bg-indigo-50 text-indigo-600" : "bg-blue-dark/5 text-blue-dark"
                       )}
                     >
                       {chat.type === "group" ? <Users className="w-5 h-5" /> : <User className="w-5 h-5" />}
@@ -414,7 +414,7 @@ export default function Messages() {
                         <h4 className={cn("truncate text-sm", unread ? "font-semibold text-ink" : "font-bold text-ink-soft")}>
                           {chatTitle(chat)}
                         </h4>
-                        {unread && <span className="w-2 h-2 rounded-full bg-[#1F4C63] shrink-0" />}
+                        {unread && <span className="w-2 h-2 rounded-full bg-blue-dark shrink-0" />}
                       </div>
                       <p className={cn("text-xs truncate mt-0.5", unread ? "text-ink-soft font-semibold" : "text-ink-soft font-medium")}>
                         {chat.lastMessage || "No messages yet"}
@@ -477,7 +477,7 @@ export default function Messages() {
                       <div
                         className={cn(
                           "p-3 rounded-lg text-sm",
-                          isMe ? "bg-[#1F4C63] text-white rounded-tr-sm" : "bg-white border border-line text-ink-soft rounded-tl-sm"
+                          isMe ? "bg-blue-dark text-white rounded-tr-sm" : "bg-white border border-line text-ink-soft rounded-tl-sm"
                         )}
                       >
                         {msg.text}
@@ -488,7 +488,7 @@ export default function Messages() {
                             rel="noopener noreferrer"
                             className={cn(
                               "mt-2 flex items-center gap-2 text-xs font-bold underline underline-offset-2",
-                              isMe ? "text-white" : "text-[#1F4C63]"
+                              isMe ? "text-white" : "text-blue-dark"
                             )}
                           >
                             <FileText className="w-4 h-4 shrink-0" /> View PDF
@@ -531,7 +531,7 @@ export default function Messages() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading}
-                  className="p-3 text-ink-muted hover:text-[#1F4C63] hover:bg-[#1F4C63]/5 rounded-lg transition-colors shrink-0 disabled:opacity-50"
+                  className="p-3 text-ink-muted hover:text-blue-dark hover:bg-blue-dark/5 rounded-lg transition-colors shrink-0 disabled:opacity-50"
                   title="Attach an image or PDF"
                 >
                   <Paperclip className="w-5 h-5" />
@@ -542,12 +542,12 @@ export default function Messages() {
                   onChange={(e) => setInputText(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleSend()}
                   placeholder="Type a message..."
-                  className="flex-1 bg-paper-2 border border-line rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F4C63] font-medium"
+                  className="flex-1 bg-paper-2 border border-line rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-dark font-medium"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className="p-3 bg-[#1F4C63] text-white rounded-lg hover:bg-[#153343] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 rounded-full"
+                  className="p-3 bg-blue-dark text-white rounded-lg hover:bg-[#153343] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0 rounded-full"
                 >
                   <Send className="w-5 h-5" />
                 </button>

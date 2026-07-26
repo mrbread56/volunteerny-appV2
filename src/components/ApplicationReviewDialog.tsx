@@ -111,7 +111,7 @@ export default function ApplicationReviewDialog({
           <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col">
             <CardHeader className="p-8 border-b border-line-light flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
-                <div className="w-14 h-14 bg-[#1F4C63]/10 bg-[#1F4C63]/5 rounded-lg flex items-center justify-center text-[#1F4C63]">
+                <div className="w-14 h-14 bg-blue-dark/10 bg-blue-dark/5 rounded-lg flex items-center justify-center text-blue-dark">
                   <User className="w-8 h-8" />
                 </div>
                 <div>
@@ -137,7 +137,7 @@ export default function ApplicationReviewDialog({
               <CardContent className="p-6 sm:p-8 space-y-8 flex-grow flex flex-col justify-center items-center text-center select-none animate-fadeIn">
                 {submittingState === 'error' ? (
                   <div className="space-y-8 max-w-md my-6">
-                    <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center mx-auto  animate-bounce">
+                    <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-lg flex items-center justify-center mx-auto animate-in zoom-in-50 duration-500">
                       <AlertCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-2">
@@ -159,7 +159,7 @@ export default function ApplicationReviewDialog({
                   </div>
                 ) : submittingState === 'success' ? (
                   <div className="space-y-8 max-w-lg w-full my-4">
-                    <div className="w-20 h-20 bg-[#1F4C63]/10 text-[#1F4C63] rounded-lg flex items-center justify-center mx-auto  animate-pulse">
+                    <div className="w-20 h-20 bg-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto  animate-pulse">
                       <CheckCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-2">
@@ -172,7 +172,7 @@ export default function ApplicationReviewDialog({
                     <div className="bg-paper-2 border border-line rounded-lg p-6 space-y-4 text-left">
                       <div className="flex items-center justify-between text-xs pb-3 border-b border-line">
                         <span className="font-bold text-ink-soft tracking-wide">Enrollment Ledger Receipt</span>
-                        <span className="font-bold text-[#1F4C63] uppercase tracking-wider">✓ Active Status</span>
+                        <span className="font-bold text-blue-dark uppercase tracking-wider">✓ Active Status</span>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-xs">
                         <div>
@@ -222,7 +222,7 @@ export default function ApplicationReviewDialog({
                       </Button>
                       <Button 
                         onClick={onClose}
-                        className="flex-[1.2] bg-[#1F4C63] hover:bg-[#153343] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest  shadow-blue-100"
+                        className="flex-[1.2] bg-blue-dark hover:bg-[#153343] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest  shadow-blue-100"
                       >
                         Complete Flow
                       </Button>
@@ -231,7 +231,7 @@ export default function ApplicationReviewDialog({
                 ) : (
                   <div className="w-full max-w-md space-yp-6 sm:p-8 text-left">
                     <div className="space-y-2 text-center">
-                      <Loader2 className="w-12 h-12 text-[#1F4C63] animate-spin mx-auto mb-4" />
+                      <Loader2 className="w-12 h-12 text-blue-dark animate-spin mx-auto mb-4" />
                       <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">Verifying Placement Credentials</h4>
                       <p className="text-xs text-ink-soft font-bold tracking-wide">Locking ledger and building transaction environment</p>
                     </div>
@@ -241,15 +241,15 @@ export default function ApplicationReviewDialog({
                       <div className="flex items-center gap-4">
                         <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${
                           dbVerified 
-                            ? "bg-[#1F4C63]/10 border-[#1F4C63] text-[#1F4C63] font-bold" 
+                            ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'database' 
-                              ? "border-[#1F4C63] text-[#1F4C63] animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
                               : "border-slate-300 border-line text-ink-soft"
                         }`}>
                           {dbVerified ? "✓" : "1"}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'database' ? 'text-[#1F4C63]' : dbVerified ? 'text-ink-soft' : 'text-ink-soft'}`}>
+                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'database' ? 'text-blue-dark' : dbVerified ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             1. Ledger Database Mutation
                           </p>
                           <p className="text-xs text-ink-soft font-medium">
@@ -262,15 +262,15 @@ export default function ApplicationReviewDialog({
                       <div className="flex items-center gap-4">
                         <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${
                           receiptCompiled 
-                            ? "bg-[#1F4C63]/10 border-[#1F4C63] text-[#1F4C63] font-bold" 
+                            ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'receipt' 
-                              ? "border-[#1F4C63] text-[#1F4C63] animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
                               : "border-slate-300 border-line text-ink-soft"
                         }`}>
                           {receiptCompiled ? "✓" : "2"}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'receipt' ? 'text-[#1F4C63]' : receiptCompiled ? 'text-ink-soft' : 'text-ink-soft'}`}>
+                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'receipt' ? 'text-blue-dark' : receiptCompiled ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             2. PDF Slip Generation
                           </p>
                           <p className="text-xs text-ink-soft font-medium">
@@ -283,15 +283,15 @@ export default function ApplicationReviewDialog({
                       <div className="flex items-center gap-4">
                         <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${
                           emailDispatched 
-                            ? "bg-[#1F4C63]/10 border-[#1F4C63] text-[#1F4C63] font-bold" 
+                            ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'email' 
-                              ? "border-[#1F4C63] text-[#1F4C63] animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
                               : "border-slate-300 border-line text-ink-soft"
                         }`}>
                           {emailDispatched ? "✓" : "3"}
                         </div>
                         <div className="min-w-0">
-                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'email' ? 'text-[#1F4C63]' : emailDispatched ? 'text-ink-soft' : 'text-ink-soft'}`}>
+                          <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'email' ? 'text-blue-dark' : emailDispatched ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             3. Resend SMTP Transmission
                           </p>
                           <p className="text-xs text-ink-soft font-medium font-sans">
@@ -307,7 +307,7 @@ export default function ApplicationReviewDialog({
               <CardContent className="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-grow flex flex-col justify-between">
                 <div className="flex items-center justify-between pb-3 border-b border-line">
                   <div className="flex items-center gap-2">
-                     <FileText className="w-5 h-5 text-[#1F4C63] animate-pulse" />
+                     <FileText className="w-5 h-5 text-blue-dark animate-pulse" />
                      <h4 className="font-semibold text-ink-soft text-sm tracking-tight uppercase">Resume Document Viewer</h4>
                   </div>
                   <div className="flex items-center gap-2">
@@ -323,7 +323,7 @@ export default function ApplicationReviewDialog({
                           link.click();
                           document.body.removeChild(link);
                        }}
-                       className="px-4 py-2 bg-[#1F4C63]/5 hover:bg-[#1F4C63]/10 text-[#153343] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all border border-[#1F4C63]/20/40"
+                       className="px-4 py-2 bg-blue-dark/5 hover:bg-blue-dark/10 text-[#153343] text-xs font-semibold uppercase tracking-wider rounded-lg transition-all border border-blue-dark/20"
                      >
                        Download File
                      </button>
@@ -353,7 +353,7 @@ export default function ApplicationReviewDialog({
                     } else if (rawDataUrl.startsWith('data:application/pdf')) {
                       return (
                         <div className="w-full h-full flex flex-col gap-2">
-                          <div className="flex items-center justify-between p-3 bg-[#1F4C63]/5/50 border border-[#1F4C63]/10 rounded-lg">
+                          <div className="flex items-center justify-between p-3 bg-blue-dark/5 border border-blue-dark/10 rounded-lg">
                             <span className="text-xs font-semibold text-[#153343]">📄 PDF viewer loading. Standard browsers may restrict inline elements inside sandboxes.</span>
                             <a aria-label="Download PDF" 
                               href={rawDataUrl}
@@ -379,7 +379,7 @@ export default function ApplicationReviewDialog({
                            <a aria-label="Download PDF" 
                              href={rawDataUrl}
                              download={`${student?.fullName || application?.studentName || 'student'}_resume`}
-                             className="inline-flex py-3 px-6 h-12 items-center justify-center rounded-lg font-bold bg-[#1F4C63] hover:bg-[#153343] text-white  transition-all"
+                             className="inline-flex py-3 px-6 h-12 items-center justify-center rounded-lg font-bold bg-blue-dark hover:bg-[#153343] text-white  transition-all"
                            >
                              Download Document Natively
                            </a>
@@ -407,20 +407,20 @@ export default function ApplicationReviewDialog({
                           </div>
                       </section>
 
-                      <section className="bg-[#1F4C63]/5/50 p-5 rounded-lg border border-[#1F4C63]/10 space-y-2">
+                      <section className="bg-blue-dark/5 p-5 rounded-lg border border-blue-dark/10 space-y-2">
                           <p className="text-xs font-semibold text-[#153343] tracking-wide mb-2 flex items-center gap-1">
                             <User className="w-3.5 h-3.5" /> Student Contact Details
                           </p>
                           <div className="space-y-2.5 text-xs text-ink-soft">
                              <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-[#1F4C63] shrink-0" />
+                                <Mail className="w-4 h-4 text-blue-dark shrink-0" />
                                 <span className="font-semibold text-ink-soft">Email:</span>
-                                <a aria-label="Download PDF" href={`mailto:${student?.contactEmail || 'armin.k@yorkschool.ca'}`} className="font-bold text-ink hover:text-[#1F4C63] transition-colors">
+                                <a aria-label="Download PDF" href={`mailto:${student?.contactEmail || 'armin.k@yorkschool.ca'}`} className="font-bold text-ink hover:text-blue-dark transition-colors">
                                    {student?.contactEmail || 'armin.k@yorkschool.ca'}
                                  </a>
                              </div>
                              <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4 text-[#1F4C63] shrink-0" />
+                                <Phone className="w-4 h-4 text-blue-dark shrink-0" />
                                 <span className="font-semibold text-ink-soft">Phone:</span>
                                 <span className="font-bold text-ink">
                                    {student?.phone || '(416) 555-0182'}
@@ -452,13 +452,13 @@ export default function ApplicationReviewDialog({
                            <button aria-label="View Student Resume" 
                              type="button" 
                              onClick={handleOpenResume}
-                             className="w-full flex items-center justify-between p-4 rounded-lg bg-[#1F4C63]/5 border border-[#1F4C63]/10 group hover:bg-[#1F4C63] hover:text-white transition-all text-left rounded-full"
+                             className="w-full flex items-center justify-between p-4 rounded-lg bg-blue-dark/5 border border-blue-dark/10 group hover:bg-blue-dark hover:text-white transition-all text-left rounded-full"
                            >
                               <div className="flex items-center gap-3">
-                                 <FileText className="w-5 h-5 text-[#1F4C63] group-hover:text-white transition-all" />
+                                 <FileText className="w-5 h-5 text-blue-dark group-hover:text-white transition-all" />
                                  <span className="text-xs font-bold tracking-wide text-ink-soft group-hover:text-white transition-all">Student Resume</span>
                               </div>
-                              <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-[#1F4C63] group-hover:text-white transition-opacity" />
+                              <ExternalLink className="w-4 h-4 opacity-0 group-hover:opacity-100 text-blue-dark group-hover:text-white transition-opacity" />
                            </button>
                         </section>
                       )}
@@ -472,7 +472,7 @@ export default function ApplicationReviewDialog({
                         <p className="text-xs font-semibold text-ink-soft tracking-wide mb-4">Skills</p>
                         <div className="flex flex-wrap gap-2">
                            {student.skills.map(skill => (
-                             <Badge key={skill} variant="secondary" className="bg-[#1F4C63]/5 text-[#153343] border-none font-bold uppercase text-xs tracking-widest px-3 py-1">
+                             <Badge key={skill} variant="secondary" className="bg-blue-dark/5 text-[#153343] border-none font-bold uppercase text-xs tracking-widest px-3 py-1">
                                 {skill}
                              </Badge>
                            ))}
@@ -503,7 +503,7 @@ export default function ApplicationReviewDialog({
                   Reject Candidate
                 </Button>
                 <Button 
-                  className="flex-[1.5] bg-[#1F4C63] hover:bg-[#0F1E29] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-[1.5] bg-blue-dark hover:bg-[#0F1E29] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
                   onClick={handleAcceptClick}
                 >
                   Confirm & Accept Volunteer

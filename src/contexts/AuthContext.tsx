@@ -71,20 +71,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMfaVerifiedState(false);
       return;
     }
-
-    // Trust the frontend caller if setting to true (this avoids race conditions
-    // where the server set the claim, but getIdTokenResult(true) is faster
-    // than Firebase propagation latency). 
-    if (verified) {
-      setMfaVerifiedState(true);
-      return;
-    }
-
     try {
       const tokenResult = await user.getIdTokenResult(true);
       if (tokenResult.claims.mfaVerified === true) {
         setMfaVerifiedState(true);
-      } else if (localStorage.getItem(`mfaFallbackClaim:${user.uid}`) === 'true') {
+      } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
         // The server verified the OTP but couldn't set the custom claim (e.g. missing admin credentials locally)
         setMfaVerifiedState(true);
       } else {
@@ -175,28 +166,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfiles = async (currentUser: User | { uid: string }) => {
     try {
-      const envDevs = import.meta.env.VITE_DEVELOPER_EMAILS || '';
-      const rawDevs = envDevs ? envDevs : 'kiamehrmetanat@gmail.com'; // Hardcode fallback
-      const AUTHORIZED_DEVS = rawDevs.split(',').map((e: string) => e.trim().toLowerCase());
-      const userEmail = ((currentUser as any).email || '').toLowerCase();
+      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
+      const userEmail = (currentUser as any).email || '';
       const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
-      console.log('[AuthContext] AUTHORIZED_DEVS:', AUTHORIZED_DEVS);
-      console.log('[AuthContext] userEmail:', userEmail);
-      console.log('[AuthContext] isDevEmail:', isDevEmail);
 
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
-      console.log('[AuthContext] userDoc.exists():', userDoc.exists());
       if (userDoc.exists()) {
         setProfileMissing(false);
         const data = userDoc.data() as UserProfile;
-        
-        // If the user's email is in the developer list, they are always a developer,
-        // overriding whatever role might be accidentally saved in their Firestore profile.
-        if (isDevEmail) {
-          console.log('[AuthContext] user is in VITE_DEVELOPER_EMAILS. Forcing role to developer.');
-          data.role = 'developer';
-        }
-
         if (data.twoFactorEnabled === undefined) {
           // Older accounts predate this field. Default to the same policy as
           // signup: required for organizations and developers, optional for students (who can
@@ -278,16 +255,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network')) {
         console.warn('Offline mode: Could not fetch profiles from Firestore.');
-        setAuthError('Network error while connecting to the database. Please check your internet connection and try again.');
-        
-        // Developer fallback: if we can't connect to Firestore, still let developers in!
-        const envDevs = import.meta.env.VITE_DEVELOPER_EMAILS || '';
-        const rawDevs = envDevs ? envDevs : 'kiamehrmetanat@gmail.com'; // Hardcode fallback
-        const AUTHORIZED_DEVS = rawDevs.split(',').map((e: string) => e.trim().toLowerCase());
-        const userEmail = ((currentUser as any).email || '').toLowerCase();
-        
+
+        // A blocked websocket (ad blocker / privacy shield targeting
+        // firestore.googleapis.com) looks identical to a real network outage
+        // from here: we simply never got a response. For everyone else that's
+        // a genuine "can't reach the database" error. But for an authorized
+        // developer email, refusing to render the Control Room because a
+        // browser extension blocked the DB round trip is worse than just
+        // trusting the email/allowlist match we already have client-side.
+        const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
+        const userEmail = (currentUser as any).email || '';
         if (AUTHORIZED_DEVS.includes(userEmail)) {
-          console.warn('[AuthContext] Offline mode: Bypassing Firestore for developer profile.');
+          console.warn('Firestore unreachable but email matches VITE_DEVELOPER_EMAILS: forcing developer role locally.');
           setProfileMissing(false);
           setUserProfile({
             uid: currentUser.uid,
@@ -296,7 +275,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             twoFactorEnabled: true,
             createdAt: new Date(),
           });
+          setAuthError(null);
+          return;
         }
+
+        setAuthError('Network error while connecting to the database. Please check your internet connection and try again.');
       } else {
         console.error('Error fetching profiles:', error);
         setAuthError('An unexpected error occurred while loading your profile. Please try again.');
@@ -387,10 +370,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // check (see /api/auth/verify-otp); a client can no longer grant
           // itself MFA-verified status by writing to local/session storage.
           try {
-            const tokenResult = await currentUser.getIdTokenResult(true);
+            const tokenResult = await currentUser.getIdTokenResult();
             if (tokenResult.claims.mfaVerified === true) {
               setMfaVerifiedState(true);
-            } else if (localStorage.getItem(`mfaFallbackClaim:${currentUser.uid}`) === 'true') {
+            } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
               setMfaVerifiedState(true);
             } else {
               setMfaVerifiedState(false);
@@ -454,11 +437,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (user?.uid) {
       sessionStorage.removeItem(`mfa_verified_${user.uid}`);
       localStorage.removeItem(`mfa_verified_${user.uid}`);
-      localStorage.removeItem(`mfaFallbackClaim:${user.uid}`);
     }
     sessionStorage.removeItem('mfa_verified_temp');
     localStorage.removeItem('mfa_verified_temp');
-    sessionStorage.removeItem('mfaFallbackClaim');
     localStorage.removeItem('demo_mode_role');
     localStorage.removeItem('demo_student_profile');
     localStorage.removeItem('demo_org_profile');

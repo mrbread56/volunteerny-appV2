@@ -191,7 +191,7 @@ export default function DeveloperDashboard() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isUserDeletingId, setIsUserDeletingId] = useState<string | null>(null);
   const [developerDeleteError, setDeveloperDeleteError] = useState<string>('');
-  const [adminPurgeQuery, setAdminPurgeQuery] = useState('onwoo');
+  const [adminPurgeQuery, setAdminPurgeQuery] = useState('');
   const [isGlobalPurging, setIsGlobalPurging] = useState(false);
   const [adminPurgeSuccess, setAdminPurgeSuccess] = useState('');
 
@@ -456,8 +456,8 @@ export default function DeveloperDashboard() {
       return;
     }
     const target = adminPurgeQuery.trim().toLowerCase();
-    if (!target) {
-      setDeveloperDeleteError('Please specify a target query to scan and purge.');
+    if (target.length < 3) {
+      setDeveloperDeleteError('Please specify a target query of at least 3 characters to scan and purge.');
       return;
     }
     setIsGlobalPurging(true);
@@ -589,7 +589,7 @@ export default function DeveloperDashboard() {
   if (!isDemoMode && user && !AUTHORIZED_DEVS.includes(user.email || '')) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-paper-2 p-6 text-center">
-        <Card className="max-w-md p-8 border-line border space-y-4  bg-white rounded-lg">
+        <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">
           <ShieldAlert className="text-red-500 w-12 h-12 mx-auto" />
           <h2 className="text-xl font-bold text-ink tracking-tight">Access Denied</h2>
           <p className="text-ink-muted text-sm leading-relaxed">
@@ -609,12 +609,12 @@ export default function DeveloperDashboard() {
   if (!isDashboardActive) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center py-16 px-4 bg-paper-2">
-        <Card className="w-full max-w-xl mx-auto p-10 border border-line-light  shadow-slate-200/60 rounded-lg bg-white text-center space-y-8 animate-fadeIn relative overflow-hidden">
+        <Card className="w-full max-w-xl mx-auto p-10 border border-line-light shadow-slate-200/60 rounded-lg bg-white text-center space-y-8 animate-fadeIn relative overflow-hidden">
           {/* Accent decoration */}
-          <div className="absolute top-0 left-0 right-0 h-2    " />
+          <div className="absolute top-0 left-0 right-0 h-2" />
           
           <div className="space-y-3">
-            <div className="w-16 h-16 bg-[#1F4C63]/5 border border-[#1F4C63]/10 text-[#1F4C63] rounded-lg flex items-center justify-center mx-auto ">
+            <div className="w-16 h-16 bg-blue-dark/5 border border-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto">
               <Lock className="w-8 h-8" />
             </div>
             <h1 className="text-3xl font-bold text-ink uppercase tracking-tight font-sans">
@@ -630,17 +630,17 @@ export default function DeveloperDashboard() {
 
           <div className="bg-paper-2 rounded-lg p-6 text-left border border-line-light space-y-3">
             <h4 className="text-xs font-bold text-ink-soft uppercase tracking-wide flex items-center gap-2">
-              <Compass className="w-4 h-4 text-[#E08A3C]" /> Key Privileges Includes:
+              <Compass className="w-4 h-4 text-amber" /> Key Privileges Includes:
             </h4>
             <ul className="text-xs text-ink-muted space-y-2 font-medium">
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#1F4C63] rounded-lg" /> Click counters to drill down and retrieve real live data
+                <span className="w-1.5 h-1.5 bg-blue-dark rounded-lg" /> Click counters to drill down and retrieve real live data
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#1F4C63] rounded-lg" /> Live feedback processing with Gemini AI diagnostics
+                <span className="w-1.5 h-1.5 bg-blue-dark rounded-lg" /> Live feedback processing with Gemini AI diagnostics
               </li>
               <li className="flex items-center gap-2">
-                <span className="w-1.5 h-1.5 bg-[#1F4C63] rounded-lg" /> One-click banning of violator organizations or students
+                <span className="w-1.5 h-1.5 bg-blue-dark rounded-lg" /> One-click banning of violator organizations or students
               </li>
             </ul>
           </div>
@@ -648,7 +648,7 @@ export default function DeveloperDashboard() {
           <div>
             <Button 
               onClick={() => setIsDashboardActive(true)}
-              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-slate-900 text-white hover:bg-slate-800  flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
             >
               <Plus className="w-4 h-4" /> Create Control Room Dashboard
             </Button>
@@ -662,9 +662,9 @@ export default function DeveloperDashboard() {
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 space-y-8 animate-fadeIn">
       {/* Header info bar */}
-      <div className="bg-slate-900 text-white rounded-lg p-8 md:p-12  relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="bg-slate-900 text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-[#1F4C63]/20 text-blue-400 border border-[#1F4C63]/30 text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-dark/20 text-blue-400 border border-blue-dark/30 text-xs font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4" /> Administrator Verified
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight uppercase">Control Room</h1>
@@ -676,34 +676,52 @@ export default function DeveloperDashboard() {
         {/* Stats HUD Block with Drill-down Action */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 relative z-10 w-full md:w-auto shrink-0 select-hud">
           {/* Students counter */}
-          <div 
+          <div
             onClick={() => {
               setShowStudentsList(true);
               setActiveTab('users');
             }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setShowStudentsList(true);
+                setActiveTab('users');
+              }
+            }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-students-metric",
-              showStudentsList 
-                ? "bg-[#1F4C63] border-[#1F4C63] text-white  shadow-blue-500/20" 
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-students-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              showStudentsList
+                ? "bg-blue-dark border-blue-dark text-white  shadow-blue-500/20"
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
-            <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white animate-bounce" : "text-blue-400")} />
+            <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white" : "text-blue-400")} />
             <span className="block text-2xl font-bold">{showStudentsList ? realStudentCount : 0}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">STUDENTS</span>
             {!showStudentsList && <span className="text-[7px] text-blue-300 font-semibold uppercase tracking-wide block mt-1">Click to Load</span>}
           </div>
 
           {/* Orgs counter */}
-          <div 
+          <div
             onClick={() => {
               setShowOrgsList(true);
               setActiveTab('users');
             }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setShowOrgsList(true);
+                setActiveTab('users');
+              }
+            }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-orgs-metric",
-              showOrgsList 
-                ? "bg-[#1F4C63] border-[#1F4C63] text-white  shadow-blue-500/20" 
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-orgs-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              showOrgsList
+                ? "bg-blue-dark border-blue-dark text-white  shadow-blue-500/20"
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
@@ -714,26 +732,35 @@ export default function DeveloperDashboard() {
           </div>
 
           {/* Reports counter */}
-          <div 
+          <div
             onClick={() => {
               setShowReportsList(true);
               setActiveTab('reports');
             }}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                setShowReportsList(true);
+                setActiveTab('reports');
+              }
+            }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-reports-metric",
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-reports-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showReportsList && activeTab === 'reports'
-                ? "bg-red-600 border-red-500 text-white  shadow-red-500/20" 
+                ? "bg-red-600 border-red-500 text-white  shadow-red-500/20"
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
-            <ShieldAlert className={cn("w-5 h-5 mx-auto mb-1.5 animate-pulse", showReportsList && activeTab === 'reports' ? "text-white animate-bounce" : "text-red-400")} />
+            <ShieldAlert className={cn("w-5 h-5 mx-auto mb-1.5", showReportsList && activeTab === 'reports' ? "text-white" : "text-red-400 animate-pulse")} />
             <span className="block text-2xl font-bold">{reports.length}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">REPORTS</span>
             {(!showReportsList || activeTab !== 'reports') && <span className="text-[7px] text-red-300 font-semibold uppercase tracking-wide block mt-1">Click to Load</span>}
           </div>
         </div>
 
-        <div className="absolute -bottom-24 -left-20 w-80 h-80 bg-[#1F4C63]/10 rounded-lg blur-3xl -z-5 animate-pulse" />
+        <div className="absolute -bottom-24 -left-20 w-80 h-80 bg-blue-dark/10 rounded-lg blur-3xl -z-5 animate-pulse" />
       </div>
 
       {/* Primary tab bar controls */}
@@ -743,7 +770,7 @@ export default function DeveloperDashboard() {
             onClick={() => setActiveTab('feedbacks')}
             className={cn(
               "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
-              activeTab === 'feedbacks' ? "border-[#1F4C63] text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+              activeTab === 'feedbacks' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
             <MessageSquare className="w-4 h-4" /> Feedback Tickets ({feedbacks.length})
@@ -761,7 +788,7 @@ export default function DeveloperDashboard() {
             onClick={() => setActiveTab('users')}
             className={cn(
               "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
-              activeTab === 'users' ? "border-[#1F4C63] text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+              activeTab === 'users' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
             <XOctagon className="w-4 h-4" /> User Base Audit
@@ -779,16 +806,16 @@ export default function DeveloperDashboard() {
             onClick={() => setActiveTab('settings')}
             className={cn(
               "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
-              activeTab === 'settings' ? "border-[#1F4C63] text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+              activeTab === 'settings' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
-            <Settings className="w-4 h-4 text-[#1F4C63]" /> System Settings
+            <Settings className="w-4 h-4 text-blue-dark" /> System Settings
           </button>
           <button
             onClick={() => setActiveTab('verification')}
             className={cn(
               "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
-              activeTab === 'verification' ? "border-[#1F4C63] text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+              activeTab === 'verification' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
             <ShieldCheck className="w-4 h-4 text-emerald-600" /> Verify Orgs {pendingOrgs.length > 0 && <span className="ml-1 bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full">{pendingOrgs.length}</span>}
@@ -798,7 +825,7 @@ export default function DeveloperDashboard() {
 
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-[#1F4C63]/30 border-t-blue-600 rounded-lg animate-spin mx-auto" />
+          <div className="w-10 h-10 border-4 border-blue-dark/30 border-t-blue-600 rounded-lg animate-spin mx-auto" />
           <p className="text-xs font-bold uppercase text-ink-muted tracking-widest animate-pulse">Retrieving system registries...</p>
         </div>
       ) : activeTab === 'feedbacks' ? (
@@ -811,7 +838,7 @@ export default function DeveloperDashboard() {
                 placeholder="Search ticket subjects, contents, or user emails..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-4 pr-10 py-2.5 rounded-lg border border-line text-xs focus:ring-2 focus:ring-[#1F4C63] font-semibold"
+                className="w-full pl-4 pr-10 py-2.5 rounded-lg border border-line text-xs focus:ring-2 focus:ring-blue-dark font-semibold"
               />
             </div>
             
@@ -853,8 +880,8 @@ export default function DeveloperDashboard() {
           ) : (
             <div className="grid grid-cols-1 gap-6">
               {filteredFeedbacks.map((fb) => (
-                <Card key={fb.id} className="rounded-lg border border-line  bg-white overflow-hidden relative animate-fadeIn">
-                  <div className="absolute top-0 left-0 w-2 h-full bg-[#1F4C63]" />
+                <Card key={fb.id} className="rounded-lg border border-line bg-white overflow-hidden relative animate-fadeIn">
+                  <div className="absolute top-0 left-0 w-2 h-full bg-blue-dark" />
                   
                   <CardContent className="p-6 md:p-8 space-y-6">
                     <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -862,15 +889,15 @@ export default function DeveloperDashboard() {
                         <div className="flex flex-wrap items-center gap-2.5">
                           <span className={`inline-block text-xs font-semibold uppercase px-2 py-0.5 rounded ${
                             fb.type === 'bug' ? 'bg-red-50 text-red-600 border border-red-100' :
-                            fb.type === 'feature' ? 'bg-[#1F4C63]/5 text-[#1F4C63] border border-[#1F4C63]/10' :
-                            'bg-[#1F4C63]/5 text-[#1F4C63] border border-[#1F4C63]/10'
+                            fb.type === 'feature' ? 'bg-blue-dark/5 text-blue-dark border border-blue-dark/10' :
+                            'bg-blue-dark/5 text-blue-dark border border-blue-dark/10'
                           }`}>
                             {fb.type || 'SUPPORT'}
                           </span>
                           <span className="text-xs text-ink-muted font-semibold font-mono">ID: {fb.id}</span>
                         </div>
                         <h3 className="text-lg font-bold text-ink leading-tight">{fb.subject}</h3>
-                        <p className="text-xs text-ink-muted font-semibold font-mono text-ink-muted">
+                        <p className="text-xs text-ink-muted font-semibold font-mono">
                           Sender: {fb.userEmail} ({fb.userRole})
                         </p>
                       </div>
@@ -880,7 +907,7 @@ export default function DeveloperDashboard() {
                       </div>
                     </div>
 
-                    <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-paper-2 p-4 border border-line-light rounded-lg italic leading-relaxed">
+                    <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-paper-2 p-4 border border-line-light rounded-lg italic">
                       "{fb.message}"
                     </p>
 
@@ -888,7 +915,7 @@ export default function DeveloperDashboard() {
                     {fb.attachmentName && (
                       <div className="bg-paper-2 border border-line/80 rounded-lg p-4 text-xs space-y-3 animate-fadeIn font-semibold">
                         <div className="flex items-center gap-2 text-ink-soft">
-                          <Paperclip className="w-4 h-4 text-[#1F4C63]" />
+                          <Paperclip className="w-4 h-4 text-blue-dark" />
                           <span>Attached screenshot/document: <strong className="font-semibold text-[#FF6B35]">{fb.attachmentName}</strong> ({fb.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {fb.attachmentDescription && (
@@ -897,14 +924,14 @@ export default function DeveloperDashboard() {
                           </div>
                         )}
                         {fb.attachmentData && (
-                          <div className="mt-2 p-3 bg-white border border-line-light rounded-lg overflow-hidden max-w-md ">
+                          <div className="mt-2 p-3 bg-white border border-line-light rounded-lg overflow-hidden max-w-md">
                             <p className="text-xs font-bold uppercase text-ink-muted font-mono tracking-wider mb-2">Screenshot Preview (Click to download):</p>
                             {decompressFile(fb.attachmentData).startsWith('data:image/') ? (
                               <img 
                                 src={decompressFile(fb.attachmentData)} 
                                 alt={fb.attachmentName} 
                                 loading="lazy" width="800" height="600"
-                                className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300  border border-line/60 cursor-pointer mx-auto"
+                                className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
                                 onClick={() => {
                                   const link = document.createElement('a');
                                   link.href = decompressFile(fb.attachmentData!);
@@ -923,7 +950,7 @@ export default function DeveloperDashboard() {
                                 <a aria-label="Download attachment" 
                                   href={decompressFile(fb.attachmentData)}
                                   download={fb.attachmentName}
-                                  className="text-xs font-bold text-[#1F4C63] hover:text-[#153343] hover:underline block"
+                                  className="text-xs font-bold text-blue-dark hover:text-[#153343] hover:underline block"
                                 >
                                   Download PDF Attachment
                                 </a>
@@ -947,9 +974,9 @@ export default function DeveloperDashboard() {
 
                     {/* Gemini AI Overview annotation frame */}
                     {fb.aiOverview && (
-                      <div className="border border-orange-100 bg-[#E08A3C]/10/15 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
+                      <div className="border border-orange-100 bg-amber/10 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
                         <div className="flex items-center gap-2 text-orange-900 border-b border-orange-100/40 pb-2">
-                          <Sparkles className="w-4 h-4 text-[#E08A3C]" />
+                          <Sparkles className="w-4 h-4 text-amber" />
                           <span className="text-xs uppercase tracking-widest font-bold">AI Overview Analysis</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">
@@ -958,7 +985,7 @@ export default function DeveloperDashboard() {
                             <span className={`inline-block text-xs font-bold uppercase px-2 py-0.5 rounded ${
                               fb.aiOverview.urgency === 'critical' || fb.aiOverview.urgency === 'high'
                                 ? 'bg-red-500/10 text-red-600 border border-red-200'
-                                : 'bg-[#E08A3C]/10 text-[#E08A3C] border border-[#E08A3C]/20'
+                                : 'bg-amber/10 text-amber border border-amber/20'
                             }`}>
                               {fb.aiOverview.urgency || 'MEDIUM'}
                             </span>
@@ -970,8 +997,8 @@ export default function DeveloperDashboard() {
                           </div>
                           
                           {fb.aiOverview.suggestedFix && (
-                            <div className="space-y-1 md:col-span-2 bg-[#E08A3C]/5 p-4 border border-orange-100 rounded-lg">
-                              <span className="text-xs text-[#E08A3C] uppercase tracking-widest block font-bold">suggested resolve tip</span>
+                            <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-orange-100 rounded-lg">
+                              <span className="text-xs text-amber uppercase tracking-widest block font-bold">suggested resolve tip</span>
                               <p className="text-orange-950 font-mono text-[10.5px] leading-relaxed italic">
                                 {fb.aiOverview.suggestedFix}
                               </p>
@@ -983,12 +1010,12 @@ export default function DeveloperDashboard() {
 
                     {/* Developer Response reply block */}
                     {fb.developerReply ? (
-                      <div className="border border-[#1F4C63]/20 bg-[#1F4C63]/5 p-5 rounded-lg space-y-2 animate-fadeIn">
+                      <div className="border border-blue-dark/20 bg-blue-dark/5 p-5 rounded-lg space-y-2 animate-fadeIn">
                         <div className="flex items-center gap-2 text-[#0F1E29]">
-                          <CheckCircle2 className="w-4 h-4 text-[#1F4C63] animate-bounce" />
+                          <CheckCircle2 className="w-4 h-4 text-blue-dark" />
                           <span className="text-xs uppercase tracking-widest font-bold">Logged Developer Response</span>
                         </div>
-                        <p className="text-xs text-[#1F4C63] font-bold">
+                        <p className="text-xs text-blue-dark font-bold">
                           "{fb.developerReply}"
                         </p>
                         <span className="block text-xs text-ink-muted font-mono font-semibold">
@@ -1003,7 +1030,7 @@ export default function DeveloperDashboard() {
                             placeholder="Type response reply to tickets..."
                             value={replyInput[fb.id] || ''}
                             onChange={(e) => setReplyInput(prev => ({ ...prev, [fb.id]: e.target.value }))}
-                            className="flex-1 rounded-lg border border-line px-4 py-3 text-xs focus:ring-2 focus:ring-[#1F4C63] font-semibold"
+                            className="flex-1 rounded-lg border border-line px-4 py-3 text-xs focus:ring-2 focus:ring-blue-dark font-semibold"
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleSendReply(fb.id);
                             }}
@@ -1039,7 +1066,7 @@ export default function DeveloperDashboard() {
 
           {reports.length === 0 ? (
             <Card className="p-16 text-center border-2 border-dashed border-line-light rounded-lg bg-white space-y-4">
-              <ShieldCheck className="w-12 h-12 text-[#1F4C63] mx-auto animate-bounce" />
+              <ShieldCheck className="w-12 h-12 text-blue-dark mx-auto" />
               <h3 className="text-base font-semibold text-ink uppercase">Secure Safe Space Guaranteed</h3>
               <p className="text-ink-muted text-xs font-semibold max-w-sm mx-auto leading-relaxed">
                 Zero safety reports or violations submitted in the system. The volunteering network remains highly secure.
@@ -1049,7 +1076,7 @@ export default function DeveloperDashboard() {
             <div className="grid grid-cols-1 gap-6">
               {reports.map((report) => {
                 const statusBadge = report.status === 'resolved' 
-                  ? 'bg-[#1F4C63]/5 text-[#1F4C63] border-[#1F4C63]/10' 
+                  ? 'bg-blue-dark/5 text-blue-dark border-blue-dark/10' 
                   : report.status === 'dismissed'
                     ? 'bg-paper-2 text-ink-muted border-line'
                     : 'bg-red-50 text-red-600 border-red-100 animate-pulse';
@@ -1059,7 +1086,7 @@ export default function DeveloperDashboard() {
                   : orgs.find(o => o.uid === report.reportedUserId)?.isBanned || false;
 
                 return (
-                  <Card key={report.id} className="rounded-lg border border-red-100  bg-white overflow-hidden relative animate-fadeIn">
+                  <Card key={report.id} className="rounded-lg border border-red-100 bg-white overflow-hidden relative animate-fadeIn">
                     <div className="absolute top-0 left-0 w-2 h-full bg-red-500" />
                     <CardContent className="p-6 md:p-8 space-y-6">
                       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
@@ -1078,13 +1105,13 @@ export default function DeveloperDashboard() {
                           
                           <div className="bg-paper-2 p-4 border border-line-light rounded-lg flex flex-col md:flex-row md:items-center justify-between gap-4 text-xs font-semibold text-ink-muted">
                             <div>
-                              <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold text-ink-muted">Reporter (Initiator)</span>
+                              <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold">Reporter (Initiator)</span>
                               <p className="text-ink-soft font-bold">{report.reportingUserName || 'User'}</p>
                               <p className="text-xs font-mono font-medium text-ink-muted">{report.reportingUserEmail || 'N/A'}</p>
                             </div>
                             <div className="hidden md:block text-ink-muted">→</div>
                             <div>
-                              <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold text-ink-muted">Reported Target User</span>
+                              <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold">Reported Target User</span>
                               <span className="text-red-500 text-xs uppercase font-bold mr-1">[{report.reportedUserRole}]</span>
                               <span className="text-ink-soft font-bold">{report.reportedUserName}</span>
                               <p className="text-xs font-mono font-medium text-ink-muted">UID: {report.reportedUserId}</p>
@@ -1117,14 +1144,14 @@ export default function DeveloperDashboard() {
                             </div>
                           )}
                           {report.attachmentData && (
-                            <div className="mt-2 p-3 bg-white border border-line rounded-lg overflow-hidden max-w-md ">
+                            <div className="mt-2 p-3 bg-white border border-line rounded-lg overflow-hidden max-w-md">
                               <p className="text-xs font-bold uppercase text-ink-muted font-mono tracking-wider mb-2">Screenshot Preview (Click to download):</p>
                               {decompressFile(report.attachmentData).startsWith('data:image/') ? (
                                 <img 
                                   src={decompressFile(report.attachmentData)} 
                                   alt={report.attachmentName} 
                                   loading="lazy" width="800" height="600"
-                                  className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300  border border-slate-300 cursor-pointer mx-auto"
+                                  className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-slate-300 cursor-pointer mx-auto"
                                   onClick={() => {
                                     const link = document.createElement('a');
                                     link.href = decompressFile(report.attachmentData!);
@@ -1178,7 +1205,7 @@ export default function DeveloperDashboard() {
                               <span className={`inline-block text-xs font-bold uppercase px-2 py-0.5 rounded ${
                                 report.aiOverview.urgency === 'critical' || report.aiOverview.urgency === 'high'
                                   ? 'bg-red-500/10 text-red-600 border border-red-200'
-                                  : 'bg-[#1F4C63]/10 text-[#1F4C63] border border-[#1F4C63]/20'
+                                  : 'bg-blue-dark/10 text-blue-dark border border-blue-dark/20'
                               }`}>
                                 {report.aiOverview.urgency || 'HIGH RISK'}
                               </span>
@@ -1207,7 +1234,7 @@ export default function DeveloperDashboard() {
                           {report.status !== 'resolved' && (
                             <Button 
                               size="sm" 
-                              className="bg-[#1F4C63] hover:bg-[#0F1E29] text-white font-bold uppercase text-xs tracking-wider"
+                              className="bg-blue-dark hover:bg-[#0F1E29] text-white font-bold uppercase text-xs tracking-wider"
                               onClick={() => handleUpdateReportStatus(report.id, 'resolved')}
                             >
                               Resolve Issue
@@ -1228,7 +1255,7 @@ export default function DeveloperDashboard() {
                         <div className="flex items-center gap-2">
                           {isUserBanned ? (
                             <div className="flex items-center gap-2">
-                              <span className="text-xs font-bold uppercase text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg">�,� SUSPENDED</span>
+                              <span className="text-xs font-bold uppercase text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> SUSPENDED</span>
                               <Button
                                 size="sm"
                                 variant="outline"
@@ -1260,9 +1287,9 @@ export default function DeveloperDashboard() {
       ) : activeTab === 'terminated' ? (
         /* TERMINATED BASE TAB */
         <div className="space-y-6">
-          <div className="bg-[#FFF5F5] border border-red-100 border-red-100 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden ">
+          <div className="bg-red-50 border border-red-100 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/30 rounded-lg blur-2xl pointer-events-none" />
-            <div className="w-12 h-12 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0  shadow-red-500/10">
+            <div className="w-12 h-12 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0 shadow-red-500/10">
               <Lock className="w-6 h-6" />
             </div>
             <div>
@@ -1277,7 +1304,7 @@ export default function DeveloperDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Suspended Students */}
-            <Card className="rounded-lg border border-line-light bg-white  shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
+            <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
                   <Users className="w-4 h-4 text-red-500" /> Suspended Students ({students.filter(s => s.isBanned).length})
@@ -1286,7 +1313,7 @@ export default function DeveloperDashboard() {
               <CardContent className="p-6 md:p-8 flex-1">
                 {students.filter(s => s.isBanned).length === 0 ? (
                   <div className="py-12 text-center text-ink-muted space-y-3">
-                    <ShieldCheck className="w-10 h-10 text-[#1F4C63] mx-auto animate-bounce" />
+                    <ShieldCheck className="w-10 h-10 text-blue-dark mx-auto" />
                     <p className="text-xs font-semibold uppercase text-ink-soft">No Suspended Students</p>
                     <p className="text-xs text-ink-muted font-medium">All students currently maintain active, good-standing credentials.</p>
                   </div>
@@ -1304,7 +1331,7 @@ export default function DeveloperDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-[#1F4C63]/20 hover:bg-[#1F4C63]/5 hover:text-[#1F4C63] text-[#1F4C63] font-bold uppercase text-xs tracking-wider shrink-0 "
+                          className="border-blue-dark/20 hover:bg-blue-dark/5 hover:text-blue-dark text-blue-dark font-bold uppercase text-xs tracking-wider shrink-0"
                           onClick={() => handleToggleBan(st.uid, true)}
                         >
                           Un-terminate / Lift Lock
@@ -1317,7 +1344,7 @@ export default function DeveloperDashboard() {
             </Card>
 
             {/* Suspended Organizations */}
-            <Card className="rounded-lg border border-line-light bg-white  shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
+            <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
                   <Building2 className="w-4 h-4 text-red-500" /> Suspended Partners ({orgs.filter(o => o.isBanned).length})
@@ -1326,7 +1353,7 @@ export default function DeveloperDashboard() {
               <CardContent className="p-6 md:p-8 flex-1">
                 {orgs.filter(o => o.isBanned).length === 0 ? (
                   <div className="py-12 text-center text-ink-muted space-y-3">
-                    <ShieldCheck className="w-10 h-10 text-[#1F4C63] mx-auto animate-bounce" />
+                    <ShieldCheck className="w-10 h-10 text-blue-dark mx-auto" />
                     <p className="text-xs font-semibold uppercase text-ink-soft">No Suspended Partners</p>
                     <p className="text-xs text-ink-muted font-medium">All partner organizations are verified and in good standing.</p>
                   </div>
@@ -1344,7 +1371,7 @@ export default function DeveloperDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="border-[#1F4C63]/20 hover:bg-[#1F4C63]/5 hover:text-[#1F4C63] text-[#1F4C63] font-bold uppercase text-xs tracking-wider shrink-0 "
+                          className="border-blue-dark/20 hover:bg-blue-dark/5 hover:text-blue-dark text-blue-dark font-bold uppercase text-xs tracking-wider shrink-0"
                           onClick={() => handleToggleBan(org.uid, true)}
                         >
                           Un-terminate / Lift Lock
@@ -1367,10 +1394,10 @@ export default function DeveloperDashboard() {
           )}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* STUDENTS CONTROL BLOCK */}
-          <Card className="rounded-lg border border-line-light bg-white  overflow-hidden flex flex-col">
+          <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
             <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
-                <Users className="w-5 h-5 text-[#1F4C63]" /> Students Audit Base
+                <Users className="w-5 h-5 text-blue-dark" /> Students Audit Base
               </CardTitle>
               <p className="text-xs font-semibold text-ink-muted mt-1">
                 Verify logged involvement parameters and privilege status.
@@ -1386,7 +1413,7 @@ export default function DeveloperDashboard() {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="bg-white hover:bg-paper-2 text-xs font-semibold uppercase text-[#1F4C63]"
+                  className="bg-white hover:bg-paper-2 text-xs font-semibold uppercase text-blue-dark"
                   onClick={() => setShowStudentsList(true)}
                 >
                   Load Student List
@@ -1405,7 +1432,7 @@ export default function DeveloperDashboard() {
                         <p className="text-xs font-bold text-ink-muted">
                           {st.school} • Grade {st.grade}
                         </p>
-                        <p className="text-xs font-bold text-[#1F4C63] font-mono">
+                        <p className="text-xs font-bold text-blue-dark font-mono">
                           LOGGED: {st.loggedHours?.length || 0} activity sessions
                         </p>
                       </div>
@@ -1413,7 +1440,7 @@ export default function DeveloperDashboard() {
                       <div className="shrink-0 flex items-center gap-2">
                         {st.isBanned ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold uppercase text-red-600 bg-red-50 py-1.5 px-3 rounded-lg border border-red-100">�,� suspended</span>
+                            <span className="text-xs font-bold uppercase text-red-600 bg-red-50 py-1.5 px-3 rounded-lg border border-red-100 inline-flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> suspended</span>
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -1475,10 +1502,10 @@ export default function DeveloperDashboard() {
           </Card>
 
           {/* ORGANIZATIONS CONTROL BLOCK */}
-          <Card className="rounded-lg border border-line-light bg-white  overflow-hidden flex flex-col">
+          <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
             <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
-                <Building2 className="w-5 h-5 text-[#1F4C63]" /> Organizations Audit Base
+                <Building2 className="w-5 h-5 text-blue-dark" /> Organizations Audit Base
               </CardTitle>
               <p className="text-xs font-semibold text-ink-muted mt-1">
                 Review verified public community service hubs around York region.
@@ -1494,7 +1521,7 @@ export default function DeveloperDashboard() {
                 <Button 
                   size="sm" 
                   variant="outline" 
-                  className="bg-white hover:bg-paper-2 text-xs font-semibold uppercase text-[#1F4C63]"
+                  className="bg-white hover:bg-paper-2 text-xs font-semibold uppercase text-blue-dark"
                   onClick={() => setShowOrgsList(true)}
                 >
                   Load Organizations List
@@ -1523,7 +1550,7 @@ export default function DeveloperDashboard() {
                       <div className="shrink-0 flex items-center gap-2">
                         {org.isBanned ? (
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold uppercase text-red-600 bg-red-50 py-1.5 px-3 rounded-lg border border-red-100">�,� suspended</span>
+                            <span className="text-xs font-bold uppercase text-red-600 bg-red-50 py-1.5 px-3 rounded-lg border border-red-100 inline-flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> suspended</span>
                             <Button 
                               size="sm" 
                               variant="outline" 
@@ -1588,10 +1615,10 @@ export default function DeveloperDashboard() {
     ) : activeTab === 'settings' ? (
       /* SYSTEM SETTINGS TAB */
       <div className="space-y-6 max-w-2xl animate-fadeIn">
-        <Card className="rounded-lg border border-line-light bg-white  overflow-hidden flex flex-col">
+        <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
           <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
             <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
-              <Settings className="w-5 h-5 text-[#1F4C63]" /> MASTER SYSTEM VARIABLES
+              <Settings className="w-5 h-5 text-blue-dark" /> MASTER SYSTEM VARIABLES
             </CardTitle>
             <p className="text-xs font-semibold text-ink-muted mt-1">
               Configure global application capabilities, feature flags, and email engines.
@@ -1614,7 +1641,7 @@ export default function DeveloperDashboard() {
                 aria-checked={emailSystemOn}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
-                  emailSystemOn ? "bg-[#1F4C63]" : "bg-slate-200"
+                  emailSystemOn ? "bg-blue-dark" : "bg-slate-200"
                 )}
               >
                 <div
@@ -1642,7 +1669,7 @@ export default function DeveloperDashboard() {
                 aria-checked={gmailOAuthOn}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
-                  gmailOAuthOn ? "bg-[#1F4C63]" : "bg-slate-200"
+                  gmailOAuthOn ? "bg-blue-dark" : "bg-slate-200"
                 )}
               >
                 <div
@@ -1655,10 +1682,10 @@ export default function DeveloperDashboard() {
             </div>
 
             {/* Live Email Testing Form */}
-            <div className="border border-orange-100 p-6 rounded-lg bg-[#E08A3C]/10/10 flex flex-col gap-4 animate-fadeIn">
+            <div className="border border-orange-100 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
               <div className="space-y-1">
                 <p className="font-semibold text-orange-950 text-sm flex items-center gap-1.5 font-sans uppercase tracking-wide">
-                  <Mail className="w-4 h-4 text-[#E08A3C] animate-pulse" /> Send Live / Simulated Test Email
+                  <Mail className="w-4 h-4 text-amber animate-pulse" /> Send Live / Simulated Test Email
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
                   Test the transactional system live! If your third-party credentials (Resend or SMTP) are invalid or unconfigured, the system will gracefully drop into the **Sandbox Fallback Mode** and generate a fully styled HTML email preview inside the dev log response below.
@@ -1673,7 +1700,7 @@ export default function DeveloperDashboard() {
                     value={testEmailTo}
                     onChange={(e) => setTestEmailTo(e.target.value)}
                     placeholder="e.g. you@domain.com"
-                    className="w-full border border-line rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-[#E08A3C] font-semibold"
+                    className="w-full border border-line rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-amber font-semibold"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1681,7 +1708,7 @@ export default function DeveloperDashboard() {
                   <select
                     value={testEmailTemplate}
                     onChange={(e) => setTestEmailTemplate(e.target.value)}
-                    className="w-full border border-line bg-white rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-[#E08A3C] font-bold"
+                    className="w-full border border-line bg-white rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-amber font-bold"
                   >
                     <option value="welcome_student">Student Welcome Email</option>
                     <option value="application_status">Application Accepted Alert</option>
@@ -1697,8 +1724,8 @@ export default function DeveloperDashboard() {
                 <div className={cn(
                   "p-3 rounded-lg text-xs font-semibold leading-relaxed animate-fadeIn border",
                   testEmailStatus.success
-                    ? "bg-[#1F4C63]/5 border-[#1F4C63]/10 text-blue-800"
-                    : "bg-[#E08A3C]/10 border-orange-100 text-orange-800"
+                    ? "bg-blue-dark/5 border-blue-dark/10 text-blue-800"
+                    : "bg-amber/10 border-orange-100 text-orange-800"
                 )}>
                   {testEmailStatus.message}
                 </div>
@@ -1708,7 +1735,7 @@ export default function DeveloperDashboard() {
                 type="button"
                 onClick={handleSendTestEmail}
                 disabled={isSendingTestEmail || !testEmailTo}
-                className="w-full bg-[#E08A3C] text-white hover:bg-[#E08A3C] font-semibold text-xs  shadow-orange-500/10"
+                className="w-full bg-amber text-white hover:bg-amber font-semibold text-xs shadow-orange-500/10"
               >
                 {isSendingTestEmail ? "Dispatching Delivery..." : "Send Test Email"}
               </Button>
@@ -1719,7 +1746,7 @@ export default function DeveloperDashboard() {
     ) : activeTab === 'verification' ? (
       <div className="space-y-6">
         <h3 className="text-lg font-semibold uppercase text-ink-soft">Pending Organization Verification</h3>
-        <p className="text-sm text-ink-muted">Organizations that submitted a CRA charity registration number. Verify each against the <a href="https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyBscSrch" target="_blank" rel="noopener noreferrer" className="text-[#1F4C63] underline">CRA Charity Registry</a> before approving.</p>
+        <p className="text-sm text-ink-muted">Organizations that submitted a CRA charity registration number. Verify each against the <a href="https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyBscSrch" target="_blank" rel="noopener noreferrer" className="text-blue-dark underline">CRA Charity Registry</a> before approving.</p>
         {pendingOrgs.length === 0 ? (
           <div className="text-center py-16 text-ink-muted text-sm font-semibold">No organizations pending verification.</div>
         ) : (

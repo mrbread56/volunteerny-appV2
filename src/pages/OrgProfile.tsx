@@ -271,7 +271,7 @@ export default function OrgProfile() {
       className="max-w-4xl mx-auto py-12 px-4 space-y-8 bg-paper-2/50 rounded-lg p-6 md:p-12 border border-line/50"
     >
       <div className="flex items-center gap-6">
-        <div className="w-20 h-20 bg-[#1F4C63] rounded-lg flex items-center justify-center ">
+        <div className="w-20 h-20 bg-blue-dark rounded-lg flex items-center justify-center">
           <Building2 className="text-white w-10 h-10" />
         </div>
         <div>
@@ -289,10 +289,10 @@ export default function OrgProfile() {
         className="grid grid-cols-1 md:grid-cols-3 gap-8"
       >
         <div className="md:col-span-2 space-y-8">
-          <Card className="rounded-lg border border-line  bg-white overflow-hidden">
+          <Card className="rounded-lg border border-line bg-white overflow-hidden">
             <CardHeader className="border-b border-line-light">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
-                <Info className="w-5 h-5 text-[#1F4C63]" /> Basic Information
+                <Info className="w-5 h-5 text-blue-dark" /> Basic Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
@@ -323,7 +323,7 @@ export default function OrgProfile() {
                   Basic Description
                 </label>
                 <textarea
-                  className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-[#1F4C63] min-h-[100px]"
+                  className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-blue-dark min-h-[100px]"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Introduce your organization, objectives, and community presence..."
@@ -335,7 +335,7 @@ export default function OrgProfile() {
                   Mission Statement
                 </label>
                 <textarea
-                  className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-[#1F4C63] min-h-[100px]"
+                  className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-blue-dark min-h-[100px]"
                   value={mission}
                   onChange={(e) => setMission(e.target.value)}
                   required
@@ -349,7 +349,7 @@ export default function OrgProfile() {
                   onChange={(e) => setCraNumber(e.target.value)}
                   placeholder="e.g. 123456789RR0001"
                 />
-                <div className="p-3 bg-[#1F4C63]/5 border border-[#1F4C63]/20 rounded-lg space-y-1">
+                <div className="p-3 bg-blue-dark/5 border border-blue-dark/20 rounded-lg space-y-1">
                   <p className="text-xs font-semibold uppercase text-blue-900 tracking-wider flex items-center gap-1">
                     🇨🇦 Canada Revenue Agency Validation (Optional)
                   </p>
@@ -418,17 +418,17 @@ export default function OrgProfile() {
             </CardContent>
           </Card>
 
-          <Card className="rounded-lg border border-line  bg-white">
+          <Card className="rounded-lg border border-line bg-white">
             <CardHeader>
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink border-none">
-                <Globe className="w-5 h-5 text-[#1F4C63]" /> Location Settings
+                <Globe className="w-5 h-5 text-blue-dark" /> Location Settings
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <label className="flex items-center gap-4 p-6 rounded-lg bg-[#1F4C63]/5 border border-[#1F4C63]/10 cursor-pointer transition-all hover:bg-[#1F4C63]/10/50">
+              <label className="flex items-center gap-4 p-6 rounded-lg bg-blue-dark/5 border border-blue-dark/10 cursor-pointer transition-all hover:bg-blue-dark/10">
                 <input
                   type="checkbox"
-                  className="w-6 h-6 rounded-lg text-[#1F4C63] focus:ring-[#1F4C63] border-slate-300"
+                  className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark border-slate-300"
                   checked={isNorthYork}
                   onChange={(e) => setIsNorthYork(e.target.checked)}
                 />
@@ -448,9 +448,9 @@ export default function OrgProfile() {
 
         <div className="md:col-span-1 space-y-6">
           {/* Account Security Card */}
-          <Card className="rounded-lg border border-[#1F4C63]/10 bg-white p-6 md:p-8  space-y-5">
+          <Card className="rounded-lg border border-blue-dark/10 bg-white p-6 md:p-8 space-y-5">
             <div>
-              <span className="text-xs font-semibold uppercase tracking-wide text-[#1F4C63]">Account Security</span>
+              <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Account Security</span>
               <h3 className="text-lg font-bold text-ink mt-1 font-sans flex items-center gap-1.5 flex-wrap">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
                 <span>Two-Factor Shield</span>
@@ -465,7 +465,7 @@ export default function OrgProfile() {
 
             <div className="flex items-center justify-between border-t border-line-light pt-4">
               <div>
-                <h4 className="text-xs font-semibold text-ink-soft text-ink-soft">
+                <h4 className="text-xs font-semibold text-ink-soft">
                   MFA Login Gate
                 </h4>
                 <p className="text-xs text-ink-soft font-bold">
@@ -482,7 +482,7 @@ export default function OrgProfile() {
               >
                 <span
                   className={cn(
-                    "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
+                    "bg-white w-5 h-5 rounded-lg transform transition-transform duration-250",
                     (userProfile?.twoFactorEnabled ?? true) ? "translate-x-5" : "translate-x-0"
                   )}
                 />
@@ -493,7 +493,7 @@ export default function OrgProfile() {
             </p>
           </Card>
 
-          <Card className="bg-slate-900 text-white p-5 sm:p-8 space-y-8 rounded-lg sticky top-24  overflow-hidden">
+          <Card className="bg-slate-900 text-white p-5 sm:p-8 space-y-8 rounded-lg sticky top-24 overflow-hidden">
             <div className="space-y-4">
               <h3 className="text-xl font-bold border-b border-white/10 pb-4">
                 Verification Status
@@ -532,13 +532,13 @@ export default function OrgProfile() {
 
             <div className="pt-4 flex flex-col gap-3">
               {success ? (
-                <div className="bg-[#1F4C63] text-white p-4 rounded-lg text-center font-bold animate-in zoom-in-95 duration-200">
+                <div className="bg-blue-dark text-white p-4 rounded-lg text-center font-bold animate-in zoom-in-95 duration-200">
                   Changes Saved!
                 </div>
               ) : (
                 <Button
                   type="submit"
-                  className="w-full bg-[#1F4C63] hover:bg-[#1F4C63] py-4 font-semibold"
+                  className="w-full bg-blue-dark hover:bg-[#153343] py-4 font-semibold"
                   isLoading={isSaving}
                 >
                   Save Changes
@@ -595,7 +595,7 @@ export default function OrgProfile() {
                           type="button"
                           disabled={isDeleting}
                           onClick={handleDeleteAccountInput}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg  rounded-full"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg rounded-full"
                         >
                           {isDeleting ? "Deleting..." : "Delete Org"}
                         </button>
@@ -606,7 +606,7 @@ export default function OrgProfile() {
               )}
             </div>
 
-            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-[#1F4C63]/10 rounded-lg blur-3xl -z-10" />
+            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-dark/10 rounded-lg blur-3xl -z-10" />
           </Card>
         </div>
       </form>

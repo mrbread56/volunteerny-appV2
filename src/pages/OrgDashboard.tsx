@@ -902,7 +902,7 @@ export default function OrgDashboard() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-[#1F4C63] text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide  shadow-[#1F4C63]/20 flex items-center gap-2"
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
           >
             <CheckCircle className="w-4 h-4" />
             {successMessage}
@@ -913,7 +913,7 @@ export default function OrgDashboard() {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide  shadow-rose-200 flex items-center gap-2"
+            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-rose-200 flex items-center gap-2"
           >
             <XCircle className="w-4 h-4" />
             {errorMessage}
@@ -931,7 +931,7 @@ export default function OrgDashboard() {
           </p>
         </div>
         <Link to="/org/opportunities/new">
-          <Button className="gap-2  shadow-blue-100 h-12 rounded-lg px-6 font-semibold text-xs tracking-wide bg-[#1F4C63] hover:bg-[#153343]">
+          <Button className="gap-2 shadow-blue-100 h-12 rounded-lg px-6 font-semibold text-xs tracking-wide bg-blue-dark hover:bg-[#153343]">
             <PlusCircle className="w-5 h-5" /> Post Opportunity
           </Button>
         </Link>
@@ -942,7 +942,7 @@ export default function OrgDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           onClick={() => setSelectedStatPopup("opportunities")}
-          className="p-8 bg-[#1F4C63] text-white border-none  shadow-blue-100 rounded-lg cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-blue-dark text-white border-none shadow-blue-100 rounded-lg cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -958,7 +958,7 @@ export default function OrgDashboard() {
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("pending")}
-          className="p-8 bg-white border-none   rounded-lg border-b-4 border-b-yellow-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-yellow-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -969,12 +969,12 @@ export default function OrgDashboard() {
                 Pending Review
               </p>
             </div>
-            <Clock className="text-[#E08A3C] w-10 h-10" />
+            <Clock className="text-amber w-10 h-10" />
           </div>
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("accepted")}
-          className="p-8 bg-white border-none   rounded-lg border-b-4 border-b-[#1F4C63] cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-blue-dark cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -985,12 +985,12 @@ export default function OrgDashboard() {
                 Accepted
               </p>
             </div>
-            <CheckCircle className="text-[#1F4C63] w-10 h-10" />
+            <CheckCircle className="text-blue-dark w-10 h-10" />
           </div>
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("rejected")}
-          className="p-8 bg-white border-none   rounded-lg border-b-4 border-b-red-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-red-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -1023,14 +1023,14 @@ export default function OrgDashboard() {
                 placeholder="Search opportunities by name, category, or location..."
                 value={oppSearchTerm}
                 onChange={(e) => setOppSearchTerm(e.target.value)}
-                className="w-full text-xs font-semibold bg-paper-2 px-4 py-3 h-10 rounded-lg border border-line outline-none focus:ring-1 focus:ring-[#1F4C63] focus:bg-white transition-all "
+                className="w-full text-xs font-semibold bg-paper-2 px-4 py-3 h-10 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
               />
               {oppSearchTerm && (
                 <button
                   type="button"
                   onClick={() => setOppSearchTerm("")}
                   aria-label="Clear search"
-                  className="absolute right-3 top-2.5 text-xs text-ink-soft hover:text-ink-soft font-semibold cursor-pointer"
+                  className="absolute right-3 top-2.5 text-xs text-ink-soft hover:text-ink font-semibold cursor-pointer"
                 >
                   ✕
                 </button>
@@ -1042,13 +1042,13 @@ export default function OrgDashboard() {
               filteredOpportunities.map((opp) => (
                 <Card
                   key={opp.id}
-                  className="p-8 hover:border-[#1F4C63]/20 transition-all group border-none   rounded-lg bg-white"
+                  className="p-8 hover:border-blue-dark/20 transition-all group border-none rounded-lg bg-white"
                 >
                   <div className="space-y-4">
                     <div className="space-y-2">
                       <Link
                         to={`/org/opportunities/${opp.id}/applicants`}
-                        className="font-semibold text-xl text-ink group-hover:text-[#1F4C63] block leading-tight"
+                        className="font-semibold text-xl text-ink group-hover:text-blue-dark block leading-tight"
                       >
                         {opp.title}
                       </Link>
@@ -1062,7 +1062,7 @@ export default function OrgDashboard() {
                     <div className="flex items-center justify-between gap-4 py-4 border-t border-b border-line-light">
                       <Badge
                         variant="secondary"
-                        className="bg-[#1F4C63]/5 text-[#153343] border-none font-bold px-3 py-1"
+                        className="bg-blue-dark/5 text-[#153343] border-none font-bold px-3 py-1"
                       >
                         {
                           recentApplications.filter(
@@ -1075,9 +1075,9 @@ export default function OrgDashboard() {
                         href={getGoogleCalendarFallbackUrl(opp)}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-xs font-semibold tracking-wide text-ink-soft hover:text-[#1F4C63] flex items-center gap-1.5 no-underline transition-colors cursor-pointer"
+                        className="text-xs font-semibold tracking-wide text-ink-soft hover:text-blue-dark flex items-center gap-1.5 no-underline transition-colors cursor-pointer"
                       >
-                        <Calendar className="w-3.5 h-3.5 text-[#1F4C63]" />
+                        <Calendar className="w-3.5 h-3.5 text-blue-dark" />
                         <span>Sync Cal</span>
                       </a>
                     </div>
@@ -1100,7 +1100,7 @@ export default function OrgDashboard() {
                       >
                         <Button
                           variant="outline"
-                          className="w-full text-xs h-10 font-semibold tracking-wide rounded-lg border-line hover:border-[#1F4C63] hover:text-[#1F4C63]"
+                          className="w-full text-xs h-10 font-semibold tracking-wide rounded-lg border-line hover:border-blue-dark hover:text-blue-dark"
                         >
                           Review All
                         </Button>
@@ -1115,7 +1115,7 @@ export default function OrgDashboard() {
                   No opportunities posted yet.
                 </p>
                 <Link to="/org/opportunities/new">
-                  <Button variant="ghost" className="mt-2 text-[#1F4C63]">
+                  <Button variant="ghost" className="mt-2 text-blue-dark">
                     Post your first one ➜
                   </Button>
                 </Link>
@@ -1129,7 +1129,7 @@ export default function OrgDashboard() {
         {(activeTab === "overview" || activeTab === "applications") && (
         <section className="lg:col-span-3 space-y-6">
           {/* Google Gmail Integration Console */}
-          <Card className="p-8 border-none   rounded-lg   to-white border border-line">
+          <Card className="p-8 border-none rounded-lg border border-line">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
               <div className="flex gap-4 items-start">
                 <span className="p-4 bg-red-50 rounded-lg text-red-600 block shrink-0">
@@ -1139,7 +1139,7 @@ export default function OrgDashboard() {
                   <h3 className="font-semibold text-ink text-lg leading-tight flex items-center gap-2 flex-wrap">
                     Gmail Notification Broadcasts
                     {isGmailStateEnabled && (
-                      <Badge className="bg-[#E08A3C]/10 text-[#E08A3C] hover:bg-[#E08A3C]/20 px-2 py-0.5 rounded-lg text-xs uppercase font-semibold tracking-widest leading-none border-none">
+                      <Badge className="bg-amber/10 text-amber hover:bg-amber/20 px-2 py-0.5 rounded-lg text-xs uppercase font-semibold tracking-widest leading-none border-none">
                         Active
                       </Badge>
                     )}
@@ -1158,7 +1158,7 @@ export default function OrgDashboard() {
                   "h-12 px-6 rounded-lg font-semibold text-xs tracking-wide shrink-0 w-full md:w-auto",
                   isGmailStateEnabled
                     ? "border-line hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                    : "bg-red-600 hover:bg-red-700 text-white  shadow-red-200",
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-red-200",
                 )}
               >
                 {isGmailStateEnabled
@@ -1175,7 +1175,7 @@ export default function OrgDashboard() {
                       className={cn(
                         "w-2.5 h-2.5 rounded-lg inline-block",
                         accessToken || isDemoMode
-                          ? "bg-[#E08A3C] animate-pulse"
+                          ? "bg-amber animate-pulse"
                           : "bg-orange-400 animate-pulse",
                       )}
                     />
@@ -1184,8 +1184,8 @@ export default function OrgDashboard() {
                       className={cn(
                         "font-semibold tracking-wide text-xs",
                         accessToken || isDemoMode
-                          ? "text-[#E08A3C]"
-                          : "text-[#E08A3C]",
+                          ? "text-amber"
+                          : "text-amber",
                       )}
                     >
                       {accessToken || isDemoMode
@@ -1247,8 +1247,8 @@ export default function OrgDashboard() {
                   className={cn(
                     "px-4 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all",
                     filterTab === tab
-                      ? "bg-white text-[#1F4C63] "
-                      : "text-ink-soft hover:text-ink-soft",
+                      ? "bg-white text-blue-dark"
+                      : "text-ink-soft hover:text-ink",
                   )}
                 >
                   {tab}
@@ -1256,7 +1256,7 @@ export default function OrgDashboard() {
               ))}
             </div>
           </div>
-          <Card className="overflow-hidden border-none   rounded-lg bg-white">
+          <Card className="overflow-hidden border-none rounded-lg bg-white">
             <div className="divide-y divide-slate-100">
               {recentApplications.filter(
                 (a) => filterTab === "all" || a.status === filterTab,
@@ -1270,7 +1270,7 @@ export default function OrgDashboard() {
                     >
                       <div className="flex flex-col md:flex-row justify-between md:items-center gap-6 mb-4">
                         <div className="flex gap-4 items-center">
-                          <div className="w-14 h-14 rounded-lg bg-[#1F4C63]/5 flex items-center justify-center text-[#1F4C63] font-semibold text-xl">
+                          <div className="w-14 h-14 rounded-lg bg-blue-dark/5 flex items-center justify-center text-blue-dark font-semibold text-xl">
                             {app.studentName?.[0] || "S"}
                           </div>
                           <div>
@@ -1279,7 +1279,7 @@ export default function OrgDashboard() {
                             </h4>
                             <p className="text-xs font-semibold text-ink-soft tracking-wide mt-1">
                               For{" "}
-                              <span className="text-[#1F4C63]">
+                              <span className="text-blue-dark">
                                 {app.opportunityTitle}
                               </span>
                             </p>
@@ -1301,7 +1301,7 @@ export default function OrgDashboard() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="w-10 h-10 p-0 rounded-lg hover:bg-white hover: transition-all"
+                            className="w-10 h-10 p-0 rounded-lg hover:bg-white transition-all"
                             onClick={() => openReview(app)}
                           >
                             <Eye className="w-4 h-4 text-ink-soft" />
@@ -1313,7 +1313,7 @@ export default function OrgDashboard() {
                         <Button
                           size="sm"
                           variant="outline"
-                          className="w-full text-xs font-semibold tracking-wide h-11 rounded-lg border-[#1F4C63]/10 text-[#1F4C63] hover:bg-[#1F4C63]/5 transition-all gap-2"
+                          className="w-full text-xs font-semibold tracking-wide h-11 rounded-lg border-blue-dark/10 text-blue-dark hover:bg-blue-dark/5 transition-all gap-2"
                           onClick={() => openReview(app)}
                         >
                           <Eye className="w-4 h-4" />{" "}
@@ -1364,7 +1364,7 @@ export default function OrgDashboard() {
                   required
                   value={selectedStudentId}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
-                  className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-[#1F4C63] focus:bg-white transition-all"
+                  className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
                 >
                   <option value="">-- Choose active youth volunteer --</option>
                   {studentsList.map((st) => (
@@ -1385,7 +1385,7 @@ export default function OrgDashboard() {
                     required
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
-                    className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-[#1F4C63] focus:bg-white transition-all"
+                    className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
                   />
                 </div>
                 <div className="space-y-2">
@@ -1399,7 +1399,7 @@ export default function OrgDashboard() {
                     placeholder="e.g. 4.5"
                     value={logHours}
                     onChange={(e) => setLogHours(e.target.value)}
-                    className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-[#1F4C63] focus:bg-white transition-all"
+                    className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
                   />
                 </div>
               </div>
@@ -1414,7 +1414,7 @@ export default function OrgDashboard() {
                   placeholder="e.g. Toronto Haven Food Bank Sorting Shift"
                   value={logActivity}
                   onChange={(e) => setLogActivity(e.target.value)}
-                  className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-[#1F4C63] focus:bg-white transition-all"
+                  className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
                 />
               </div>
 
@@ -1422,14 +1422,14 @@ export default function OrgDashboard() {
                 <Button
                   type="submit"
                   isLoading={isSubmittingLog}
-                  className="w-full h-12 rounded-lg bg-[#1F4C63] hover:bg-[#153343] text-white font-semibold text-xs tracking-wide hover:scale-[1.01] active:scale-[0.99] transition-all"
+                  className="w-full h-12 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold text-xs tracking-wide hover:scale-[1.01] active:scale-[0.99] transition-all"
                 >
                   ✓ Authorize & Log Credit Hours
                 </Button>
               </div>
 
               {logResultStatus === "success" && (
-                <p className="text-xs font-semibold text-[#1F4C63] uppercase text-center animate-pulse">
+                <p className="text-xs font-semibold text-blue-dark uppercase text-center animate-pulse">
                   ✓ Hours successfully recorded onto Student Hour Log!
                 </p>
               )}
@@ -1449,7 +1449,7 @@ export default function OrgDashboard() {
           {/* Right side: Disclaimer + Hour Request Approvals */}
           <div className="lg:col-span-5 space-y-6">
             {/* Disclaimer box */}
-            <div className="bg-[#E08A3C]/10 border-2 border-dashed border-[#E08A3C] p-8 rounded-lg space-y-4">
+            <div className="bg-amber/10 border-2 border-dashed border-amber p-8 rounded-lg space-y-4">
               <h3 className="text-amber-950 font-semibold text-sm uppercase tracking-wider flex items-center gap-2">
                 <span>⚠️</span> REQUIREMENT DISCLAIMER
               </h3>
@@ -1466,7 +1466,7 @@ export default function OrgDashboard() {
                 <h3 className="text-base font-semibold uppercase text-ink tracking-wide">
                   Hours Claims Inbox
                 </h3>
-                <p className="text-xs uppercase font-semibold tracking-widest text-[#1F4C63] font-mono">
+                <p className="text-xs uppercase font-semibold tracking-widest text-blue-dark font-mono">
                   Pending Verification Requests ({hoursRequests.length})
                 </p>
               </div>
@@ -1482,9 +1482,9 @@ export default function OrgDashboard() {
                       <div className="flex justify-between items-start">
                         <div>
                           <p className="text-xs font-semibold text-ink">{req.studentName}</p>
-                          <p className="text-xs text-ink-soft text-ink-soft font-mono font-bold">{req.studentEmail}</p>
+                          <p className="text-xs text-ink-soft font-mono font-bold">{req.studentEmail}</p>
                         </div>
-                        <span className="p-2 py-1 bg-[#1F4C63]/5 text-blue-800 text-xs font-semibold tracking-wide rounded-lg font-mono border border-[#1F4C63]/10 shrink-0">
+                        <span className="p-2 py-1 bg-blue-dark/5 text-blue-800 text-xs font-semibold tracking-wide rounded-lg font-mono border border-blue-dark/10 shrink-0">
                           {req.hours} hrs
                         </span>
                       </div>
@@ -1501,7 +1501,7 @@ export default function OrgDashboard() {
                           variant="outline"
                           disabled={isApprovingId !== null}
                           onClick={() => handleApproveHoursRequest(req, false)}
-                          className="w-1/2 h-9 text-xs font-semibold tracking-wide text-red-600 hover:bg-red-50 border border-line cursor-pointer text-red-600"
+                          className="w-1/2 h-9 text-xs font-semibold tracking-wide text-red-600 hover:bg-red-50 border border-line cursor-pointer"
                         >
                           Decline
                         </Button>
@@ -1509,7 +1509,7 @@ export default function OrgDashboard() {
                           type="button"
                           disabled={isApprovingId !== null}
                           onClick={() => handleApproveHoursRequest(req, true)}
-                          className="w-1/2 h-9 text-xs font-semibold tracking-wide bg-[#1F4C63] hover:bg-[#153343] text-white  cursor-pointer"
+                          className="w-1/2 h-9 text-xs font-semibold tracking-wide bg-blue-dark hover:bg-[#153343] text-white cursor-pointer"
                         >
                           {isApprovingId === req.id ? "Approving..." : "Approve ✓"}
                         </Button>
@@ -1557,7 +1557,7 @@ export default function OrgDashboard() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-lg  w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-line"
+              className="bg-white rounded-lg w-full max-w-2xl max-h-[85vh] overflow-hidden flex flex-col border border-line"
             >
               <div className="p-8 border-b border-line flex justify-between items-center bg-paper-2">
                 <div>
@@ -1583,7 +1583,7 @@ export default function OrgDashboard() {
                 <button
                   onClick={() => setSelectedStatPopup(null)}
                   aria-label="Close statistics popup"
-                  className="w-10 h-10 rounded-lg hover:bg-slate-200 flex items-center justify-center text-ink-soft hover:text-ink-soft transition-colors"
+                  className="w-10 h-10 rounded-lg hover:bg-slate-200 flex items-center justify-center text-ink-soft hover:text-ink transition-colors"
                 >
                   <XCircle className="w-6 h-6" />
                 </button>
@@ -1661,7 +1661,7 @@ export default function OrgDashboard() {
                               <Button
                                 size="sm"
                                 variant="outline"
-                                className="text-xs font-bold uppercase tracking-wider h-9 rounded-lg border-line text-ink-soft hover:text-[#1F4C63] hover:border-[#1F4C63]/30"
+                                className="text-xs font-bold uppercase tracking-wider h-9 rounded-lg border-line text-ink-soft hover:text-blue-dark hover:border-blue-dark/30"
                                 onClick={() => {
                                   setSelectedStatPopup(null);
                                   navigate("/messages", {
@@ -1675,7 +1675,7 @@ export default function OrgDashboard() {
                               </Button>
                               <Button
                                 size="sm"
-                                className="bg-[#1F4C63] hover:bg-[#153343] text-white text-xs font-bold uppercase tracking-wider h-9 rounded-lg"
+                                className="bg-blue-dark hover:bg-[#153343] text-white text-xs font-bold uppercase tracking-wider h-9 rounded-lg"
                                 onClick={() => {
                                   setSelectedStatPopup(null);
                                   openReview(app);

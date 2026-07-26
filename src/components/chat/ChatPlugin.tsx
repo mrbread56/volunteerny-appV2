@@ -173,7 +173,7 @@ export default function ChatPlugin() {
           }}
           className={cn(
             "w-16 h-16 rounded-lg flex items-center justify-center text-white  transition-all duration-300 hover:scale-105",
-            isOpen ? "bg-slate-800 rotate-90" : "bg-[#1F4C63] hover:bg-[#153343]"
+            isOpen ? "bg-slate-800 rotate-90" : "bg-blue-dark hover:bg-[#153343]"
           )}
         >
           {isOpen ? <X className="w-6 h-6" /> : (
@@ -246,11 +246,11 @@ export default function ChatPlugin() {
                       <button
                         key={chat.id}
                         onClick={() => setActiveChat(chat)}
-                        className="w-full bg-white p-4 rounded-lg border border-line-light  hover:border-[#1F4C63]/20 hover: transition-all text-left flex items-start gap-4"
+                        className="w-full bg-white p-4 rounded-lg border border-line-light  hover:border-blue-dark/20 hover: transition-all text-left flex items-start gap-4"
                       >
                         <div className={cn(
                           "w-12 h-12 rounded-lg flex items-center justify-center shrink-0",
-                          chat.type === 'group' ? "bg-indigo-50 text-indigo-600" : "bg-[#1F4C63]/5 text-[#1F4C63]"
+                          chat.type === 'group' ? "bg-indigo-50 text-indigo-600" : "bg-blue-dark/5 text-blue-dark"
                         )}>
                           {chat.type === 'group' ? <Users className="w-6 h-6" /> : <User className="w-6 h-6" />}
                         </div>
@@ -276,7 +276,7 @@ export default function ChatPlugin() {
                         <div className={cn(
                           "p-3 rounded-lg text-sm ",
                           isMe 
-                            ? "bg-[#1F4C63] text-white rounded-tr-sm" 
+                            ? "bg-blue-dark text-white rounded-tr-sm" 
                             : "bg-white border border-line text-ink-soft rounded-tl-sm"
                         )}>
                           {msg.text}
@@ -311,7 +311,7 @@ export default function ChatPlugin() {
                 />
                 <button 
                   onClick={() => fileInputRef.current?.click()}
-                  className="p-3 text-ink-muted hover:text-[#1F4C63] hover:bg-[#1F4C63]/5 rounded-lg transition-colors shrink-0"
+                  className="p-3 text-ink-muted hover:text-blue-dark hover:bg-blue-dark/5 rounded-lg transition-colors shrink-0"
                 >
                   <Paperclip className="w-5 h-5" />
                 </button>
@@ -321,12 +321,12 @@ export default function ChatPlugin() {
                   onChange={e => setInputText(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleSend()}
                   placeholder="Type a message..."
-                  className="flex-1 bg-paper-2 border border-line rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#1F4C63] font-medium"
+                  className="flex-1 bg-paper-2 border border-line rounded-lg px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-dark font-medium"
                 />
                 <button
                   onClick={handleSend}
                   disabled={!inputText.trim()}
-                  className="p-3 bg-[#1F4C63] text-white rounded-lg hover:bg-[#153343] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0  shadow-blue-200 rounded-full"
+                  className="p-3 bg-blue-dark text-white rounded-lg hover:bg-[#153343] disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0  shadow-blue-200 rounded-full"
                 >
                   <Send className="w-5 h-5" />
                 </button>

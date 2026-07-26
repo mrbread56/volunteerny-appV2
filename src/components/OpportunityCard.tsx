@@ -48,11 +48,11 @@ export default function OpportunityCard({
         {/* Badges Container */}
         <div className="flex items-center justify-between gap-1.5 mb-3.5">
           <div className="flex flex-wrap gap-1.5">
-            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#1F4C63]/5 text-[#1F4C63] border border-[#1F4C63]/10">
+            <span className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-dark/5 text-blue-dark border border-blue-dark/10">
               {opportunity.category}
             </span>
             {opportunity.exclusives?.map(exc => (
-              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-[#E08A3C]/10 text-[#E08A3C] border border-orange-100">
+              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber/10 text-amber border border-orange-100">
                 {exc}
               </span>
             ))}
@@ -76,7 +76,7 @@ export default function OpportunityCard({
                 onSave?.(opportunity.id);
               }}
               className={`p-1.5 rounded-lg transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center ${
-                isSaved ? 'text-[#1F4C63] bg-[#1F4C63]/5' : 'text-ink-soft hover:text-[#1F4C63] hover:bg-[#1F4C63]/5'
+                isSaved ? 'text-blue-dark bg-blue-dark/5' : 'text-ink-soft hover:text-blue-dark hover:bg-blue-dark/5'
               }`}
               title="Save to favorites"
               aria-label="Save to favorites"
@@ -91,7 +91,7 @@ export default function OpportunityCard({
           <span className="text-xs font-bold text-ink-soft uppercase tracking-wide truncate max-w-[150px]">
             {opportunity.orgName || 'Community Partner'}
           </span>
-          <div className="flex items-center gap-0.5 bg-[#1F4C63]/5 text-[#1F4C63] px-1.5 py-0.5 rounded-full border border-[#1F4C63]/10 text-[8px] font-bold tracking-widest shrink-0">
+          <div className="flex items-center gap-0.5 bg-blue-dark/5 text-blue-dark px-1.5 py-0.5 rounded-full border border-blue-dark/10 text-[8px] font-bold tracking-widest shrink-0">
              <BadgeCheck className="w-2.5 h-2.5" />
              <span>VETTED</span>
           </div>
@@ -99,15 +99,15 @@ export default function OpportunityCard({
 
         {/* Title */}
         <Link to={`/student/opportunities/${opportunity.id}`} className="block">
-          <h3 className="text-lg font-bold text-ink group-hover:text-[#1F4C63] transition-colors line-clamp-2 leading-snug min-h-[2.75rem] mb-3">
+          <h3 className="text-lg font-bold text-ink group-hover:text-blue-dark transition-colors line-clamp-2 leading-snug min-h-[2.75rem] mb-3">
             {opportunity.title}
           </h3>
         </Link>
 
         {/* Match Percentage Pill - Only show for actual logged in students with positive skills matching */}
         {matchPercent > 0 && (
-          <div className="mb-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-[#E08A3C]/10 text-[#E08A3C] border border-orange-100 text-xs font-bold w-fit shrink-0">
-             <Sparkles className="w-3.5 h-3.5 text-[#E08A3C] animate-pulse" />
+          <div className="mb-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber/10 text-amber border border-orange-100 text-xs font-bold w-fit shrink-0">
+             <Sparkles className="w-3.5 h-3.5 text-amber animate-pulse" />
              <span>{matchPercent}% SKILLS MATCH</span>
           </div>
         )}
@@ -127,12 +127,12 @@ export default function OpportunityCard({
             </div>
             <span className="text-xs font-semibold text-ink-soft">
               {opportunity.scheduleType === 'recurring' ? (
-                <span className="flex items-center gap-1 hover:text-[#1F4C63]">
-                  Recurring <span className="bg-[#1F4C63]/5 text-[#1F4C63] font-semibold text-[8px] px-1 rounded">Weekly</span>
+                <span className="flex items-center gap-1 hover:text-blue-dark">
+                  Recurring <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[8px] px-1 rounded">Weekly</span>
                 </span>
               ) : opportunity.scheduleType === 'multiple' ? (
                 <span className="flex items-center gap-1">
-                  Multi-day <span className="bg-[#1F4C63]/5 text-[#1F4C63] font-semibold text-[8px] px-1 rounded">{opportunity.shifts?.length || 0} dates</span>
+                  Multi-day <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[8px] px-1 rounded">{opportunity.shifts?.length || 0} dates</span>
                 </span>
               ) : (
                 formatDate(opportunity.dateTime?.toDate ? opportunity.dateTime.toDate() : opportunity.dateTime)
@@ -159,7 +159,7 @@ export default function OpportunityCard({
                 </span>
               ))}
               {opportunity.skillsNeeded.length > 3 && (
-                <span className="px-2 py-0.5 bg-paper-2 rounded text-xs font-semibold text-[#1F4C63] shrink-0">
+                <span className="px-2 py-0.5 bg-paper-2 rounded text-xs font-semibold text-blue-dark shrink-0">
                   +{opportunity.skillsNeeded.length - 3} more
                 </span>
               )}
@@ -170,7 +170,7 @@ export default function OpportunityCard({
         {/* High-Converting CTA action orange button as specified */}
         <div className="mt-auto pt-2">
           <Link to={`/student/opportunities/${opportunity.id}`} className="block">
-            <Button className="w-full bg-[#E08A3C] hover:bg-[#E08A3C] text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg  cursor-pointer transition-all active:scale-[0.98]">
+            <Button className="w-full bg-amber hover:bg-amber text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg  cursor-pointer transition-all active:scale-[0.98]">
               View & Quick Apply
             </Button>
           </Link>

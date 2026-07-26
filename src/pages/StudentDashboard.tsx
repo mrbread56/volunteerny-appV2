@@ -433,8 +433,11 @@ export default function StudentDashboard() {
       <html>
         <head>
           <title>Ontario High School Community Involvement Hour Document - Export</title>
+          <link rel="preconnect" href="https://fonts.googleapis.com">
+          <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+          <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
           <style>
-            body { font-family: 'Inter', system-ui, sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
+            body { font-family: 'Outfit', system-ui, sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
             .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
             .title { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
             .student-info { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -1072,7 +1075,7 @@ export default function StudentDashboard() {
             <section>
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-xl font-bold text-ink flex items-center gap-2">
-                  <Calendar className="text-[#1F4C63] w-5 h-5" />
+                  <Calendar className="text-blue-dark w-5 h-5" />
                   Your Applications
                 </h2>
               </div>
@@ -1085,7 +1088,7 @@ export default function StudentDashboard() {
                       style={{
                         borderColor:
                           app.status === "accepted"
-                            ? "#1F4C63"
+                            ? "var(--color-blue-dark)"
                             : app.status === "rejected" ||
                                 app.status === "terminated"
                               ? "#ef4444"
@@ -1111,7 +1114,7 @@ export default function StudentDashboard() {
                           {app.status === "accepted" && (
                             <button
                               title="Official Enrollment Slip"
-                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-[#E08A3C]/10 hover:bg-[#E08A3C]/10 text-[#E08A3C] border border-[#E08A3C]/20 rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200  whitespace-nowrap rounded-full"
+                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-amber/10 hover:bg-amber/10 text-amber border border-amber/20 rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200 whitespace-nowrap rounded-full"
                               onClick={() => {
                                 setSelectedReceiptApp({
                                   ...app,
@@ -1128,14 +1131,14 @@ export default function StudentDashboard() {
                                 setShowReceiptModal(true);
                               }}
                             >
-                              <FileText className="w-3.5 h-3.5 text-[#E08A3C] animate-pulse" />
+                              <FileText className="w-3.5 h-3.5 text-amber animate-pulse" />
                               <span>Receipt</span>
                             </button>
                           )}
                           {app.status === "accepted" && !existingRatings[`${app.orgId || app.organizationId}_${app.opportunityId}`] && (
                             <button
                               title="Rate this organization"
-                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-[#1F4C63]/10 hover:bg-[#1F4C63]/20 text-[#1F4C63] border border-[#1F4C63]/20 rounded-full flex items-center gap-1 transition-all duration-200 whitespace-nowrap"
+                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-blue-dark/10 hover:bg-blue-dark/20 text-blue-dark border border-blue-dark/20 rounded-full flex items-center gap-1 transition-all duration-200 whitespace-nowrap"
                               onClick={() => { setRatingApp(app); setRatingStars(0); setRatingComment(""); }}
                             >
                               <Star className="w-3.5 h-3.5" />
@@ -1160,23 +1163,23 @@ export default function StudentDashboard() {
 
                       {(app.status === "accepted" || app.status === "pending") &&
                         orgContacts[app.opportunityId] && (
-                          <div className="mt-4 bg-[#E08A3C]/10/50 p-6 rounded-lg border border-orange-100 animate-in fade-in slide-in- duration-500">
+                          <div className="mt-4 bg-amber/10 p-6 rounded-lg border border-orange-100 animate-in fade-in slide-in- duration-500">
                             <p className="text-xs font-semibold text-orange-700 tracking-wide mb-3">
                               Organization Contact Details
                             </p>
                             <div className="flex flex-wrap gap-6">
                               <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-[#E08A3C]" />
+                                <Mail className="w-4 h-4 text-amber" />
                                 <a
                                   href={`mailto:${orgContacts[app.opportunityId].email}`}
-                                  className="text-sm font-bold text-ink hover:text-[#E08A3C] transition-colors"
+                                  className="text-sm font-bold text-ink hover:text-amber transition-colors"
                                 >
                                   {orgContacts[app.opportunityId].email}
                                 </a>
                               </div>
                               {orgContacts[app.opportunityId].phone && (
                                 <div className="flex items-center gap-2">
-                                  <Phone className="w-4 h-4 text-[#E08A3C]" />
+                                  <Phone className="w-4 h-4 text-amber" />
                                   <span className="text-sm font-bold text-ink">
                                     {orgContacts[app.opportunityId].phone}
                                   </span>
@@ -1184,14 +1187,14 @@ export default function StudentDashboard() {
                               )}
                               {orgContacts[app.opportunityId].website && (
                                 <div className="flex items-center gap-2">
-                                  <Globe className="w-4 h-4 text-[#E08A3C]" />
+                                  <Globe className="w-4 h-4 text-amber" />
                                   <a
                                     href={
                                       orgContacts[app.opportunityId].website
                                     }
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="text-sm font-bold text-ink hover:text-[#1F4C63] transition-colors"
+                                    className="text-sm font-bold text-ink hover:text-blue-dark transition-colors"
                                   >
                                     Website
                                   </a>
@@ -1245,7 +1248,7 @@ export default function StudentDashboard() {
             <section>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-ink flex items-center gap-2">
-                  <Sparkles className="text-[#1F4C63] w-5 h-5" />
+                  <Sparkles className="text-blue-dark w-5 h-5" />
                   Recommended For You
                 </h2>
                 <Link to="/student/opportunities">
@@ -1265,13 +1268,13 @@ export default function StudentDashboard() {
                       }
                     >
                       <div className="p-6 flex-grow">
-                        <div className="flex items-center justify-between mb-3 text-xs font-bold text-[#1F4C63] tracking-wide">
+                        <div className="flex items-center justify-between mb-3 text-xs font-bold text-blue-dark tracking-wide">
                           <span>{opp.category}</span>
                           {opp.isVirtual && (
                             <Badge variant="info">Virtual</Badge>
                           )}
                         </div>
-                        <h3 className="text-lg font-bold text-ink group-hover:text-[#1F4C63] transition-colors mb-2 line-clamp-1">
+                        <h3 className="text-lg font-bold text-ink group-hover:text-blue-dark transition-colors mb-2 line-clamp-1">
                           {opp.title}
                         </h3>
                         <div className="flex flex-col gap-2 mt-4">
@@ -1299,23 +1302,23 @@ export default function StudentDashboard() {
             {/* Hour Tracker Gauge */}
             <section className="space-y-4 animate-fadeIn">
               <h2 className="text-xl font-bold text-ink flex items-center gap-2 uppercase tracking-tight">
-                <Trophy className="text-[#1F4C63] w-5 h-5" />
+                <Trophy className="text-blue-dark w-5 h-5" />
                 Hour Tracker
               </h2>
-              <Card className="p-8 border border-line  /50 rounded-lg bg-white space-y-6">
+              <Card className="p-8 border border-line/50 rounded-lg bg-white space-y-6">
                 {/* Hours Gauge */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-xs font-semibold">
                     <span className="text-ink-soft font-semibold tracking-wide ">
                       Volunteering Progress
                     </span>
-                    <span className="text-[#1F4C63] font-semibold ">
+                    <span className="text-blue-dark font-semibold ">
                       {totalCompletedHours} / {hourGoal} hrs
                     </span>
                   </div>
                   <div className="w-full bg-paper-3 h-2.5 rounded-lg overflow-hidden">
                     <div
-                      className="   h-full rounded-lg transition-all"
+                      className=" h-full rounded-lg transition-all"
                       style={{
                         width: `${Math.min((totalCompletedHours / hourGoal) * 100, 100)}%`,
                       }}
@@ -1325,16 +1328,16 @@ export default function StudentDashboard() {
                     <Button
                       onClick={handlePrintCertificate}
                       variant="outline"
-                      className="w-full h-10 border-[#1F4C63]/20 text-[#1F4C63] hover:bg-[#1F4C63]/5/50 hover:text-[#153343] font-semibold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer flex items-center justify-center "
+                      className="w-full h-10 border-blue-dark/20 text-blue-dark hover:bg-blue-dark/5 hover:text-[#153343] font-semibold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer flex items-center justify-center"
                     >
-                      <Printer className="w-4 h-4 shrink-0 text-[#1F4C63]" />
+                      <Printer className="w-4 h-4 shrink-0 text-blue-dark" />
                       Print Hours Transcript
                     </Button>
                   </div>
                 </div>
 
                  {/* Unofficial Disclaimer Warning Box */}
-                <div className="bg-[#E08A3C]/10/75 border border-[#E08A3C]/20 rounded-lg p-5 text-center space-y-3">
+                <div className="bg-amber/10 border border-amber/20 rounded-lg p-5 text-center space-y-3">
                   <div>
                     <p className="text-orange-800 font-semibold text-xs uppercase tracking-wide">
                       Hour Verification Info
@@ -1344,10 +1347,10 @@ export default function StudentDashboard() {
                       coordinators or supervisors. Only they can verify and approve your hours online.
                     </p>
                   </div>
-                  <div className="pt-1.5 border-t border-[#E08A3C]/20/50">
+                  <div className="pt-1.5 border-t border-amber/20">
                     <Button
                       onClick={() => setShowLogForm(true)}
-                      className="w-full h-10 bg-[#E08A3C] hover:bg-[#E08A3C] hover:scale-102 hover: text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
+                      className="w-full h-10 bg-amber hover:bg-amber hover:scale-[1.02] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
                     >
                       📩 Request Hours Verification
                     </Button>
@@ -1374,7 +1377,7 @@ export default function StudentDashboard() {
                                 {req.organization} • {req.date}
                               </p>
                             </div>
-                            <span className="font-semibold text-xs text-[#1F4C63] bg-[#1F4C63]/5 px-2 py-0.5 rounded-lg shrink-0">
+                            <span className="font-semibold text-xs text-blue-dark bg-blue-dark/5 px-2 py-0.5 rounded-lg shrink-0">
                               {req.hours} hrs
                             </span>
                           </div>
@@ -1384,10 +1387,10 @@ export default function StudentDashboard() {
                               className={cn(
                                 "text-xs font-semibold tracking-wide px-2 py-1 rounded-lg",
                                 req.status === "approved"
-                                  ? "bg-[#1F4C63]/5 text-[#153343]"
+                                  ? "bg-blue-dark/5 text-[#153343]"
                                   : req.status === "declined"
                                     ? "bg-red-50 text-red-700"
-                                    : "bg-[#E08A3C]/10 text-orange-700"
+                                    : "bg-amber/10 text-orange-700"
                               )}
                             >
                               {req.status === "approved"
@@ -1428,10 +1431,10 @@ export default function StudentDashboard() {
             {/* Interest Matching / Waiting List in Sidebar */}
             <section className="space-y-4">
               <h2 className="text-lg font-bold text-ink flex items-center gap-2">
-                <ListPlus className="text-[#1F4C63] w-5 h-5" />
+                <ListPlus className="text-blue-dark w-5 h-5" />
                 Waiting List
               </h2>
-              <Card className="p-6 border-none   rounded-lg bg-white">
+              <Card className="p-6 border-none rounded-lg bg-white">
                 <p className="text-ink-soft text-xs font-medium mb-4">
                   Can't find a match? Join our waiting list for custom
                   placements.
@@ -1450,8 +1453,8 @@ export default function StudentDashboard() {
                           className={cn(
                             "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
                             selectedCategories.includes(cat)
-                              ? "bg-[#1F4C63] border-[#1F4C63] text-white  shadow-blue-100"
-                              : "bg-white border-line text-ink-soft hover:border-[#1F4C63]/20",
+                              ? "bg-blue-dark border-blue-dark text-white  shadow-blue-100"
+                              : "bg-white border-line text-ink-soft hover:border-blue-dark/20",
                           )}
                         >
                           {cat}
@@ -1462,7 +1465,7 @@ export default function StudentDashboard() {
 
                   <textarea
                     placeholder="Specific interests or goals..."
-                    className="w-full min-h-[60px] p-3 rounded-lg bg-paper-2 border border-transparent focus:bg-white focus:border-[#1F4C63]/10 outline-none h-10 text-xs font-bold transition-all"
+                    className="w-full min-h-[60px] p-3 rounded-lg bg-paper-2 border border-transparent focus:bg-white focus:border-blue-dark/10 outline-none h-10 text-xs font-bold transition-all"
                     value={interestNote}
                     onChange={(e) => setInterestNote(e.target.value)}
                   />
@@ -1472,7 +1475,7 @@ export default function StudentDashboard() {
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
                         animate={{ opacity: 1, height: "auto" }}
-                        className="text-xs text-[#1F4C63] font-bold"
+                        className="text-xs text-blue-dark font-bold"
                       >
                         Added to waitlist!
                       </motion.div>
@@ -1481,7 +1484,7 @@ export default function StudentDashboard() {
                   <Button
                     type="submit"
                     size="sm"
-                    className="w-full rounded-lg bg-[#1F4C63] hover:bg-[#153343] text-white font-semibold uppercase text-xs tracking-widest"
+                    className="w-full rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold uppercase text-xs tracking-widest"
                     disabled={isSubmitting}
                   >
                     {isSubmitting ? "Joining..." : "Join List"}
@@ -1492,7 +1495,7 @@ export default function StudentDashboard() {
 
             <section>
               <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
-                <Star className="text-[#E08A3C] w-5 h-5 fill-yellow-500" />
+                <Star className="text-amber w-5 h-5 fill-yellow-500" />
                 Saved
               </h2>
               <div className="space-y-3">
@@ -1503,8 +1506,8 @@ export default function StudentDashboard() {
                       to={`/student/opportunities/${opp.id}`}
                       className="block group"
                     >
-                      <Card className="p-4 hover:border-[#1F4C63]/20">
-                        <h4 className="font-bold text-ink text-sm group-hover:text-[#1F4C63] transition-colors line-clamp-1">
+                      <Card className="p-4 hover:border-blue-dark/20">
+                        <h4 className="font-bold text-ink text-sm group-hover:text-blue-dark transition-colors line-clamp-1">
                           {opp.title}
                         </h4>
                       </Card>
@@ -1534,7 +1537,7 @@ export default function StudentDashboard() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-semibold text-ink uppercase tracking-tight flex items-center gap-2 ">
-                    <Trophy className="text-[#E08A3C] w-6 h-6" />
+                    <Trophy className="text-amber w-6 h-6" />
                     Rankings Board
                   </h2>
                   <p className="text-ink-soft text-xs font-semibold mt-1">
@@ -1547,11 +1550,11 @@ export default function StudentDashboard() {
               {(studentProfile?.trackerEnabled ?? true) ? (
                 <div className="space-y-8 animate-fadeIn">
                   {/* 3D-Style Podium Card (Light Theme Accent) */}
-                  <div className="bg-white border border-[#1F4C63]/10/80 rounded-lg p-8  text-ink relative overflow-hidden">
+                  <div className="bg-white border border-blue-dark/10 rounded-lg p-8 text-ink relative overflow-hidden">
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,87,22,0.06),transparent)] pointer-events-none" />
 
                     <div className="text-center mb-8">
-                      <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[#E08A3C]">
+                      <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber">
                         Community Podium
                       </span>
                       <h3 className="text-lg font-bold text-ink mt-1">
@@ -1590,25 +1593,25 @@ export default function StudentDashboard() {
                       <div className="flex flex-col items-center animate-in fade-in slide-in- duration-500">
                         <div className="text-center mb-2 relative">
                           {leaderboard[0] && (
-                            <Trophy className="w-5 h-5 text-[#E08A3C] mx-auto animate-bounce absolute -top-5 left-1/2 -translate-x-1/2" />
+                            <Trophy className="w-5 h-5 text-amber mx-auto absolute -top-5 left-1/2 -translate-x-1/2" />
                           )}
-                          <p className="text-sm font-semibold text-[#E08A3C] truncate max-w-[90px] sm:max-w-none">
+                          <p className="text-sm font-semibold text-amber truncate max-w-[90px] sm:max-w-none">
                             {leaderboard[0] ? leaderboard[0].name : "---"}
                           </p>
-                          <p className="text-xs font-semibold text-[#E08A3C] ">
+                          <p className="text-xs font-semibold text-amber ">
                             {leaderboard[0]
                               ? `${leaderboard[0].hours} hrs`
                               : "--"}
                           </p>
                         </div>
                         <div
-                          className="w-full bg-[#E08A3C]/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-[#E08A3C]/20  shadow-orange-500/5"
+                          className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-amber/20 shadow-orange-500/5"
                           style={{ height: "95px" }}
                         >
-                          <span className="text-3xl font-medium text-[#E08A3C] ">
+                          <span className="text-3xl font-medium text-amber ">
                             1
                           </span>
-                          <span className="text-xs font-semibold text-[#E08A3C] uppercase tracking-widest mt-1">
+                          <span className="text-xs font-semibold text-amber uppercase tracking-widest mt-1">
                             Champion
                           </span>
                         </div>
@@ -1620,7 +1623,7 @@ export default function StudentDashboard() {
                           <p className="text-xs font-bold text-orange-700 truncate max-w-[80px] sm:max-w-none">
                             {leaderboard[2] ? leaderboard[2].name : "---"}
                           </p>
-                          <p className="text-xs font-semibold text-[#E08A3C]/80 ">
+                          <p className="text-xs font-semibold text-amber/80 ">
                             {leaderboard[2]
                               ? `${leaderboard[2].hours} hrs`
                               : "--"}
@@ -1630,7 +1633,7 @@ export default function StudentDashboard() {
                           className="w-full bg-[#fdf2e9] rounded-t-2xl flex flex-col items-center justify-center p-4 border border-orange-100"
                           style={{ height: "55px" }}
                         >
-                          <span className="text-xl font-semibold text-[#E08A3C]/80 ">
+                          <span className="text-xl font-semibold text-amber/80 ">
                             3
                           </span>
                           <span className="text-xs font-semibold text-orange-400 uppercase tracking-widest mt-1">
@@ -1642,7 +1645,7 @@ export default function StudentDashboard() {
                   </div>
 
                   {/* Complete Leaderboard list */}
-                  <Card className="overflow-hidden border-none  rounded-lg bg-white p-6 space-y-4">
+                  <Card className="overflow-hidden border-none rounded-lg bg-white p-6 space-y-4">
                     <h3 className="text-xs font-semibold tracking-wide text-ink-soft ">
                       Complete Standings
                     </h3>
@@ -1653,7 +1656,7 @@ export default function StudentDashboard() {
                           className={cn(
                             "flex items-center justify-between p-4.5 rounded-lg border transition-all text-sm",
                             student.isSelf
-                              ? "bg-[#1F4C63]/5/50 border-[#1F4C63]/20"
+                              ? "bg-blue-dark/5 border-blue-dark/20"
                               : "bg-paper-2/50 border-line",
                           )}
                         >
@@ -1662,11 +1665,11 @@ export default function StudentDashboard() {
                               className={cn(
                                 "w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs ",
                                 idx === 0
-                                  ? "bg-[#E08A3C]/10 bg-[#E08A3C]/10 text-yellow-700 font-bold"
+                                  ? "bg-amber/10 text-yellow-700 font-bold"
                                   : idx === 1
-                                    ? "bg-paper-3 bg-paper-3 text-ink-soft font-bold"
+                                    ? "bg-paper-3 text-ink-soft font-bold"
                                     : idx === 2
-                                      ? "bg-[#E08A3C]/10 bg-[#E08A3C]/10 text-amber-700 font-bold"
+                                      ? "bg-amber/10 text-amber-700 font-bold"
                                       : "bg-paper-3 text-ink-soft",
                               )}
                             >
@@ -1676,7 +1679,7 @@ export default function StudentDashboard() {
                               className={cn(
                                 "text-ink-soft font-semibold",
                                 student.isSelf &&
-                                  "text-[#1F4C63] font-semibold",
+                                  "text-blue-dark font-semibold",
                               )}
                             >
                               {student.name} {student.isSelf && "(You)"}
@@ -1691,7 +1694,7 @@ export default function StudentDashboard() {
                   </Card>
                 </div>
               ) : (
-                <div className="py-12 text-center bg-white rounded-lg border border-line  space-y-3 p-8">
+                <div className="py-12 text-center bg-white rounded-lg border border-line space-y-3 p-8">
                   <Lock className="w-8 h-8 text-ink-soft mx-auto" />
                   <h3 className="text-lg font-bold text-ink">
                     Leaderboard Participation Disabled
@@ -1711,12 +1714,12 @@ export default function StudentDashboard() {
             {/* My Achievement Milestones Overview Card */}
             <section className="space-y-4 animate-fadeIn">
               <h2 className="text-xl font-bold text-ink flex items-center gap-2">
-                <Trophy className="text-[#1F4C63] w-5 h-5" />
+                <Trophy className="text-blue-dark w-5 h-5" />
                 My Badges Cabinet
               </h2>
               <Card className="p-6 border border-line shadow-sm rounded-lg bg-white space-y-6">
                 <div>
-                  <h4 className="text-xs font-semibold tracking-wide text-[#1F4C63]">
+                  <h4 className="text-xs font-semibold tracking-wide text-blue-dark">
                     My Milestones
                   </h4>
                   <p className="text-[12px] text-ink-soft font-semibold mt-1">
@@ -1739,7 +1742,7 @@ export default function StudentDashboard() {
                       <div className={cn(
                         "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ",
                         isUnlocked
-                          ? "bg-[#1F4C63] text-white"
+                          ? "bg-blue-dark text-white"
                           : "bg-paper-3 text-ink-muted"
                       )}>
                         {isUnlocked ? (
@@ -1784,9 +1787,9 @@ export default function StudentDashboard() {
             className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto"
           >
             {/* Account & Recognition Preferences */}
-            <Card className="rounded-lg border border-line bg-white p-8 md:p-10  space-y-6">
+            <Card className="rounded-lg border border-line bg-white p-8 md:p-10 space-y-6">
               <div>
-                <span className="text-xs font-semibold uppercase tracking-wide text-[#1F4C63]">Privacy & Listing</span>
+                <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Privacy & Listing</span>
                 <h3 className="text-xl font-bold text-ink mt-1 ">
                   Community Listings Preference
                 </h3>
@@ -1812,7 +1815,7 @@ export default function StudentDashboard() {
                     aria-checked={studentProfile?.trackerEnabled ?? true}
                     className={cn(
                       "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                      (studentProfile?.trackerEnabled ?? true) ? "bg-[#1F4C63]" : "bg-slate-200",
+                      (studentProfile?.trackerEnabled ?? true) ? "bg-blue-dark" : "bg-slate-200",
                     )}
                   >
                     <span
@@ -1841,7 +1844,7 @@ export default function StudentDashboard() {
                     disabled={!(studentProfile?.trackerEnabled ?? true)}
                     className={cn(
                       "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                      (studentProfile?.trackerAnonymous ?? false) ? "bg-[#E08A3C]" : "bg-slate-200",
+                      (studentProfile?.trackerAnonymous ?? false) ? "bg-amber" : "bg-slate-200",
                       !(studentProfile?.trackerEnabled ?? true) && "opacity-40 cursor-not-allowed",
                     )}
                   >
@@ -1858,9 +1861,9 @@ export default function StudentDashboard() {
 
             {/* 2-Step Verification Security Shield */}
             {!isDemoMode && (
-              <Card className="rounded-lg border border-[#1F4C63]/20 bg-white p-8 md:p-10  space-y-6">
+              <Card className="rounded-lg border border-blue-dark/20 bg-white p-8 md:p-10 space-y-6">
                 <div>
-                  <span className="text-xs font-semibold uppercase tracking-wide text-[#1F4C63]">Account Security</span>
+                  <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Account Security</span>
                   <h3 className="text-xl font-bold text-ink mt-1 flex items-center gap-2 flex-wrap">
                     <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
                     <span>Two-Factor Shield (2FA)</span>
@@ -1970,12 +1973,12 @@ export default function StudentDashboard() {
               onChange={e => setRatingComment(e.target.value)}
               placeholder="Optional: share your experience (500 char max)"
               maxLength={500}
-              className="w-full h-24 p-3 border border-line text-sm resize-none focus:outline-none focus:border-[#1F4C63]"
+              className="w-full h-24 p-3 border border-line text-sm resize-none focus:outline-none focus:border-blue-dark"
             />
             <button
               onClick={handleSubmitRating}
               disabled={ratingStars < 1 || isSubmittingRating}
-              className="w-full h-11 bg-[#1F4C63] text-white text-xs font-semibold tracking-wide disabled:opacity-50 hover:bg-[#153343] transition-colors"
+              className="w-full h-11 bg-blue-dark text-white text-xs font-semibold tracking-wide disabled:opacity-50 hover:bg-[#153343] transition-colors"
             >
               {isSubmittingRating ? 'Submitting...' : 'Submit Rating'}
             </button>
@@ -1985,7 +1988,7 @@ export default function StudentDashboard() {
 
       {showLogForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-          <Card className="w-full max-w-lg rounded-lg border-none  p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-lg rounded-lg border-none p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => {
                 setShowLogForm(false);
@@ -1997,7 +2000,7 @@ export default function StudentDashboard() {
               <X className="w-5 h-5" />
             </button>
             <div className="space-y-2">
-              <span className="text-xs font-semibold tracking-wide text-[#E08A3C] bg-[#E08A3C]/10 px-3 py-1 rounded-lg border border-orange-100">
+              <span className="text-xs font-semibold tracking-wide text-amber bg-amber/10 px-3 py-1 rounded-lg border border-orange-100">
                 Official Involvement Request
               </span>
               <CardTitle className="text-2xl font-semibold text-ink tracking-tight">Request Hours Verification</CardTitle>
@@ -2048,7 +2051,7 @@ export default function StudentDashboard() {
                       }
                     }
                   }}
-                  className="w-full rounded-lg h-11 border border-line bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-[#1F4C63] font-bold text-ink-soft cursor-pointer "
+                  className="w-full rounded-lg h-11 border border-line bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-blue-dark font-bold text-ink-soft cursor-pointer "
                 >
                   <option value="">-- Choose an opportunity --</option>
                   {applications.map((app, index) => {
@@ -2093,7 +2096,7 @@ export default function StudentDashboard() {
                           }
                         }
                       }}
-                      className="w-full rounded-lg h-11 border border-line bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-[#1F4C63] font-bold text-ink-soft cursor-pointer  mb-4"
+                      className="w-full rounded-lg h-11 border border-line bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-blue-dark font-bold text-ink-soft cursor-pointer mb-4"
                     >
                       <option value="">-- Choose verified partner (Auto-Fills info) --</option>
                       {allOrganizations.map((org) => (
@@ -2130,7 +2133,7 @@ export default function StudentDashboard() {
                   )}
                 </>
               ) : (
-                <div className="p-3.5 bg-[#1F4C63]/5 border border-[#1F4C63]/20 rounded-lg space-y-1.5 animate-fadeIn">
+                <div className="p-3.5 bg-blue-dark/5 border border-blue-dark/20 rounded-lg space-y-1.5 animate-fadeIn">
                   <p className="text-xs font-semibold uppercase text-blue-900 tracking-wider flex items-center gap-1">
                     🇨🇦 Pre-selected Match Verified
                   </p>
@@ -2210,7 +2213,7 @@ export default function StudentDashboard() {
                 <Button
                   type="submit"
                   isLoading={isLogging}
-                  className="w-1/2 h-12 bg-[#1F4C63] hover:bg-[#1F4C63] text-white font-semibold uppercase text-xs tracking-widest rounded-lg  shadow-blue-100 cursor-pointer"
+                  className="w-1/2 h-12 bg-blue-dark hover:bg-blue-dark text-white font-semibold uppercase text-xs tracking-widest rounded-lg shadow-blue-100 cursor-pointer"
                 >
                   Send Request
                 </Button>
@@ -2227,7 +2230,7 @@ export default function StudentDashboard() {
       )}
       {showPrintModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn">
-          <Card className="w-full max-w-4xl bg-white border border-line/80 rounded-lg  p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
+          <Card className="w-full max-w-4xl bg-white border border-line/80 rounded-lg p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
             <button
               onClick={() => setShowPrintModal(false)}
               aria-label="Close transcript modal"
@@ -2237,7 +2240,7 @@ export default function StudentDashboard() {
             </button>
             
             {/* Certificate Header */}
-            <div className="border-b-4 border-[#1F4C63] pb-5 text-center sm:text-left">
+            <div className="border-b-4 border-blue-dark pb-5 text-center sm:text-left">
               <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Toronto Community Involvement Hours Transcript</h2>
               <p className="text-xs text-ink-soft mt-1">Ontario High School Graduation Requirement Official Tracking Document</p>
             </div>
@@ -2271,7 +2274,7 @@ export default function StudentDashboard() {
                     loggedHoursList.map((lh, idx) => (
                       <tr key={idx} className="hover:bg-paper-2/30">
                         <td className="p-4 font-bold text-ink">{lh.activity}</td>
-                        <td className="p-4 font-semibold text-[#1F4C63] text-center">{lh.hours} hrs</td>
+                        <td className="p-4 font-semibold text-blue-dark text-center">{lh.hours} hrs</td>
                         <td className="p-4 text-ink-soft ">{lh.date}</td>
                         <td className="p-4 text-ink-soft">{lh.coordinatorName} ({lh.coordinatorContact})</td>
                         <td className="p-4 text-right text-emerald-600 font-semibold tracking-wide uppercase text-xs">Verified Check</td>
@@ -2285,7 +2288,7 @@ export default function StudentDashboard() {
             {/* Totals */}
             <div className="text-right text-sm md:text-base font-semibold text-ink flex justify-end gap-2 items-center">
               Total Community Involvement Hours Logged: 
-              <span className="text-[#1F4C63] text-lg md:text-xl font-semibold">{totalCompletedHours} / {hourGoal} hrs</span>
+              <span className="text-blue-dark text-lg md:text-xl font-semibold">{totalCompletedHours} / {hourGoal} hrs</span>
             </div>
 
             {/* Signatures boxes */}
@@ -2308,7 +2311,7 @@ export default function StudentDashboard() {
                 Close Certificate
               </Button>
               <Button
-                className="px-5 h-11 text-xs uppercase bg-[#1F4C63] hover:bg-[#1F4C63] font-semibold text-white rounded-lg  cursor-pointer flex items-center gap-1.5"
+                className="px-5 h-11 text-xs uppercase bg-blue-dark hover:bg-blue-dark font-semibold text-white rounded-lg cursor-pointer flex items-center gap-1.5"
                 onClick={() => window.print()}
               >
                 <Printer className="w-4 h-4" /> Print Document

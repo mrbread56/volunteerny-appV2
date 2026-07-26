@@ -229,8 +229,8 @@ export function FileUpload({
           onDrop={onDrop}
           className={cn(
             "relative group transition-all duration-300 rounded-xl border-2 border-dashed p-8 text-center overflow-hidden",
-            dragActive ? "border-[#1F4C63] bg-[#1F4C63]/5/50" : "border-line bg-paper-2 hover:border-slate-300 hover:bg-paper-3/50",
-            isTooLarge ? "border-amber-400 bg-[#E08A3C]/10/35" : fileName ? "border-[#1F4C63] bg-[#1F4C63]/5" : ""
+            dragActive ? "border-blue-dark bg-blue-dark/10" : "border-line bg-paper-2 hover:border-slate-300 hover:bg-paper-3/50",
+            isTooLarge ? "border-amber-400 bg-amber/10" : fileName ? "border-blue-dark bg-blue-dark/5" : ""
           )}
         >
           {(!fileName && !isTooLarge) && (
@@ -246,19 +246,19 @@ export function FileUpload({
           <div className="flex flex-col items-center gap-3 relative z-0">
             {scanning ? (
               <>
-                <div className="w-14 h-14 bg-[#1F4C63]/5 border border-[#1F4C63]/10 rounded-xl flex items-center justify-center text-[#1F4C63] scale-110 animate-pulse">
-                  <div className="w-6 h-6 border-2 border-[#1F4C63] border-[#1F4C63] border-t-transparent rounded-lg animate-spin" />
+                <div className="w-14 h-14 bg-blue-dark/5 border border-blue-dark/10 rounded-xl flex items-center justify-center text-blue-dark scale-110 animate-pulse">
+                  <div className="w-6 h-6 border-2 border-blue-dark border-blue-dark border-t-transparent rounded-lg animate-spin" />
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-ink">Running Threat Analysis...</p>
-                  <p className="text-xs text-[#1F4C63] font-bold mt-1.5 tracking-wide animate-pulse font-mono">
+                  <p className="text-xs text-blue-dark font-bold mt-1.5 tracking-wide animate-pulse font-mono">
                     🛡️ {scanStep}
                   </p>
                 </div>
               </>
             ) : isTooLarge ? (
               <>
-                <div className="w-14 h-14 bg-[#E08A3C]/10 rounded-xl flex items-center justify-center text-[#E08A3C] scale-110">
+                <div className="w-14 h-14 bg-amber/10 rounded-xl flex items-center justify-center text-amber scale-110">
                   <AlertCircle className="w-7 h-7" />
                 </div>
                 <div>
@@ -277,10 +277,10 @@ export function FileUpload({
               </>
             ) : fileName ? (
               <>
-                <div className="w-14 h-14 bg-[#1F4C63]/10 rounded-xl flex items-center justify-center text-[#1F4C63] scale-110 relative">
+                <div className="w-14 h-14 bg-blue-dark/10 rounded-xl flex items-center justify-center text-blue-dark scale-110 relative">
                   <CheckCircle2 className="w-7 h-7" />
                   {scanClean && (
-                    <span className="absolute -top-1 -right-1 bg-[#1F4C63] text-white rounded-lg p-0.5 text-xs font-bold px-1.5 border border-white flex items-center gap-0.5" title="Malware Scanned & Clean">
+                    <span className="absolute -top-1 -right-1 bg-blue-dark text-white rounded-lg p-0.5 text-xs font-bold px-1.5 border border-white flex items-center gap-0.5" title="Malware Scanned & Clean">
                       🛡️ Safe
                     </span>
                   )}
@@ -303,12 +303,12 @@ export function FileUpload({
               </>
             ) : (
               <>
-                <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center text-ink-soft group-hover:text-[#1F4C63] group-hover:scale-110 transition-all ">
+                <div className="w-14 h-14 bg-white rounded-lg flex items-center justify-center text-ink-soft group-hover:text-blue-dark group-hover:scale-110 transition-all ">
                   <Upload className="w-6 h-6" />
                 </div>
                 <div>
                   <p className="text-sm font-bold text-ink-soft">
-                    <span className="text-[#1F4C63]">Click to upload</span> or drag and drop
+                    <span className="text-blue-dark">Click to upload</span> or drag and drop
                   </p>
                   <p className="text-xs text-ink-soft font-medium tracking-wide mt-1">
                     PDF format preferred (max {maxSizeMB}MB)
@@ -328,7 +328,7 @@ export function FileUpload({
 
       {/* Large File Intervention Form (Option to Compress) */}
       {isTooLarge && tooLargeSizeKB && pendingFile && (
-        <div className="p-5 bg-[#E08A3C]/10 border border-amber-200 rounded-lg flex flex-col items-center text-center gap-3  animate-in fade-in duration-200">
+        <div className="p-5 bg-amber/10 border border-amber-200 rounded-lg flex flex-col items-center text-center gap-3  animate-in fade-in duration-200">
           <div className="flex items-center gap-2 text-amber-700">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-xs font-semibold uppercase tracking-wider">File Optimization Tool</p>
@@ -394,9 +394,9 @@ export function FileUpload({
 
       {/* Database Footprint Optimization Widget */}
       {fileName && originalSize && originalSize > 80 && !isOptimized && (
-        <div className="p-4 bg-[#E08A3C]/10/70 text-amber-900 border border-amber-100 rounded-lg flex flex-col items-center text-center gap-3  animate-in fade-in slide-in-">
+        <div className="p-4 bg-amber/10 text-amber-900 border border-amber-100 rounded-lg flex flex-col items-center text-center gap-3 animate-in fade-in slide-in-">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-[#E08A3C] flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 text-amber flex-shrink-0" />
             <p className="text-xs font-bold leading-none">Database Optimization Available</p>
           </div>
           <p className="text-xs text-amber-800 leading-relaxed font-semibold">
@@ -414,12 +414,12 @@ export function FileUpload({
 
       {/* Optimization Success Indicator */}
       {isOptimized && compressedSize && originalSize && (
-        <div className="p-4 bg-[#1F4C63]/5 text-[#0F1E29] border border-[#1F4C63]/10 rounded-lg flex flex-col items-center text-center gap-2  animate-in zoom-in-95">
-          <div className="flex items-center gap-1.5 text-[#1F4C63]">
+        <div className="p-4 bg-blue-dark/5 text-[#0F1E29] border border-blue-dark/10 rounded-lg flex flex-col items-center text-center gap-2  animate-in zoom-in-95">
+          <div className="flex items-center gap-1.5 text-blue-dark">
             <Sparkles className="w-4 h-4" />
             <span className="text-xs font-bold uppercase tracking-wider">File Footprint Optimized!</span>
           </div>
-          <p className="text-xs text-[#1F4C63] font-semibold leading-relaxed">
+          <p className="text-xs text-blue-dark font-semibold leading-relaxed">
             Successfully shrunk string data by <strong className="font-semibold">{Math.round((1 - (compressedSize / originalSize)) * 100)}%</strong> ({originalSize} KB ➔ {compressedSize} KB). This is much safer, faster, and lighter for the database server and other users!
           </p>
         </div>

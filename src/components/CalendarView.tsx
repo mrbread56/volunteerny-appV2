@@ -497,9 +497,9 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
       <div className="lg:col-span-8 space-y-8">
         
         {/* Google Calendar Authorizer Banner */}
-        <Card className="rounded-lg border border-[#1F4C63]/10  /50 /20 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <Card className="rounded-lg border border-blue-dark/10  /50 /20 p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <div className="flex gap-3.5 items-start">
-            <span className="p-3 bg-[#1F4C63]/10/60 rounded-lg text-[#1F4C63] block shrink-0">
+            <span className="p-3 bg-blue-dark/10 rounded-lg text-blue-dark block shrink-0">
               <CalendarCheck2 className="w-5 h-5" />
             </span>
             <div>
@@ -522,7 +522,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
               "rounded-lg h-10 px-4 font-semibold uppercase text-xs tracking-wider shrink-0 transition-colors",
               isGoogleCalendarLinked 
                 ? "border-line hover:bg-paper-2 text-ink-soft" 
-                : "bg-[#1F4C63] hover:bg-[#153343] text-white  shadow-blue-100 animate-pulse"
+                : "bg-blue-dark hover:bg-[#153343] text-white  shadow-blue-100 animate-pulse"
             )}
           >
             {isLinking ? "Configuring..." : isGoogleCalendarLinked ? "Disconnect Google" : "Connect Google Calendar"}
@@ -533,7 +533,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
         <Card className="rounded-lg border border-line  bg-white overflow-hidden p-6 md:p-8">
           <div className="flex items-center justify-between pb-6 border-b border-line">
             <div className="flex items-center gap-2">
-              <CalendarIcon className="w-5 h-5 text-[#1F4C63] animate-pulse" />
+              <CalendarIcon className="w-5 h-5 text-blue-dark animate-pulse" />
               <h2 className="text-xl font-bold tracking-tight text-ink font-sans">
                 {monthNames[currentMonth]} {currentYear}
               </h2>
@@ -593,14 +593,14 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                       : hasLogs
                         ? "bg-emerald-50/50 hover:bg-emerald-100/40 border-emerald-100 text-emerald-950 hover:border-emerald-200"
                         : hasOpps
-                          ? "bg-[#1F4C63]/5/20 hover:bg-[#1F4C63]/5/80 border-[#1F4C63]/10 text-blue-900 hover:border-[#1F4C63]/20"
+                          ? "bg-blue-dark/5 hover:bg-blue-dark/10 border-blue-dark/10 text-blue-900 hover:border-blue-dark/20"
                           : "bg-white hover:bg-paper-2 border-line text-ink-soft hover:border-line",
-                    isCurrentDayMatch && !isSelected && "border-[#1F4C63] ring-2 ring-[#1F4C63]/10"
+                    isCurrentDayMatch && !isSelected && "border-blue-dark ring-2 ring-blue-dark/10"
                   )}
                 >
                   <span className={cn(
                     "text-xs md:text-sm font-semibold flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-lg",
-                    isCurrentDayMatch ? "bg-[#1F4C63] text-white font-semibold" : "text-ink-soft",
+                    isCurrentDayMatch ? "bg-blue-dark text-white font-semibold" : "text-ink-soft",
                     isSelected && "text-white bg-transparent font-semibold"
                   )}>
                     {day}
@@ -616,7 +616,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                   ) : hasOpps ? (
                     <span className={cn(
                       "text-[8px] md:text-[8.5px] font-semibold tracking-tighter block uppercase opacity-85",
-                      isSelected ? "text-blue-200" : "text-[#1F4C63]"
+                      isSelected ? "text-blue-200" : "text-blue-dark"
                     )}>
                       Scheduled
                     </span>
@@ -633,7 +633,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                     {hasOpps && (
                       <span className={cn(
                         "w-1.5 h-1.5 rounded-lg block",
-                        isSelected ? "bg-blue-200" : "bg-[#1F4C63]"
+                        isSelected ? "bg-blue-200" : "bg-blue-dark"
                       )} />
                     )}
                   </div>
@@ -664,7 +664,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
       <div className="lg:col-span-4 space-y-8">
         <Card className="rounded-lg border border-line  bg-white overflow-hidden flex flex-col min-h-[460px]">
           <CardHeader className="border-b border-line-light bg-paper-2/30 p-6 md:p-8 shrink-0">
-            <span className="text-xs font-semibold tracking-wide text-[#1F4C63] uppercase block">Selected Date Agenda</span>
+            <span className="text-xs font-semibold tracking-wide text-blue-dark uppercase block">Selected Date Agenda</span>
             <CardTitle className="text-base text-ink font-semibold uppercase tracking-tight mt-1">
               {parsedSelectedDate && !isNaN(parsedSelectedDate.getTime()) 
                 ? parsedSelectedDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })
@@ -681,16 +681,16 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                 {selectedDateOpps.length > 0 ? (
                   <div className="space-y-3">
                     {selectedDateOpps.map((opp: any) => (
-                      <div key={opp.id} className="p-4 rounded-lg bg-[#1F4C63]/5/15 border border-[#1F4C63]/10/50 space-y-3 relative animate-fadeIn">
+                      <div key={opp.id} className="p-4 rounded-lg bg-blue-dark/5 border border-blue-dark/10 space-y-3 relative animate-fadeIn">
                         <div>
                           <div className="flex items-start justify-between gap-2">
                             <h5 className="text-xs font-semibold text-ink">{opp.title}</h5>
-                            <span className="text-[8.5px] uppercase font-semibold tracking-widest bg-[#1F4C63]/10 text-[#153343] px-1.5 py-0.5 rounded leading-none">
+                            <span className="text-[8.5px] uppercase font-semibold tracking-widest bg-blue-dark/10 text-[#153343] px-1.5 py-0.5 rounded leading-none">
                               Accepted
                             </span>
                           </div>
                           <p className="text-[10.5px] font-bold text-blue-800 mt-1 flex items-center gap-1">
-                            <MapPin className="w-3 h-3 shrink-0 text-[#1F4C63]" /> {opp.location}
+                            <MapPin className="w-3 h-3 shrink-0 text-blue-dark" /> {opp.location}
                           </p>
                           <p className="text-xs font-semibold text-ink-soft mt-0.5">by {opp.orgName || "Verified Organization"}</p>
                         </div>
@@ -723,10 +723,10 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                         {syncFeedback[opp.id] && (
                           <div className="text-xs font-bold text-center py-2 px-3 rounded-lg bg-white/80 border border-line">
                             {syncFeedback[opp.id] === 'linking' && (
-                              <span className="text-[#1F4C63] animate-pulse">Requesting Google permission...</span>
+                              <span className="text-blue-dark animate-pulse">Requesting Google permission...</span>
                             )}
                             {syncFeedback[opp.id] === 'syncing' && (
-                              <span className="text-[#1F4C63] animate-pulse">Synchronizing Google shift...</span>
+                              <span className="text-blue-dark animate-pulse">Synchronizing Google shift...</span>
                             )}
                             {syncFeedback[opp.id] === 'success-google' && (
                               <span className="text-emerald-600">✓ Added to Google Calendar!</span>
@@ -743,7 +743,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                                   href={getGoogleCalendarFallbackUrl(opp)}
                                   target="_blank"
                                   rel="noopener noreferrer"
-                                  className="text-white hover:text-white bg-[#1F4C63] hover:bg-[#1F4C63] px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors inline-block no-underline"
+                                  className="text-white hover:text-white bg-blue-dark hover:bg-blue-dark px-3 py-1 rounded-lg text-xs font-semibold uppercase tracking-wider transition-colors inline-block no-underline"
                                 >
                                   Add to Calendar (1-Click) 🚀
                                 </a>
@@ -785,10 +785,10 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                             <p className="text-ink-soft text-xs">({log.coordinatorContact})</p>
                           )}
                           <p className="flex items-center gap-1.5 leading-tight pt-1">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[#1F4C63]" />
+                            <CheckCircle2 className="w-3.5 h-3.5 text-blue-dark" />
                             <span className={cn(
                               "font-semibold tracking-widest uppercase text-[8px]",
-                              log.approved ? "text-[#1F4C63]" : "text-[#E08A3C] animate-pulse"
+                              log.approved ? "text-blue-dark" : "text-amber animate-pulse"
                             )}>
                               {log.approved ? "Approved Volunteer Hours" : "Verification Outstanding"}
                             </span>

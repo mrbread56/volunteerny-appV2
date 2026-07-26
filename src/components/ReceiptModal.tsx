@@ -123,7 +123,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
             
             {/* Header branding */}
             <div className="text-center space-y-1 pb-4 border-b-2 border-dotted border-line border-line">
-              <span className="text-xs font-semibold uppercase text-[#1F4C63] tracking-widest bg-[#1F4C63]/5/80 px-3 py-1 rounded-lg border border-[#1F4C63]/20 inline-block">
+              <span className="text-xs font-semibold uppercase text-blue-dark tracking-widest bg-blue-dark/5 px-3 py-1 rounded-lg border border-blue-dark/20 inline-block">
                 Verification Receipt
               </span>
               <h1 className="text-xl font-semibold text-ink tracking-tight uppercase">YORK VOLUNTEER TRUST</h1>
@@ -131,15 +131,15 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
             </div>
 
             {/* Official verification stamp */}
-            <div className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-[#1F4C63]/10">
+            <div className="flex items-center justify-between gap-4 bg-white/80 backdrop-blur-sm p-4 rounded-lg border border-blue-dark/10">
               <div className="space-y-0.5">
                 <span className="text-xs text-ink-soft tracking-wide font-semibold block">ENROLLMENT STATUS</span>
-                <span className="text-[#1F4C63] font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-lg bg-[#1F4C63] animate-ping" />
+                <span className="text-blue-dark font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-lg bg-blue-dark animate-ping" />
                   CONFIRMED & ACCEPTED
                 </span>
               </div>
-              <div className="w-10 h-10 rounded-lg bg-[#1F4C63]/10 flex items-center justify-center text-[#1F4C63]">
+              <div className="w-10 h-10 rounded-lg bg-blue-dark/10 flex items-center justify-center text-blue-dark">
                 <ShieldCheck className="w-6 h-6" />
               </div>
             </div>
@@ -234,7 +234,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
             </Button>
 
             <Button 
-              className="flex-1 font-semibold uppercase text-xs tracking-wider py-3 rounded-lg bg-[#1F4C63] hover:bg-[#153343] text-white  shadow-blue-500/10"
+              className="flex-1 font-semibold uppercase text-xs tracking-wider py-3 rounded-lg bg-blue-dark hover:bg-[#153343] text-white  shadow-blue-500/10"
               onClick={onClose}
             >
               Close

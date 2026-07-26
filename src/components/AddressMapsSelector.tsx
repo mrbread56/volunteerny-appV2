@@ -9,8 +9,8 @@ import { useGeolocation } from '../hooks/useGeolocation';
 const customPinIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-[#1F4C63]/30 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-[#1F4C63] border-2 border-white rounded-lg  flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-blue-dark/30 rounded-lg animate-ping"></div>
+      <div class="w-7 h-7 bg-blue-dark border-2 border-white rounded-lg  flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 21s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 7.2c0 7.3-8 11.8-8 11.8z" />
           <circle cx="12" cy="9" r="2.5" fill="white" />
@@ -26,8 +26,8 @@ const customPinIcon = L.divIcon({
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-[#E08A3C]/40 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-[#E08A3C] border-2 border-white rounded-lg  flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
+      <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg  flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />
           <circle cx="12" cy="12" r="4" fill="white" />
@@ -192,7 +192,7 @@ export default function AddressMapsSelector({
         <div className="relative flex items-center">
           <input
             type="text"
-            className="w-full pr-10 pl-4 py-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-[#1F4C63] focus:border-[#1F4C63] bg-white"
+            className="w-full pr-10 pl-4 py-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark focus:border-blue-dark bg-white"
             placeholder="Type address, e.g., 5075 Yonge St..."
             value={searchQuery}
             onChange={handleInputChange}
@@ -202,7 +202,7 @@ export default function AddressMapsSelector({
           />
           <span className="absolute right-3 text-ink-muted">
             {isSearching ? (
-              <div className="w-5 h-5 border-2 border-[#1F4C63]/20 border-t-blue-600 rounded-lg animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-blue-dark/20 border-t-blue-600 rounded-lg animate-spin"></div>
             ) : (
               <Search className="w-5 h-5" />
             )}
@@ -219,7 +219,7 @@ export default function AddressMapsSelector({
                 className="w-full text-left p-3.5 text-xs text-ink-soft hover:bg-paper-2 transition-colors flex items-start gap-2.5 rounded-full"
                 onClick={() => selectSuggestion(item)}
               >
-                <MapPin className="w-4 h-4 text-[#1F4C63] shrink-0 mt-0.5" />
+                <MapPin className="w-4 h-4 text-blue-dark shrink-0 mt-0.5" />
                 <span>{item.display_name}</span>
               </button>
             ))}
@@ -230,7 +230,7 @@ export default function AddressMapsSelector({
       {/* Interactive Geolocation Details HUD */}
       <div className="flex flex-wrap gap-4 text-xs font-bold font-mono text-ink-muted bg-paper-2/50 p-4 border border-line-light rounded-lg items-center justify-between">
         <div className="flex items-center gap-2">
-          <Navigation className="w-4 h-4 text-[#1F4C63]" />
+          <Navigation className="w-4 h-4 text-blue-dark" />
           <span>GEO-LOCATION:</span>
         </div>
         <div className="space-x-4">
@@ -259,7 +259,7 @@ export default function AddressMapsSelector({
               <Popup className="rounded-lg overflow-hidden">
                 <div className="p-2 text-center text-xs space-y-1">
                   <div className="font-bold text-ink font-sans">Your Location</div>
-                  <div className="text-xs text-[#E08A3C] font-mono font-bold uppercase">Active Tracker</div>
+                  <div className="text-xs text-amber font-mono font-bold uppercase">Active Tracker</div>
                   <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.latitude.toFixed(4)}, Lng: {userCoords.longitude.toFixed(4)}</div>
                 </div>
               </Popup>

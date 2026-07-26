@@ -33,8 +33,8 @@ import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-[#E08A3C]/40 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-[#E08A3C] border-2 border-white rounded-lg  flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
+      <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />
           <circle cx="12" cy="12" r="4" fill="white" />
@@ -50,8 +50,8 @@ const userLocationIcon = L.divIcon({
 const customPinIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-[#1F4C63]/30 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-[#1F4C63] border-2 border-white rounded-lg  flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-blue-dark/30 rounded-lg animate-ping"></div>
+      <div class="w-7 h-7 bg-blue-dark border-2 border-white rounded-lg flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 21s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 7.2c0 7.3-8 11.8-8 11.8z" />
           <circle cx="12" cy="9" r="2.5" fill="white" />
@@ -385,23 +385,23 @@ export default function OrgOpportunityEdit() {
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
-      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-ink-muted hover:text-[#1F4C63] font-bold uppercase text-xs tracking-widest mb-8 transition-colors">
+      <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-bold uppercase text-xs tracking-widest mb-8 transition-colors">
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </button>
 
-      <Card className="border-none  rounded-lg overflow-hidden">
-        <CardHeader className="bg-[#1F4C63] text-white p-10 border-none">
+      <Card className="border-none rounded-lg overflow-hidden">
+        <CardHeader className="bg-blue-dark text-white p-10 border-none">
           <CardTitle className="text-3xl font-bold uppercase tracking-tight text-white">Edit Opportunity</CardTitle>
           <p className="text-blue-100 mt-2 font-medium">Keep your volunteer posting up to date.</p>
         </CardHeader>
         <CardContent className="p-10">
           <form onSubmit={handleSubmit} className="space-y-10">
              <section className="space-y-6">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-ink border-l-4 border-[#1F4C63] pl-4">Basic Information</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Basic Information</h3>
                 <Input label="Opportunity Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 <div className="flex flex-col gap-1.5">
                    <label className="text-sm font-medium text-ink-soft">Description</label>
-                   <textarea className="w-full rounded-lg border border-line p-6 min-h-[150px] font-medium focus:ring-2 focus:ring-[#1F4C63] focus:outline-none" value={description} onChange={(e) => setDescription(e.target.value)} required />
+                   <textarea className="w-full rounded-lg border border-line p-6 min-h-[150px] font-medium focus:ring-2 focus:ring-blue-dark focus:outline-none" value={description} onChange={(e) => setDescription(e.target.value)} required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <Select label="Category" value={category} onChange={(e) => setCategory(e.target.value)} options={OPPORTUNITY_CATEGORIES.map(cat => ({ value: cat, label: cat }))} required />
@@ -416,8 +416,8 @@ export default function OrgOpportunityEdit() {
              {/* Advanced Timeline */}
              <section className="space-y-6">
                 <div className="flex items-center justify-between">
-                   <h3 className="text-xl font-bold flex items-center gap-2 text-ink border-l-4 border-[#1F4C63] pl-4">Advanced Timeline</h3>
-                   <Badge variant="secondary" className="bg-[#1F4C63]/5 text-[#153343] border-none font-bold">{shifts.length} Shift{shifts.length !== 1 ? 's' : ''}</Badge>
+                   <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Advanced Timeline</h3>
+                   <Badge variant="secondary" className="bg-blue-dark/5 text-[#153343] border-none font-bold">{shifts.length} Shift{shifts.length !== 1 ? 's' : ''}</Badge>
                 </div>
                 
                 <div className="bg-paper-2 p-6 rounded-lg border border-line-light space-y-6">
@@ -430,8 +430,8 @@ export default function OrgOpportunityEdit() {
                    {(scheduleType === 'multiple' || scheduleType === 'recurring') && (
                       <div className="space-y-4 animate-in fade-in slide-in- duration-300">
                          {shifts.map((shift, index) => (
-                            <div key={index} className="flex flex-col md:flex-row gap-4 p-6 bg-white rounded-lg border border-line-light  items-end relative overflow-hidden group">
-                               <div className="absolute top-0 left-0 w-1 h-full bg-[#1F4C63] opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div key={index} className="flex flex-col md:flex-row gap-4 p-6 bg-white rounded-lg border border-line-light items-end relative overflow-hidden group">
+                               <div className="absolute top-0 left-0 w-1 h-full bg-blue-dark opacity-0 group-hover:opacity-100 transition-opacity" />
                                {scheduleType === 'multiple' ? (
                                   <div className="flex-1 space-y-2">
                                      <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Shift Date</label>
@@ -440,7 +440,7 @@ export default function OrgOpportunityEdit() {
                                ) : (
                                   <div className="flex-1 space-y-2">
                                      <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Weekly Day</label>
-                                     <select className="w-full h-10 px-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-[#1F4C63] font-bold" value={shift.day || ''} onChange={(e) => updateShift(index, { day: e.target.value })} required>
+                                     <select className="w-full h-10 px-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark font-bold" value={shift.day || ''} onChange={(e) => updateShift(index, { day: e.target.value })} required>
                                         <option value="">Select Day</option>
                                         {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                                      </select>
@@ -459,7 +459,7 @@ export default function OrgOpportunityEdit() {
                                </button>
                             </div>
                          ))}
-                         <Button type="button" variant="outline" className="w-full h-14 border-dashed border-2 hover:border-[#1F4C63] hover:text-[#1F4C63] transition-all rounded-lg gap-2 font-semibold text-xs" onClick={addShift}>
+                         <Button type="button" variant="outline" className="w-full h-14 border-dashed border-2 hover:border-blue-dark hover:text-blue-dark transition-all rounded-lg gap-2 font-semibold text-xs" onClick={addShift}>
                             <Plus className="w-4 h-4" /> Add Another Shift / Day
                          </Button>
                       </div>
@@ -468,7 +468,7 @@ export default function OrgOpportunityEdit() {
              </section>
 
              <section className="space-y-6">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-ink border-l-4 border-[#1F4C63] pl-4">Location & Map</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Location & Map</h3>
                 <div className="relative">
                    <Input 
                      label="Physical Address" 
@@ -477,21 +477,21 @@ export default function OrgOpportunityEdit() {
                      required 
                    />
                    {isGeocoding && (
-                     <div className="absolute right-4 top-[40px] flex items-center gap-2 text-xs font-bold text-[#1F4C63] animate-pulse uppercase tracking-widest">
-                        <div className="w-2 h-2 bg-[#1F4C63] rounded-lg" /> Updating Map...
+                     <div className="absolute right-4 top-[40px] flex items-center gap-2 text-xs font-bold text-blue-dark animate-pulse uppercase tracking-widest">
+                        <div className="w-2 h-2 bg-blue-dark rounded-lg" /> Updating Map...
                      </div>
                    )}
                 </div>
                 <label className="flex items-center gap-3 p-6 rounded-lg bg-paper-2 border border-line cursor-pointer hover:border-blue-300 transition-all">
-                   <input type="checkbox" className="w-6 h-6 rounded-lg text-[#1F4C63] focus:ring-[#1F4C63]" checked={isVirtual} onChange={(e) => setIsVirtual(e.target.checked)} />
+                   <input type="checkbox" className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark" checked={isVirtual} onChange={(e) => setIsVirtual(e.target.checked)} />
                    <div>
-                     <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest"><Globe className="w-4 h-4 text-[#1F4C63]" /> Virtual Opportunity</p>
+                     <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest"><Globe className="w-4 h-4 text-blue-dark" /> Virtual Opportunity</p>
                      <p className="text-xs text-ink-muted mt-0.5 font-medium">Volunteers can participate online.</p>
                    </div>
                 </label>
                 <div className="space-y-2">
                    <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin</p>
-                   <Card className="h-[300px] overflow-hidden rounded-lg border-none ">
+                   <Card className="h-[300px] overflow-hidden rounded-lg border-none">
                       <MapContainer center={[coords.lat, coords.lng]} zoom={12} style={{ height: '100%', width: '100%' }}>
                          <TileLayer 
                             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -506,7 +506,7 @@ export default function OrgOpportunityEdit() {
                                <Popup className="rounded-lg overflow-hidden">
                                   <div className="p-2 text-center text-xs space-y-1">
                                      <div className="font-bold text-ink">Your Location</div>
-                                     <div className="text-xs text-[#E08A3C] font-mono font-bold uppercase">Active Tracker</div>
+                                     <div className="text-xs text-amber font-mono font-bold uppercase">Active Tracker</div>
                                      <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.latitude.toFixed(4)}, Lng: {userCoords.longitude.toFixed(4)}</div>
                                   </div>
                                </Popup>
@@ -516,16 +516,16 @@ export default function OrgOpportunityEdit() {
                    </Card>
                 </div>
 
-                <label className="flex items-center gap-3 p-6 rounded-lg bg-[#1F4C63]/5 border border-[#1F4C63]/10 cursor-pointer hover:border-blue-300 transition-all">
+                <label className="flex items-center gap-3 p-6 rounded-lg bg-blue-dark/5 border border-blue-dark/10 cursor-pointer hover:border-blue-300 transition-all">
                    <input
                      type="checkbox"
-                     className="w-6 h-6 rounded-lg text-[#1F4C63] focus:ring-[#1F4C63]"
+                     className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark"
                      checked={autoCreateGroupChat}
                      onChange={(e) => setAutoCreateGroupChat(e.target.checked)}
                    />
                    <div>
                      <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <MessageCircle className="w-4 h-4 text-[#1F4C63]" /> Auto-Create Group Chat
+                        <MessageCircle className="w-4 h-4 text-blue-dark" /> Auto-Create Group Chat
                      </p>
                      <p className="text-xs text-ink-muted mt-0.5 font-medium">
                        Accepted applicants are automatically added to a dedicated group chat for this opportunity.
@@ -536,7 +536,7 @@ export default function OrgOpportunityEdit() {
              </section>
 
              <section className="space-y-6">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-ink border-l-4 border-[#1F4C63] pl-4">Requirements & Skills</h3>
+                <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Requirements & Skills</h3>
                 <div className="flex flex-col gap-1.5">
                    <label className="text-sm font-medium text-ink-soft">Detailed Requirements</label>
                    <textarea className="w-full rounded-lg border border-line p-6 min-h-[100px] font-medium" value={requirements} onChange={(e) => setRequirements(e.target.value)} required />
@@ -545,7 +545,7 @@ export default function OrgOpportunityEdit() {
                    <label className="text-sm font-medium text-ink-soft block mb-4">Skills Needed</label>
                    <div className="flex flex-wrap gap-2">
                      {SKILLS.map(skill => (
-                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-[#1F4C63] border-[#1F4C63] text-white  shadow-blue-100" : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
+                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white shadow-blue-100" : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
                          {skill}
                        </button>
                      ))}
@@ -599,7 +599,7 @@ export default function OrgOpportunityEdit() {
 
              <div className="pt-10 flex gap-4">
                <Button type="button" variant="outline" className="flex-1 h-16 rounded-lg font-semibold uppercase text-xs" onClick={() => navigate(-1)}>Cancel</Button>
-               <Button type="submit" className="flex-[2] text-sm h-16 font-semibold uppercase bg-[#1F4C63] hover:bg-[#153343]  shadow-blue-100 rounded-lg" isLoading={isSaving}>Update Opportunity</Button>
+               <Button type="submit" className="flex-[2] text-sm h-16 font-semibold uppercase bg-blue-dark hover:bg-[#153343] shadow-blue-100 rounded-lg" isLoading={isSaving}>Update Opportunity</Button>
              </div>
           </form>
         </CardContent>

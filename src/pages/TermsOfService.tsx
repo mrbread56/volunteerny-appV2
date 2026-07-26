@@ -4,7 +4,7 @@ export default function TermsOfService() {
   return (
     <div className="min-h-screen bg-white">
       <div className="max-w-3xl mx-auto px-6 py-20 sm:py-28">
-        <p className="text-xs font-semibold tracking-[0.14em] uppercase text-[#1F4C63]/60 mb-4">Legal</p>
+        <p className="text-xs font-semibold tracking-[0.14em] uppercase text-blue-dark/60 mb-4">Legal</p>
         <h1 className="text-[2rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight mb-3">
           Terms of Service
         </h1>
@@ -63,7 +63,7 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">8. Privacy</h2>
             <p>
-              Your use of the Platform is also governed by our <a href="/privacy" className="text-[#1F4C63] underline underline-offset-2">Privacy Policy</a>, which explains what personal data we collect, how we use it, and your rights regarding that data. By using the Platform, you consent to the practices described in the Privacy Policy.
+              Your use of the Platform is also governed by our <a href="/privacy" className="text-blue-dark underline underline-offset-2">Privacy Policy</a>, which explains what personal data we collect, how we use it, and your rights regarding that data. By using the Platform, you consent to the practices described in the Privacy Policy.
             </p>
           </section>
 

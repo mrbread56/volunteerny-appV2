@@ -327,7 +327,7 @@ export default function Signup() {
 
                   <div className="pt-4">
                     Already have an account?{" "}
-                    <Link to="/login" className="text-[#1F4C63] hover:text-ink font-medium">
+                    <Link to="/login" className="text-blue-dark hover:text-ink font-medium">
                       Sign in
                     </Link>
                   </div>
@@ -412,7 +412,7 @@ export default function Signup() {
                     id="consent"
                     checked={consent}
                     onChange={(e) => setConsent(e.target.checked)}
-                    className="w-4 h-4 rounded-full border-line text-[#1F4C63] focus:ring-[#1F4C63]"
+                    className="w-4 h-4 rounded-full border-line text-blue-dark focus:ring-blue-dark"
                   />
                   <label htmlFor="consent" className="text-[12px] text-ink-soft">
                     I agree to the Terms of Service and Privacy Policy

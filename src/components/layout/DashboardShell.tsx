@@ -78,7 +78,7 @@ function NavGroup({ items, location, onNavigate }: {
             className={cn(
               "flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-lg transition-colors",
               active
-                ? "bg-[#1F4C63] text-white"
+                ? "bg-blue-dark text-white"
                 : "text-ink-muted hover:bg-paper-3 hover:text-ink"
             )}
           >
@@ -119,7 +119,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </Link>
 
       {isDemoMode && (
-        <div className="mx-3 mb-2 px-3 py-1.5 bg-[#1F4C63] text-white text-xs font-medium text-center rounded-lg">
+        <div className="mx-3 mb-2 px-3 py-1.5 bg-blue-dark text-white text-xs font-medium text-center rounded-lg">
           Demo Mode
         </div>
       )}
@@ -137,7 +137,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* User card + sign out */}
       <div className="px-3 py-3 border-t border-line-light">
         <div className="flex items-center gap-3 px-3 py-2">
-          <div className="w-8 h-8 rounded-lg bg-[#1F4C63] flex items-center justify-center text-white text-xs font-semibold shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-blue-dark flex items-center justify-center text-white text-xs font-semibold shrink-0">
             {(userProfile?.email || 'U')[0].toUpperCase()}
           </div>
           <div className="min-w-0">

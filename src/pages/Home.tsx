@@ -92,7 +92,7 @@ export default function Home() {
       <section className="py-24 lg:py-32">
         <div className="max-w-4xl mx-auto px-6 text-center">
           <Reveal>
-            <span className="inline-block text-[13px] font-semibold tracking-[0.12em] uppercase text-[#1F4C63] border border-[#1F4C63]/20 rounded-full px-5 py-1.5 mb-8">
+            <span className="inline-block text-[13px] font-semibold tracking-[0.12em] uppercase text-blue-dark border border-blue-dark/20 rounded-full px-5 py-1.5 mb-8">
               Our Purpose
             </span>
           </Reveal>
@@ -110,12 +110,12 @@ export default function Home() {
           <Reveal delay={0.3}>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link to="/signup">
-                <button className="group bg-[#1F4C63] text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(31,76,99,0.2)]">
+                <button className="group bg-blue-dark text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(31,76,99,0.2)]">
                   Continue as a student <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </Link>
               <Link to="/signup">
-                <button className="group bg-white border border-gray-200 text-ink px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:border-[#1F4C63]/30 hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 shadow-sm">
+                <button className="group bg-white border border-gray-200 text-ink px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:border-blue-dark/30 hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 shadow-sm">
                   Continue as a organization <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </Link>
@@ -127,7 +127,7 @@ export default function Home() {
                 <button
                   onClick={() => handleDemo('student')}
                   disabled={!!isDemoLoading}
-                  className="text-ink-muted hover:text-[#1F4C63] text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5" />
                   {isDemoLoading === 'student' ? 'Loading…' : 'Demo as a student'}
@@ -136,7 +136,7 @@ export default function Home() {
                 <button
                   onClick={() => handleDemo('organization')}
                   disabled={!!isDemoLoading}
-                  className="text-ink-muted hover:text-[#1F4C63] text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5" />
                   {isDemoLoading === 'org' ? 'Loading…' : 'Demo as a organization'}
@@ -154,7 +154,6 @@ export default function Home() {
       <section className="py-28 lg:py-36">
         <div className="max-w-6xl mx-auto px-6">
           <Reveal className="mb-20">
-            <p className="text-xs font-semibold tracking-[0.14em] uppercase text-[#1F4C63]/60 mb-4">How it works</p>
             <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight">
               Three steps to<br className="hidden sm:block" /> real impact.
             </h2>
@@ -168,8 +167,8 @@ export default function Home() {
             ].map(({ num, title, body }, i) => (
               <Reveal key={num} delay={i * 0.1} className="bg-white p-10 md:p-12 group hover:bg-gray-50/50 transition-colors duration-500">
                 <div className="flex items-center gap-3 mb-5">
-                  <span className="text-[13px] font-semibold tracking-[0.06em] text-[#E08A3C]">{num}</span>
-                  <div className="h-px flex-1 bg-gray-100 group-hover:bg-[#1F4C63]/10 transition-colors duration-500" />
+                  <span className="text-[13px] font-semibold tracking-[0.06em] text-amber">{num}</span>
+                  <div className="h-px flex-1 bg-gray-100 group-hover:bg-blue-dark/10 transition-colors duration-500" />
                 </div>
                 <h3 className="text-[18px] font-semibold text-ink tracking-[-0.02em] mb-3">{title}</h3>
                 <p className="text-[14px] text-ink-soft leading-[1.7]">{body}</p>
@@ -186,10 +185,9 @@ export default function Home() {
       <section className="py-28 lg:py-36 relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-6 relative z-10">
           <Reveal className="mb-16">
-            <p className="text-xs font-semibold tracking-[0.14em] uppercase text-[#1F4C63]/60 mb-4">The data</p>
             <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight">
               Why volunteering{' '}
-              <span className="font-display italic text-[#1F4C63]">matters</span>
+              <span className="font-display italic text-blue-dark">matters</span>
             </h2>
           </Reveal>
 
@@ -204,7 +202,7 @@ export default function Home() {
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
                 >
                   <div className="flex items-baseline gap-4 mb-5">
-                    <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-[#1F4C63] tracking-[-0.04em] leading-none">
+                    <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none">
                       {FACTS[factIdx].stat}
                     </span>
                     <span className="text-[16px] sm:text-[18px] font-medium text-ink-soft tracking-[-0.02em]">
@@ -226,7 +224,7 @@ export default function Home() {
                     key={i}
                     onClick={() => setFactIdx(i)}
                     className={`h-1 rounded-full transition-all duration-500 ${
-                      i === factIdx ? 'bg-[#1F4C63] w-10' : 'bg-gray-200 hover:bg-gray-300 w-6'
+                      i === factIdx ? 'bg-blue-dark w-10' : 'bg-gray-200 hover:bg-gray-300 w-6'
                     }`}
                   />
                 ))}
@@ -241,8 +239,8 @@ export default function Home() {
 
       {/* ── FOR ORGANISATIONS ── */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E29] via-[#1F4C63] to-[#153343]" />
-        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-[#E08A3C]/[0.08] rounded-full blur-[120px] pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E29] via-blue-dark to-[#153343]" />
+        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-amber/[0.08] rounded-full blur-[120px] pointer-events-none" />
 
         <div className="max-w-6xl mx-auto px-6 py-28 lg:py-36 relative z-10">
           <Reveal>
@@ -251,14 +249,14 @@ export default function Home() {
               <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-white tracking-[-0.035em] leading-tight mb-7">
                 Empower your organisation<br />
                 with a modern{' '}
-                <span className="font-display italic text-[#E08A3C]">student pipeline</span>.
+                <span className="font-display italic text-amber">student pipeline</span>.
               </h2>
               <p className="text-white/50 text-[16px] leading-[1.7] mb-12 max-w-[460px]">
                 Connect directly with safe, motivated high school volunteers, event hosts, and educators.
                 Track check-ins, approve sessions, and share your mission, all in one place.
               </p>
               <Link to="/signup">
-                <button className="group bg-white text-[#1F4C63] px-8 py-3.5 rounded-full text-[14px] font-medium hover:bg-white/90 transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+                <button className="group bg-white text-blue-dark px-8 py-3.5 rounded-full text-[14px] font-medium hover:bg-white/90 transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
                   Register Your Organisation <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                 </button>
               </Link>
@@ -274,14 +272,14 @@ export default function Home() {
             <div className="max-w-[560px]">
               <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight mb-6">
                 Ready to make a<br />
-                <span className="font-display italic text-[#1F4C63]">difference</span>?
+                <span className="font-display italic text-blue-dark">difference</span>?
               </h2>
               <p className="text-[16px] text-ink-soft leading-[1.7] mb-12">
                 Join hundreds of students and dozens of organisations already using Volunteer North York. Create your free account in under two minutes.
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <Link to={user ? (userProfile?.role === 'student' ? '/student/dashboard' : '/org/dashboard') : '/signup'}>
-                  <button className="group bg-[#1F4C63] text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_1px_3px_rgba(31,76,99,0.2),0_8px_24px_rgba(31,76,99,0.12)]">
+                  <button className="group bg-blue-dark text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_1px_3px_rgba(31,76,99,0.2),0_8px_24px_rgba(31,76,99,0.12)]">
                     {user ? 'Go to Dashboard' : 'Create Free Account'} <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </button>
                 </Link>

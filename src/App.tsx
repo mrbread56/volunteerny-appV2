@@ -109,7 +109,7 @@ const AccountSetupIncomplete: React.FC = () => {
         </p>
         <a
           href="mailto:privacy@volunteernorthyork.indevs.in"
-          className="block text-[#1F4C63] font-medium hover:underline"
+          className="block text-blue-dark font-medium hover:underline"
         >
           privacy@volunteernorthyork.indevs.in
         </a>
@@ -177,11 +177,7 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
 
   // Authenticated, but the account has no profile document. Without this the
   // user bounces to /mfa forever with no way out. Tell them what happened.
-  if (profileMissing) return (
-    <PublicLayout>
-      <AccountSetupIncomplete />
-    </PublicLayout>
-  );
+  if (profileMissing) return <AccountSetupIncomplete />;
 
   // Perform strict checking using the dedicated verifyMfaClaim middleware function
   const isMfaClaimValid = verifyMfaClaim(user, userProfile, mfaVerified);
@@ -208,7 +204,7 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-sm text-xs text-slate-600 font-medium space-y-1.5 leading-relaxed">
             <p className="font-bold text-slate-700">Appeal or Investigation:</p>
             <p>To request review or appeal records, contact our privacy desk directly:</p>
-            <a aria-label="Email privacy desk" href="mailto:privacy@volunteernorthyork.indevs.in" className="text-[#1F4C63] font-extrabold hover:underline">privacy@volunteernorthyork.indevs.in</a>
+            <a aria-label="Email privacy desk" href="mailto:privacy@volunteernorthyork.indevs.in" className="text-blue-dark font-extrabold hover:underline">privacy@volunteernorthyork.indevs.in</a>
           </div>
         </div>
       </div>
@@ -238,14 +234,12 @@ function ScrollToTop() {
 import SplashScreen from './components/SplashScreen';
 
 const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
-  const { user, userProfile, mfaVerified, loading, profileMissing } = useAuth();
+  const { user, userProfile, mfaVerified, loading } = useAuth();
   const location = useLocation();
 
   if (loading) return <>{children}</>;
 
   if (user) {
-    if (profileMissing) return <>{children}</>;
-
     const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
     if (!isVerified && location.pathname !== '/mfa' && location.pathname !== '/login' && location.pathname !== '/signup') {
       return <Navigate to="/mfa" replace />;
