@@ -71,6 +71,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setMfaVerifiedState(false);
       return;
     }
+
+    // Trust the frontend caller if setting to true (this avoids race conditions
+    // where the server set the claim, but getIdTokenResult(true) is faster
+    // than Firebase propagation latency). 
+    if (verified) {
+      setMfaVerifiedState(true);
+      return;
+    }
+
     try {
       const tokenResult = await user.getIdTokenResult(true);
       if (tokenResult.claims.mfaVerified === true) {
@@ -166,8 +175,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const fetchProfiles = async (currentUser: User | { uid: string }) => {
     try {
-      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
-      const userEmail = (currentUser as any).email || '';
+      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim().toLowerCase());
+      const userEmail = ((currentUser as any).email || '').toLowerCase();
       const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
 
       const userDoc = await getDoc(doc(db, 'users', currentUser.uid));

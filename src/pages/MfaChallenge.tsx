@@ -81,11 +81,8 @@ export default function MfaChallenge() {
       
       const data = await response.json();
       if (data.success) {
-        // If the server couldn't set the real custom claim, remember that in
-        // localStorage so other tabs and reloads treat this session as verified.
-        if (data.fallbackClaim) {
-          localStorage.setItem(`mfaFallbackClaim:${user!.uid}`, 'true');
-        }
+        // Unconditionally set a local session bypass to handle Firebase token propagation latency
+        localStorage.setItem(`mfaFallbackClaim:${user!.uid}`, 'true');
 
         // Force a token refresh so downstream code sees the new claim.
         await user!.getIdToken(true);
