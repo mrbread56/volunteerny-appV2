@@ -188,9 +188,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfileMissing(false);
         const data = userDoc.data() as UserProfile;
         
-        // If the profile exists but has NO role, we should still fallback to dev if applicable
-        if (!data.role && isDevEmail) {
-          console.log('[AuthContext] userDoc exists but has no role. Falling back to dev profile.');
+        // If the user's email is in the developer list, they are always a developer,
+        // overriding whatever role might be accidentally saved in their Firestore profile.
+        if (isDevEmail) {
+          console.log('[AuthContext] user is in VITE_DEVELOPER_EMAILS. Forcing role to developer.');
           data.role = 'developer';
         }
 
