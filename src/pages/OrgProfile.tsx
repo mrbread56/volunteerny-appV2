@@ -530,9 +530,6 @@ export default function OrgProfile() {
                       </Badge>
                     )}
                   </h3>
-                  <p className="text-xs font-semibold text-ink-soft mt-1 break-words">
-                    Authorize Gmail to send real-time decision emails.
-                  </p>
                 </div>
               </div>
               <Button
@@ -658,37 +655,37 @@ export default function OrgProfile() {
             </p>
           </Card>
 
-          <Card className="bg-slate-900 text-white p-5 sm:p-8 space-y-8 rounded-lg sticky top-24 overflow-hidden">
+          <Card className="bg-white border border-line p-5 sm:p-8 space-y-8 rounded-lg sticky top-24 overflow-hidden shadow-none">
             <div className="space-y-4">
-              <h3 className="text-xl font-bold border-b border-white/10 pb-4">
+              <h3 className="text-xl font-bold border-b border-line-light pb-4 text-ink">
                 Verification Status
               </h3>
-              <div className="bg-white/5 p-4 rounded-lg flex items-center gap-3">
-                <ShieldCheck className="text-blue-400 w-6 h-6" />
-                <span className="text-sm font-bold">Standard Account</span>
+              <div className="bg-paper-2 border border-line-light p-4 rounded-lg flex items-center gap-3">
+                <ShieldCheck className="text-emerald-600 w-6 h-6" />
+                <span className="text-sm font-bold text-ink">Standard Account</span>
               </div>
             </div>
 
             <div className="space-y-4">
-              <p className="text-xs text-white/40 uppercase tracking-wide font-semibold">
+              <p className="text-xs text-ink-soft uppercase tracking-wide font-semibold">
                 Public Reach
               </p>
               <div className="flex gap-4">
-                <div className="flex-1 text-center p-4 bg-white/5 rounded-lg">
-                  <Mail className="w-4 h-4 mx-auto mb-2 text-blue-400" />
-                  <span className="block text-xl font-semibold">
+                <div className="flex-1 text-center p-4 bg-paper-2 border border-line-light rounded-lg">
+                  <Mail className="w-4 h-4 mx-auto mb-2 text-blue-dark" />
+                  <span className="block text-xl font-semibold text-ink">
                     {contactEmail ? "YES" : "NO"}
                   </span>
-                  <span className="text-xs text-white/40 font-bold uppercase">
+                  <span className="text-xs text-ink-soft font-bold uppercase">
                     EMAILS
                   </span>
                 </div>
-                <div className="flex-1 text-center p-4 bg-white/5 rounded-lg">
-                  <Phone className="w-4 h-4 mx-auto mb-2 text-blue-400" />
-                  <span className="block text-xl font-semibold">
+                <div className="flex-1 text-center p-4 bg-paper-2 border border-line-light rounded-lg">
+                  <Phone className="w-4 h-4 mx-auto mb-2 text-blue-dark" />
+                  <span className="block text-xl font-semibold text-ink">
                     {phone ? "YES" : "NO"}
                   </span>
-                  <span className="text-xs text-white/40 font-bold uppercase">
+                  <span className="text-xs text-ink-soft font-bold uppercase">
                     PHONE
                   </span>
                 </div>
@@ -711,22 +708,22 @@ export default function OrgProfile() {
               )}
 
               {!isDemoMode && (
-                <div className="border border-red-500/20 bg-red-500/5 p-4 rounded-lg space-y-3">
+                <div className="border border-red-200 bg-red-50 p-4 rounded-lg space-y-3">
                   {!showConfirmDelete ? (
                     <button
                       type="button"
                       onClick={() => setShowConfirmDelete(true)}
-                      className="w-full text-center text-red-400 hover:text-red-300 font-semibold text-xs py-3 hover:bg-white/5 rounded-lg border border-dashed border-red-500/30 transition-all cursor-pointer"
+                      className="w-full text-center text-red-600 hover:text-red-700 font-semibold text-xs py-3 hover:bg-red-100 rounded-lg border border-dashed border-red-300 transition-all cursor-pointer"
                     >
                       ⚠️ Delete Organization Profile
                     </button>
                   ) : (
                     <div className="space-y-3 text-left">
-                      <p className="text-xs font-bold text-red-400 leading-normal">
+                      <p className="text-xs font-bold text-red-600 leading-normal">
                         ⚠️ WARNING: Are you sure you want to PERMANENTLY delete your organization? All postings, applicants, and archives will be deleted from the registry. You cannot undo this.
                       </p>
                       <div>
-                        <label className="block text-xs font-semibold uppercase text-ink-soft mb-1">
+                        <label className="block text-xs font-semibold uppercase text-red-700 mb-1">
                           Type email to confirm ({user?.email})
                         </label>
                         <Input
@@ -734,12 +731,12 @@ export default function OrgProfile() {
                           value={deleteConfirmEmail}
                           onChange={(e) => setDeleteConfirmEmail(e.target.value)}
                           placeholder={user?.email || "Email address"}
-                          className="bg-white/5 border-white/15 focus:border-white/30 text-white"
+                          className="bg-white border-red-200 focus:border-red-400 text-ink"
                         />
                       </div>
                       
                       {deleteError && (
-                        <p className="text-xs font-semibold uppercase text-red-400 font-mono">
+                        <p className="text-xs font-semibold uppercase text-red-600 font-mono">
                           {deleteError}
                         </p>
                       )}
@@ -752,7 +749,7 @@ export default function OrgProfile() {
                             setDeleteConfirmEmail("");
                             setDeleteError("");
                           }}
-                          className="px-4 py-2 text-ink-soft hover:text-white font-semibold text-xs rounded-lg hover:bg-white/5"
+                          className="px-4 py-2 text-red-700 hover:text-red-800 font-semibold text-xs rounded-lg hover:bg-red-100 cursor-pointer"
                         >
                           Cancel
                         </button>
@@ -760,7 +757,7 @@ export default function OrgProfile() {
                           type="button"
                           disabled={isDeleting}
                           onClick={handleDeleteAccountInput}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg rounded-full"
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg rounded-full cursor-pointer"
                         >
                           {isDeleting ? "Deleting..." : "Delete Org"}
                         </button>
@@ -771,7 +768,7 @@ export default function OrgProfile() {
               )}
             </div>
 
-            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-dark/10 rounded-lg blur-3xl -z-10" />
+            <div className="absolute -bottom-20 -right-20 w-40 h-40 bg-blue-dark/5 rounded-lg blur-3xl -z-10" />
           </Card>
         </div>
       </form>
