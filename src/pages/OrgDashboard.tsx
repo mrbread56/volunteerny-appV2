@@ -158,65 +158,6 @@ export default function OrgDashboard() {
     );
   }, [recentApplications, appSearchTerm]);
 
-  // Google Gmail Integration helper states & hooks
-  const [testEmailAddress, setTestEmailAddress] = useState("");
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testFeedback, setTestFeedback] = useState<string | null>(null);
-  const [isGmailStateEnabled, setIsGmailStateEnabled] = useState(
-    localStorage.getItem("gmail_connected_state") !== "false",
-  );
-
-  const handleToggleGmail = async () => {
-    setTestFeedback(null);
-    if (isGmailStateEnabled) {
-      disconnectGmail();
-      setIsGmailStateEnabled(false);
-      localStorage.setItem("gmail_connected_state", "false");
-      setTestFeedback("Gmail broadcasts disabled successfully.");
-    } else {
-      const token = await connectGmail();
-      if (token) {
-        setIsGmailStateEnabled(true);
-        localStorage.setItem("gmail_connected_state", "true");
-        setTestFeedback("Gmail alerts connected and active!");
-      } else {
-        setIsGmailStateEnabled(true);
-        localStorage.setItem("gmail_connected_state", "true");
-        setTestFeedback(
-          "Gmail alerts fallback activated in simulation sandbox mode.",
-        );
-      }
-    }
-  };
-
-  const handleSendTestEmail = async () => {
-    if (!testEmailAddress) {
-      setTestFeedback("Please type an email address first.");
-      return;
-    }
-
-    setIsSendingTest(true);
-    setTestFeedback(null);
-
-    const res = await sendTransactionalEmail({
-      to: testEmailAddress,
-      subject: "Volunteer North York Email Integration Test! 🚀",
-      templateName: "admin_alert",
-      templateData: {
-        subject: "Integration Test Succeeded",
-        details: "This is a real transactional notification confirming that your Volunteer North York backend email delivery is fully active and functional!"
-      }
-    });
-
-    setIsSendingTest(false);
-    if (res.success) {
-      setTestFeedback(`Test email sent successfully to ${testEmailAddress}!`);
-      setTestEmailAddress("");
-    } else {
-      setTestFeedback(`Test failed: ${res.error || "Please check your configuration"}`);
-    }
-  };
-
   // Organization Direct Student Credits Logger States
   const [studentsList, setStudentsList] = useState<
     { id: string; fullName: string }[]
@@ -1008,10 +949,10 @@ export default function OrgDashboard() {
       )}
 
       {/* Opportunities + Applications grid */}
-      {(activeTab === "overview" || activeTab === "opportunities" || activeTab === "applications") && (
+      {(activeTab === "opportunities" || activeTab === "applications") && (
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
         {/* Managed Opportunities */}
-        {(activeTab === "overview" || activeTab === "opportunities") && (
+        {activeTab === "opportunities" && (
         <section className="lg:col-span-2 space-y-6">
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-ink flex items-center gap-2">
@@ -1126,114 +1067,9 @@ export default function OrgDashboard() {
         )}
 
         {/* Recent Applications Feed */}
-        {(activeTab === "overview" || activeTab === "applications") && (
+        {activeTab === "applications" && (
         <section className="lg:col-span-3 space-y-6">
-          {/* Google Gmail Integration Console */}
-          <Card className="p-8 border-none rounded-lg border border-line">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="flex gap-4 items-start">
-                <span className="p-4 bg-red-50 rounded-lg text-red-600 block shrink-0">
-                  <Mail className="w-6 h-6" />
-                </span>
-                <div>
-                  <h3 className="font-semibold text-ink text-lg leading-tight flex items-center gap-2 flex-wrap">
-                    Gmail Notification Broadcasts
-                    {isGmailStateEnabled && (
-                      <Badge className="bg-amber/10 text-amber hover:bg-amber/20 px-2 py-0.5 rounded-lg text-xs uppercase font-semibold tracking-widest leading-none border-none">
-                        Active
-                      </Badge>
-                    )}
-                  </h3>
-                  <p className="text-xs font-semibold text-ink-soft mt-1">
-                    Authorize Gmail to automatically send decision emails
-                    (acceptance, rejection, etc.) to student volunteers in real
-                    time.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={isGmailStateEnabled ? "outline" : "default"}
-                onClick={handleToggleGmail}
-                className={cn(
-                  "h-12 px-6 rounded-lg font-semibold text-xs tracking-wide shrink-0 w-full md:w-auto",
-                  isGmailStateEnabled
-                    ? "border-line hover:bg-red-50 hover:text-red-600 hover:border-red-200"
-                    : "bg-red-600 hover:bg-red-700 text-white shadow-red-200",
-                )}
-              >
-                {isGmailStateEnabled
-                  ? "Disconnect Gmail"
-                  : "Enable Gmail Integration"}
-              </Button>
-            </div>
 
-            {isGmailStateEnabled && (
-              <div className="mt-6 pt-6 border-t border-line/80 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
-                  <div className="flex items-center gap-2 text-ink-soft font-bold">
-                    <span
-                      className={cn(
-                        "w-2.5 h-2.5 rounded-lg inline-block",
-                        accessToken || isDemoMode
-                          ? "bg-amber animate-pulse"
-                          : "bg-orange-400 animate-pulse",
-                      )}
-                    />
-                    Session Token Status:{" "}
-                    <span
-                      className={cn(
-                        "font-semibold tracking-wide text-xs",
-                        accessToken || isDemoMode
-                          ? "text-amber"
-                          : "text-amber",
-                      )}
-                    >
-                      {accessToken || isDemoMode
-                        ? "Fully Authorized"
-                        : "Expired (Requires Re-Auth)"}
-                    </span>
-                  </div>
-                  {!(accessToken || isDemoMode) && (
-                    <Button
-                      variant="ghost"
-                      onClick={handleToggleGmail}
-                      className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg px-3 py-1.5 h-auto uppercase tracking-wider"
-                    >
-                      Refresh Auth Connection
-                    </Button>
-                  )}
-                </div>
-
-                <div className="bg-white p-6 rounded-lg border border-line flex flex-col sm:flex-row items-center gap-4">
-                  <div className="flex-1 w-full">
-                    <p className="text-xs font-semibold text-ink-soft tracking-wide mb-1.5">
-                      Verify connection with a test email
-                    </p>
-                    <input
-                      type="email"
-                      placeholder="Type your email (e.g. your_address@gmail.com)"
-                      value={testEmailAddress}
-                      onChange={(e) => setTestEmailAddress(e.target.value)}
-                      className="w-full text-sm font-medium border border-line bg-paper-2 rounded-lg px-4 py-3 focus:outline-none focus:border-red-500 focus:bg-white transition-colors border-line"
-                    />
-                  </div>
-                  <Button
-                    onClick={handleSendTestEmail}
-                    disabled={isSendingTest}
-                    className="w-full sm:w-auto h-12 px-6 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest"
-                  >
-                    {isSendingTest ? "Sending Test..." : "Send Test Mail"}
-                  </Button>
-                </div>
-
-                {testFeedback && (
-                  <p className="text-xs font-bold text-ink-soft italic bg-paper-3/50 px-4 py-3 rounded-lg border border-dotted border-line">
-                    {testFeedback}
-                  </p>
-                )}
-              </div>
-            )}
-          </Card>
 
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-semibold text-ink flex items-center gap-2">
@@ -1337,7 +1173,7 @@ export default function OrgDashboard() {
       )}
 
       {/* Hours Verification — own tab */}
-      {(activeTab === "overview" || activeTab === "hours") && (
+      {activeTab === "hours" && (
       <section className="bg-white p-8 md:p-10 border border-line space-y-8">
         <div className="space-y-2">
           <h2 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
@@ -1658,21 +1494,7 @@ export default function OrgDashboard() {
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="text-xs font-bold uppercase tracking-wider h-9 rounded-lg border-line text-ink-soft hover:text-blue-dark hover:border-blue-dark/30"
-                                onClick={() => {
-                                  setSelectedStatPopup(null);
-                                  navigate("/messages", {
-                                    state: { openWithUserId: app.studentId, openWithLabel: app.studentName },
-                                  });
-                                  requestOpenDirectChat(app.studentId, app.studentName);
-                                }}
-                              >
-                                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                                Message
-                              </Button>
+
                               <Button
                                 size="sm"
                                 className="bg-blue-dark hover:bg-[#153343] text-white text-xs font-bold uppercase tracking-wider h-9 rounded-lg"

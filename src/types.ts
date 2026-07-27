@@ -102,7 +102,7 @@ export interface Application {
   studentId: string;
   studentName?: string;
   opportunityTitle?: string;
-  status: 'pending' | 'accepted' | 'rejected' | 'terminated' | 'waitlist';
+  status: 'pending' | 'reviewed' | 'accepted' | 'rejected' | 'terminated' | 'waitlist';
   appliedAt: any;
   message?: string;
   previousExperience?: string;

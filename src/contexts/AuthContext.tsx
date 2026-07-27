@@ -282,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network')) {
-        console.warn('Offline mode: Could not fetch profiles from Firestore.');
+        // Suppressed console.warn('Offline mode: Could not fetch profiles from Firestore.');
 
         // A blocked websocket (ad blocker / privacy shield targeting
         // firestore.googleapis.com) looks identical to a real network outage

@@ -25,7 +25,7 @@ const studentMain: NavItem[] = [
   { to: '/student/opportunities', label: 'Browse', icon: Search },
   { to: '/student/dashboard?tab=leaderboard', label: 'Leaderboard', icon: Trophy },
   { to: '/student/dashboard?tab=calendar', label: 'Calendar', icon: Calendar },
-  { to: '/messages', label: 'Messages', icon: MessageCircle },
+
 ];
 const studentBottom: NavItem[] = [
   { to: '/student/profile', label: 'Profile', icon: UserCircle },
@@ -39,7 +39,7 @@ const orgMain: NavItem[] = [
   { to: '/org/dashboard?tab=applications', label: 'Applications', icon: Search },
   { to: '/org/dashboard?tab=hours', label: 'Hours', icon: Clock },
   { to: '/org/opportunities/new', label: 'Post New', icon: PlusCircle },
-  { to: '/messages', label: 'Messages', icon: MessageCircle },
+
 ];
 const orgBottom: NavItem[] = [
   { to: '/org/profile', label: 'Profile', icon: UserCircle },
@@ -48,7 +48,7 @@ const orgBottom: NavItem[] = [
 
 const devMain: NavItem[] = [
   { to: '/developer/dashboard', label: 'Control Room', icon: Shield },
-  { to: '/messages', label: 'Messages', icon: MessageCircle },
+
 ];
 const devBottom: NavItem[] = [
   { to: '/feedback', label: 'Feedback', icon: Send },

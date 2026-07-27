@@ -58,8 +58,6 @@ export default function StudentOnboarding() {
 
   // Fields state
   const [fullName, setFullName] = useState(studentProfile?.fullName || user?.displayName || '');
-  const [selectedSchool, setSelectedSchool] = useState('');
-  const [otherSchool, setOtherSchool] = useState('');
   const [school, setSchool] = useState('');
   const [grade, setGrade] = useState('');
   const [neighborhood, setNeighborhood] = useState('');
@@ -70,6 +68,7 @@ export default function StudentOnboarding() {
   const [previousExperience, setPreviousExperience] = useState('');
   const [resumeBase64, setResumeBase64] = useState('');
   const [resumeFileName, setResumeFileName] = useState('');
+  const [leaderboardConsent, setLeaderboardConsent] = useState(false);
 
   const toggleItem = (item: string, list: string[], setList: (l: string[]) => void) => {
     if (list.includes(item)) {
@@ -83,8 +82,7 @@ export default function StudentOnboarding() {
     setError('');
     if (step === 1) {
       if (!fullName.trim()) return "Full Name is required";
-      const finalSchool = selectedSchool === 'Other' ? otherSchool : selectedSchool;
-      if (!finalSchool || !finalSchool.trim()) return "Academic School is required";
+      if (!school) return "Academic School is required";
       if (!grade) return "Grade level is required";
       if (!neighborhood) return "Neighborhood is required";
     }
@@ -119,11 +117,10 @@ export default function StudentOnboarding() {
     setIsSubmitting(true);
     setError('');
 
-    const finalSchool = selectedSchool === 'Other' ? otherSchool : selectedSchool;
     const finalProfileData = {
       uid: user.uid,
       fullName: fullName.trim(),
-      school: finalSchool,
+      school: school,
       grade,
       neighborhood,
       interests,
@@ -132,7 +129,7 @@ export default function StudentOnboarding() {
       previousExperience: skipFields ? '' : previousExperience.trim(),
       resumeUrl: (skipFields || !resumeBase64) ? '' : resumeBase64,
       passportUrl: passportBase64 ? compressFile(passportBase64) : '',
-      trackerEnabled: true,
+      trackerEnabled: leaderboardConsent,
       trackerAnonymous: false,
       loggedHours: []
     };
@@ -228,17 +225,11 @@ export default function StudentOnboarding() {
                   <div className="space-y-2.5">
                     <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Academic High School</label>
                     <Select 
-                      value={selectedSchool}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setSelectedSchool(val);
-                        if (val !== 'Other') setSchool(val);
-                        else setSchool('');
-                      }}
+                      value={school}
+                      onChange={(e) => setSchool(e.target.value)}
                       options={[
                         { value: '', label: 'Select your high school' },
-                        ...TORONTO_SCHOOLS.map(s => ({ value: s, label: s })),
-                        { value: 'Other', label: 'Other/Not Listed' }
+                        ...TORONTO_SCHOOLS.map(s => ({ value: s, label: s }))
                       ]}
                       className="h-14 rounded-lg bg-paper-2 border-line-light font-bold"
                     />
@@ -257,21 +248,6 @@ export default function StudentOnboarding() {
                     />
                   </div>
                 </div>
-
-                {selectedSchool === 'Other' && (
-                  <div className="space-y-2.5 animate-in slide-in-">
-                    <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Custom High School Name</label>
-                    <Input 
-                      value={otherSchool}
-                      onChange={(e) => {
-                        setOtherSchool(e.target.value);
-                        setSchool(e.target.value);
-                      }}
-                      placeholder="Enter other high school name"
-                      className="h-14 rounded-lg bg-paper-2 border-line-light font-bold"
-                    />
-                  </div>
-                )}
 
                 <div className="space-y-2.5">
                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Your Neighborhood</label>
@@ -421,6 +397,20 @@ export default function StudentOnboarding() {
                     placeholder="E.g., tutee support, neighborhood cleanups, school clubs, community events..."
                     className="w-full h-32 p-4 text-sm border-2 border-line-light rounded-lg focus:border-blue-dark focus:ring-0 resize-none font-medium text-ink-soft outline-none placeholder-slate-300"
                   />
+                </div>
+
+                <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                  <input
+                    type="checkbox"
+                    id="leaderboardConsent"
+                    checked={leaderboardConsent}
+                    onChange={(e) => setLeaderboardConsent(e.target.checked)}
+                    className="mt-1 shrink-0 w-4 h-4 rounded border-slate-300 text-blue-dark focus:ring-blue-dark"
+                  />
+                  <label htmlFor="leaderboardConsent" className="text-sm text-ink-soft leading-relaxed">
+                    <span className="font-bold text-ink block mb-0.5">Leaderboard Participation</span>
+                    I consent to having my name and verified volunteer hours displayed on the public Volunteer North York Leaderboard. I understand this is optional and I can change this later in my Profile.
+                  </label>
                 </div>
                 
                 <FileUpload

@@ -13,7 +13,6 @@ import {
   addDoc,
   serverTimestamp
 } from "firebase/firestore";
-import { directChatId, groupChatId } from "../lib/chatBus";
 import { Application, Opportunity, StudentProfile } from "../types";
 import {
   Card,
@@ -61,9 +60,48 @@ export default function OrgOpportunityApplicants() {
     null,
   );
   const [filterTab, setFilterTab] = useState<
-    "all" | "pending" | "accepted" | "terminated"
+    "all" | "pending" | "reviewed" | "accepted" | "terminated"
   >("pending");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [isBulkRejecting, setIsBulkRejecting] = useState(false);
+
+  const handleBulkReject = async () => {
+    if (!window.confirm("Are you sure you want to reject all remaining pending and reviewed applications?")) return;
+    
+    setIsBulkRejecting(true);
+    try {
+      const pendingApps = applicants.filter(a => a.status === 'pending' || a.status === 'reviewed');
+      const rejectionNote = "Bulk rejected. The position has been filled or the opportunity is closed.";
+      
+      const batchPromises = pendingApps.map(async (app) => {
+        if (!isDemoMode) {
+          const updates = { 
+            status: 'rejected',
+            rejectionReason: 'Position Filled',
+            rejectionNote
+          };
+          await updateDoc(doc(db, "applications", app.id), updates);
+          return { ...app, ...updates } as Application;
+        } else {
+          return { ...app, status: 'rejected', rejectionReason: 'Position Filled', rejectionNote } as Application;
+        }
+      });
+
+      const processed = await Promise.all(batchPromises);
+      
+      setApplicants(prev => prev.map(a => {
+        const processedApp = processed.find(p => p.id === a.id);
+        return processedApp ? processedApp : a;
+      }));
+      setSuccessMessage(`Bulk rejected ${processed.length} applications.`);
+      setTimeout(() => setSuccessMessage(null), 5000);
+    } catch (err: any) {
+      console.error("Error during bulk rejection:", err);
+      setErrorMessage("Failed to bulk reject applications.");
+    } finally {
+      setIsBulkRejecting(false);
+    }
+  };
 
   // Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -281,97 +319,7 @@ export default function OrgOpportunityApplicants() {
         return updatedApps;
       });
 
-      // --- AUTOMATED CHAT PROVISIONING / CLEANUP ---
-      // Uses deterministic chat IDs (dm_<uidA>_<uidB>, group_<opportunityId>)
-      // instead of `array-contains` + equality queries, so this never depends
-      // on a composite Firestore index existing. The direct-chat step and the
-      // group-chat step each have their own try/catch so one failing doesn't
-      // silently take out the other - any failure is surfaced to the org
-      // instead of only going to the console.
-      let chatWarnings: string[] = [];
       const targetApp = updatedApps.find(a => a.id === appId);
-
-      if (targetApp && orgProfile) {
-        if (status === "accepted") {
-          try {
-            const dmRef = doc(db, "chats", directChatId(orgProfile.uid, targetApp.studentId));
-            const dmSnap = await getDoc(dmRef);
-            if (!dmSnap.exists()) {
-              await setDoc(dmRef, {
-                type: "direct",
-                participants: [orgProfile.uid, targetApp.studentId],
-                updatedAt: serverTimestamp(),
-                lastMessage: "Chat created automatically upon acceptance.",
-                lastRead: {},
-              });
-            }
-          } catch (dmErr) {
-            console.error("Failed to provision direct chat:", dmErr);
-            chatWarnings.push("the direct message");
-          }
-
-          try {
-            const oppRef = await getDoc(doc(db, "opportunities", targetApp.opportunityId));
-            const oppData = oppRef.exists() ? oppRef.data() : null;
-
-            if (oppData && oppData.autoCreateGroupChat !== false) {
-              const gcRef = doc(db, "chats", groupChatId(targetApp.opportunityId));
-              const gcSnap = await getDoc(gcRef);
-              if (!gcSnap.exists()) {
-                await setDoc(gcRef, {
-                  type: "group",
-                  opportunityId: targetApp.opportunityId,
-                  opportunityTitle: targetApp.opportunityTitle || oppData.title || "Opportunity Group",
-                  participants: [orgProfile.uid, targetApp.studentId],
-                  updatedAt: serverTimestamp(),
-                  lastMessage: `Group chat created for ${targetApp.opportunityTitle || oppData.title}.`,
-                  lastRead: {},
-                });
-              } else {
-                const existingParticipants: string[] = gcSnap.data().participants || [];
-                if (!existingParticipants.includes(targetApp.studentId)) {
-                  await updateDoc(gcRef, {
-                    participants: [...existingParticipants, targetApp.studentId],
-                    updatedAt: serverTimestamp(),
-                    lastMessage: `${targetApp.studentName || "A student"} joined the group!`,
-                  });
-                }
-              }
-            }
-          } catch (groupErr) {
-            console.error("Failed to provision group chat:", groupErr);
-            chatWarnings.push("the group chat");
-          }
-        } else if (status === "rejected" || status === "terminated") {
-          // Remove them from the opportunity's group chat if they were in it.
-          // If they were never added (e.g. rejected before acceptance), this
-          // is a harmless no-op. Their direct message history is left intact.
-          try {
-            const gcRef = doc(db, "chats", groupChatId(targetApp.opportunityId));
-            const gcSnap = await getDoc(gcRef);
-            if (gcSnap.exists()) {
-              const existingParticipants: string[] = gcSnap.data().participants || [];
-              if (existingParticipants.includes(targetApp.studentId)) {
-                await updateDoc(gcRef, {
-                  participants: existingParticipants.filter((pid) => pid !== targetApp.studentId),
-                  updatedAt: serverTimestamp(),
-                  lastMessage: `${targetApp.studentName || "A student"} left the group.`,
-                });
-              }
-            }
-          } catch (removeErr) {
-            console.error("Failed to remove student from group chat:", removeErr);
-            chatWarnings.push("removing them from the group chat");
-          }
-        }
-      }
-
-      if (chatWarnings.length > 0) {
-        setSuccessMessage(
-          `Placement ${status === "terminated" ? "terminated" : status} successfully! (Note: ${chatWarnings.join(" and ")} could not be updated automatically - you may need to do this from Messages.)`
-        );
-      }
-
       // Await email dispatch directly
       const appsSnapshot = [...applicants];
       const targetIndex = appsSnapshot.findIndex(a => a.id === appId);
@@ -504,35 +452,56 @@ export default function OrgOpportunityApplicants() {
             Reviewing {applicants.length} volunteering applications
           </p>
         </div>
-        <div className="max-w-full overflow-x-auto scrollbar-none pb-1 shrink-0">
-          <div className="flex bg-slate-100 p-1 rounded-lg w-max">
-            {(["all", "pending", "accepted", "rejected", "terminated"] as const).map(
-              (tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setFilterTab(tab)}
-                  className={cn(
-                    "px-6 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all",
-                    filterTab === tab
-                      ? "bg-white text-blue-dark"
-                      : "text-ink-muted hover:text-ink",
-                  )}
-                >
-                  {tab}
-                </button>
-              ),
-            )}
+        <div className="flex flex-col gap-3 max-w-full shrink-0 items-end">
+          <div className="max-w-full overflow-x-auto scrollbar-none pb-1 shrink-0">
+            <div className="flex bg-slate-100 p-1 rounded-lg w-max">
+              {(["all", "pending", "reviewed", "accepted", "rejected", "terminated"] as const).map(
+                (tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setFilterTab(tab)}
+                    className={cn(
+                      "px-6 py-2 rounded-lg text-xs font-semibold tracking-wide transition-all",
+                      filterTab === tab
+                        ? "bg-white text-blue-dark"
+                        : "text-ink-muted hover:text-ink",
+                    )}
+                  >
+                    {tab}
+                  </button>
+                )
+              )}
+            </div>
           </div>
+          {applicants.some(a => a.status === 'pending' || a.status === 'reviewed') && (
+            <div className="flex justify-end">
+              <Button 
+                variant="outline" 
+                className="text-xs font-semibold text-red-600 border-red-200 hover:bg-red-50 h-8 px-4 rounded-lg"
+                onClick={handleBulkReject}
+                disabled={isBulkRejecting}
+              >
+                {isBulkRejecting ? "Rejecting..." : "Bulk Reject Remaining Pending"}
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
       <div className="space-y-6">
-        {applicants.filter((a) => filterTab === "all" || a.status === filterTab)
-          .length > 0 ? (
-          applicants
-            .filter((a) => filterTab === "all" || a.status === filterTab)
-            .map((app) => (
-              <Card
+          {applicants.filter((a) => filterTab === "all" || a.status === filterTab)
+            .length > 0 ? (
+            applicants
+              .filter((a) => filterTab === "all" || a.status === filterTab)
+              .sort((a, b) => {
+                const isBottomA = a.status === "rejected" || a.status === "terminated";
+                const isBottomB = b.status === "rejected" || b.status === "terminated";
+                if (isBottomA && !isBottomB) return 1;
+                if (!isBottomA && isBottomB) return -1;
+                return 0;
+              })
+              .map((app) => (
+                <Card
                 key={app.id}
                 className="overflow-hidden border-none shadow-slate-100 rounded-lg bg-white"
               >
@@ -614,7 +583,9 @@ export default function OrgOpportunityApplicants() {
                               ? "danger"
                               : app.status === "rejected"
                                 ? "danger"
-                                : "warning"
+                                : app.status === "reviewed"
+                                  ? "warning"
+                                  : "warning"
                         }
                         className="text-xs py-2 px-6 font-semibold tracking-wide rounded-lg border-none text-center block w-full"
                       >
@@ -662,18 +633,18 @@ export default function OrgOpportunityApplicants() {
                         </Button>
                       )}
 
-                      {(app.status === "pending" || app.status === "rejected") && (
+                      {(app.status === "pending" || app.status === "reviewed" || app.status === "rejected") && (
                         <Button
-                          variant={app.status === "pending" ? "default" : "ghost"}
+                          variant={(app.status === "pending" || app.status === "reviewed") ? "default" : "ghost"}
                           className={cn(
                             "w-full font-bold uppercase text-xs tracking-widest h-12 rounded-lg",
-                            app.status === "pending"
+                            (app.status === "pending" || app.status === "reviewed")
                               ? "bg-blue-dark hover:bg-[#153343] text-white shadow-blue-100"
                               : "text-ink-muted",
                           )}
                           onClick={() => openReview(app)}
                         >
-                          {app.status === "pending"
+                          {(app.status === "pending" || app.status === "reviewed")
                             ? "Review Application"
                             : "View Details"}
                         </Button>
@@ -724,6 +695,7 @@ export default function OrgOpportunityApplicants() {
         application={reviewApp}
         student={reviewStudent}
         onAccept={(id) => updateStatus(id, "accepted")}
+        onReview={(id) => updateStatus(id, "reviewed")}
         onReject={(app) => {
           setReviewApp(null);
           setRejectionModalApp(app);

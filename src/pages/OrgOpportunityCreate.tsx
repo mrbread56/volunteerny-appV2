@@ -380,7 +380,7 @@ export default function OrgOpportunityCreate() {
                   <Select label="Frequency" value={timeCommitment} onChange={(e) => setTimeCommitment(e.target.value)} options={COMMITMENTS} required />
                </div>
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Input label="Max Volunteers needed total" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
+                  <Input label="Number of Openings / Volunteers Needed" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
                   <Select label="Type of Schedule" value={scheduleType} onChange={(e) => setScheduleType(e.target.value as any)} options={SCHEDULE_TYPES} required />
                </div>
             </section>

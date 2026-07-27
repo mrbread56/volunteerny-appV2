@@ -233,61 +233,6 @@ export default function Home() {
           </Reveal>
         </div>
       </section>
-
-      {/* Divider */}
-      <div className="max-w-5xl mx-auto px-6"><div className="h-px bg-gray-100" /></div>
-
-      {/* ── FOR ORGANISATIONS ── */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#0F1E29] via-blue-dark to-[#153343]" />
-        <div className="absolute top-[-100px] right-[-100px] w-[400px] h-[400px] bg-amber/[0.08] rounded-full blur-[120px] pointer-events-none" />
-
-        <div className="max-w-6xl mx-auto px-6 py-28 lg:py-36 relative z-10">
-          <Reveal>
-            <div className="max-w-[560px]">
-              <p className="text-xs font-semibold tracking-[0.14em] uppercase text-white/30 mb-5">For organisations</p>
-              <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-white tracking-[-0.035em] leading-tight mb-7">
-                Empower your organisation<br />
-                with a modern{' '}
-                <span className="font-display italic text-amber">student pipeline</span>.
-              </h2>
-              <p className="text-white/50 text-[16px] leading-[1.7] mb-12 max-w-[460px]">
-                Connect directly with safe, motivated high school volunteers, event hosts, and educators.
-                Track check-ins, approve sessions, and share your mission, all in one place.
-              </p>
-              <Link to="/signup">
-                <button className="group bg-white text-blue-dark px-8 py-3.5 rounded-full text-[14px] font-medium hover:bg-white/90 transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
-                  Register Your Organisation <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
-              </Link>
-            </div>
-          </Reveal>
-        </div>
-      </section>
-
-      {/* ── FINAL CTA ── */}
-      <section className="py-28 lg:py-36 relative overflow-hidden">
-        <div className="max-w-6xl mx-auto px-6 relative z-10">
-          <Reveal>
-            <div className="max-w-[560px]">
-              <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight mb-6">
-                Ready to make a<br />
-                <span className="font-display italic text-blue-dark">difference</span>?
-              </h2>
-              <p className="text-[16px] text-ink-soft leading-[1.7] mb-12">
-                Join hundreds of students and dozens of organisations already using Volunteer North York. Create your free account in under two minutes.
-              </p>
-              <div className="flex flex-wrap items-center gap-4">
-                <Link to={user ? (userProfile?.role === 'student' ? '/student/dashboard' : '/org/dashboard') : '/signup'}>
-                  <button className="group bg-blue-dark text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_1px_3px_rgba(31,76,99,0.2),0_8px_24px_rgba(31,76,99,0.12)]">
-                    {user ? 'Go to Dashboard' : 'Create Free Account'} <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                  </button>
-                </Link>
-              </div>
-            </div>
-          </Reveal>
-        </div>
-      </section>
     </div>
   );
 }

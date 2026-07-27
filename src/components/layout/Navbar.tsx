@@ -69,9 +69,7 @@ export default function Navbar() {
                     <Link to="/student/dashboard?tab=leaderboard" className={navLink}>
                       <span className="flex items-center gap-1.5"><Trophy className="w-3.5 h-3.5" /> Leaderboard</span>
                     </Link>
-                    <Link to="/messages" className={navLink}>
-                      <span className="flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" /> Messages</span>
-                    </Link>
+
                     <Link to="/student/profile" className={navLink}>
                       <span className="flex items-center gap-1.5"><UserCircle className="w-3.5 h-3.5" /> Profile</span>
                     </Link>
@@ -90,9 +88,7 @@ export default function Navbar() {
                     <Link to="/org/opportunities/new" className={navLink}>
                       <span className="flex items-center gap-1.5"><PlusCircle className="w-3.5 h-3.5" /> Post</span>
                     </Link>
-                    <Link to="/messages" className={navLink}>
-                      <span className="flex items-center gap-1.5"><MessageCircle className="w-3.5 h-3.5" /> Messages</span>
-                    </Link>
+
                     <Link to="/org/profile" className={navLink}>
                       <span className="flex items-center gap-1.5"><UserCircle className="w-3.5 h-3.5" /> Profile</span>
                     </Link>
@@ -162,7 +158,7 @@ export default function Navbar() {
                 <>
                   <Link to="/student/opportunities" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Browse</Link>
                   <Link to="/student/dashboard?tab=leaderboard" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Leaderboard</Link>
-                  <Link to="/messages" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Messages</Link>
+
                   <Link to="/student/profile" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Profile</Link>
                   <Link to="/student/dashboard" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Dashboard</Link>
                 </>
@@ -173,7 +169,7 @@ export default function Navbar() {
               {userProfile?.role === 'organization' && (
                 <>
                   <Link to="/org/opportunities/new" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Post Opportunity</Link>
-                  <Link to="/messages" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Messages</Link>
+
                   <Link to="/org/profile" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Profile</Link>
                   <Link to="/org/dashboard" onClick={close} className="block py-2.5 text-sm font-medium text-ink-soft hover:text-ink">Dashboard</Link>
                 </>

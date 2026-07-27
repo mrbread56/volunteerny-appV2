@@ -15,6 +15,7 @@ interface ApplicationReviewDialogProps {
   student: StudentProfile | null;
   onAccept: (appId: string) => Promise<{ success: boolean; emailSent: boolean; receiptGenerated: boolean; error?: string }>;
   onReject: (app: Application) => void;
+  onReview?: (appId: string) => void;
 }
 
 export default function ApplicationReviewDialog({ 
@@ -23,7 +24,8 @@ export default function ApplicationReviewDialog({
   application, 
   student,
   onAccept,
-  onReject
+  onReject,
+  onReview
 }: ApplicationReviewDialogProps) {
   const [showResumeInline, setShowResumeInline] = useState(false);
 
@@ -493,15 +495,27 @@ export default function ApplicationReviewDialog({
               </CardContent>
             )}
 
-            {application.status === 'pending' && submittingState === 'idle' && (
+            {(application.status === 'pending' || application.status === 'reviewed') && submittingState === 'idle' && (
               <div className="p-8 border-t border-line-light bg-paper-2/50 flex flex-col sm:flex-row gap-4 shrink-0">
                 <Button 
                   variant="outline" 
                   className="flex-1 rounded-lg h-14 font-semibold uppercase text-xs tracking-widest text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300 transition-all"
                   onClick={() => onReject(application)}
                 >
-                  Reject Candidate
+                  Reject
                 </Button>
+                {application.status === 'pending' && onReview && (
+                  <Button 
+                    variant="outline"
+                    className="flex-1 rounded-lg h-14 font-semibold uppercase text-xs tracking-widest text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-300 transition-all"
+                    onClick={() => {
+                      onReview(application.id);
+                      onClose();
+                    }}
+                  >
+                    Mark Reviewed
+                  </Button>
+                )}
                 <Button 
                   className="flex-[1.5] bg-blue-dark hover:bg-[#0F1E29] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
                   onClick={handleAcceptClick}

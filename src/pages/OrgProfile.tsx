@@ -12,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/Card";
+import { Badge } from "../components/ui/Badge";
+import { sendGmailNotification } from "../lib/gmail";
 import { Building2, Info, Globe, ShieldCheck, Mail, Phone } from "lucide-react";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";
@@ -42,7 +44,7 @@ const ORGANIZATION_TYPES = [
 ];
 
 export default function OrgProfile() {
-  const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout } = useAuth();
+  const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout, accessToken, connectGmail, disconnectGmail } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -50,6 +52,71 @@ export default function OrgProfile() {
   const [showConfirmDelete, setShowConfirmDelete] = useState(false);
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [deleteError, setDeleteError] = useState("");
+
+  // Google Gmail Integration helper states & hooks
+  const [testEmailAddress, setTestEmailAddress] = useState("");
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testFeedback, setTestFeedback] = useState<string | null>(null);
+  const [isGmailStateEnabled, setIsGmailStateEnabled] = useState(
+    localStorage.getItem("gmail_connected_state") !== "false",
+  );
+
+  const handleToggleGmail = async () => {
+    setTestFeedback(null);
+    if (isGmailStateEnabled) {
+      disconnectGmail();
+      setIsGmailStateEnabled(false);
+      localStorage.setItem("gmail_connected_state", "false");
+      setTestFeedback("Gmail broadcasts disabled successfully.");
+    } else {
+      const token = await connectGmail();
+      if (token) {
+        setIsGmailStateEnabled(true);
+        localStorage.setItem("gmail_connected_state", "true");
+        setTestFeedback("Gmail alerts connected and active!");
+      } else {
+        setIsGmailStateEnabled(true);
+        localStorage.setItem("gmail_connected_state", "true");
+        setTestFeedback(
+          "Gmail alerts fallback activated in simulation sandbox mode.",
+        );
+      }
+    }
+  };
+
+  const handleSendTestEmail = async () => {
+    if (!testEmailAddress) {
+      setTestFeedback("Please type an email address first.");
+      return;
+    }
+
+    setIsSendingTest(true);
+    setTestFeedback(null);
+
+    if (!gmailAccessToken) {
+      setTestFeedback({ success: false, message: "Please save your Gmail Access Token first before testing." });
+      setIsSendingTest(false);
+      return;
+    }
+
+    const res = await sendGmailNotification(
+      gmailAccessToken,
+      testEmailAddress,
+      "Volunteer North York Email Integration Test! 🚀",
+      `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h2 style="color: #0f172a;">Integration Test Succeeded</h2>
+        <p style="color: #475569; line-height: 1.6;">This is a real transactional notification confirming that your Volunteer North York backend email delivery is fully active and functional!</p>
+      </div>`
+    );
+
+    setIsSendingTest(false);
+    if (res.success) {
+      setTestFeedback(`Test email sent successfully to ${testEmailAddress}!`);
+      setTestEmailAddress("");
+    } else {
+      setTestFeedback(`Test failed: ${res.error || "Please check your configuration"}`);
+    }
+  };
 
   const handleDeleteAccountInput = async () => {
     if (deleteConfirmEmail.toLowerCase() !== user?.email?.toLowerCase()) {
@@ -447,6 +514,104 @@ export default function OrgProfile() {
         </div>
 
         <div className="md:col-span-1 space-y-6">
+          {/* Google Gmail Integration Console */}
+          <Card className="rounded-lg border border-line bg-white p-6 md:p-8 space-y-5">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+              <div className="flex gap-4 items-start">
+                <span className="p-3 bg-red-50 rounded-lg text-red-600 block shrink-0">
+                  <Mail className="w-5 h-5" />
+                </span>
+                <div>
+                  <h3 className="font-semibold text-ink text-sm leading-tight flex items-center gap-2 flex-wrap">
+                    Gmail Integration
+                    {isGmailStateEnabled && (
+                      <Badge className="bg-amber/10 text-amber px-2 py-0.5 rounded-lg text-xs uppercase font-semibold border-none tracking-widest">
+                        Active
+                      </Badge>
+                    )}
+                  </h3>
+                  <p className="text-xs font-semibold text-ink-soft mt-1">
+                    Authorize Gmail to send real-time decision emails.
+                  </p>
+                </div>
+              </div>
+              <Button
+                type="button"
+                variant={isGmailStateEnabled ? "outline" : "default"}
+                onClick={handleToggleGmail}
+                className={cn(
+                  "h-10 px-4 rounded-lg font-semibold text-xs tracking-wide shrink-0 w-full md:w-auto",
+                  isGmailStateEnabled
+                    ? "border-line hover:bg-red-50 hover:text-red-600 hover:border-red-200"
+                    : "bg-red-600 hover:bg-red-700 text-white shadow-red-200",
+                )}
+              >
+                {isGmailStateEnabled ? "Disconnect" : "Enable"}
+              </Button>
+            </div>
+
+            {isGmailStateEnabled && (
+              <div className="mt-4 pt-4 border-t border-line/80 space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
+                  <div className="flex items-center gap-2 text-ink-soft font-bold">
+                    <span
+                      className={cn(
+                        "w-2.5 h-2.5 rounded-lg inline-block",
+                        accessToken || isDemoMode ? "bg-amber animate-pulse" : "bg-orange-400 animate-pulse"
+                      )}
+                    />
+                    Session Status:{" "}
+                    <span
+                      className={cn(
+                        "font-semibold tracking-wide text-xs",
+                        accessToken || isDemoMode ? "text-amber" : "text-amber"
+                      )}
+                    >
+                      {accessToken || isDemoMode ? "Fully Authorized" : "Expired (Requires Re-Auth)"}
+                    </span>
+                  </div>
+                  {!(accessToken || isDemoMode) && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={handleToggleGmail}
+                      className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg px-3 py-1.5 h-auto uppercase tracking-wider"
+                    >
+                      Refresh Auth Connection
+                    </Button>
+                  )}
+                </div>
+
+                <div className="bg-paper-2 p-4 rounded-lg border border-line flex flex-col items-stretch gap-3">
+                  <p className="text-xs font-semibold text-ink-soft tracking-wide">
+                    Verify connection with a test email
+                  </p>
+                  <input
+                    type="email"
+                    placeholder="Type your email"
+                    value={testEmailAddress}
+                    onChange={(e) => setTestEmailAddress(e.target.value)}
+                    className="w-full text-sm font-medium border border-line bg-white rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 transition-colors"
+                  />
+                  <Button
+                    type="button"
+                    onClick={handleSendTestEmail}
+                    disabled={isSendingTest}
+                    className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest"
+                  >
+                    {isSendingTest ? "Sending Test..." : "Send Test Mail"}
+                  </Button>
+                </div>
+
+                {testFeedback && (
+                  <p className="text-xs font-bold text-ink-soft italic bg-paper-3/50 px-4 py-3 rounded-lg border border-dotted border-line">
+                    {testFeedback}
+                  </p>
+                )}
+              </div>
+            )}
+          </Card>
+
           {/* Account Security Card */}
           <Card className="rounded-lg border border-blue-dark/10 bg-white p-6 md:p-8 space-y-5">
             <div>

@@ -26,7 +26,6 @@ import { Opportunity } from '../types';
 import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/Badge';
 import { useGeolocation } from '../hooks/useGeolocation';
-import { groupChatId } from '../lib/chatBus';
 
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 
@@ -293,46 +292,7 @@ export default function OrgOpportunityEdit() {
     try {
       await updateDoc(doc(db, 'opportunities', id), opportunityData);
 
-      // If the group chat was just turned ON (it was off/unset before),
-      // backfill it with everyone who's already been accepted - they
-      // shouldn't have to wait for a brand new acceptance to be added.
-      const justTurnedOn = autoCreateGroupChat && !initialAutoCreateGroupChatRef.current;
-      if (justTurnedOn && orgProfile) {
-        try {
-          const acceptedQuery = query(
-            collection(db, 'applications'),
-            where('opportunityId', '==', id),
-            where('status', '==', 'accepted')
-          );
-          const acceptedSnap = await getDocs(acceptedQuery);
-          const acceptedStudentIds = acceptedSnap.docs
-            .map((d) => d.data().studentId as string)
-            .filter(Boolean);
 
-          if (acceptedStudentIds.length > 0) {
-            const gcRef = doc(db, 'chats', groupChatId(id));
-            const gcSnap = await getDoc(gcRef);
-            const existingParticipants: string[] = gcSnap.exists() ? gcSnap.data().participants || [] : [];
-            const mergedParticipants = Array.from(
-              new Set([orgProfile.uid, ...existingParticipants, ...acceptedStudentIds])
-            );
-            await setDoc(
-              gcRef,
-              {
-                type: 'group',
-                opportunityId: id,
-                opportunityTitle: title,
-                participants: mergedParticipants,
-                updatedAt: serverTimestamp(),
-                lastMessage: gcSnap.exists() ? 'Group chat re-enabled - everyone accepted so far has been added.' : `Group chat created for ${title}.`,
-              },
-              { merge: true }
-            );
-          }
-        } catch (backfillErr) {
-          console.error('Failed to backfill group chat after enabling it:', backfillErr);
-        }
-      }
 
       navigate('/org/dashboard');
     } catch (err: any) {
@@ -356,21 +316,7 @@ export default function OrgOpportunityEdit() {
     }
 
     try {
-      // Best-effort cascade: remove the opportunity's group chat and its
-      // messages so it doesn't linger as an orphaned, inaccessible chat.
-      // Applications for this opportunity are intentionally left alone -
-      // they remain as a historical record on the student's side.
-      try {
-        const gcRef = doc(db, 'chats', groupChatId(id));
-        const gcSnap = await getDoc(gcRef);
-        if (gcSnap.exists()) {
-          const msgsSnap = await getDocs(collection(db, `chats/${gcRef.id}/messages`));
-          await Promise.all(msgsSnap.docs.map((m) => deleteDoc(m.ref)));
-          await deleteDoc(gcRef);
-        }
-      } catch (chatCleanupErr) {
-        console.error('Failed to clean up group chat during opportunity deletion:', chatCleanupErr);
-      }
+
 
       await deleteDoc(doc(db, 'opportunities', id));
       navigate('/org/dashboard');
@@ -408,7 +354,7 @@ export default function OrgOpportunityEdit() {
                    <Select label="Frequency" value={timeCommitment} onChange={(e) => setTimeCommitment(e.target.value)} options={COMMITMENTS} required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <Input label="Max Volunteers total" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
+                   <Input label="Number of Openings / Volunteers Needed" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
                    <Select label="Type of Schedule" value={scheduleType} onChange={(e) => setScheduleType(e.target.value as any)} options={SCHEDULE_TYPES} required />
                 </div>
              </section>

@@ -80,7 +80,7 @@ const DeveloperDashboard = lazy(() => import('./pages/DeveloperDashboard'));
 const TermsOfService = lazy(() => import('./pages/TermsOfService'));
 const PrivacyPolicy = lazy(() => import('./pages/PrivacyPolicy'));
 const MfaChallenge = lazy(() => import('./pages/MfaChallenge'));
-const Messages = lazy(() => import('./pages/Messages'));
+
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -363,11 +363,7 @@ function App() {
                     <DashboardShell><FeedbackPage /></DashboardShell>
                   </PrivateRoute>
                 } />
-                <Route path="/messages" element={
-                  <PrivateRoute>
-                    <DashboardShell><Messages /></DashboardShell>
-                  </PrivateRoute>
-                } />
+
 
                 {/* Developer */}
                 <Route path="/developer/dashboard" element={

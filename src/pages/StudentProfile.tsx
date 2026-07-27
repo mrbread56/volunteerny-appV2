@@ -135,9 +135,6 @@ export default function StudentProfile() {
   };
 
   // Profile Fields
-  const [fullName, setFullName] = useState(studentProfile?.fullName || "");
-  const [selectedSchool, setSelectedSchool] = useState("");
-  const [otherSchool, setOtherSchool] = useState("");
   const [school, setSchool] = useState(studentProfile?.school || "");
   const [grade, setGrade] = useState(studentProfile?.grade || "");
   const [neighborhood, setNeighborhood] = useState(
@@ -161,8 +158,6 @@ export default function StudentProfile() {
   );
   const [trackerEnabled, setTrackerEnabled] = useState(true);
   const [trackerAnonymous, setTrackerAnonymous] = useState(false);
-  const [contactEmail, setContactEmail] = useState(studentProfile?.contactEmail || user?.email || "");
-  const [phone, setPhone] = useState(studentProfile?.phone || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -179,16 +174,6 @@ export default function StudentProfile() {
       setPassportUrl(decompressFile(studentProfile.passportUrl || ""));
       setTrackerEnabled(studentProfile.trackerEnabled ?? true);
       setTrackerAnonymous(studentProfile.trackerAnonymous ?? false);
-      setContactEmail(studentProfile.contactEmail || user?.email || "");
-      setPhone(studentProfile.phone || "");
-
-      if (TORONTO_SCHOOLS.includes(studentProfile.school)) {
-        setSelectedSchool(studentProfile.school);
-        setOtherSchool("");
-      } else if (studentProfile.school) {
-        setSelectedSchool("Other");
-        setOtherSchool(studentProfile.school);
-      }
     }
   }, [studentProfile]);
 
@@ -217,12 +202,8 @@ export default function StudentProfile() {
     }
 
     // 2. School validation
-    if (!selectedSchool) {
+    if (!school) {
       newErrors.school = "Please select an academic institution.";
-    } else if (selectedSchool === "Other" && (!otherSchool || !otherSchool.trim())) {
-      newErrors.school = "Please enter your custom school name.";
-    } else if (selectedSchool === "Other" && otherSchool.trim().length < 3) {
-      newErrors.school = "Custom school name must be at least 3 characters long.";
     }
 
     // 3. Grade validation
@@ -235,23 +216,7 @@ export default function StudentProfile() {
       newErrors.neighborhood = "Please select your neighborhood.";
     }
 
-    // 5. Contact Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!contactEmail || !contactEmail.trim()) {
-      newErrors.contactEmail = "Contact email is required.";
-    } else if (!emailRegex.test(contactEmail.trim())) {
-      newErrors.contactEmail = "Please enter a valid email address.";
-    }
-
-    // 6. Phone validation
-    if (phone && phone.trim()) {
-      const cleanPhone = phone.replace(/\D/g, "");
-      if (cleanPhone.length < 10) {
-        newErrors.phone = "Phone number must contain at least 10 digits.";
-      }
-    }
-
-    // 7. Interests validation
+    // 5. Interests validation
     if (!interests || interests.length === 0) {
       newErrors.interests = "Please select at least one cause category that inspires you.";
     }
@@ -299,8 +264,6 @@ export default function StudentProfile() {
           passportUrl: compressFile(passportUrl),
           trackerEnabled,
           trackerAnonymous,
-          contactEmail,
-          phone,
         };
         localStorage.setItem(
           "demo_student_profile",
@@ -328,8 +291,6 @@ export default function StudentProfile() {
         passportUrl: compressFile(passportUrl),
         trackerEnabled,
         trackerAnonymous,
-        contactEmail,
-        phone,
       });
       await refreshProfile();
       setSuccess(true);
@@ -520,20 +481,13 @@ export default function StudentProfile() {
                     Academic Institution
                   </label>
                   <Select
-                    value={selectedSchool}
+                    value={school}
                     onChange={(e) => {
-                      const val = e.target.value;
-                      setSelectedSchool(val);
-                      if (val !== "Other") {
-                        setSchool(val);
-                      } else {
-                        setSchool(otherSchool);
-                      }
+                      setSchool(e.target.value);
                       if (errors.school) setErrors(prev => ({ ...prev, school: "" }));
                     }}
                     options={[
                       ...TORONTO_SCHOOLS.map((s) => ({ value: s, label: s })),
-                      { value: "Other", label: "Other school not listed" },
                     ]}
                     required
                     className={cn(
@@ -541,26 +495,6 @@ export default function StudentProfile() {
                       errors.school && "border-red-500 focus:border-red-500"
                     )}
                   />
-                  {selectedSchool === "Other" && (
-                    <div className="mt-4 animate-in slide-in- duration-300">
-                      <label className="text-xs font-semibold text-ink-soft ml-2">
-                        Custom School Name
-                      </label>
-                      <Input
-                        value={otherSchool}
-                        onChange={(e) => {
-                          setOtherSchool(e.target.value);
-                          setSchool(e.target.value);
-                          if (errors.school) setErrors(prev => ({ ...prev, school: "" }));
-                        }}
-                        required
-                        className={cn(
-                          "h-11 rounded-lg bg-paper-2 border-line font-semibold ",
-                          errors.school && "border-red-500 focus:border-red-500"
-                        )}
-                      />
-                    </div>
-                  )}
                   {errors.school && (
                     <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
                       ⚠️ {errors.school}
@@ -613,54 +547,20 @@ export default function StudentProfile() {
                 )}
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-8 pt-6 border-t border-line">
-                <div className="space-y-3">
-                  <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
-                    <Mail className="w-3.5 h-3.5 text-blue-dark" /> Contact Email (visible to organizations)
-                  </label>
-                  <Input
-                    type="email"
-                    value={contactEmail}
-                    onChange={(e) => {
-                      setContactEmail(e.target.value);
-                      if (errors.contactEmail) setErrors(prev => ({ ...prev, contactEmail: "" }));
-                    }}
-                    required
-                    placeholder="student@example.com"
-                    className={cn(
-                      "h-11 rounded-lg bg-paper-2 border-line font-semibold ",
-                      errors.contactEmail && "border-red-500 focus:border-red-500"
-                    )}
-                  />
-                  {errors.contactEmail && (
-                    <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
-                      ⚠️ {errors.contactEmail}
-                    </p>
-                  )}
-                </div>
-                <div className="space-y-3">
-                  <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
-                    <Phone className="w-3.5 h-3.5 text-blue-dark" /> Phone Number (visible to organizations)
-                  </label>
-                  <Input
-                    type="tel"
-                    value={phone}
-                    onChange={(e) => {
-                      setPhone(e.target.value);
-                      if (errors.phone) setErrors(prev => ({ ...prev, phone: "" }));
-                    }}
-                    placeholder="e.g. (416) 555-0199"
-                    className={cn(
-                      "h-11 rounded-lg bg-paper-2 border-line font-semibold ",
-                      errors.phone && "border-red-500 focus:border-red-500"
-                    )}
-                  />
-                  {errors.phone && (
-                    <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
-                      ⚠️ {errors.phone}
-                    </p>
-                  )}
-                </div>
+              <div className="pt-6 border-t border-line">
+                  <div className="space-y-3">
+                    <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-blue-dark" /> Verified School Email (read-only)
+                    </label>
+                    <Input
+                      type="email"
+                      value={user?.email || ""}
+                      readOnly
+                      disabled
+                      className="h-11 rounded-lg bg-paper border-line font-semibold opacity-75"
+                    />
+                    <p className="text-xs text-ink-muted ml-2 mt-1 italic">Organizations will use this email to contact you regarding your applications.</p>
+                  </div>
               </div>
             </CardContent>
           </Card>
