@@ -416,11 +416,11 @@ export default function OrgProfile() {
                   onChange={(e) => setCraNumber(e.target.value)}
                   placeholder="e.g. 123456789RR0001"
                 />
-                <div className="p-3 bg-blue-dark/5 border border-blue-dark/20 rounded-lg space-y-1">
-                  <p className="text-xs font-semibold uppercase text-blue-900 tracking-wider flex items-center gap-1">
+                <div className="p-4 bg-paper-2 border border-line rounded-lg space-y-1">
+                  <p className="text-xs font-semibold uppercase text-ink-soft tracking-wider flex items-center gap-1">
                     🇨🇦 Canada Revenue Agency Validation (Optional)
                   </p>
-                  <p className="text-xs text-blue-800 leading-relaxed font-semibold">
+                  <p className="text-xs text-ink-soft leading-relaxed font-medium">
                     Providing your 15-character CRA Registration Number consists of 9 digits, 2 letters, and 4 digits (e.g. 123456789RR0001) is optional, but verifies non-profit or charitable status with a badge.
                   </p>
                 </div>
@@ -517,20 +517,20 @@ export default function OrgProfile() {
           {/* Google Gmail Integration Console */}
           <Card className="rounded-lg border border-line bg-white p-6 md:p-8 space-y-5">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-              <div className="flex gap-4 items-start">
+              <div className="flex gap-4 items-start min-w-0 flex-1">
                 <span className="p-3 bg-red-50 rounded-lg text-red-600 block shrink-0">
                   <Mail className="w-5 h-5" />
                 </span>
-                <div>
+                <div className="min-w-0 flex-1">
                   <h3 className="font-semibold text-ink text-sm leading-tight flex items-center gap-2 flex-wrap">
                     Gmail Integration
                     {isGmailStateEnabled && (
-                      <Badge className="bg-amber/10 text-amber px-2 py-0.5 rounded-lg text-xs uppercase font-semibold border-none tracking-widest">
+                      <Badge className="bg-amber/10 text-amber px-2 py-0.5 rounded-lg text-xs uppercase font-semibold border-none tracking-widest shrink-0">
                         Active
                       </Badge>
                     )}
                   </h3>
-                  <p className="text-xs font-semibold text-ink-soft mt-1">
+                  <p className="text-xs font-semibold text-ink-soft mt-1 break-words">
                     Authorize Gmail to send real-time decision emails.
                   </p>
                 </div>
@@ -552,18 +552,18 @@ export default function OrgProfile() {
 
             {isGmailStateEnabled && (
               <div className="mt-4 pt-4 border-t border-line/80 space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-4 text-xs">
-                  <div className="flex items-center gap-2 text-ink-soft font-bold">
+                <div className="flex flex-col 2xl:flex-row items-start 2xl:items-center justify-between gap-4 text-xs overflow-hidden w-full">
+                  <div className="flex items-center gap-2 text-ink-soft font-bold min-w-0 flex-1 shrink-0">
                     <span
                       className={cn(
-                        "w-2.5 h-2.5 rounded-lg inline-block",
+                        "w-2.5 h-2.5 rounded-lg inline-block shrink-0",
                         accessToken || isDemoMode ? "bg-amber animate-pulse" : "bg-orange-400 animate-pulse"
                       )}
                     />
-                    Session Status:{" "}
+                    <span className="shrink-0">Session Status:</span>{" "}
                     <span
                       className={cn(
-                        "font-semibold tracking-wide text-xs",
+                        "font-semibold tracking-wide text-xs truncate",
                         accessToken || isDemoMode ? "text-amber" : "text-amber"
                       )}
                     >
@@ -575,15 +575,15 @@ export default function OrgProfile() {
                       type="button"
                       variant="ghost"
                       onClick={handleToggleGmail}
-                      className="text-xs font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg px-3 py-1.5 h-auto uppercase tracking-wider"
+                      className="text-[10px] font-semibold text-red-600 bg-red-50 hover:bg-red-100 rounded-lg px-2 py-1.5 h-auto uppercase tracking-wider shrink-0"
                     >
                       Refresh Auth Connection
                     </Button>
                   )}
                 </div>
 
-                <div className="bg-paper-2 p-4 rounded-lg border border-line flex flex-col items-stretch gap-3">
-                  <p className="text-xs font-semibold text-ink-soft tracking-wide">
+                <div className="bg-paper-2 p-4 rounded-lg border border-line flex flex-col items-stretch gap-3 w-full overflow-hidden">
+                  <p className="text-xs font-semibold text-ink-soft tracking-wide break-words">
                     Verify connection with a test email
                   </p>
                   <input
@@ -591,13 +591,13 @@ export default function OrgProfile() {
                     placeholder="Type your email"
                     value={testEmailAddress}
                     onChange={(e) => setTestEmailAddress(e.target.value)}
-                    className="w-full text-sm font-medium border border-line bg-white rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 transition-colors"
+                    className="w-full min-w-0 text-sm font-medium border border-line bg-white rounded-lg px-3 py-2 focus:outline-none focus:border-red-500 transition-colors"
                   />
                   <Button
                     type="button"
                     onClick={handleSendTestEmail}
                     disabled={isSendingTest}
-                    className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest"
+                    className="w-full h-10 rounded-lg bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest shrink-0"
                   >
                     {isSendingTest ? "Sending Test..." : "Send Test Mail"}
                   </Button>

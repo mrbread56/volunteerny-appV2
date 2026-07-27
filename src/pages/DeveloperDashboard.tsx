@@ -647,7 +647,7 @@ export default function DeveloperDashboard() {
           <div>
             <Button 
               onClick={() => setIsDashboardActive(true)}
-              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-slate-900 text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-blue-dark text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
             >
               <Plus className="w-4 h-4" /> Create Control Room Dashboard
             </Button>
@@ -661,7 +661,7 @@ export default function DeveloperDashboard() {
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 space-y-8 animate-fadeIn">
       {/* Header info bar */}
-      <div className="bg-slate-900 text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+      <div className="bg-blue-dark text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="space-y-3 relative z-10">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-dark/20 text-blue-400 border border-blue-dark/30 text-xs font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4" /> Administrator Verified
@@ -960,7 +960,7 @@ export default function DeveloperDashboard() {
                                 <a aria-label="Download attachment" 
                                   href={decompressFile(fb.attachmentData)} 
                                   download={fb.attachmentName}
-                                  className="px-3.5 py-2 bg-slate-100 hover:bg-slate-200 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
+                                  className="px-3.5 py-2 bg-paper-3 hover:bg-slate-200 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
                                 >
                                   Download File ({fb.attachmentName})
                                 </a>
@@ -1180,7 +1180,7 @@ export default function DeveloperDashboard() {
                                   <a aria-label="Download attachment" 
                                     href={decompressFile(report.attachmentData)} 
                                     download={report.attachmentName}
-                                    className="px-3.5 py-2 bg-slate-100 hover:bg-slate-300 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
+                                    className="px-3.5 py-2 bg-paper-3 hover:bg-slate-300 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
                                   >
                                     Download File ({report.attachmentName})
                                   </a>
@@ -1443,7 +1443,7 @@ export default function DeveloperDashboard() {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="bg-white border-line hover:bg-slate-100 text-xs font-semibold uppercase"
+                              className="bg-white border-line hover:bg-paper-3 text-xs font-semibold uppercase"
                               onClick={() => handleToggleBan(st.uid, true)}
                             >
                               Restore
@@ -1553,7 +1553,7 @@ export default function DeveloperDashboard() {
                             <Button 
                               size="sm" 
                               variant="outline" 
-                              className="bg-white border-line hover:bg-slate-100 text-xs font-semibold uppercase"
+                              className="bg-white border-line hover:bg-paper-3 text-xs font-semibold uppercase"
                               onClick={() => handleToggleBan(org.uid, true)}
                             >
                               Restore
@@ -1788,4 +1788,7 @@ export default function DeveloperDashboard() {
   </div>
   );
 }
+
+
+
 
