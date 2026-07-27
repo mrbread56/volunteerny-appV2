@@ -66,40 +66,79 @@ function getFirebaseAdmin(): typeof admin | null {
         console.log('[Firebase Admin] Could not read firebase-applet-config.json, using projectId:', projectId);
       }
 
-      // Try to use a service account key file if provided, otherwise fall
-      // back to Application Default Credentials (works on Cloud Run, GCE,
-      // and locally if GOOGLE_APPLICATION_CREDENTIALS is set).
+      // `import * as admin from 'firebase-admin'` yields an ESM namespace whose
+      // members live under `.default` once esbuild/tsx transpiles the CJS
+      // package. Unwrap ONCE, here, and use `adminObj` for everything below.
+      //
+      // This is the bug that broke two-factor sign-in: the code below used to
+      // call `admin.credential.cert(...)` on the raw namespace, where
+      // `credential` is undefined. The resulting TypeError was caught by a
+      // handler that reported "Could not parse FIREBASE_SERVICE_ACCOUNT_KEY" —
+      // blaming the JSON, which had in fact parsed fine — and execution
+      // continued with `initConfig.credential` never assigned. Firebase Admin
+      // then booted with nothing but a projectId:
+      //
+      //   * verifyIdToken() kept working, because it validates against Google's
+      //     public certificates and needs no credentials. Users passed auth, so
+      //     nothing looked wrong until the very last step.
+      //   * setCustomUserClaims() and all Firestore admin access DO need
+      //     credentials, so they threw — surfacing as "Your code was correct,
+      //     but we could not complete verification on the server", and as the
+      //     OTP store silently falling back to per-process memory.
+      const adminObj = (admin as any).default || admin;
+
       const initConfig: admin.AppOptions = { projectId };
+      let credentialSource = 'none';
+
       if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
         console.log('[Firebase Admin] Using GOOGLE_APPLICATION_CREDENTIALS for auth.');
-        // ADC will pick this up automatically
+        credentialSource = 'GOOGLE_APPLICATION_CREDENTIALS';
+        // ADC picks this up automatically.
       } else if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
         console.log('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY found, attempting to parse...');
+
+        // Parsing and credential construction are separated so their failures
+        // can no longer be reported as each other.
+        let serviceAccount: any = null;
         try {
-          const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
-          // Vercel (and some other env-var UIs) mangle the private_key's real
-          // newlines into literal backslash-n sequences when the value is
-          // saved/round-tripped. After JSON.parse, a correctly-escaped key
-          // already has real newlines here; a mangled one still has the two
-          // literal characters "\" + "n", which breaks PEM parsing in
-          // admin.credential.cert and makes Firebase Admin fail to boot
-          // silently. Normalize just this field post-parse so the common
-          // case (already-correct newlines) is left untouched.
-          if (typeof serviceAccount.private_key === 'string') {
-            serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+          serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        } catch (parseErr: any) {
+          console.error('[Firebase Admin] FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON:', parseErr.message);
+        }
+
+        if (serviceAccount) {
+          try {
+            // Some env-var UIs (Vercel among them) turn the private key's real
+            // newlines into literal backslash-n. A correctly-escaped key already
+            // has real newlines after JSON.parse, so this only repairs the
+            // mangled case and leaves a good key untouched.
+            if (typeof serviceAccount.private_key === 'string') {
+              serviceAccount.private_key = serviceAccount.private_key.replace(/\\n/g, '\n');
+            }
+            initConfig.credential = adminObj.credential.cert(serviceAccount);
+            credentialSource = `service account (${serviceAccount.client_email})`;
+            console.log('[Firebase Admin] Loaded service account credential for:', serviceAccount.client_email);
+          } catch (certErr: any) {
+            console.error('[Firebase Admin] Could not build a credential from the service account:', certErr.message);
           }
-          initConfig.credential = admin.credential.cert(serviceAccount);
-          console.log('[Firebase Admin] Successfully parsed service account key for:', serviceAccount.client_email);
-        } catch (parseErr) {
-          console.warn('[Firebase Admin] Could not parse FIREBASE_SERVICE_ACCOUNT_KEY:', parseErr);
         }
       } else {
         console.warn('[Firebase Admin] No service account key found. Will try Application Default Credentials.');
       }
 
-      const adminObj = (admin as any).default || admin;
+      // Booting without a credential is not a degraded mode — it is a broken
+      // one that fails only at the last step of sign-in. Say so loudly.
+      if (!initConfig.credential && !process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+        console.error(
+          '[Firebase Admin] NO CREDENTIAL ATTACHED. Token verification will still ' +
+            'appear to work, but setting the mfaVerified claim and all Firestore admin ' +
+            'access will fail — two-factor sign-in cannot complete. Check ' +
+            'FIREBASE_SERVICE_ACCOUNT_KEY or GOOGLE_APPLICATION_CREDENTIALS.'
+        );
+      }
+
       adminApp = adminObj.initializeApp(initConfig);
-      console.log('[Firebase Admin] Successfully initialized with project:', projectId);
+      console.log(`[Firebase Admin] Initialized project "${projectId}" with credential: ${credentialSource}`);
     } catch (err: any) {
       if (!err.message.includes('already exists')) {
         console.warn('[Firebase Admin Initialization Failed]:', err.message || err);
