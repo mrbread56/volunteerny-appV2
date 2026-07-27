@@ -39,7 +39,6 @@ import { motion, AnimatePresence } from "motion/react";
 import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
 import { serverTimestamp } from "firebase/firestore";
-import { requestOpenDirectChat } from "../lib/chatBus";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 

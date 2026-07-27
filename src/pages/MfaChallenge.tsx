@@ -90,11 +90,18 @@ export default function MfaChallenge() {
       });
       
       const data = await response.json();
-      if (data.success) {
-        // Unconditionally set a local session bypass to handle Firebase token propagation latency
-        sessionStorage.setItem('mfaFallbackClaim', 'true');
-        await user!.getIdToken(true);
-        window.location.href = "/";
+      if (response.ok && data.success) {
+        // Force a token refresh and confirm the server actually recorded the
+        // mfaVerified claim before letting the session through. This used to
+        // write sessionStorage('mfaFallbackClaim') and redirect unconditionally,
+        // which meant the client decided its own MFA status — and anyone could
+        // set that key by hand. Trust the refreshed claim or nothing.
+        const refreshed = await user!.getIdTokenResult(true);
+        if (refreshed.claims.mfaVerified === true) {
+          window.location.href = "/";
+        } else {
+          setError("Verification could not be completed. Please request a new code and try again.");
+        }
       } else {
         setError(data.error || "Invalid verification code.");
       }

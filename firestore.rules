@@ -208,12 +208,23 @@ service cloud.firestore {
     match /users/{uid} {
       allow read: if isSignedIn() && (request.auth.uid == uid || isDeveloper()) && isValidId(uid);
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidUser(incoming());
-      allow update: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && 
+      // twoFactorEnabled is read by the client MFA gate: when it is false the
+      // gate is skipped entirely. This rule previously accepted any bool from
+      // the account owner, so an organization or developer could PATCH their
+      // own user doc to { twoFactorEnabled: false } and permanently opt out of
+      // 2FA. Students may still toggle it (it is optional for them); everyone
+      // else may only leave it alone or turn it on.
+      allow update: if isSignedIn() && request.auth.uid == uid && isValidId(uid) &&
                       incoming().role == existing().role &&
                       incoming().uid == existing().uid &&
                       incoming().createdAt == existing().createdAt &&
                       incoming().email == existing().email &&
-                      (incoming().twoFactorEnabled == null || incoming().twoFactorEnabled is bool);
+                      (incoming().twoFactorEnabled == null || incoming().twoFactorEnabled is bool) &&
+                      (
+                        incoming().twoFactorEnabled == existing().twoFactorEnabled ||
+                        incoming().twoFactorEnabled == true ||
+                        existing().role == 'student'
+                      );
       allow delete: if false;
       allow read, write: if isDeveloper();
     }

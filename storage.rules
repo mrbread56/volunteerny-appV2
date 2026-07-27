@@ -24,11 +24,25 @@ service firebase.storage {
       allow read, write: if false;
     }
     
-    // Students can upload resumes and profile pictures (max 5MB)
+    function callerRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isOrgOrDeveloper() {
+      return isSignedIn() && (callerRole() == 'organization' || callerRole() == 'developer');
+    }
+
+    // Students can upload resumes and profile pictures (max 5MB).
+    //
+    // Read was `isSignedIn()`, i.e. ANY authenticated account could fetch ANY
+    // student's resume — and these are high-school students, so those files
+    // carry minors' names, addresses and phone numbers. Every other student on
+    // the platform had access. Restricted to the owner plus the organizations
+    // that actually review applications.
     match /students/{userId}/{fileName} {
-      allow read: if isSignedIn();
-      allow write: if isSignedIn() && request.auth.uid == userId 
-                   && (isValidImage() || isValidPdf()) 
+      allow read: if isSignedIn() && (request.auth.uid == userId || isOrgOrDeveloper());
+      allow write: if isSignedIn() && request.auth.uid == userId
+                   && (isValidImage() || isValidPdf())
                    && isSafeSize(5);
     }
     
@@ -54,9 +68,11 @@ service firebase.storage {
                    && isSafeSize(10);
     }
     
-    // Feedback attachments (max 5MB, images/PDFs)
+    // Feedback attachments (max 5MB, images/PDFs). Feedback often contains
+    // screenshots of the reporter's own account, so it is owner + staff only —
+    // this was also readable by every signed-in user.
     match /feedbacks/{userId}/{fileName} {
-      allow read: if isSignedIn();
+      allow read: if isSignedIn() && (request.auth.uid == userId || callerRole() == 'developer');
       allow write: if isSignedIn() && request.auth.uid == userId
                    && (isValidImage() || isValidPdf())
                    && isSafeSize(5);

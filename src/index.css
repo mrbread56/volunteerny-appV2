@@ -83,11 +83,18 @@
   --animate-fadeIn: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   --animate-cloud: cloud 45s linear infinite;
   --animate-cloud-slow: cloud 65s linear infinite;
+  --animate-shimmer: shimmer 1.4s ease-in-out infinite;
 }
 
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+/* Skeleton breathing for placeholders that stand in for not-yet-loaded UI. */
+@keyframes shimmer {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.8; }
 }
 
 @keyframes cloud {
@@ -156,6 +163,19 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
 
   button:active:not(:disabled), [role="button"]:active:not(:disabled) {
     transform: none;
+  }
+
+  /*
+   * Progress indicators are feedback, not decoration. The blanket rule above
+   * pinned every animation to 0.01ms / 1 iteration, which froze spinners on a
+   * single frame — so a signed-in user waiting on Firebase saw a motionless
+   * arc and assumed the app had hung. Anything marked essential keeps
+   * animating; a small, slow rotation carries no vestibular risk.
+   */
+  .animate-spin,
+  [data-motion="essential"] {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
   }
 }
 

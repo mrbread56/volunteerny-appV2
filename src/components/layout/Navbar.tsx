@@ -2,8 +2,36 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { verifyMfaClaim } from '../../lib/mfa';
-import { isDeveloperEmail } from '../../lib/devAccess';
+import { Spinner } from '../ui/Spinner';
 import { LogOut, LayoutDashboard, Search, UserCircle, PlusCircle, Trophy, Menu, X, MessageCircle } from 'lucide-react';
+
+/**
+ * Placeholder for the nav links while the session is still settling.
+ *
+ * This slot used to read "Security Verification". That wording is accurate
+ * only for the small set of users who still owe an OTP — everyone who had just
+ * *finished* the OTP step also landed here for the second or two it takes the
+ * refreshed ID token and the Firestore profile to arrive, and being told they
+ * need security verification right after passing it reads as a failure. Show
+ * the shape of the nav that is about to appear instead.
+ */
+function NavLoading() {
+  return (
+    <div className="flex items-center gap-3" role="status" aria-label="Loading your account">
+      <div className="flex items-center gap-2" aria-hidden="true">
+        {['w-16', 'w-20', 'w-14'].map((w, i) => (
+          <div
+            key={w}
+            data-motion="essential"
+            style={{ animationDelay: `${i * 160}ms` }}
+            className={`h-2.5 ${w} rounded-full bg-line animate-shimmer`}
+          />
+        ))}
+      </div>
+      <Spinner size="sm" className="text-ink-soft" label={null} />
+    </div>
+  );
+}
 
 export default function Navbar() {
   const { user, userProfile, loading, isDemoMode, logout, mfaVerified, profileMissing } = useAuth();
@@ -11,8 +39,9 @@ export default function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  const isDev = isDeveloperEmail(user?.email);
-  const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
+  // No developer short-circuit: the nav must not offer authenticated links to a
+  // session that has not cleared MFA (see MfaClaimMiddleware in App.tsx).
+  const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
   const authed = !!user && !loading && !profileMissing && isVerified && location.pathname !== '/mfa';
 
   // Signed in, but the profile read hasn't resolved yet. Previously this fell
@@ -46,7 +75,15 @@ export default function Navbar() {
       <div className="max-w-6xl mx-auto px-6">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/" onClick={close} className="flex items-center gap-2.5 group">
+          {/*
+            The brand text below is `hidden sm:inline`, and the image is
+            correctly decorative (alt=""), so under 640px this link had no
+            accessible name at all — screen reader users heard "link" with no
+            destination. The label lives on the anchor so it survives the text
+            being hidden, and it matches the visible wording exactly so
+            voice-control users can still say "Volunteer North York".
+          */}
+          <Link to="/" onClick={close} aria-label="Volunteer North York" className="flex items-center gap-2.5 group">
             <img
               src="/logo.png"
               alt=""
@@ -106,16 +143,14 @@ export default function Navbar() {
                 </button>
               </>
             ) : profilePending ? (
-              <div className="flex items-center gap-2">
-                <span className="text-ink-muted text-[13px] font-medium px-4 py-2">
-                  Loading your account…
-                </span>
+              <div className="px-4 py-2">
+                <NavLoading />
               </div>
             ) : user ? (
               <div className="flex items-center gap-2">
-                <span className="text-ink-soft text-[13px] font-medium px-4 py-2 hidden md:block">
-                  Security Verification
-                </span>
+                <div className="px-4 py-2">
+                  <NavLoading />
+                </div>
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-[13px] font-medium px-3 py-2 transition-colors rounded-full border border-line hover:bg-paper-2"
@@ -181,10 +216,14 @@ export default function Navbar() {
               </div>
             </>
           ) : profilePending ? (
-            <div className="py-2.5 text-sm font-medium text-ink-muted">Loading your account…</div>
+            <div className="py-2.5">
+              <NavLoading />
+            </div>
           ) : user ? (
             <>
-              <div className="py-2.5 text-sm font-medium text-ink-soft opacity-70">Security Verification Required</div>
+              <div className="py-2.5">
+                <NavLoading />
+              </div>
               <button onClick={handleLogout} className="w-full text-left py-2.5 text-sm font-medium text-ink-soft hover:text-ink flex items-center gap-2 rounded-full">
                 <LogOut className="w-4 h-4" /> Sign Out
               </button>

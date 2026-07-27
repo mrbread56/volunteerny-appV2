@@ -199,7 +199,7 @@ export default function OrgOpportunityApplicants() {
 
   const updateStatus = async (
     appId: string,
-    status: "accepted" | "rejected" | "terminated",
+    status: "accepted" | "rejected" | "terminated" | "reviewed",
     rejectionData?: { reason: string; note: string },
   ): Promise<{ success: boolean; emailSent: boolean; receiptGenerated: boolean; error?: string }> => {
     let emailSent = false;
@@ -210,6 +210,11 @@ export default function OrgOpportunityApplicants() {
       finalStatus: string,
       rejectionArgs?: { reason: string; note: string }
     ) => {
+      // "reviewed" is an internal triage flag the organization sets for itself.
+      // The applicant has not been accepted or rejected yet, so mailing them a
+      // decision notice here would be wrong.
+      if (finalStatus === "reviewed") return;
+
       try {
         let studentEmail: string | null = null;
         const targetApp = currentApplicantsList.find((a) => a.id === appId);
@@ -294,7 +299,11 @@ export default function OrgOpportunityApplicants() {
       return updatedApps;
     });
 
-    setSuccessMessage(`Placement ${status === "terminated" ? "terminated" : status}.|UNDO|${appId}`);
+    setSuccessMessage(
+      status === "reviewed"
+        ? `Application marked as reviewed.|UNDO|${appId}`
+        : `Placement ${status === "terminated" ? "terminated" : status}.|UNDO|${appId}`
+    );
 
     return new Promise((resolve) => {
       const timeoutId = setTimeout(async () => {
@@ -320,7 +329,7 @@ export default function OrgOpportunityApplicants() {
           localStorage.setItem("demo_applications", JSON.stringify(updatedAll));
           const opportunityApps = updatedAll.filter((a) => a.opportunityId === id);
           await dispatchEmailNotification(opportunityApps, status, rejectionData);
-          resolve({ success: true, emailSent: true, receiptGenerated: status === "accepted" });
+          resolve({ success: true, emailSent, receiptGenerated: status === "accepted" });
           return;
         }
 
@@ -342,7 +351,7 @@ export default function OrgOpportunityApplicants() {
             await promoteWaitlistedApplicant(id, orgProfile?.organizationName || "Verified Organization");
           }
 
-          resolve({ success: true, emailSent: true, receiptGenerated: status === "accepted" });
+          resolve({ success: true, emailSent, receiptGenerated: status === "accepted" });
         } catch (err: any) {
           console.error("Error updating status:", err);
           // Revert optimistic update on error

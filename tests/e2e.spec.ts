@@ -61,13 +61,28 @@ test.describe('Comprehensive Site Audit (Tens of Tests)', () => {
 
   test('Navbar Logo and Routing', async ({ page }) => {
     await page.goto('/');
-    // Check if the logo image is present and has the correct src
-    const logo = page.locator('img[alt="Volunteer North York"]').first();
-    await expect(logo).toBeVisible();
-    await expect(logo).toHaveAttribute('src', '/logo.png');
-    
-    // Click login link and verify navigation
-    await page.click('text=Login');
+
+    // The logo image is intentionally decorative (alt="") — the adjacent brand
+    // text names the link, so alt text would double-announce it. This asserted
+    // img[alt="Volunteer North York"], which stopped matching once that was
+    // fixed. Assert the thing that actually matters: the link has an
+    // accessible name, and it carries the logo.
+    const home = page.getByRole('link', { name: 'Volunteer North York' }).first();
+    await expect(home).toBeVisible();
+    await expect(home.locator('img')).toHaveAttribute('src', '/logo.png');
+
+    // Click login link and verify navigation. The nav renders "Log in"; this
+    // matched on 'text=Login' and never fired, but the assertion above failed
+    // first so the timeout here stayed hidden.
+    await page.getByRole('link', { name: 'Log in' }).first().click();
     await expect(page).toHaveURL(/.*\/login/);
+  });
+
+  test('Navbar logo link is still labelled on mobile', async ({ page }) => {
+    // Regression guard: the brand text is `hidden sm:inline`, so below 640px
+    // the anchor previously had no accessible name whatsoever.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto('/');
+    await expect(page.getByRole('link', { name: 'Volunteer North York' }).first()).toBeVisible();
   });
 });

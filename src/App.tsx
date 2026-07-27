@@ -7,6 +7,7 @@ import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import DashboardShell from './components/layout/DashboardShell';
 import CookieBanner from './components/CookieBanner';
+import { Spinner } from './components/ui/Spinner';
 
 /** Public pages get the traditional navbar + footer. */
 function PublicLayout({ children }: { children: React.ReactNode }) {
@@ -84,7 +85,7 @@ const MfaChallenge = lazy(() => import('./pages/MfaChallenge'));
 
 const LoadingFallback = () => (
   <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-    <div className="w-6 h-6 border-2 border-ink/10 border-t-ink rounded-full animate-spin"></div>
+    <Spinner size="lg" className="text-ink" />
   </div>
 );
 
@@ -134,8 +135,11 @@ const MfaClaimMiddleware: React.FC<{ children: React.ReactNode }> = ({ children 
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isDev = isDeveloperEmail(user?.email);
-  const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
+  // Developer status must NOT bypass MFA. It used to (`isDev || verify...`),
+  // which meant an allowlisted address reached /developer/dashboard without
+  // ever entering a code — the highest-privilege account had the weakest gate.
+  // AuthContext already forces twoFactorEnabled = true for these accounts.
+  const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
 
   if (!user) {
     return <Navigate to="/login" replace />;
@@ -193,9 +197,9 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  // Perform strict checking using the dedicated verifyMfaClaim middleware function
-  const isDevCheck = isDeveloperEmail(user?.email);
-  const isMfaClaimValid = isDevCheck || verifyMfaClaim(user, userProfile, mfaVerified);
+  // Perform strict checking using the dedicated verifyMfaClaim middleware function.
+  // No developer short-circuit here — see MfaClaimMiddleware.
+  const isMfaClaimValid = verifyMfaClaim(user, userProfile, mfaVerified);
   if (!isMfaClaimValid) {
     return <Navigate to="/mfa" />;
   }
@@ -262,22 +266,33 @@ function ScrollToTop() {
 
 import SplashScreen from './components/SplashScreen';
 
+/** Routes that must render whatever the auth state is — they *are* the auth flow. */
+const AUTH_NEUTRAL_PATHS = new Set(['/login', '/signup', '/mfa', '/terms', '/privacy']);
+
 const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
   const { user, userProfile, mfaVerified, loading, profileMissing } = useAuth();
   const location = useLocation();
 
-  if (loading) return <>{children}</>;
+  if (AUTH_NEUTRAL_PATHS.has(location.pathname)) return <>{children}</>;
 
-  // Don't force anyone to /mfa until we actually know who they are. While the
-  // profile read is in flight `verifyMfaClaim` sees userProfile === null and
-  // falls back to `mfaVerified` (false), which pushed freshly signed-in users
-  // to the security screen even when their account has 2FA disabled.
-  if (user && !userProfile && !profileMissing) return <>{children}</>;
+  // No session resolved yet. `user` is still null here, so this only ever
+  // renders the public site to an anonymous visitor.
+  if (loading || !user) return <>{children}</>;
 
-  if (user) {
-    const isDev = isDeveloperEmail(user.email);
-    const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
-    if (!isVerified && location.pathname !== '/mfa' && location.pathname !== '/login' && location.pathname !== '/signup') {
+  if (!profileMissing) {
+    // Signed in, profile read still in flight. The MFA decision is not
+    // knowable yet, so hold instead of rendering.
+    //
+    // This branch used to `return children`, which is the hole: between the
+    // Google popup closing and the Firestore profile landing, every route
+    // rendered unguarded. Navigating to "/" during that window parked the
+    // session on a page the guard had already waved through, and the gate
+    // never re-ran. Deciding MFA *before* anything authenticated paints is
+    // the whole point of this component.
+    if (!userProfile) return <LoadingFallback />;
+
+    // Developer status deliberately does not short-circuit this.
+    if (!verifyMfaClaim(user, userProfile, mfaVerified)) {
       return <Navigate to="/mfa" replace />;
     }
   }

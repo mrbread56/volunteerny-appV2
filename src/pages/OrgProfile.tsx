@@ -93,14 +93,14 @@ export default function OrgProfile() {
     setIsSendingTest(true);
     setTestFeedback(null);
 
-    if (!gmailAccessToken) {
-      setTestFeedback({ success: false, message: "Please save your Gmail Access Token first before testing." });
+    if (!accessToken) {
+      setTestFeedback("Please connect Gmail first before sending a test.");
       setIsSendingTest(false);
       return;
     }
 
     const res = await sendGmailNotification(
-      gmailAccessToken,
+      accessToken,
       testEmailAddress,
       "Volunteer North York Email Integration Test! 🚀",
       `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">

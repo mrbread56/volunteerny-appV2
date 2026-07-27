@@ -7,6 +7,7 @@ import { Input } from "../components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMfaClaim } from "../lib/mfa";
+import { Spinner } from "../components/ui/Spinner";
 import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -112,8 +113,9 @@ export default function Login() {
 
   if (user && !userProfile && !profileMissing && !authError) {
     return (
-      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center bg-white">
-        <div className="w-6 h-6 border-2 border-ink/10 border-t-ink rounded-full animate-spin"></div>
+      <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center gap-4 bg-white">
+        <Spinner size="lg" className="text-ink" label={null} />
+        <p role="status" className="text-[13px] text-ink-soft">Signing you in…</p>
       </div>
     );
   }
@@ -195,7 +197,11 @@ export default function Login() {
           disabled={isGoogleLoading}
           className="w-full h-11 bg-white border border-line text-ink text-[14px] font-medium rounded-full hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50"
         >
-          <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+          {isGoogleLoading ? (
+            <Spinner size="sm" className="text-ink-soft" label={null} />
+          ) : (
+            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google" className="w-4.5 h-4.5" />
+          )}
           {isGoogleLoading ? 'Connecting…' : 'Continue with Google'}
         </button>
 

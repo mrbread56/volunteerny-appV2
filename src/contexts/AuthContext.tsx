@@ -74,14 +74,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       const tokenResult = await user.getIdTokenResult(true);
-      if (tokenResult.claims.mfaVerified === true) {
-        setMfaVerifiedState(true);
-      } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
-        // The server verified the OTP but couldn't set the custom claim (e.g. missing admin credentials locally)
-        setMfaVerifiedState(true);
-      } else {
-        setMfaVerifiedState(false);
-      }
+      // Signed claim only — see the note in the onAuthStateChanged handler.
+      setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
     } catch (e) {
       console.error('Failed to refresh MFA claim:', e);
       setMfaVerifiedState(false);
@@ -409,13 +403,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // itself MFA-verified status by writing to local/session storage.
           try {
             const tokenResult = await currentUser.getIdTokenResult();
-            if (tokenResult.claims.mfaVerified === true) {
-              setMfaVerifiedState(true);
-            } else if (sessionStorage.getItem('mfaFallbackClaim') === 'true') {
-              setMfaVerifiedState(true);
-            } else {
-              setMfaVerifiedState(false);
-            }
+            // The custom claim is the ONLY accepted proof. A sessionStorage
+            // fallback used to be honoured here, so `sessionStorage.setItem(
+            // 'mfaFallbackClaim','true')` in devtools cleared the gate for any
+            // signed-in account. Storage is attacker-writable; a signed token
+            // claim is not.
+            setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
           } catch (claimsErr) {
             console.error('Failed to read auth token claims:', claimsErr);
             setMfaVerifiedState(false);

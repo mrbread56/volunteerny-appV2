@@ -108,6 +108,27 @@ if (!resend) {
   console.log('Using Resend API key configured in process.env (secured from browser access).');
 }
 
+/**
+ * Serialize a value for embedding inside an inline <script> block.
+ *
+ * JSON.stringify alone is NOT safe here. The HTML parser ends a <script> at the
+ * first literal "</script>" even when it sits inside a JavaScript string, so
+ * JSON.stringify('</script><script>alert(1)</script>') — which passes the
+ * sequence through untouched — let a query parameter close the tag and open its
+ * own. That was a working reflected XSS on this origin via
+ * /api/auth/google/callback?error=... Escaping < > & as unicode escapes keeps
+ * the value a string to the JS parser while making it inert to the HTML parser.
+ * U+2028/U+2029 are escaped too: they are literal line terminators in JS.
+ */
+function jsonForScript(value: unknown): string {
+  return JSON.stringify(value === undefined ? null : value)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+}
+
 async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: string; role?: string; isDemo: boolean; error?: string }> {
   const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -412,8 +433,15 @@ app.use(express.json());
           console.error('[verify-otp] Could not set MFA claim:', authErr.message);
         }
         
+        // Fail closed. This used to return { success: true, fallbackClaim: true },
+        // and the client responded by writing its own sessionStorage flag and
+        // treating itself as verified — an MFA pass with nothing recorded
+        // server-side. If the claim cannot be written the correct outcome is a
+        // failed verification, not a self-granted one.
         if (!claimSet) {
-          return res.json({ success: true, fallbackClaim: true });
+          return res.status(500).json({
+            error: 'Your code was correct, but we could not complete verification on the server. Please try again, or contact support if this persists.',
+          });
         }
       }
 
@@ -616,8 +644,13 @@ app.use(express.json());
 
     // Secure feedback analyze endpoint using Gemini
   app.post('/api/feedback/analyze', async (req, res) => {
+    // verifyAuth ALWAYS resolves to an object — it signals failure via the
+    // `error` field, never by returning null. `if (!authContext)` was therefore
+    // dead code, and this endpoint answered 200 to completely unauthenticated
+    // callers, letting anyone spend the project's Gemini quota. Match the
+    // check every other route uses.
     const authContext = await verifyAuth(req);
-    if (!authContext) {
+    if (!authContext || !authContext.uid || authContext.error) {
       return res.status(401).json({ error: 'Unauthorized: Valid authentication required to use AI features.' });
     }
 
@@ -698,10 +731,45 @@ app.use(express.json());
     }
   });
 
+  /**
+   * Callback URLs this relay is willing to hand to Google.
+   *
+   * Google rejects a redirect_uri that is not registered in the Cloud console,
+   * so an unvalidated value here is not immediately exploitable — but it makes
+   * this endpoint a probe for whatever happens to be registered, and the value
+   * is echoed straight back into the token exchange. Allowlisting locally means
+   * the relay never emits a callback the operator did not intend.
+   */
+  const oauthRedirectAllowlist = (process.env.OAUTH_REDIRECT_ALLOWLIST || '')
+    .split(',')
+    .map((u) => u.trim())
+    .filter(Boolean);
+
+  const isAllowedRedirect = (uri: string): boolean => {
+    let parsed: URL;
+    try {
+      parsed = new URL(uri);
+    } catch {
+      return false;
+    }
+    if (parsed.protocol !== 'https:' && parsed.hostname !== 'localhost' && parsed.hostname !== '127.0.0.1') {
+      return false;
+    }
+    // Unconfigured allowlist: permit only same-origin callbacks on this server.
+    if (oauthRedirectAllowlist.length === 0) {
+      return parsed.pathname === '/api/auth/google/callback';
+    }
+    return oauthRedirectAllowlist.includes(uri);
+  };
+
   // --- GOOGLE OAUTH RELAY ---
   app.get('/api/auth/google/url', (req, res) => {
     const redirectUri = req.query.redirect_uri as string;
     if (!redirectUri) return res.status(400).json({ error: 'redirect_uri is required' });
+    if (!isAllowedRedirect(redirectUri)) {
+      console.warn('[oauth/url] Rejected redirect_uri:', redirectUri);
+      return res.status(400).json({ error: 'redirect_uri is not permitted.' });
+    }
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     if (!clientId) return res.status(500).json({ error: 'GOOGLE_CLIENT_ID is not configured in the server environment.' });
@@ -727,7 +795,7 @@ app.use(express.json());
     const state = req.query.state as string;
     const error = req.query.error as string;
     if (error) {
-      const safeError = JSON.stringify(String(error));
+      const safeError = jsonForScript(String(error));
       return res.send(`<script>window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error: ${safeError} }, window.location.origin); window.close();</script>`);
     }
 
@@ -736,7 +804,12 @@ app.use(express.json());
     }
 
     try {
+      // `state` is attacker-supplied (it round-trips through the browser), so
+      // re-validate rather than trusting whatever redirect it carries.
       const { redirectUri } = JSON.parse(Buffer.from(state, 'base64').toString('utf8'));
+      if (typeof redirectUri !== 'string' || !isAllowedRedirect(redirectUri)) {
+        throw new Error('Invalid redirect target.');
+      }
       const clientId = process.env.GOOGLE_CLIENT_ID;
       const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -764,7 +837,7 @@ app.use(express.json());
       }
 
       // We have the id_token! Pass it back to the opener window securely.
-      const safeIdToken = JSON.stringify(String(tokenData.id_token || ''));
+      const safeIdToken = jsonForScript(String(tokenData.id_token || ''));
       res.send(`
         <html>
           <body>
@@ -785,7 +858,7 @@ app.use(express.json());
       `);
     } catch (err: any) {
       console.error('OAuth Callback Error:', err);
-      const safeErrMsg = JSON.stringify(String(err.message || 'Unknown error'));
+      const safeErrMsg = jsonForScript(String(err.message || 'Unknown error'));
       res.send(`<script>window.opener.postMessage({ type: 'GOOGLE_OAUTH_ERROR', error: ${safeErrMsg} }, window.location.origin); window.close();</script>`);
     }
   });
