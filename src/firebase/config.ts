@@ -1,6 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
-import { getFirestore, initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { initializeFirestore } from 'firebase/firestore';
 
 // Read Firebase config from environment variables (VITE_ prefixed = exposed to client)
 // Fall back to imported JSON for backward compatibility during migration
@@ -24,15 +24,8 @@ export const db = initializeFirestore(app, {
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
 
-// CRITICAL: Connection test for Firestore
-async function testConnection() {
-  try {
-    await getDocFromServer(doc(db, 'test', 'connection'));
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
-      console.warn("Please check your Firebase configuration. The client is offline.");
-    }
-  }
-}
-testConnection();
+// NOTE: a startup "connection test" used to read test/connection here. The
+// security rules deny that path via the default catch-all, so it failed with
+// permission-denied on every single page load and never proved connectivity.
+// It only added a misleading error to the console, so it was removed.
 export default app;

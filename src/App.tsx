@@ -2,6 +2,7 @@ import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { verifyMfaClaim } from './lib/mfa';
+import { isDeveloperEmail } from './lib/devAccess';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import DashboardShell from './components/layout/DashboardShell';
@@ -133,7 +134,7 @@ const MfaClaimMiddleware: React.FC<{ children: React.ReactNode }> = ({ children 
     return <div className="flex items-center justify-center h-screen">Loading...</div>;
   }
 
-  const isDev = user?.email && (import.meta.env.VITE_DEVELOPER_EMAILS || '').includes(user.email);
+  const isDev = isDeveloperEmail(user?.email);
   const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
 
   if (!user) {
@@ -150,6 +151,7 @@ const MfaClaimMiddleware: React.FC<{ children: React.ReactNode }> = ({ children 
 // Route Guard for Authenticated Users
 const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 'student' | 'organization' | 'developer' }) => {
   const { user, userProfile, loading, mfaVerified, profileMissing, authError } = useAuth();
+  const location = useLocation();
 
   if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
   if (authError) return (
@@ -180,16 +182,26 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
   // user bounces to /mfa forever with no way out. Tell them what happened.
   if (profileMissing) return <AccountSetupIncomplete />;
 
+  // Authenticated and the profile is neither loaded nor explicitly missing.
+  // This is a transient state (the Firestore read is still in flight, or it
+  // failed without setting authError). Previously we fell straight through to
+  // the role comparison below, where `userProfile?.role` was `undefined`,
+  // never matched the required role, and redirected to /org/dashboard — which
+  // required 'organization', mismatched again, and redirected to itself
+  // forever. That self-redirect loop is what rendered as a blank screen.
+  if (!userProfile) {
+    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  }
+
   // Perform strict checking using the dedicated verifyMfaClaim middleware function
-  const isDevCheck = user?.email && (import.meta.env.VITE_DEVELOPER_EMAILS || '').includes(user.email);
+  const isDevCheck = isDeveloperEmail(user?.email);
   const isMfaClaimValid = isDevCheck || verifyMfaClaim(user, userProfile, mfaVerified);
   if (!isMfaClaimValid) {
     return <Navigate to="/mfa" />;
   }
 
   // Account Suspension interception
-  const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
-  const isDev = user?.email && AUTHORIZED_DEVS.includes(user.email);
+  const isDev = isDeveloperEmail(user?.email);
   if (userProfile?.isBanned && !isDev) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">
@@ -213,11 +225,26 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
     );
   }
 
-  if (role && userProfile?.role !== role) {
-    if (userProfile?.role === 'developer') {
-      return <Navigate to="/developer/dashboard" />;
+  if (role && userProfile.role !== role) {
+    // Send the user to the home route for the role they actually have.
+    // `homeFor` is exhaustive over the known roles and falls back to '/' for
+    // anything unrecognised, so an unexpected role value can never resolve to
+    // a route that would bounce back here.
+    const homeFor = (r: string | undefined) => {
+      switch (r) {
+        case 'developer': return '/developer/dashboard';
+        case 'organization': return '/org/dashboard';
+        case 'student': return '/student/dashboard';
+        default: return '/';
+      }
+    };
+    const target = homeFor(userProfile.role);
+    // Loop guard: never redirect to the route we are already on. Without this
+    // any mismatch whose target equals the current path re-renders this same
+    // component, returns the same <Navigate>, and spins forever as a blank page.
+    if (target !== location.pathname) {
+      return <Navigate to={target} replace />;
     }
-    return <Navigate to={userProfile?.role === 'student' ? '/student/dashboard' : '/org/dashboard'} />;
   }
 
   return <MfaClaimMiddleware>{children}</MfaClaimMiddleware>;
@@ -236,13 +263,19 @@ function ScrollToTop() {
 import SplashScreen from './components/SplashScreen';
 
 const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
-  const { user, userProfile, mfaVerified, loading } = useAuth();
+  const { user, userProfile, mfaVerified, loading, profileMissing } = useAuth();
   const location = useLocation();
 
   if (loading) return <>{children}</>;
 
+  // Don't force anyone to /mfa until we actually know who they are. While the
+  // profile read is in flight `verifyMfaClaim` sees userProfile === null and
+  // falls back to `mfaVerified` (false), which pushed freshly signed-in users
+  // to the security screen even when their account has 2FA disabled.
+  if (user && !userProfile && !profileMissing) return <>{children}</>;
+
   if (user) {
-    const isDev = (import.meta.env.VITE_DEVELOPER_EMAILS || '').includes(user.email || '');
+    const isDev = isDeveloperEmail(user.email);
     const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
     if (!isVerified && location.pathname !== '/mfa' && location.pathname !== '/login' && location.pathname !== '/signup') {
       return <Navigate to="/mfa" replace />;

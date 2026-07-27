@@ -191,7 +191,11 @@ export default function OrgOpportunityApplicants() {
               ? `Placement Update for "${opportunityTitle}"`
               : `Application Update for "${opportunityTitle}"`;
 
-          await sendTransactionalEmail({
+          // sendTransactionalEmail never throws: it resolves with
+          // { success: false } on failure. This used to set emailSent = true
+          // unconditionally, so the UI reported "applicant notified" even when
+          // no email left the building. Trust the returned flag instead.
+          const emailResult = await sendTransactionalEmail({
             to: studentEmail,
             subject: subject,
             templateName: "application_status",
@@ -207,7 +211,10 @@ export default function OrgOpportunityApplicants() {
                   : undefined
             }
           });
-          emailSent = true;
+          emailSent = emailResult.success;
+          if (!emailResult.success) {
+            console.error("Applicant status email was not delivered:", emailResult.error);
+          }
         }
       } catch (e: any) {
         console.error("Failed to compile or dispatch Resend notification:", e);

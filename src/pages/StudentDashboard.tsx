@@ -165,7 +165,10 @@ export default function StudentDashboard() {
     if (!req || !req.coordinatorContact) return;
     setSendingReminderId(req.id);
     try {
-      await sendTransactionalEmail({
+      // sendTransactionalEmail resolves with { success: false } rather than
+      // throwing, so showing the success tick unconditionally told students
+      // their coordinator had been reminded when nothing was actually sent.
+      const reminderResult = await sendTransactionalEmail({
         to: req.coordinatorContact,
         subject: `⚠️ Reminder: Volunteer hours verification pending for ${studentProfile?.fullName || "Student"}`,
         templateName: "admin_alert",
@@ -174,6 +177,10 @@ export default function StudentDashboard() {
           details: `Student ${studentProfile?.fullName || "Student"} is kindly reminding you to authorize the ${req.hours} hours submitted for "${req.activity}" on ${req.date}. Please log in to your dashboard to review this request.`
         }
       });
+      if (!reminderResult.success) {
+        console.error("Failed to send hours request reminder:", reminderResult.error);
+        return;
+      }
       setReminderSuccessId(req.id);
       setTimeout(() => {
         setReminderSuccessId(null);

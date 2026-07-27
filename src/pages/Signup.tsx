@@ -66,20 +66,23 @@ export default function Signup() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile, refreshProfile } = useAuth();
+  const { user, userProfile, profileMissing, refreshProfile } = useAuth();
 
   React.useEffect(() => {
-    if (user) {
-      if (userProfile?.role === 'developer') {
-        navigate("/developer/dashboard");
-      } else if (userProfile?.role === 'organization') {
-        navigate("/org/dashboard");
-      } else {
-        // Fallback for students or orphaned accounts (profileMissing)
-        navigate("/student/dashboard");
-      }
+    if (!user) return;
+    // Same profile-resolution race as Login.tsx: `user` lands before the
+    // Firestore profile read finishes, so routing on an undefined role sent
+    // people to the wrong dashboard and let the guards bounce them.
+    if (!userProfile && !profileMissing) return;
+
+    if (userProfile?.role === 'developer') {
+      navigate("/developer/dashboard", { replace: true });
+    } else if (userProfile?.role === 'organization') {
+      navigate("/org/dashboard", { replace: true });
+    } else {
+      navigate("/student/dashboard", { replace: true });
     }
-  }, [user, userProfile, navigate]);
+  }, [user, userProfile, profileMissing, navigate]);
   
   // Form State
   const [fullName, setFullName] = useState("");

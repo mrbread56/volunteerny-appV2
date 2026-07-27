@@ -1,0 +1,17 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vny10-preview",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "C:/Users/ASUS/Downloads/VNY_V10/node_modules/vite/bin/vite.js",
+        "preview",
+        "C:/Users/ASUS/Downloads/VNY_V10",
+        "--port",
+        "4180"
+      ],
+      "port": 4180
+    }
+  ]
+}

@@ -424,6 +424,196 @@ app.use(express.json());
     }
   });
 
+  // ══════════════════════════════════════════════════════════════════
+  // TRANSACTIONAL EMAIL
+  //
+  // These two routes existed on the client (src/lib/emailService.ts and the
+  // developer console) but had no server implementation, so every POST to
+  // /api/email/send fell through to the SPA catch-all and 404'd. Because
+  // sendTransactionalEmail() swallows its own errors and resolves with
+  // { success: false } instead of throwing, every caller's .catch() never ran:
+  // welcome emails, acceptance/rejection notices, waitlist promotions and
+  // hour confirmations all failed silently, and one call site even recorded
+  // emailSent = true afterwards. The dangling `emailTemplates` import at the
+  // top of this file was the leftover of that removal.
+  // ══════════════════════════════════════════════════════════════════
+
+  /** Recent send attempts, newest first. In-memory and intentionally small. */
+  const emailHistory: Array<{
+    id: string; to: string; subject: string; templateName: string;
+    status: 'sent' | 'failed' | 'demo'; error?: string; sentBy: string; at: string;
+  }> = [];
+  const EMAIL_HISTORY_LIMIT = 100;
+
+  /** Max 20 send requests per 10 minutes per account, so an authenticated
+   *  session can't turn this into an open relay for our sending domain. */
+  const emailRateLimit = new Map<string, { count: number; windowStart: number }>();
+  function isEmailRateLimited(uid: string): boolean {
+    const now = Date.now();
+    const windowMs = 10 * 60 * 1000;
+    const entry = emailRateLimit.get(uid);
+    if (!entry || now - entry.windowStart > windowMs) {
+      emailRateLimit.set(uid, { count: 1, windowStart: now });
+      return false;
+    }
+    entry.count += 1;
+    return entry.count > 20;
+  }
+
+  const isEmailAddress = (v: unknown): v is string =>
+    typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
+
+  /** Maps the client's templateName + templateData onto the positional
+   *  template functions in server/emailTemplates.ts. */
+  function renderTemplate(templateName: string, d: any): string | null {
+    switch (templateName) {
+      case 'welcome_student':
+        return emailTemplates.welcome_student(d.studentName || 'Student');
+      case 'application_status':
+        return emailTemplates.application_status(
+          d.studentName || 'Student',
+          d.oppTitle || 'Volunteer Opportunity',
+          d.orgName || 'Community Partner',
+          d.status === 'accepted' ? 'accepted' : 'rejected',
+          d.note
+        );
+      case 'hours_confirmation':
+        return emailTemplates.hours_confirmation(
+          d.studentName || 'Student',
+          Number(d.hours) || 0,
+          d.oppTitle || 'Volunteer Opportunity',
+          d.orgName || 'Community Partner',
+          d.supervisorName || 'Site Supervisor'
+        );
+      case 'new_applicant':
+        return emailTemplates.new_applicant(
+          d.orgName || 'Community Partner',
+          d.applicantName || 'A student',
+          d.oppTitle || 'Volunteer Opportunity',
+          d.message
+        );
+      case 'auth_verification':
+        return emailTemplates.auth_verification(
+          d.userName || 'there',
+          d.code || '',
+          d.purpose === 'reset' ? 'reset' : 'verification'
+        );
+      case 'admin_alert':
+        return emailTemplates.admin_alert(d.subject || 'Notification', d.details || '');
+      default:
+        return null;
+    }
+  }
+
+  app.post('/api/email/send', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      if (isEmailRateLimited(authContext.uid)) {
+        return res.status(429).json({ error: 'Too many emails requested. Please wait a few minutes.' });
+      }
+
+      const { to, subject, templateName, templateData } = req.body || {};
+
+      const recipients = (Array.isArray(to) ? to : [to]).filter(isEmailAddress).map((e: string) => e.trim());
+      if (recipients.length === 0) {
+        return res.status(400).json({ error: 'A valid recipient email address is required.' });
+      }
+      if (recipients.length > 10) {
+        return res.status(400).json({ error: 'Too many recipients in a single request (max 10).' });
+      }
+      if (typeof subject !== 'string' || !subject.trim()) {
+        return res.status(400).json({ error: 'A subject line is required.' });
+      }
+
+      const html = renderTemplate(templateName, templateData || {});
+      if (html === null) {
+        return res.status(400).json({ error: `Unknown email template: ${templateName}` });
+      }
+
+      const record = (status: 'sent' | 'failed' | 'demo', error?: string) => {
+        emailHistory.unshift({
+          id: 'em_' + crypto.randomBytes(6).toString('hex'),
+          to: recipients.join(', '),
+          subject,
+          templateName,
+          status,
+          error,
+          sentBy: authContext.email || authContext.uid,
+          at: new Date().toISOString(),
+        });
+        if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
+      };
+
+      // Demo sessions must never trigger real mail.
+      if (authContext.isDemo) {
+        record('demo');
+        return res.json({ success: true, mode: 'demo', warning: 'Demo mode: email was simulated, not sent.' });
+      }
+
+      if (!resend) {
+        record('failed', 'RESEND_API_KEY not configured');
+        return res.status(503).json({
+          error: 'Email delivery is not configured on this server.',
+          details: 'RESEND_API_KEY is missing.',
+        });
+      }
+
+      const { error } = await resend.emails.send({
+        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+        to: recipients,
+        subject,
+        html,
+      });
+
+      if (error) {
+        console.error('[email/send] Resend error:', error.message);
+        record('failed', error.message);
+        return res.status(502).json({
+          error: 'The email could not be delivered.',
+          details: process.env.NODE_ENV !== 'production' ? error.message : undefined,
+        });
+      }
+
+      record('sent');
+      res.json({ success: true, mode: 'live' });
+    } catch (err: any) {
+      console.error('[email/send] Crash:', err);
+      res.status(500).json({ error: 'Failed to send the email. Please try again.' });
+    }
+  });
+
+  app.get('/api/email/history', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Recipient addresses are personal data, so this is developer-only.
+      const devEmails = (process.env.VITE_DEVELOPER_EMAILS || '')
+        .split(',')
+        .map((e) => e.trim().toLowerCase())
+        .filter(Boolean);
+      const callerEmail = (authContext.email || '').toLowerCase();
+      const isDeveloper = authContext.isDemo
+        ? authContext.role === 'developer'
+        : devEmails.includes(callerEmail);
+
+      if (!isDeveloper) {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      res.json(emailHistory);
+    } catch (err: any) {
+      console.error('[email/history] Crash:', err);
+      res.status(500).json({ error: 'Failed to load email history.' });
+    }
+  });
+
     // Secure feedback analyze endpoint using Gemini
   app.post('/api/feedback/analyze', async (req, res) => {
     const authContext = await verifyAuth(req);

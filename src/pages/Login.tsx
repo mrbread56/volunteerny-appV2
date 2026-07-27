@@ -17,20 +17,33 @@ export default function Login() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile } = useAuth();
+  const { user, userProfile, profileMissing } = useAuth();
 
   useEffect(() => {
-    if (user) {
-      if (userProfile?.role === 'developer') {
-        navigate("/developer/dashboard");
-      } else if (userProfile?.role === 'organization') {
-        navigate("/org/dashboard");
-      } else {
-        // Fallback for students or orphaned accounts (profileMissing)
-        navigate("/student/dashboard");
-      }
+    if (!user) return;
+
+    // Wait until the profile is actually resolved before routing.
+    //
+    // onAuthStateChanged sets `user` immediately and only then awaits the
+    // Firestore profile read, so this effect used to fire once with
+    // userProfile === null. `userProfile?.role` was undefined, fell through to
+    // the else branch, and pushed EVERY user (developers included) to
+    // /student/dashboard before their real role was known. The role guard then
+    // bounced them again, producing the flicker-then-stall on sign-in.
+    //
+    // profileMissing is the terminal "no profile document" state; those users
+    // still need to leave /login so App's route guard can show the recovery UI.
+    if (!userProfile && !profileMissing) return;
+
+    if (userProfile?.role === 'developer') {
+      navigate("/developer/dashboard", { replace: true });
+    } else if (userProfile?.role === 'organization') {
+      navigate("/org/dashboard", { replace: true });
+    } else {
+      // Students, and orphaned accounts (profileMissing) that need the recovery screen.
+      navigate("/student/dashboard", { replace: true });
     }
-  }, [user, userProfile, navigate]);
+  }, [user, userProfile, profileMissing, navigate]);
 
   const friendlyAuthError = (code: string) => {
     const map: Record<string, string> = {

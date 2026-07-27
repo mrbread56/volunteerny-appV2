@@ -16,11 +16,11 @@ export default function MfaChallenge() {
   const [hasSentOTP, setHasSentOTP] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile, mfaVerified, loading } = useAuth();
+  const { user, userProfile, mfaVerified, loading, isDemoMode, setMfaVerified } = useAuth();
 
   useEffect(() => {
     if (loading) return;
-    
+
     if (!user) {
       navigate("/login");
       return;
@@ -29,17 +29,27 @@ export default function MfaChallenge() {
       navigate("/");
       return;
     }
-    
+
+    // Demo sessions use a mock user object that has no getIdToken(), so the
+    // real OTP round trip threw "getIdToken is not a function" and left demo
+    // organization/developer accounts permanently stranded on this screen.
+    // There is no real account to protect in demo mode, so clear the gate.
+    if (isDemoMode) {
+      void setMfaVerified(true, user.uid);
+      navigate("/");
+      return;
+    }
+
     if (!hasSentOTP) {
       sendOTP();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, mfaVerified, navigate, hasSentOTP, loading]);
+  }, [user, mfaVerified, navigate, hasSentOTP, loading, isDemoMode]);
 
   // Auto-send OTP on mount, and reused directly by the Resend button so
   // resend is tied to the real request completing, not a fixed timeout.
   const sendOTP = async () => {
-    if (!user) return;
+    if (!user || isDemoMode) return;
     try {
       const token = await user.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {

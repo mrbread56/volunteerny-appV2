@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { verifyMfaClaim } from '../../lib/mfa';
+import { isDeveloperEmail } from '../../lib/devAccess';
 import { LogOut, LayoutDashboard, Search, UserCircle, PlusCircle, Trophy, Menu, X, MessageCircle } from 'lucide-react';
 
 export default function Navbar() {
@@ -10,9 +11,16 @@ export default function Navbar() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
 
-  const isDev = user?.email && (import.meta.env.VITE_DEVELOPER_EMAILS || '').includes(user.email);
+  const isDev = isDeveloperEmail(user?.email);
   const isVerified = isDev || verifyMfaClaim(user, userProfile, mfaVerified);
   const authed = !!user && !loading && !profileMissing && isVerified && location.pathname !== '/mfa';
+
+  // Signed in, but the profile read hasn't resolved yet. Previously this fell
+  // into the same branch as "MFA required" and rendered the Security
+  // Verification header, which is why the navbar could sit there permanently
+  // after a successful sign-in. Show a neutral placeholder instead so a
+  // transient load never masquerades as a security prompt.
+  const profilePending = !!user && !loading && !profileMissing && !userProfile;
 
   const handleLogout = async () => {
     setOpen(false);
@@ -101,6 +109,12 @@ export default function Navbar() {
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </button>
               </>
+            ) : profilePending ? (
+              <div className="flex items-center gap-2">
+                <span className="text-ink-muted text-[13px] font-medium px-4 py-2">
+                  Loading your account…
+                </span>
+              </div>
             ) : user ? (
               <div className="flex items-center gap-2">
                 <span className="text-ink-soft text-[13px] font-medium px-4 py-2 hidden md:block">
@@ -170,6 +184,8 @@ export default function Navbar() {
                 </button>
               </div>
             </>
+          ) : profilePending ? (
+            <div className="py-2.5 text-sm font-medium text-ink-muted">Loading your account…</div>
           ) : user ? (
             <>
               <div className="py-2.5 text-sm font-medium text-ink-soft opacity-70">Security Verification Required</div>

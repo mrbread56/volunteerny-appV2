@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { doc, getDoc, getDocFromServer, setDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
+import { isDeveloperEmail, isDevAllowlistMissing } from '../lib/devAccess';
 import { UserProfile, StudentProfile, OrganizationProfile } from '../types';
 
 interface AuthContextType {
@@ -164,13 +165,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     applyThemeColor(themeColor);
   }, [themeColor]);
 
+  /**
+   * A single Firestore read that survives a transient transport failure.
+   *
+   * The "Offline mode: Could not fetch profiles from Firestore" path was
+   * previously terminal: one failed read left userProfile null forever, which
+   * is what stranded signed-in users on the Security Verification header with
+   * no way forward. Firestore's WebChannel stream is the fragile part here
+   * (privacy extensions and some networks interrupt it), and those failures
+   * are frequently transient, so retry briefly before giving up.
+   */
+  const getDocWithRetry = async (ref: any, attempts = 3) => {
+    let lastErr: any;
+    for (let i = 0; i < attempts; i++) {
+      try {
+        return await getDoc(ref);
+      } catch (err: any) {
+        lastErr = err;
+        const msg = err?.message || '';
+        const transient = msg.includes('offline') || msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('unavailable');
+        // A permission-denied or not-found error will never succeed on retry.
+        if (!transient || i === attempts - 1) throw err;
+        await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i)));
+      }
+    }
+    throw lastErr;
+  };
+
   const fetchProfiles = async (currentUser: User | { uid: string }) => {
     try {
-      const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
       const userEmail = (currentUser as any).email || '';
-      const isDevEmail = AUTHORIZED_DEVS.includes(userEmail);
+      const isDevEmail = isDeveloperEmail(userEmail);
 
-      const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+      const userDoc = await getDocWithRetry(doc(db, 'users', currentUser.uid));
       if (userDoc.exists()) {
         setProfileMissing(false);
         const data = userDoc.data() as UserProfile;
@@ -264,9 +291,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // developer email, refusing to render the Control Room because a
         // browser extension blocked the DB round trip is worse than just
         // trusting the email/allowlist match we already have client-side.
-        const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
         const userEmail = (currentUser as any).email || '';
-        if (AUTHORIZED_DEVS.includes(userEmail)) {
+
+        if (isDevAllowlistMissing()) {
+          // Loud, specific diagnostic: VITE_* values are inlined at BUILD time.
+          // If the deploy was built without VITE_DEVELOPER_EMAILS, the developer
+          // fallback below silently cannot fire, which looks like "my account
+          // lost its role" rather than a configuration problem.
+          console.error(
+            'VITE_DEVELOPER_EMAILS is empty in this build. Developer access cannot be granted. ' +
+            'Set it in the deployment environment (e.g. Vercel > Settings > Environment Variables) and REBUILD - ' +
+            'VITE_ variables are baked in at build time, not read at runtime.'
+          );
+        }
+
+        if (isDeveloperEmail(userEmail)) {
           console.warn('Firestore unreachable but email matches VITE_DEVELOPER_EMAILS: forcing developer role locally.');
           setProfileMissing(false);
           setUserProfile({
@@ -280,7 +319,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           return;
         }
 
-        setAuthError('Network error while connecting to the database. Please check your internet connection and try again.');
+        setAuthError(
+          "We couldn't reach the database. This is usually caused by an ad blocker or privacy extension " +
+          'blocking firestore.googleapis.com. Try disabling it for this site, or open the site in a private window, then retry.'
+        );
       } else {
         console.error('Error fetching profiles:', error);
         setAuthError('An unexpected error occurred while loading your profile. Please try again.');
@@ -350,16 +392,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
 
-    const testConnection = async () => {
-      try {
-        await getDocFromServer(doc(db, 'test', 'connection'));
-      } catch (error: any) {
-        if (error.message?.includes('the client is offline')) {
-          console.warn("Please check your Firebase configuration.");
-        }
-      }
-    };
-    testConnection();
+    // (Removed a duplicate test/connection probe here: the security rules deny
+    // that document, so it always failed and proved nothing.)
 
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
       if (!localStorage.getItem('demo_mode_role')) {

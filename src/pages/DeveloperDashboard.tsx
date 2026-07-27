@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
+import { isDeveloperEmail } from '../lib/devAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc } from 'firebase/firestore';
@@ -195,8 +196,6 @@ export default function DeveloperDashboard() {
   const [isGlobalPurging, setIsGlobalPurging] = useState(false);
   const [adminPurgeSuccess, setAdminPurgeSuccess] = useState('');
 
-  // Primary developer list
-  const AUTHORIZED_DEVS = (import.meta.env.VITE_DEVELOPER_EMAILS || '').split(',').map((e: string) => e.trim());
 
   useEffect(() => {
     loadData();
@@ -377,7 +376,7 @@ export default function DeveloperDashboard() {
 
   // BAN & UNBAN Control
   const handleToggleBan = async (userId: string, isCurrentlyBanned: boolean) => {
-    if (!AUTHORIZED_DEVS.includes(user?.email || '') && !isDemoMode) {
+    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
       alert('Access Denied: You do not have permission to perform this action.');
       return;
     }
@@ -387,7 +386,7 @@ export default function DeveloperDashboard() {
         // Prevent banning developer in demo mode
         const targetStudentEmail = students.find(s => s.uid === userId)?.email || '';
         const targetOrgEmail = orgs.find(o => o.uid === userId)?.contactEmail || '';
-        const isTargetDev = AUTHORIZED_DEVS.includes(targetStudentEmail) || AUTHORIZED_DEVS.includes(targetOrgEmail);
+        const isTargetDev = isDeveloperEmail(targetStudentEmail) || isDeveloperEmail(targetOrgEmail);
         if (isTargetDev && !isCurrentlyBanned) {
           alert('Security Restriction: System developers cannot be suspended.');
           return;
@@ -399,7 +398,7 @@ export default function DeveloperDashboard() {
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const uData = userDoc.data();
-          if (uData.email && AUTHORIZED_DEVS.includes(uData.email)) {
+          if (uData.email && isDeveloperEmail(uData.email)) {
             alert('Security Restriction: System developers cannot be suspended.');
             return;
           }
@@ -420,7 +419,7 @@ export default function DeveloperDashboard() {
 
   // PURGE MEMBER Firestore Records
   const handleDeleteUser = async (userId: string, role: 'student' | 'organization') => {
-    if (!AUTHORIZED_DEVS.includes(user?.email || '') && !isDemoMode) {
+    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
       setDeveloperDeleteError('Access Denied: You do not have permission to execute administrative deletes.');
       return;
     }
@@ -451,7 +450,7 @@ export default function DeveloperDashboard() {
 
   // GLOBAL SCANNED PURGE FOR 'onwoo' OR TRACES
   const handleGlobalPurgeOnwoo = async () => {
-    if (!AUTHORIZED_DEVS.includes(user?.email || '') && !isDemoMode) {
+    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
       setDeveloperDeleteError('Access Denied: You do not have permission to execute global purges.');
       return;
     }
@@ -586,7 +585,7 @@ export default function DeveloperDashboard() {
     return matchesFilter && matchesSearch;
   });
 
-  if (!isDemoMode && user && !AUTHORIZED_DEVS.includes(user.email || '')) {
+  if (!isDemoMode && user && !isDeveloperEmail(user.email)) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-paper-2 p-6 text-center">
         <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">
