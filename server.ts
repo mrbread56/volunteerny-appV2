@@ -27,6 +27,20 @@ console.log('[Startup] MAIL_FROM:', process.env.MAIL_FROM || '(not set)');
 console.log('[Startup] NODE_ENV:', process.env.NODE_ENV || '(not set - defaulting to development)');
 console.log('[Startup] APP_URL:', process.env.APP_URL || '(not set)');
 
+// Two-factor sign-in depends entirely on outbound email, and the commonest
+// cause of "the code never arrives" is a sender address Resend will not accept.
+// Say so at boot rather than letting every OTP fail silently at runtime.
+if (!process.env.RESEND_API_KEY) {
+  console.warn('[Startup] WARNING: RESEND_API_KEY is not set — two-factor codes CANNOT be delivered.');
+}
+if (!process.env.MAIL_FROM) {
+  console.warn(
+    '[Startup] WARNING: MAIL_FROM is not set. Falling back to ' +
+      '"vny@volunteernorthyork.indevs.in". If that domain is not verified in ' +
+      'Resend, every verification email will be rejected and 2FA will fail for everyone.'
+  );
+}
+
 // Secure lazy initialization of firebase-admin
 let adminApp: admin.app.App | null = null;
 let adminInitFailed = false;
@@ -265,8 +279,89 @@ app.use(express.json());
     return entry.count > 5;
   }
 
-  /** Dev fallback store if Firestore is unavailable locally */
-  const devOtpStore = new Map<string, { otp: string; expires: number; attempts: number }>();
+  // ══════════════════════════════════════════════════════════════════
+  // OTP STORE
+  //
+  // The previous design had send-otp and verify-otp each independently pick
+  // EITHER Firestore OR an in-process Map, choosing whichever happened to work
+  // at that moment. That is why 2FA only worked occasionally:
+  //
+  //   * send falls back to memory after a transient Firestore write failure,
+  //     then verify's Firestore READ succeeds and finds no document ->
+  //     "No code was requested" even though the user is holding the email.
+  //   * send falls back to memory, but a document from an EARLIER attempt is
+  //     still in Firestore -> verify compares the typed code against that stale
+  //     record -> "Incorrect code" even though the emailed digits were typed
+  //     correctly. This is the "I got the email but it says wrong digits" case.
+  //   * the Map is per-process, so on any restart, redeploy, or second instance
+  //     a code issued by one process is invisible to the next.
+  //
+  // Fix: stop choosing. Every write goes to BOTH stores, and every read
+  // consults BOTH and takes the most recently issued record. Divergence
+  // between the two can then no longer produce a failure.
+  // ══════════════════════════════════════════════════════════════════
+
+  type OtpRecord = { otp: string; expires: number; attempts: number; issuedAt: number };
+
+  const memoryOtpStore = new Map<string, OtpRecord>();
+
+  function otpDocRef(uid: string): any | null {
+    const adminObj = getAdminObj();
+    if (!adminObj) return null;
+    try {
+      return adminObj.firestore().collection('verification_otps').doc(uid);
+    } catch {
+      return null;
+    }
+  }
+
+  function isOtpRecord(v: any): v is OtpRecord {
+    return !!v && typeof v.otp === 'string' && typeof v.expires === 'number';
+  }
+
+  /** Read from both stores and return whichever record was issued most recently. */
+  async function readOtp(uid: string): Promise<OtpRecord | null> {
+    let fromDb: OtpRecord | null = null;
+    try {
+      const ref = otpDocRef(uid);
+      if (ref) {
+        const doc = await ref.get();
+        if (doc.exists) {
+          const data = doc.data();
+          if (isOtpRecord(data)) fromDb = { issuedAt: 0, attempts: 0, ...data };
+        }
+      }
+    } catch (err: any) {
+      console.warn('[otp] Firestore read failed, relying on memory store:', err.message);
+    }
+
+    const fromMem = memoryOtpStore.get(uid) || null;
+    if (!fromDb) return fromMem;
+    if (!fromMem) return fromDb;
+    return fromMem.issuedAt >= fromDb.issuedAt ? fromMem : fromDb;
+  }
+
+  /** Write to both stores. Firestore is best-effort; memory always succeeds. */
+  async function writeOtp(uid: string, record: OtpRecord): Promise<void> {
+    memoryOtpStore.set(uid, record);
+    try {
+      const ref = otpDocRef(uid);
+      if (ref) await ref.set(record);
+    } catch (err: any) {
+      console.warn('[otp] Firestore write failed, memory store still holds the code:', err.message);
+    }
+  }
+
+  /** Remove from both stores so a stale record can never win a later read. */
+  async function clearOtp(uid: string): Promise<void> {
+    memoryOtpStore.delete(uid);
+    try {
+      const ref = otpDocRef(uid);
+      if (ref) await ref.delete();
+    } catch {
+      /* best effort */
+    }
+  }
 
   // ── SEND OTP ──
   app.post('/api/auth/send-otp', async (req, res) => {
@@ -286,67 +381,78 @@ app.use(express.json());
         return res.status(500).json({ error: 'Server configuration error. Please contact support.' });
       }
 
-      let otp: string;
+      const now = Date.now();
+      const TTL_MS = 10 * 60 * 1000;
 
-      try {
-        const db = adminObj.firestore();
-        const otpRef = db.collection('verification_otps').doc(authContext.uid);
+      // Reuse the code only for a short burst window. That collapses duplicate
+      // requests (React re-renders, an impatient double-click) into ONE code and
+      // one email, while a genuine "Resend" a minute later still issues a fresh
+      // code. Either way the expiry is pushed out to a full TTL, so a resent
+      // code is never handed over already half-expired — previously a reused
+      // code kept its original deadline and could expire seconds after arriving.
+      const BURST_MS = 60 * 1000;
 
-        // Idempotency: if an unexpired code exists, reuse it.
-        const existing = await otpRef.get();
-        if (existing.exists) {
-          const data = existing.data();
-          if (data && data.expires > Date.now()) {
-            otp = data.otp;
-            console.log('[send-otp] Reusing existing unexpired OTP for:', authContext.email);
-          } else {
-            otp = crypto.randomInt(100000, 999999).toString();
-            await otpRef.set({ otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-            console.log('[send-otp] Generated new OTP for:', authContext.email);
-          }
-        } else {
-          otp = crypto.randomInt(100000, 999999).toString();
-          await otpRef.set({ otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-          console.log('[send-otp] Generated new OTP for:', authContext.email);
-        }
-      } catch (dbErr: any) {
-        console.warn('[send-otp] Firestore unavailable, falling back to memory store:', dbErr.message);
-        const existing = devOtpStore.get(authContext.uid);
-        if (existing && existing.expires > Date.now()) {
-          otp = existing.otp;
-          console.log('[send-otp] (Memory) Reusing existing unexpired OTP for:', authContext.email);
-        } else {
-          otp = crypto.randomInt(100000, 999999).toString();
-          devOtpStore.set(authContext.uid, { otp, expires: Date.now() + 10 * 60 * 1000, attempts: 0 });
-          console.log('[send-otp] (Memory) Generated new OTP for:', authContext.email);
-        }
-      }
+      const existing = await readOtp(authContext.uid);
+      const reuse = !!existing && existing.expires > now && now - existing.issuedAt < BURST_MS;
 
-      // Always log in dev so you can proceed without email
-      if (true) {
+      const otp = reuse ? existing!.otp : crypto.randomInt(100000, 999999).toString();
+      const record: OtpRecord = {
+        otp,
+        expires: now + TTL_MS,
+        attempts: reuse ? existing!.attempts : 0,
+        issuedAt: reuse ? existing!.issuedAt : now,
+      };
+      await writeOtp(authContext.uid, record);
+      console.log(`[send-otp] ${reuse ? 'Reusing' : 'Generated'} OTP for ${authContext.email}`);
+
+      // Never print codes in production logs — anyone with log access could
+      // complete someone else's second factor.
+      if (process.env.NODE_ENV !== 'production') {
         console.log(`[DEV OTP] Code for ${authContext.email}: ${otp}`);
       }
 
-      // Send the email
-      if (resend) {
-        const { error } = await resend.emails.send({
-          from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
-          to: authContext.email,
-          subject: 'Your Volunteer NY Security Code',
-          html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
+      // Delivery must succeed, or this endpoint must not report success.
+      //
+      // This was wrapped in `if (resend)`, so when RESEND_API_KEY was missing or
+      // invalid the server answered { success: true } WITHOUT sending anything.
+      // The client then showed "we sent you a code" and the user waited for an
+      // email that was never dispatched — one of the "it just sits there" cases.
+      if (!resend) {
+        console.error('[send-otp] RESEND_API_KEY is not configured — cannot deliver the code.');
+        await clearOtp(authContext.uid);
+        return res.status(503).json({
+          error: 'Email delivery is not configured on this server, so we cannot send your code. Please contact support.',
+        });
+      }
+
+      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>';
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: authContext.email,
+        subject: 'Your Volunteer NY Security Code',
+        html: `<div style="font-family: system-ui, sans-serif; max-width: 400px; margin: 0 auto; text-align: center; padding: 32px 24px;">
             <h2 style="margin: 0 0 8px; font-size: 18px; color: #1A2B36;">Your Security Code</h2>
             <p style="margin: 0 0 24px; color: #5C7483; font-size: 14px;">Enter this code to complete your sign-in:</p>
             <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #1F4C63; padding: 16px; background: #F9F9F7; border-radius: 8px;">${otp}</div>
             <p style="margin: 24px 0 0; color: #5C7483; font-size: 12px;">This code expires in 10 minutes. If you didn't request this, ignore this email.</p>
-          </div>`
+          </div>`,
+      });
+
+      if (error) {
+        // Surface the real reason. A rejected sender domain and a rate limit are
+        // very different problems, and collapsing both into "please try again"
+        // is why this failure was impossible to diagnose from the UI.
+        console.error('[send-otp] Resend rejected the message:', {
+          message: error.message,
+          name: (error as any).name,
+          from: fromAddress,
         });
-        if (error) {
-          console.error('[send-otp] Resend error:', { message: error.message, from: process.env.MAIL_FROM || '(fallback)' });
-          return res.status(500).json({
-            error: 'Could not send the verification email. Please try again.',
-            details: process.env.NODE_ENV !== 'production' ? error.message : undefined
-          });
-        }
+        await clearOtp(authContext.uid);
+        return res.status(502).json({
+          error: 'We could not deliver your verification email.',
+          details: error.message,
+          hint: `Sender address in use: ${fromAddress}. If that domain is not verified in Resend, delivery will always fail — set MAIL_FROM to a verified sender.`,
+        });
       }
 
       res.json({ success: true });
@@ -374,48 +480,37 @@ app.use(express.json());
         return res.status(500).json({ error: 'Server configuration error.' });
       }
 
-      let stored: { otp: string; expires: number; attempts: number } | undefined;
-      let otpRef: any = null;
-
-      try {
-        const db = adminObj.firestore();
-        otpRef = db.collection('verification_otps').doc(authContext.uid);
-        const doc = await otpRef.get();
-        if (doc.exists) {
-          stored = doc.data() as { otp: string; expires: number; attempts: number };
-        }
-      } catch (dbErr: any) {
-        console.warn('[verify-otp] Firestore unavailable, using memory store:', dbErr.message);
-        stored = devOtpStore.get(authContext.uid);
-      }
+      // Reads both stores and takes the freshest record, so a stale Firestore
+      // document can no longer shadow the code that was actually emailed.
+      const stored = await readOtp(authContext.uid);
 
       if (!stored) {
-        return res.status(400).json({ error: 'No code was requested. Please click "Send Code" first.' });
+        return res.status(400).json({ error: 'No code was requested. Please request a new code.' });
       }
 
       if (Date.now() > stored.expires) {
-        if (otpRef) await otpRef.delete().catch(() => {});
-        devOtpStore.delete(authContext.uid);
+        await clearOtp(authContext.uid);
         return res.status(400).json({ error: 'Your code has expired. Please request a new one.' });
       }
 
       if (stored.attempts >= 5) {
-        if (otpRef) await otpRef.delete().catch(() => {});
-        devOtpStore.delete(authContext.uid);
+        await clearOtp(authContext.uid);
         return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
       }
 
-      if (stored.otp !== code.trim()) {
-        stored.attempts += 1;
-        if (otpRef) await otpRef.update({ attempts: stored.attempts }).catch(() => {});
-        const mem = devOtpStore.get(authContext.uid);
-        if (mem) mem.attempts = stored.attempts;
-        return res.status(400).json({ error: 'Incorrect code. Please check and try again.' });
+      // Tolerate how people actually type a code out of an email client:
+      // spaces, and the non-breaking space that copying from HTML can carry.
+      const submitted = code.replace(/[\s ]/g, '');
+
+      if (stored.otp !== submitted) {
+        await writeOtp(authContext.uid, { ...stored, attempts: stored.attempts + 1 });
+        return res.status(400).json({
+          error: `Incorrect code. Please check and try again. ${4 - stored.attempts} attempt${4 - stored.attempts === 1 ? '' : 's'} remaining.`,
+        });
       }
 
       // ── Code is correct. Set the MFA custom claim. ──
-      if (otpRef) await otpRef.delete().catch(() => {});
-      devOtpStore.delete(authContext.uid);
+      await clearOtp(authContext.uid);
 
       if (!authContext.isDemo) {
         let claimSet = false;

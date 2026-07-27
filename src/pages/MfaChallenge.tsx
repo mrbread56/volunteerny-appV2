@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { API_BASE_URL } from "../lib/config";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -14,7 +14,20 @@ export default function MfaChallenge() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasSentOTP, setHasSentOTP] = useState(false);
-  
+  const [isSending, setIsSending] = useState(false);
+
+  // `hasSentOTP` is React state, so it only flips AFTER the request resolves.
+  // Two effect runs firing in that gap — a re-render, or StrictMode's
+  // deliberate double-invoke in development — both saw `false` and both posted
+  // to /send-otp. Each page visit therefore spent two of the five requests the
+  // server allows per ten minutes, so a couple of retries produced a 429 that
+  // looked like a random failure. A ref updates synchronously and closes that
+  // window.
+  const sendInFlight = useRef(false);
+  // The automatic send happens once per visit. Retrying is the Resend button's
+  // job, so a delivery failure can never turn into a send loop.
+  const didAutoSend = useRef(false);
+
   const navigate = useNavigate();
   const { user, userProfile, mfaVerified, loading, isDemoMode, setMfaVerified } = useAuth();
 
@@ -40,8 +53,9 @@ export default function MfaChallenge() {
       return;
     }
 
-    if (!hasSentOTP) {
-      sendOTP();
+    if (!didAutoSend.current) {
+      didAutoSend.current = true;
+      void sendOTP();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, mfaVerified, navigate, hasSentOTP, loading, isDemoMode]);
@@ -50,6 +64,9 @@ export default function MfaChallenge() {
   // resend is tied to the real request completing, not a fixed timeout.
   const sendOTP = async () => {
     if (!user || isDemoMode) return;
+    if (sendInFlight.current) return;
+    sendInFlight.current = true;
+    setIsSending(true);
     try {
       const token = await user.getIdToken();
       const response = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
@@ -58,14 +75,25 @@ export default function MfaChallenge() {
           "Authorization": `Bearer ${token}`
         }
       });
+      const data = await response.json().catch(() => null);
       if (!response.ok) {
-        const errorData = await response.json().catch(() => null);
-        throw new Error(errorData?.error || `Send OTP failed with status ${response.status}`);
+        // The server distinguishes "not configured", "provider rejected it" and
+        // "rate limited"; pass that through instead of flattening everything
+        // into one unhelpful sentence.
+        const detail = data?.details ? ` (${data.details})` : "";
+        throw new Error((data?.error || `Could not send the code (status ${response.status}).`) + detail);
       }
       setHasSentOTP(true);
+      setError("");
     } catch (err: any) {
       console.error("Failed to send OTP", err);
       setError(err.message || "Failed to send verification code. Please check your network.");
+      // Let the user retry after a failure — otherwise the guard above would
+      // block every further attempt for the lifetime of the page.
+      setHasSentOTP(false);
+    } finally {
+      sendInFlight.current = false;
+      setIsSending(false);
     }
   };
 
@@ -89,24 +117,43 @@ export default function MfaChallenge() {
         body: JSON.stringify({ code })
       });
       
-      const data = await response.json();
-      if (response.ok && data.success) {
-        // Force a token refresh and confirm the server actually recorded the
-        // mfaVerified claim before letting the session through. This used to
-        // write sessionStorage('mfaFallbackClaim') and redirect unconditionally,
-        // which meant the client decided its own MFA status — and anyone could
-        // set that key by hand. Trust the refreshed claim or nothing.
-        const refreshed = await user!.getIdTokenResult(true);
-        if (refreshed.claims.mfaVerified === true) {
+      const data = await response.json().catch(() => null);
+      if (response.ok && data?.success) {
+        // The server has recorded the mfaVerified custom claim. Claims are
+        // attached when a token is minted, and a freshly-written claim is not
+        // always visible on the very first forced refresh — so a single check
+        // would sometimes reject a code that had in fact just been accepted.
+        // Poll a few times with a short backoff before giving up.
+        const claimLanded = await (async () => {
+          for (let attempt = 0; attempt < 5; attempt++) {
+            try {
+              const refreshed = await user!.getIdTokenResult(true);
+              if (refreshed.claims.mfaVerified === true) return true;
+            } catch (refreshErr) {
+              console.warn("Token refresh failed while confirming MFA claim:", refreshErr);
+            }
+            await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+          }
+          return false;
+        })();
+
+        if (claimLanded) {
           window.location.href = "/";
         } else {
-          setError("Verification could not be completed. Please request a new code and try again.");
+          setError(
+            "Your code was correct, but the session could not be updated. Please request a new code and try again."
+          );
         }
       } else {
-        setError(data.error || "Invalid verification code.");
+        setError(data?.error || "Invalid verification code.");
       }
     } catch (err: any) {
-      setError("An error occurred during verification.");
+      console.error("MFA verification failed:", err);
+      setError(
+        err?.message?.includes("fetch") || err?.name === "TypeError"
+          ? "We could not reach the server. Please check your connection and try again."
+          : "An error occurred during verification. Please try again."
+      );
     } finally {
       setIsLoading(false);
     }
