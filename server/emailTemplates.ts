@@ -85,22 +85,23 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
       box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
     }
     .header {
-      background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-      padding: 36px 32px;
+      background: #ffffff;
+      padding: 36px 32px 24px 32px;
       text-align: left;
+      border-bottom: 1px solid #e2e8f0;
     }
     .header h1 {
-      color: #ffffff;
+      color: #0f172a;
       margin: 0;
       font-size: 22px;
       font-weight: 800;
       letter-spacing: -0.025em;
     }
     .header p {
-      color: #93c5fd;
+      color: #64748b;
       margin: 6px 0 0 0;
       font-size: 13px;
-      font-weight: 500;
+      font-weight: 600;
       letter-spacing: 0.025em;
     }
     .body {
@@ -126,12 +127,12 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 24px;
-      border: 1px solid #f1f5f9;
+      border: 1px solid #e2e8f0;
     }
     .card h3 {
       font-size: 13px;
       font-weight: 700;
-      color: #475569;
+      color: #0f172a;
       margin-top: 0;
       margin-bottom: 12px;
       text-transform: uppercase;
@@ -240,73 +241,7 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
       background-color: #fef2f2 !important;
     }
 
-    /* Media query dark mode overrides */
-    @media (prefers-color-scheme: dark) {
-      body, .wrapper {
-        background-color: #0f172a !important;
-        color: #94a3b8 !important;
-      }
-      .content-box {
-        background-color: #1e293b !important;
-        border-color: #334155 !important;
-      }
-      .h2 {
-        color: #f1f5f9 !important;
-      }
-      p, td {
-        color: #cbd5e1 !important;
-      }
-      strong, h1, h2, h3, h4 {
-        color: #f8fafc !important;
-      }
-      .card {
-        background-color: #0f172a !important;
-        border-color: #1e293b !important;
-      }
-      .card h3 {
-        color: #94a3b8 !important;
-      }
-      .card p {
-        color: #cbd5e1 !important;
-      }
-      .italic-note {
-        color: #94a3b8 !important;
-      }
-      .verified-card {
-        background-color: #064e3b !important;
-        border-color: #059669 !important;
-      }
-      .hours-highlight {
-        color: #34d399 !important;
-      }
-      .mono-badge {
-        background-color: #1e293b !important;
-        color: #cbd5e1 !important;
-      }
-      .applicant-message {
-        background-color: #0f172a !important;
-        border-color: #1e293b !important;
-        color: #cbd5e1 !important;
-      }
-      .auth-subtitle {
-        color: #94a3b8 !important;
-      }
-      .auth-box {
-        color: #60a5fa !important;
-        background-color: #1e3a8a !important;
-        border-color: #3b82f6 !important;
-      }
-      .alert-card {
-        background-color: #7f1d1d !important;
-        border-color: #ef4444 !important;
-      }
-      .footer p {
-        color: #475569 !important;
-      }
-      .footer a {
-        color: #60a5fa !important;
-      }
-    }
+    /* Clean email layouts without forcing dark mode overrides */
   </style>
 </head>
 <body>
