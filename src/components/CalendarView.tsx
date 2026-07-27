@@ -13,7 +13,8 @@ import {
   Info,
   CalendarCheck2,
   Download,
-  AlertCircle
+  AlertCircle,
+  Check
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { db } from '../firebase/config';
@@ -703,9 +704,13 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                             {/* Google Calendar export */}
                             <button
                               onClick={() => handleAddToGoogleCalendar(opp)}
-                              className="h-8 rounded-lg bg-slate-900 hover:bg-slate-800 transition-colors text-white font-semibold flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide px-2 border-none cursor-pointer"
+                              className={cn("h-8 rounded-lg transition-colors text-white font-semibold flex items-center justify-center gap-1.5 text-xs uppercase tracking-wide px-2 border-none cursor-pointer", syncFeedback[opp.id] === 'success-google' ? "bg-emerald-500 hover:bg-emerald-600" : "bg-slate-900 hover:bg-slate-800")}
                             >
-                              <span className="text-blue-400 text-sm">G</span> Google
+                              {syncFeedback[opp.id] === 'success-google' ? (
+                                <><Check className="w-4 h-4 text-white" /> Saved</>
+                              ) : (
+                                <><span className="text-blue-400 text-sm">G</span> Google</>
+                              )}
                             </button>
                             
                             {/* Apple Calendar export */}

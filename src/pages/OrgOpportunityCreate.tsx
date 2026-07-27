@@ -270,6 +270,33 @@ export default function OrgOpportunityCreate() {
     setIsLoading(true);
     setSaveError(null);
 
+    // Validate past dates and times
+    const now = new Date();
+    if (scheduleType === 'single') {
+      const selectedDate = new Date(dateTime);
+      if (selectedDate < now) {
+        setSaveError("The event date and time cannot be in the past.");
+        setIsLoading(false);
+        return;
+      }
+    } else {
+      for (const shift of shifts) {
+        if (scheduleType === 'multiple' && shift.date) {
+          const shiftDate = new Date(`${shift.date}T${shift.startTime}`);
+          if (shiftDate < now) {
+            setSaveError("One or more shift dates are in the past.");
+            setIsLoading(false);
+            return;
+          }
+        }
+        if (shift.startTime >= shift.endTime) {
+          setSaveError("Shift end time must be after the start time.");
+          setIsLoading(false);
+          return;
+        }
+      }
+    }
+
     const opportunityData = {
       orgId: user.uid,
       orgName: orgProfile?.organizationName,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import {
@@ -62,8 +62,19 @@ export default function OrgOpportunityApplicants() {
   const [filterTab, setFilterTab] = useState<
     "all" | "pending" | "reviewed" | "accepted" | "terminated"
   >("pending");
+  const [expandedMsgs, setExpandedMsgs] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isBulkRejecting, setIsBulkRejecting] = useState(false);
+  const pendingUpdates = useRef<Record<string, { timeout: NodeJS.Timeout, previousState: Application }>>({});
+
+  const cancelUpdate = (appId: string) => {
+    if (pendingUpdates.current[appId]) {
+      clearTimeout(pendingUpdates.current[appId].timeout);
+      setApplicants(prev => prev.map(a => a.id === appId ? pendingUpdates.current[appId].previousState : a));
+      delete pendingUpdates.current[appId];
+      setSuccessMessage("Action undone.");
+    }
+  };
 
   const handleBulkReject = async () => {
     if (!window.confirm("Are you sure you want to reject all remaining pending and reviewed applications?")) return;
@@ -121,7 +132,8 @@ export default function OrgOpportunityApplicants() {
 
   useEffect(() => {
     if (successMessage) {
-      const timer = setTimeout(() => setSuccessMessage(null), 3000);
+      const duration = successMessage.includes('|UNDO|') ? 5000 : 3000;
+      const timer = setTimeout(() => setSuccessMessage(null), duration);
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
@@ -195,6 +207,8 @@ export default function OrgOpportunityApplicants() {
 
     const dispatchEmailNotification = async (
       currentApplicantsList: Application[],
+      finalStatus: string,
+      rejectionArgs?: { reason: string; note: string }
     ) => {
       try {
         let studentEmail: string | null = null;
@@ -241,10 +255,10 @@ export default function OrgOpportunityApplicants() {
               studentName: targetStudentName,
               oppTitle: opportunityTitle,
               orgName: orgProfile?.organizationName || "Verified Organization",
-              status: status === "accepted" ? "accepted" : "rejected",
-              note: status === "rejected"
-                ? `${rejectionData?.reason || "Schedule Match Conflict"}. ${rejectionData?.note || ""}`
-                : status === "terminated"
+              status: finalStatus === "accepted" ? "accepted" : "rejected",
+              note: finalStatus === "rejected"
+                ? `${rejectionArgs?.reason || "Schedule Match Conflict"}. ${rejectionArgs?.note || ""}`
+                : finalStatus === "terminated"
                   ? "Your placement for this shift was terminated by the site moderator."
                   : undefined
             }
@@ -261,88 +275,85 @@ export default function OrgOpportunityApplicants() {
     };
 
 
-    if (isDemoMode) {
-      const storedApps = localStorage.getItem("demo_applications");
-      let allApps: Application[] = storedApps ? JSON.parse(storedApps) : [];
+    const currentState = applicants.find(a => a.id === appId);
+    if (!currentState) return { success: false, emailSent: false, receiptGenerated: false };
 
-      const updatedAll = allApps.map((a) =>
+    // Optimistically update UI immediately
+    let updatedApps: Application[] = [];
+    setApplicants((prev) => {
+      updatedApps = prev.map((a) =>
         a.id === appId
           ? {
               ...a,
               status,
-              rejectionReason:
-                status === "rejected" ? rejectionData?.reason : undefined,
-              rejectionNote:
-                status === "rejected" ? rejectionData?.note : undefined,
+              rejectionReason: status === "rejected" ? rejectionData?.reason : undefined,
+              rejectionNote: status === "rejected" ? rejectionData?.note : undefined,
             }
-          : a,
+          : a
       );
+      return updatedApps;
+    });
 
-      localStorage.setItem("demo_applications", JSON.stringify(updatedAll));
-      setSuccessMessage(
-        `Placement ${status === "terminated" ? "terminated" : status} successfully!`,
-      );
-      const opportunityApps = updatedAll.filter((a) => a.opportunityId === id);
-      setApplicants(opportunityApps);
-      await dispatchEmailNotification(opportunityApps);
-      receiptGenerated = status === "accepted";
-      return { success: true, emailSent, receiptGenerated };
-    }
-    try {
-      const updates: any = { status };
-      if (status === "rejected" && rejectionData) {
-        updates.rejectionReason = rejectionData.reason;
-        updates.rejectionNote = rejectionData.note;
-      } else {
-        updates.rejectionReason = null;
-        updates.rejectionNote = null;
-      }
-      await updateDoc(doc(db, "applications", appId), updates);
-      setSuccessMessage(
-        `Placement ${status === "terminated" ? "terminated" : status} successfully!`,
-      );
-      
-      let updatedApps: Application[] = [];
-      setApplicants((prev) => {
-        updatedApps = prev.map((a) =>
-          a.id === appId
-            ? {
-                ...a,
-                status,
-                rejectionReason:
-                  status === "rejected" ? rejectionData?.reason : undefined,
-                rejectionNote:
-                  status === "rejected" ? rejectionData?.note : undefined,
-              }
-            : a,
-        );
-        return updatedApps;
-      });
+    setSuccessMessage(`Placement ${status === "terminated" ? "terminated" : status}.|UNDO|${appId}`);
 
-      const targetApp = updatedApps.find(a => a.id === appId);
-      // Await email dispatch directly
-      const appsSnapshot = [...applicants];
-      const targetIndex = appsSnapshot.findIndex(a => a.id === appId);
-      if (targetIndex !== -1) {
-        appsSnapshot[targetIndex] = {
-          ...appsSnapshot[targetIndex],
-          status,
-          rejectionReason: status === "rejected" ? rejectionData?.reason : undefined,
-          rejectionNote: status === "rejected" ? rejectionData?.note : undefined,
-        };
-      }
-      await dispatchEmailNotification(appsSnapshot);
-      receiptGenerated = status === "accepted";
+    return new Promise((resolve) => {
+      const timeoutId = setTimeout(async () => {
+        delete pendingUpdates.current[appId];
 
-      if (id && (status === "rejected" || status === "terminated")) {
-        await promoteWaitlistedApplicant(id, orgProfile?.organizationName || "Verified Organization");
-      }
+        if (isDemoMode) {
+          const storedApps = localStorage.getItem("demo_applications");
+          let allApps: Application[] = storedApps ? JSON.parse(storedApps) : [];
 
-      return { success: true, emailSent, receiptGenerated };
-    } catch (err: any) {
-      console.error("Error updating status:", err);
-      return { success: false, emailSent: false, receiptGenerated: false, error: err.message || "Database write failed" };
-    }
+          const updatedAll = allApps.map((a) =>
+            a.id === appId
+              ? {
+                  ...a,
+                  status,
+                  rejectionReason:
+                    status === "rejected" ? rejectionData?.reason : undefined,
+                  rejectionNote:
+                    status === "rejected" ? rejectionData?.note : undefined,
+                }
+              : a,
+          );
+
+          localStorage.setItem("demo_applications", JSON.stringify(updatedAll));
+          const opportunityApps = updatedAll.filter((a) => a.opportunityId === id);
+          await dispatchEmailNotification(opportunityApps, status, rejectionData);
+          resolve({ success: true, emailSent: true, receiptGenerated: status === "accepted" });
+          return;
+        }
+
+        try {
+          const updates: any = { status };
+          if (status === "rejected" && rejectionData) {
+            updates.rejectionReason = rejectionData.reason;
+            updates.rejectionNote = rejectionData.note;
+          } else {
+            updates.rejectionReason = null;
+            updates.rejectionNote = null;
+          }
+          await updateDoc(doc(db, "applications", appId), updates);
+
+          const appsSnapshot = [...updatedApps];
+          await dispatchEmailNotification(appsSnapshot, status, rejectionData);
+
+          if (id && (status === "rejected" || status === "terminated")) {
+            await promoteWaitlistedApplicant(id, orgProfile?.organizationName || "Verified Organization");
+          }
+
+          resolve({ success: true, emailSent: true, receiptGenerated: status === "accepted" });
+        } catch (err: any) {
+          console.error("Error updating status:", err);
+          // Revert optimistic update on error
+          setApplicants(prev => prev.map(a => a.id === appId ? currentState : a));
+          setErrorMessage(err.message || "Database write failed");
+          resolve({ success: false, emailSent: false, receiptGenerated: false, error: err.message });
+        }
+      }, 5000);
+
+      pendingUpdates.current[appId] = { timeout: timeoutId, previousState: currentState };
+    });
   };
 
   const handleSubmitRec = async () => {
@@ -423,17 +434,29 @@ export default function OrgOpportunityApplicants() {
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-8 relative">
       <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
-          >
-            <CheckCircle className="w-4 h-4" />
-            {successMessage}
-          </motion.div>
-        )}
+          {successMessage && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
+            >
+              <CheckCircle className="w-4 h-4" />
+              {successMessage.includes('|UNDO|') ? (
+                <div className="flex items-center gap-4">
+                  <span>{successMessage.split('|UNDO|')[0]}</span>
+                  <button 
+                    onClick={() => cancelUpdate(successMessage.split('|UNDO|')[1])}
+                    className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded text-white font-bold transition-colors border border-white/30"
+                  >
+                    Undo
+                  </button>
+                </div>
+              ) : (
+                <span>{successMessage}</span>
+              )}
+            </motion.div>
+          )}
       </AnimatePresence>
 
       <button
@@ -569,8 +592,16 @@ export default function OrgOpportunityApplicants() {
                           Personal Message
                         </p>
                         <p className="text-sm text-ink-soft leading-relaxed italic font-medium">
-                          "{app.message || "No message provided."}"
+                          "{app.message ? (app.message.length > 100 && !expandedMsgs[app.id] ? app.message.substring(0, 100) + "..." : app.message) : "No message provided."}"
                         </p>
+                        {app.message && app.message.length > 100 && (
+                          <button 
+                            onClick={() => setExpandedMsgs(prev => ({...prev, [app.id]: !prev[app.id]}))}
+                            className="mt-2 text-xs font-bold text-blue-dark hover:underline"
+                          >
+                            {expandedMsgs[app.id] ? "Show Less" : "Read Full Application"}
+                          </button>
+                        )}
                       </div>
                     </div>
 

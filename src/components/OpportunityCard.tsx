@@ -40,7 +40,7 @@ export default function OpportunityCard({
   const matchPercent = getMatchPercentage();
 
   return (
-    <Card className="flex flex-col h-full bg-white rounded-xl border border-line/50 hover:border-ink/20 transition-all duration-300 group overflow-hidden relative">
+    <Card className="flex flex-col h-full bg-white rounded-xl border border-line/50 hover:border-blue-dark/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative">
       
       {/* Visual Design Header & Floating Bookmark Badge */}
       <div className="p-5 flex flex-col justify-between flex-grow w-full">
@@ -170,8 +170,9 @@ export default function OpportunityCard({
         {/* High-Converting CTA action orange button as specified */}
         <div className="mt-auto pt-2">
           <Link to={`/student/opportunities/${opportunity.id}`} className="block">
-            <Button className="w-full bg-amber hover:bg-amber text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg  cursor-pointer transition-all active:scale-[0.98]">
-              View & Quick Apply
+            <Button className="w-full bg-amber hover:bg-amber text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg cursor-pointer transition-all active:scale-[0.98] group-hover:bg-blue-dark flex items-center justify-center gap-2">
+              <span>View & Quick Apply</span>
+              <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">→</span>
             </Button>
           </Link>
         </div>
