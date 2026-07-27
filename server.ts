@@ -7,6 +7,7 @@ import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
 import crypto from 'crypto';
 
 // Load .env file first thing
@@ -305,6 +306,23 @@ app.use(express.json());
     return (inst as any).default || inst;
   }
 
+  /**
+   * Firestore handle bound to the correct database.
+   *
+   * FIREBASE_DATABASE_ID must name a database that exists in the project; the
+   * Admin SDK otherwise talks to "(default)". `npm run check:firebase` lists
+   * what is actually there.
+   */
+  function adminFirestore(): any {
+    const adminObj = getAdminObj();
+    if (!adminObj) throw new Error('Firebase Admin is not initialized');
+    const databaseId = process.env.FIREBASE_DATABASE_ID;
+    if (!databaseId) return adminObj.firestore();
+    // admin.firestore() takes only an App — selecting a named database needs
+    // the modular getFirestore(app, databaseId).
+    return getFirestore(adminObj.app(), databaseId);
+  }
+
   /** Simple rate limiter: max 5 OTP requests per 10-minute window per user. */
   const otpRateLimit = new Map<string, { count: number; windowStart: number }>();
   function isOtpRateLimited(uid: string): boolean {
@@ -348,7 +366,12 @@ app.use(express.json());
     const adminObj = getAdminObj();
     if (!adminObj) return null;
     try {
-      return adminObj.firestore().collection('verification_otps').doc(uid);
+      // `adminObj.firestore()` addresses the "(default)" database. This project
+      // has none — only named databases — so that call returned 5 NOT_FOUND on
+      // every OTP read and write, silently forcing the store onto its
+      // per-process memory fallback. A code issued by one process was then
+      // invisible to the next, which is the "No code was requested" case.
+      return adminFirestore().collection('verification_otps').doc(uid);
     } catch {
       return null;
     }

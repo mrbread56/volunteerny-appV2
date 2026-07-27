@@ -13,11 +13,34 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
+/**
+ * This project has NO "(default)" Firestore database — it only has named ones.
+ *
+ * `initializeFirestore(app, {})` addresses "(default)", so every read and write
+ * from the browser was aimed at a database that does not exist. That is the
+ * source of the long-running "Offline mode: could not fetch profiles",
+ * connection timeouts, and "Account setup didn't finish" symptoms: the requests
+ * were not slow, they were 404ing.
+ *
+ * The variable below already existed and was simply never passed to
+ * initializeFirestore — the wiring was lost at some point. Run
+ * `npm run check:firebase` to list the databases that actually exist.
+ */
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
 const app = initializeApp(firebaseConfig);
 
-export const db = initializeFirestore(app, {});
+export const db = firestoreDatabaseId
+  ? initializeFirestore(app, {}, firestoreDatabaseId)
+  : initializeFirestore(app, {});
+
+if (!firestoreDatabaseId && import.meta.env.DEV) {
+  console.warn(
+    '[firebase] VITE_FIREBASE_DATABASE_ID is not set, so Firestore is pointing at ' +
+      '"(default)". If this project has no (default) database, every query will fail. ' +
+      'Run `npm run check:firebase` to see which databases exist.'
+  );
+}
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
