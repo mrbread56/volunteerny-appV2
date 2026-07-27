@@ -160,7 +160,7 @@ export default function ApplicationReviewDialog({
                     </Button>
                   </div>
                 ) : submittingState === 'success' ? (
-                  <div className="space-y-8 max-w-lg w-full my-4">
+                  <div className="p-8 space-y-8 max-w-lg w-full mx-auto overflow-y-auto custom-scrollbar flex-grow my-4">
                     <div className="w-20 h-20 bg-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto  animate-pulse">
                       <CheckCircle className="w-10 h-10" />
                     </div>
