@@ -135,6 +135,7 @@ export default function StudentProfile() {
   };
 
   // Profile Fields
+  const [fullName, setFullName] = useState(studentProfile?.fullName || "");
   const [school, setSchool] = useState(studentProfile?.school || "");
   const [grade, setGrade] = useState(studentProfile?.grade || "");
   const [neighborhood, setNeighborhood] = useState(

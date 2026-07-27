@@ -179,11 +179,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let lastErr: any;
     for (let i = 0; i < attempts; i++) {
       try {
-        return await getDoc(ref);
+        return await Promise.race([
+          getDoc(ref),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ]) as any;
       } catch (err: any) {
         lastErr = err;
         const msg = err?.message || '';
-        const transient = msg.includes('offline') || msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('unavailable');
+        const transient = msg.includes('offline') || msg.includes('Failed to fetch') || msg.includes('network') || msg.includes('unavailable') || msg.includes('timeout');
         // A permission-denied or not-found error will never succeed on retry.
         if (!transient || i === attempts - 1) throw err;
         await new Promise((r) => setTimeout(r, 400 * Math.pow(2, i)));
@@ -211,7 +214,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Auto-resolve developer session safely
         if (isDevEmail) {
           data.role = 'developer';
-          data.twoFactorEnabled = false; // Bypass MFA so the Navbar doesn't hide the Control Room tabs
+          data.twoFactorEnabled = true;
           if (data.isBanned) {
             data.isBanned = false;
             try {
@@ -245,7 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           uid: currentUser.uid,
           email: userEmail,
           role: 'developer',
-          twoFactorEnabled: false, // Bypass MFA so the Navbar doesn't hide the Control Room tabs
+          twoFactorEnabled: true,
           createdAt: new Date(),
         };
         setUserProfile(devProfile);
@@ -255,7 +258,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uid: currentUser.uid,
             email: userEmail,
             role: 'developer',
-            twoFactorEnabled: false, // Bypass MFA so the Navbar doesn't hide the Control Room tabs
+            twoFactorEnabled: true,
             createdAt: serverTimestamp(),
           });
         } catch (dbErr) {
@@ -281,7 +284,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setProfileMissing(true);
       }
     } catch (error: any) {
-      if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network')) {
+      if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network') || error?.message?.includes('timeout')) {
         // Suppressed console.warn('Offline mode: Could not fetch profiles from Firestore.');
 
         // A blocked websocket (ad blocker / privacy shield targeting
@@ -312,7 +315,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             uid: currentUser.uid,
             email: userEmail,
             role: 'developer',
-            twoFactorEnabled: false, // Bypass MFA so the Navbar doesn't hide the Control Room tabs
+            twoFactorEnabled: true,
             createdAt: new Date(),
           });
           setAuthError(null);

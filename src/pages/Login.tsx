@@ -6,6 +6,7 @@ import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { useAuth } from "../contexts/AuthContext";
+import { verifyMfaClaim } from "../lib/mfa";
 import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
@@ -17,7 +18,7 @@ export default function Login() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   
   const navigate = useNavigate();
-  const { user, userProfile, profileMissing } = useAuth();
+  const { user, userProfile, profileMissing, mfaVerified, authError } = useAuth();
 
   useEffect(() => {
     if (!user) return;
@@ -35,6 +36,12 @@ export default function Login() {
     // still need to leave /login so App's route guard can show the recovery UI.
     if (!userProfile && !profileMissing) return;
 
+    const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
+    if (!isVerified) {
+      navigate("/mfa", { replace: true });
+      return;
+    }
+
     if (userProfile?.role === 'developer') {
       navigate("/developer/dashboard", { replace: true });
     } else if (userProfile?.role === 'organization') {
@@ -43,7 +50,7 @@ export default function Login() {
       // Students, and orphaned accounts (profileMissing) that need the recovery screen.
       navigate("/student/dashboard", { replace: true });
     }
-  }, [user, userProfile, profileMissing, navigate]);
+  }, [user, userProfile, profileMissing, mfaVerified, navigate]);
 
   const friendlyAuthError = (code: string) => {
     const map: Record<string, string> = {
@@ -103,6 +110,16 @@ export default function Login() {
     }
   };
 
+  if (user && !userProfile && !profileMissing && !authError) {
+    return (
+      <div className="min-h-[calc(100vh-56px)] flex items-center justify-center bg-white">
+        <div className="w-6 h-6 border-2 border-ink/10 border-t-ink rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  const displayError = error || authError;
+
   return (
     <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center p-6 bg-white">
       <motion.div
@@ -118,10 +135,10 @@ export default function Login() {
         </div>
 
         {/* Error */}
-        {error && (
+        {displayError && (
           <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200 flex items-start gap-2 mb-6">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <p className="leading-relaxed">{error}</p>
+            <p className="leading-relaxed">{displayError}</p>
           </div>
         )}
         
