@@ -12,7 +12,7 @@ export function Badge({ children, variant = 'primary', className }: BadgeProps) 
   const variants = {
     primary: 'bg-blue-dark/10 text-blue-dark border-blue-dark/20',
     secondary: 'bg-gray-50 text-ink-soft border-line',
-    success: 'bg-blue-dark/5 text-blue-dark border-blue-dark/20',
+    success: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     warning: 'bg-amber/10 text-amber-700 border-amber-200',
     danger: 'bg-red-50 text-red-700 border-red-200',
     info: 'bg-blue-dark/5 text-blue-dark border-blue-dark/10',

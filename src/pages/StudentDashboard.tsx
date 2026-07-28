@@ -1170,23 +1170,23 @@ export default function StudentDashboard() {
 
                       {(app.status === "accepted" || app.status === "pending") &&
                         orgContacts[app.opportunityId] && (
-                          <div className="mt-4 bg-amber/10 p-6 rounded-lg border border-orange-100 animate-in fade-in slide-in- duration-500">
-                            <p className="text-xs font-semibold text-orange-700 tracking-wide mb-3">
+                          <div className="mt-4 bg-paper-2 p-6 rounded-lg border border-line animate-in fade-in slide-in- duration-500">
+                            <p className="text-xs font-semibold text-ink tracking-wide mb-3">
                               Organization Contact Details
                             </p>
                             <div className="flex flex-wrap gap-6">
                               <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-amber" />
+                                <Mail className="w-4 h-4 text-ink-soft" />
                                 <a
                                   href={`mailto:${orgContacts[app.opportunityId].email}`}
-                                  className="text-sm font-bold text-ink hover:text-amber transition-colors"
+                                  className="text-sm font-bold text-ink hover:text-blue-dark transition-colors"
                                 >
                                   {orgContacts[app.opportunityId].email}
                                 </a>
                               </div>
                               {orgContacts[app.opportunityId].phone && (
                                 <div className="flex items-center gap-2">
-                                  <Phone className="w-4 h-4 text-amber" />
+                                  <Phone className="w-4 h-4 text-ink-soft" />
                                   <span className="text-sm font-bold text-ink">
                                     {orgContacts[app.opportunityId].phone}
                                   </span>
@@ -1194,7 +1194,7 @@ export default function StudentDashboard() {
                               )}
                               {orgContacts[app.opportunityId].website && (
                                 <div className="flex items-center gap-2">
-                                  <Globe className="w-4 h-4 text-amber" />
+                                  <Globe className="w-4 h-4 text-ink-soft" />
                                   <a
                                     href={
                                       orgContacts[app.opportunityId].website
@@ -1315,11 +1315,11 @@ export default function StudentDashboard() {
               <Card className="p-8 border border-line/50 rounded-lg bg-white space-y-6">
                 {/* Hours Gauge */}
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-xs font-semibold">
-                    <span className="text-ink-soft font-semibold tracking-wide ">
+                  <div className="flex justify-between items-center text-sm font-extrabold">
+                    <span className="text-ink font-extrabold tracking-wide ">
                       Volunteering Progress
                     </span>
-                    <span className="text-blue-dark font-semibold ">
+                    <span className="text-blue-dark font-extrabold ">
                       {totalCompletedHours} / {hourGoal} hrs
                     </span>
                   </div>
@@ -1359,7 +1359,7 @@ export default function StudentDashboard() {
                       onClick={() => setShowLogForm(true)}
                       className="w-full h-10 bg-amber hover:bg-amber hover:scale-[1.02] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
                     >
-                      📩 Request Hours Verification
+                      Request Hours Verification
                     </Button>
                   </div>
                 </div>
@@ -1394,17 +1394,17 @@ export default function StudentDashboard() {
                               className={cn(
                                 "text-xs font-semibold tracking-wide px-2 py-1 rounded-lg",
                                 req.status === "approved"
-                                  ? "bg-blue-dark/5 text-[#153343]"
+                                  ? "bg-emerald-50 text-emerald-700"
                                   : req.status === "declined"
                                     ? "bg-red-50 text-red-700"
-                                    : "bg-amber/10 text-orange-700"
+                                    : "bg-amber/10 text-amber-700"
                               )}
                             >
                               {req.status === "approved"
-                                ? "✓ Approved"
+                                ? "Approved"
                                 : req.status === "declined"
-                                  ? "✕ Declined"
-                                  : "⚡ Pending"}
+                                  ? "Declined"
+                                  : "Pending"}
                             </span>
 
                             {req.status === "pending" && (
@@ -2018,20 +2018,20 @@ export default function StudentDashboard() {
 
             {logError && (
               <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-bold ">
-                ⚠️ {logError}
+                {logError}
               </div>
             )}
 
             <form onSubmit={handleLogSubmit} className="space-y-4">
               {applications.length > 0 && (
-                <div className="p-3.5 bg-indigo-50 border border-indigo-200 rounded-lg space-y-1 text-indigo-900 animate-fadeIn ">
-                  <p className="text-xs font-semibold tracking-wide flex items-center gap-1.5 text-indigo-800">
-                    <span className="text-sm">⚡</span> Highlighted Most Recent Volunteering
+                <div className="p-3.5 bg-paper-2 border border-line rounded-lg space-y-1 text-ink animate-fadeIn ">
+                  <p className="text-xs font-semibold tracking-wide flex items-center gap-1.5 text-ink-soft">
+                    Highlighted Most Recent Volunteering
                   </p>
-                  <p className="text-xs font-semibold text-indigo-950">
+                  <p className="text-xs font-semibold text-ink">
                     {applications[0].opportunityTitle || "Volunteer Session"}
                   </p>
-                  <p className="text-xs text-indigo-700 font-semibold leading-relaxed">
+                  <p className="text-xs text-ink-soft font-semibold leading-relaxed">
                     Select this option in the dropdown below to automatically pre-fill your supervisor email and coordinate approval.
                   </p>
                 </div>
