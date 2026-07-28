@@ -60,6 +60,13 @@ export default function Home() {
 
   const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } } };
   const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } };
+  // Same motion, but opacity stays at 1. The hero headline is the largest text
+  // on the page, and fading it in from opacity: 0 behind a 0.15s stagger delay
+  // plus a 0.8s tween left it unpainted until ~1.70s — the browser cannot count
+  // an invisible element toward Largest Contentful Paint, so the animation
+  // itself was the mobile LCP. Sliding without fading keeps the entrance while
+  // letting the text paint on the first frame.
+  const riseUp = { hidden: { y: 24 }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } };
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
@@ -72,7 +79,7 @@ export default function Home() {
         <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[56vw] sm:pb-[45vw] lg:pb-[38vw]">
           <motion.div variants={stagger} initial="hidden" animate="visible" className="flex flex-col items-center text-center">
             <motion.h1
-              variants={fadeUp}
+              variants={riseUp}
               className="text-[2.25rem] sm:text-[3rem] lg:text-[3.5rem] font-semibold text-white tracking-[-0.03em] leading-[1.2] drop-shadow-[0_2px_12px_rgba(0,0,0,0.15)]"
             >
               Your community needs you.

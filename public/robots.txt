@@ -1,4 +1,15 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://volunteernorthyork.indevs.in/sitemap.xml
+# Authenticated areas: these redirect to /login for anonymous crawlers, so
+# crawling them only burns crawl budget and yields soft-404s.
+Disallow: /student/
+Disallow: /org/
+Disallow: /developer/
+Disallow: /mfa
+Disallow: /feedback
+
+# This previously advertised the sitemap on volunteernorthyork.indevs.in, which
+# does not resolve, and the file did not exist on either domain. Both now point
+# at the origin that actually serves the app.
+Sitemap: https://volunteerny-app-v2.vercel.app/sitemap.xml

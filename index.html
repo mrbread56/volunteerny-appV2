@@ -9,22 +9,39 @@
     <meta name="description" content="Volunteer-NY Toronto is the premier volunteering platform for high schools across Toronto, Ontario, and North York. Explore opportunities, log hours, and build community." />
     <title>Volunteer-NY Toronto</title>
     
-    <!-- SEO & Metadata compliance -->
-    <link rel="canonical" href="https://ais-pre-zl75vki22w6vgkhfhaywbm-524671517205.us-west2.run.app/" />
-    
+    <!-- SEO & Metadata compliance.
+         canonical and og:url must name the origin that actually serves the app;
+         a canonical pointing elsewhere tells search engines not to index this
+         one. Update both together if the custom domain goes live. -->
+    <link rel="canonical" href="https://volunteerny-app-v2.vercel.app/" />
+
     <!-- Open Graph tags -->
     <meta property="og:title" content="Volunteer-NY Toronto - High School Volunteering" />
     <meta property="og:description" content="The premier volunteering platform for high school students in North York and across Toronto." />
     <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://ais-pre-zl75vki22w6vgkhfhaywbm-524671517205.us-west2.run.app/" />
-    
+    <meta property="og:url" content="https://volunteerny-app-v2.vercel.app/" />
+    <meta property="og:site_name" content="Volunteer North York" />
+    <!-- twitter:card below promises a large image, so one has to be declared. -->
+    <meta property="og:image" content="https://volunteerny-app-v2.vercel.app/hero-bg.png" />
+    <meta property="og:image:alt" content="Volunteer North York" />
+
     <!-- Twitter Card tags -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Volunteer-NY Toronto - High School Volunteering" />
     <meta name="twitter:description" content="Explore opportunities, log hours, and build community with Volunteer-NY Toronto." />
+    <meta name="twitter:image" content="https://volunteerny-app-v2.vercel.app/hero-bg.png" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    <!--
+      The hero background is applied via a Tailwind bg-[url(...)] class, so the
+      browser cannot discover it until the CSS that references it has been
+      parsed — it was starting at 1.49s at Low priority and became the LCP
+      element at 1.93s. Preloading it from the document promotes it to a
+      high-priority fetch that starts immediately.
+    -->
+    <link rel="preload" as="image" href="/hero-bg.png" fetchpriority="high" />
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script type="module" src="/src/main.tsx"></script>
   </head>
