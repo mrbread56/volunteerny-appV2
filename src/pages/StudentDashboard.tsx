@@ -65,6 +65,7 @@ import ReceiptModal from "../components/ReceiptModal";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { evaluateBadges } from "../utils/badges";
 import { Award, Zap, BookOpen, Briefcase, Heart, ShieldCheck } from "lucide-react";
+import DashboardLayout from "../components/layout/DashboardLayout";
 
 export default function StudentDashboard() {
   const { user, userProfile, studentProfile, isDemoMode, refreshProfile, loading } =
@@ -72,23 +73,24 @@ export default function StudentDashboard() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
-    "dashboard" | "leaderboard" | "calendar" | "settings"
+    "dashboard" | "applications" | "hours" | "leaderboard" | "settings"
   >("dashboard");
 
   useEffect(() => {
     const tabParam = searchParams.get("tab");
     if (
       tabParam === "leaderboard" ||
-      tabParam === "calendar" ||
+      tabParam === "applications" ||
+      tabParam === "hours" ||
       tabParam === "dashboard" ||
       tabParam === "settings"
     ) {
-      setActiveTab(tabParam);
+      setActiveTab(tabParam as any);
     }
   }, [searchParams]);
 
-  const handleTabChange = (tab: "dashboard" | "leaderboard" | "calendar" | "settings") => {
-    setActiveTab(tab);
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab as any);
     setSearchParams({ tab });
   };
   const [applications, setApplications] = useState<Application[]>([]);
@@ -1053,34 +1055,37 @@ export default function StudentDashboard() {
   if (isLoading)
     return <div className="p-8 text-center">Loading your dashboard...</div>;
 
-  return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Welcome */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-medium text-ink tracking-tight">
-          Hi, {studentProfile?.fullName || "Student"}
-        </h1>
-        <p className="text-ink-soft text-sm mt-1">
-          Your volunteer dashboard
-        </p>
-      </div>
+  const sidebarItems = [
+    { id: "dashboard", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: "applications", label: "My Applications", icon: <Calendar className="w-4 h-4" /> },
+    { id: "hours", label: "Hours & Verification", icon: <Clock className="w-4 h-4" /> },
+    { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
+    { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
+  ];
 
-      {/* Content */}
+  return (
+    <DashboardLayout
+      title={`Hi, ${studentProfile?.fullName || "Student"}`}
+      subtitle="Your volunteer dashboard"
+      sidebarItems={sidebarItems}
+      activeTab={activeTab}
+      onTabChange={handleTabChange}
+    >
       <AnimatePresence mode="wait">
-        {activeTab === "dashboard" ? (
+        {["dashboard", "applications", "hours"].includes(activeTab) && (
           <motion.div
-            key="dashboard"
+            key={activeTab}
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
             transition={{ duration: 0.25 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
+            className={`grid grid-cols-1 ${activeTab === "hours" ? "max-w-3xl mx-auto" : "lg:grid-cols-3"} gap-8`}
           >
             {/* Main Column */}
-            <div className="lg:col-span-2 space-y-8">
+            <div className={`lg:col-span-2 space-y-8 ${activeTab === "hours" ? "hidden" : ""}`}>
             {/* Recent Applications */}
-            <section>
-              <div className="flex items-center justify-between mb-4">
+            <section className={activeTab !== "applications" ? "hidden" : ""}>
+              <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-ink flex items-center gap-2">
                   <Calendar className="text-blue-dark w-5 h-5" />
                   Your Applications
@@ -1121,7 +1126,7 @@ export default function StudentDashboard() {
                           {app.status === "accepted" && (
                             <button
                               title="Official Enrollment Slip"
-                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-amber/10 hover:bg-amber/10 text-amber border border-amber/20 rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200 whitespace-nowrap rounded-full"
+                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-white hover:bg-paper-3 text-ink border border-line rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200 whitespace-nowrap rounded-full shadow-sm"
                               onClick={() => {
                                 setSelectedReceiptApp({
                                   ...app,
@@ -1252,7 +1257,7 @@ export default function StudentDashboard() {
             </section>
 
             {/* Recommended Opportunities */}
-            <section>
+            <section className={activeTab !== "dashboard" ? "hidden" : ""}>
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-xl font-bold text-ink flex items-center gap-2">
                   <Sparkles className="text-blue-dark w-5 h-5" />
@@ -1305,9 +1310,9 @@ export default function StudentDashboard() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-8">
-            {/* Hour Tracker Gauge */}
-            <section className="space-y-4 animate-fadeIn">
+            <div className={`space-y-8 ${activeTab === "applications" ? "hidden lg:block lg:col-span-1" : ""}`}>
+              {/* Hour Tracker Gauge */}
+              <section className={activeTab === "applications" ? "hidden" : ""}>
               <h2 className="text-xl font-bold text-ink flex items-center gap-2 uppercase tracking-tight">
                 <Trophy className="text-blue-dark w-5 h-5" />
                 Hour Tracker
@@ -1316,10 +1321,10 @@ export default function StudentDashboard() {
                 {/* Hours Gauge */}
                 <div className="space-y-3">
                   <div className="flex justify-between items-center text-sm font-extrabold">
-                    <span className="text-ink font-extrabold tracking-wide ">
+                    <span className="text-ink font-black tracking-wide ">
                       Volunteering Progress
                     </span>
-                    <span className="text-blue-dark font-extrabold ">
+                    <span className="text-blue-dark font-black text-lg ">
                       {totalCompletedHours} / {hourGoal} hrs
                     </span>
                   </div>
@@ -1344,7 +1349,7 @@ export default function StudentDashboard() {
                 </div>
 
                  {/* Unofficial Disclaimer Warning Box */}
-                <div className="bg-amber/10 border border-amber/20 rounded-lg p-5 text-center space-y-3">
+                <div className="bg-white border border-line rounded-lg p-5 text-center space-y-3 shadow-sm">
                   <div>
                     <p className="text-orange-800 font-semibold text-xs uppercase tracking-wide">
                       Hour Verification Info
@@ -1357,7 +1362,7 @@ export default function StudentDashboard() {
                   <div className="pt-1.5 border-t border-amber/20">
                     <Button
                       onClick={() => setShowLogForm(true)}
-                      className="w-full h-10 bg-amber hover:bg-amber hover:scale-[1.02] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
+                      className="w-full h-10 bg-blue-dark hover:bg-blue-dark hover:scale-[1.02] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
                     >
                       Request Hours Verification
                     </Button>
@@ -1436,8 +1441,8 @@ export default function StudentDashboard() {
             </section>
 
             {/* Interest Matching / Waiting List in Sidebar */}
-            <section className="space-y-4">
-              <h2 className="text-lg font-bold text-ink flex items-center gap-2">
+            <section className={activeTab !== "dashboard" ? "hidden" : ""}>
+              <h2 className="text-xl font-bold text-ink flex items-center gap-2 mb-6">
                 <ListPlus className="text-blue-dark w-5 h-5" />
                 Waiting List
               </h2>
@@ -1500,7 +1505,7 @@ export default function StudentDashboard() {
               </Card>
             </section>
 
-            <section>
+            <section className={activeTab !== "applications" ? "hidden" : ""}>
               <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
                 <Star className="text-amber w-5 h-5 fill-yellow-500" />
                 Saved
@@ -1529,9 +1534,10 @@ export default function StudentDashboard() {
             </section>
             </div>
           </motion.div>
-        ) : activeTab === "leaderboard" /* Dedicated Leaderboard Tab Layout */ ? (
-          <motion.div
-            key="leaderboard"
+          )} 
+          {activeTab === "leaderboard" && (
+            <motion.div
+              key="leaderboard"
             initial={{ opacity: 0, y: 15 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -15 }}
@@ -1784,7 +1790,8 @@ export default function StudentDashboard() {
             </section>
             </div>
           </motion.div>
-        ) : activeTab === "settings" ? (
+          )} 
+          {activeTab === "settings" && (
           <motion.div
             key="settings"
             initial={{ opacity: 0, y: 15 }}
@@ -1929,21 +1936,6 @@ export default function StudentDashboard() {
               </Card>
             )}
           </motion.div>
-        ) : (
-          <motion.div
-            key="calendar"
-            initial={{ opacity: 0, y: 15 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -15 }}
-            transition={{ duration: 0.25 }}
-          >
-            <CalendarView
-              studentProfile={studentProfile}
-              isDemoMode={isDemoMode}
-              user={user}
-              refreshProfile={refreshProfile}
-            />
-          </motion.div>
         )}
       </AnimatePresence>
 
@@ -2007,7 +1999,7 @@ export default function StudentDashboard() {
               <X className="w-5 h-5" />
             </button>
             <div className="space-y-2">
-              <span className="text-xs font-semibold tracking-wide text-amber bg-amber/10 px-3 py-1 rounded-lg border border-orange-100">
+              <span className="text-xs font-semibold tracking-wide text-ink-soft bg-paper-3 px-3 py-1 rounded-lg border border-line">
                 Official Involvement Request
               </span>
               <CardTitle className="text-2xl font-semibold text-ink tracking-tight">Request Hours Verification</CardTitle>
@@ -2072,12 +2064,12 @@ export default function StudentDashboard() {
                         value={app.id}
                         className={isMostRecent ? "text-indigo-600 bg-indigo-50 font-semibold" : "text-ink"}
                       >
-                        {isMostRecent ? "🌟 [MOST RECENT] " : ""}
+                        {isMostRecent ? "[MOST RECENT] " : ""}
                         {app.opportunityTitle || "Volunteer Session"}{orgDisplay}{dateDisplay}
                       </option>
                     );
                   })}
-                  <option value="custom" className="font-bold text-amber-700">✨ Other / Unlisted Custom Activity Name...</option>
+                  <option value="custom" className="font-bold text-amber-700">Other / Unlisted Custom Activity Name...</option>
                 </select>
               </div>
 
@@ -2111,7 +2103,7 @@ export default function StudentDashboard() {
                           🛡️ {org.organizationName}
                         </option>
                       ))}
-                      <option value="custom" className="font-bold text-amber-700">✍️ Other / Unlisted Organization (Enter Manually)...</option>
+                      <option value="custom" className="font-bold text-amber-700">Other / Unlisted Organization (Enter Manually)...</option>
                     </select>
                   </div>
 
@@ -2327,6 +2319,6 @@ export default function StudentDashboard() {
           </Card>
         </div>
       )}
-    </div>
+    </DashboardLayout>
   );
 }
