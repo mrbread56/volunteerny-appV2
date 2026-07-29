@@ -42,56 +42,41 @@ export default function DashboardLayout({
           {headerAction && <div className="shrink-0">{headerAction}</div>}
         </div>
 
-        <div className={cn("flex flex-col gap-8", hasSidebar && "lg:flex-row lg:gap-10")}>
-          
-          {/* Sidebar (desktop) / Tabs (mobile) */}
-          {hasSidebar && (
-            <>
-              {/* Desktop sidebar */}
-              <aside className="hidden lg:block lg:w-56 shrink-0">
-                <nav className="flex flex-col gap-1 sticky top-24">
-                  {sidebarItems.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => onTabChange?.(item.id)}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 w-full text-left focus-ring",
-                        activeTab === item.id 
-                          ? "bg-[#F6F1E4] text-primary-900 shadow-card font-semibold" 
-                          : "text-ink-muted hover:text-ink-soft hover:bg-slate-100"
-                      )}
-                    >
-                      <span className={cn(
-                        "shrink-0 w-4 h-4",
-                        activeTab === item.id ? "text-primary-700" : "text-ink-muted"
-                      )}>{item.icon}</span>
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-              </aside>
+        <div className="flex flex-col gap-6">
 
-              {/* Mobile tabs */}
-              <div className="lg:hidden -mx-4 px-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-                <nav className="flex gap-1 w-max">
-                  {sidebarItems.map(item => (
-                    <button
-                      key={item.id}
-                      onClick={() => onTabChange?.(item.id)}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-all focus-ring",
-                        activeTab === item.id 
-                          ? "bg-[#F6F1E4] text-primary-900 shadow-card font-semibold" 
-                          : "text-ink-muted hover:bg-slate-100"
-                      )}
-                    >
-                      <span className="shrink-0 w-4 h-4">{item.icon}</span>
-                      {item.label}
-                    </button>
-                  ))}
-                </nav>
-              </div>
-            </>
+          {/*
+            This used to render a second, full-height <aside> sidebar here
+            (Overview / My Applications / Hours & Verification / Leaderboard /
+            Settings) sitting directly beside DashboardShell's own sidebar
+            (Dashboard / Browse / Leaderboard / Hours) — two sidebars stacked
+            side by side on the same page. DashboardShell already owns sidebar
+            navigation for the app; this component only ever needed to switch
+            tabs *within* one page, so that's now a single horizontal tab bar
+            at every screen size instead of a competing vertical rail.
+          */}
+          {hasSidebar && (
+            <div className="-mx-4 px-4 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
+              <nav className="flex gap-1 w-max border-b border-line-light">
+                {sidebarItems.map(item => (
+                  <button
+                    key={item.id}
+                    onClick={() => onTabChange?.(item.id)}
+                    className={cn(
+                      "flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium whitespace-nowrap transition-all focus-ring border-b-2 -mb-px",
+                      activeTab === item.id
+                        ? "border-primary-700 text-primary-900 font-semibold"
+                        : "border-transparent text-ink-muted hover:text-ink-soft hover:bg-slate-100"
+                    )}
+                  >
+                    <span className={cn(
+                      "shrink-0 w-4 h-4",
+                      activeTab === item.id ? "text-primary-700" : "text-ink-muted"
+                    )}>{item.icon}</span>
+                    {item.label}
+                  </button>
+                ))}
+              </nav>
+            </div>
           )}
 
           {/* Main Content */}
