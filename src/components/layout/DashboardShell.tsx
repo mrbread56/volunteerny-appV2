@@ -21,12 +21,21 @@ interface NavItem {
  * where users expect "meta" actions to live.
  */
 const studentMain: NavItem[] = [
-  { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  // Explicit ?tab=dashboard (not bare '/student/dashboard') so that navigating
+  // here from another tab actually resets StudentDashboard's activeTab state.
+  // That state only updates when the URL's tab param matches one of its five
+  // known values — a bare URL with no tab param never matches, so a bare link
+  // left the previous tab's content showing under a highlighted "Dashboard" nav
+  // item.
+  { to: '/student/dashboard?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/student/opportunities', label: 'Browse', icon: Search },
+  // This dashboard used to also render its own second, full-height sidebar
+  // (Overview / My Applications / Hours & Verification / Leaderboard /
+  // Settings) for switching these same tabs, stacked beside this one. That is
+  // now gone — every StudentDashboard tab is reachable from here instead, so
+  // 'My Applications' needed an entry that didn't exist before.
+  { to: '/student/dashboard?tab=applications', label: 'My Applications', icon: Calendar },
   { to: '/student/dashboard?tab=leaderboard', label: 'Leaderboard', icon: Trophy },
-  // No 'Calendar' entry. StudentDashboard only accepts tab=dashboard |
-  // applications | hours | leaderboard | settings, so ?tab=calendar silently
-  // fell through to Overview while the sidebar item highlighted as active.
   { to: '/student/dashboard?tab=hours', label: 'Hours', icon: Clock },
 ];
 const studentBottom: NavItem[] = [
