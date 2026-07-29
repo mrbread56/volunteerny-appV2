@@ -14,18 +14,24 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
     const isPassword = type === 'password';
     const generatedId = React.useId();
     const id = props.id || generatedId;
+    const errorId = `${id}-error`;
+    const helperId = `${id}-helper`;
 
     return (
       <div className="flex flex-col gap-1.5 w-full">
         {label && (
           <label htmlFor={id} className="text-sm font-medium text-ink">
             {label}
-            {props.required && <span className="text-red-500 ml-1">*</span>}
+            {/* red-500 measured 3.81:1 on white; red-600 clears 4.5:1. The
+                asterisk is decorative — `required` carries the meaning. */}
+            {props.required && <span className="text-red-600 ml-1" aria-hidden="true">*</span>}
           </label>
         )}
         <div className="relative w-full">
           <input
             id={id}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errorId : helperText ? helperId : undefined}
             type={isPassword && showPassword ? 'text' : type}
             className={cn(
               'flex h-11 w-full border border-line rounded-lg bg-white px-3.5 py-2 text-[14px] text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
@@ -47,8 +53,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
         </div>
-        {error && <p className="text-[12px] text-red-600 mt-0.5">{error}</p>}
-        {helperText && !error && <p className="text-[12px] text-ink-muted mt-0.5">{helperText}</p>}
+        {error && <p id={errorId} className="text-[12px] text-red-600 mt-0.5">{error}</p>}
+        {helperText && !error && <p id={helperId} className="text-[12px] text-ink-muted mt-0.5">{helperText}</p>}
       </div>
     );
   }

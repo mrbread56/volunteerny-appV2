@@ -1,5 +1,6 @@
 import React, { useEffect, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } from 'react-router-dom';
+import { MotionConfig } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { verifyMfaClaim } from './lib/mfa';
 import { isDeveloperEmail } from './lib/devAccess';
@@ -264,8 +265,6 @@ function ScrollToTop() {
   return null;
 }
 
-import SplashScreen from './components/SplashScreen';
-
 /** Routes that must render whatever the auth state is — they *are* the auth flow. */
 const AUTH_NEUTRAL_PATHS = new Set(['/login', '/signup', '/mfa', '/terms', '/privacy']);
 
@@ -303,10 +302,19 @@ const GlobalAuthGuard = ({ children }: { children: React.ReactNode }) => {
 function App() {
   return (
     <ErrorBoundary>
+      {/*
+        The prefers-reduced-motion media query in index.css only reaches CSS
+        animations and transitions — it cannot touch the JS-driven transforms
+        that motion/react writes straight to style. Every reveal, parallax and
+        page transition therefore ran at full amplitude for users who had asked
+        the OS for reduced motion. reducedMotion="user" makes the library honour
+        that setting globally, so the CSS rule and the JS animations finally
+        agree. SplashScreen was a no-op pass-through wrapper and is gone.
+      */}
+      <MotionConfig reducedMotion="user">
       <AuthProvider>
         <Router>
           <ScrollToTop />
-          <SplashScreen>
             <GlobalAuthGuard>
               <Suspense fallback={<LoadingFallback />}>
                 <Routes>
@@ -391,9 +399,9 @@ function App() {
                 </Routes>
               </Suspense>
             </GlobalAuthGuard>
-          </SplashScreen>
         </Router>
       </AuthProvider>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

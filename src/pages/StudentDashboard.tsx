@@ -60,7 +60,9 @@ import {
 import { formatDate, cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { OPPORTUNITY_CATEGORIES } from "../constants";
-import CalendarView from "../components/CalendarView";
+// CalendarView was imported here but never rendered. As a static import it was
+// still bundled into this chunk (~36 KB of dead weight). Re-add the import when
+// the calendar tab actually ships.
 import ReceiptModal from "../components/ReceiptModal";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { evaluateBadges } from "../utils/badges";
@@ -95,7 +97,7 @@ export default function StudentDashboard() {
   };
   const [applications, setApplications] = useState<Application[]>([]);
   const [orgContacts, setOrgContacts] = useState<
-    Record<string, { email: string; phone?: string; website?: string }>
+    Record<string, { email: string; phone?: string; website?: string; organizationName?: string }>
   >({});
   const [savedOpportunities, setSavedOpportunities] = useState<Opportunity[]>(
     [],
@@ -172,11 +174,13 @@ export default function StudentDashboard() {
       // their coordinator had been reminded when nothing was actually sent.
       const reminderResult = await sendTransactionalEmail({
         to: req.coordinatorContact,
-        subject: `⚠️ Reminder: Volunteer hours verification pending for ${studentProfile?.fullName || "Student"}`,
-        templateName: "admin_alert",
+        subject: `Reminder: ${studentProfile?.fullName || "A student"} is waiting on your hours confirmation`,
+        templateName: "notification",
         templateData: {
-          subject: "Involvement Hour Verification Reminder",
-          details: `Student ${studentProfile?.fullName || "Student"} is kindly reminding you to authorize the ${req.hours} hours submitted for "${req.activity}" on ${req.date}. Please log in to your dashboard to review this request.`
+          heading: "A volunteer hours confirmation is still pending",
+          details: `${studentProfile?.fullName || "A student"} has asked you to confirm the ${req.hours} hours they logged for "${req.activity}" on ${req.date}. You can approve or decline it from your Volunteer North York dashboard.`,
+          actionLabel: "Review the request",
+          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
         }
       });
       if (!reminderResult.success) {
@@ -259,11 +263,13 @@ export default function StudentDashboard() {
 
       sendTransactionalEmail({
         to: normalizedContact,
-        subject: `Volunteer hour authorization request from ${studentProfile?.fullName || "Student"}`,
-        templateName: "admin_alert",
+        subject: `${studentProfile?.fullName || "A student"} asked you to confirm their volunteer hours`,
+        templateName: "notification",
         templateData: {
-          subject: "Involvement Hour Verification Request",
-          details: `Student ${studentProfile?.fullName || "Student"} has logged ${parsedHours} hours for "${logActivity}" on ${logDate} and requested your organization's approval.`
+          heading: "Please confirm these volunteer hours",
+          details: `${studentProfile?.fullName || "A student"} logged ${parsedHours} hours for "${logActivity}" on ${logDate} and has asked your organization to approve them.`,
+          actionLabel: "Review the request",
+          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
         }
       }).catch(err => console.error("Could not send hours request notification email:", err));
       return;
@@ -287,11 +293,13 @@ export default function StudentDashboard() {
       // the submission failed, or they resubmit and create a duplicate request.
       sendTransactionalEmail({
         to: normalizedContact,
-        subject: `Volunteer hour verification request from ${studentProfile?.fullName || "Student"}`,
-        templateName: "admin_alert",
+        subject: `${studentProfile?.fullName || "A student"} asked you to confirm their volunteer hours`,
+        templateName: "notification",
         templateData: {
-          subject: "Involvement Hour Verification Request",
-          details: `Student ${studentProfile?.fullName || "Student"} has submitted ${parsedHours} hours for "${logActivity}" on ${logDate} and requested your online verification.`
+          heading: "Please confirm these volunteer hours",
+          details: `${studentProfile?.fullName || "A student"} submitted ${parsedHours} hours for "${logActivity}" on ${logDate} and has asked you to verify them online.`,
+          actionLabel: "Review the request",
+          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
         }
       }).catch(err => console.error("Could not send hours verification email:", err));
     } catch (err: any) {
@@ -1143,7 +1151,7 @@ export default function StudentDashboard() {
                                 setShowReceiptModal(true);
                               }}
                             >
-                              <FileText className="w-3.5 h-3.5 text-amber animate-pulse" />
+                              <FileText className="w-3.5 h-3.5 text-amber-dark animate-pulse" />
                               <span>Receipt</span>
                             </button>
                           )}
@@ -1476,6 +1484,7 @@ export default function StudentDashboard() {
                   </div>
 
                   <textarea
+                    aria-label="Specific interests or goals for the waiting list"
                     placeholder="Specific interests or goals..."
                     className="w-full min-h-[60px] p-3 rounded-lg bg-paper-2 border border-transparent focus:bg-white focus:border-blue-dark/10 outline-none h-10 text-xs font-bold transition-all"
                     value={interestNote}
@@ -1507,7 +1516,7 @@ export default function StudentDashboard() {
 
             <section className={activeTab !== "applications" ? "hidden" : ""}>
               <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">
-                <Star className="text-amber w-5 h-5 fill-yellow-500" />
+                <Star className="text-amber-dark w-5 h-5 fill-yellow-500" />
                 Saved
               </h2>
               <div className="space-y-3">
@@ -1550,7 +1559,7 @@ export default function StudentDashboard() {
               <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                 <div>
                   <h2 className="text-2xl font-semibold text-ink uppercase tracking-tight flex items-center gap-2 ">
-                    <Trophy className="text-amber w-6 h-6" />
+                    <Trophy className="text-amber-dark w-6 h-6" />
                     Rankings Board
                   </h2>
                   <p className="text-ink-soft text-xs font-semibold mt-1">
@@ -1567,7 +1576,7 @@ export default function StudentDashboard() {
                     <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,87,22,0.06),transparent)] pointer-events-none" />
 
                     <div className="text-center mb-8">
-                      <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber">
+                      <span className="text-xs font-semibold uppercase tracking-[0.25em] text-amber-dark">
                         Community Podium
                       </span>
                       <h3 className="text-lg font-bold text-ink mt-1">
@@ -1606,12 +1615,12 @@ export default function StudentDashboard() {
                       <div className="flex flex-col items-center animate-in fade-in slide-in- duration-500">
                         <div className="text-center mb-2 relative">
                           {leaderboard[0] && (
-                            <Trophy className="w-5 h-5 text-amber mx-auto absolute -top-5 left-1/2 -translate-x-1/2" />
+                            <Trophy className="w-5 h-5 text-amber-dark mx-auto absolute -top-5 left-1/2 -translate-x-1/2" />
                           )}
-                          <p className="text-sm font-semibold text-amber truncate max-w-[90px] sm:max-w-none">
+                          <p className="text-sm font-semibold text-amber-dark truncate max-w-[90px] sm:max-w-none">
                             {leaderboard[0] ? leaderboard[0].name : "---"}
                           </p>
-                          <p className="text-xs font-semibold text-amber ">
+                          <p className="text-xs font-semibold text-amber-dark ">
                             {leaderboard[0]
                               ? `${leaderboard[0].hours} hrs`
                               : "--"}
@@ -1621,10 +1630,10 @@ export default function StudentDashboard() {
                           className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-amber/20 shadow-orange-500/5"
                           style={{ height: "95px" }}
                         >
-                          <span className="text-3xl font-medium text-amber ">
+                          <span className="text-3xl font-medium text-amber-dark ">
                             1
                           </span>
-                          <span className="text-xs font-semibold text-amber uppercase tracking-widest mt-1">
+                          <span className="text-xs font-semibold text-amber-dark uppercase tracking-widest mt-1">
                             Champion
                           </span>
                         </div>
@@ -1636,7 +1645,7 @@ export default function StudentDashboard() {
                           <p className="text-xs font-bold text-orange-700 truncate max-w-[80px] sm:max-w-none">
                             {leaderboard[2] ? leaderboard[2].name : "---"}
                           </p>
-                          <p className="text-xs font-semibold text-amber/80 ">
+                          <p className="text-xs font-semibold text-amber-dark/80 ">
                             {leaderboard[2]
                               ? `${leaderboard[2].hours} hrs`
                               : "--"}
@@ -1646,7 +1655,7 @@ export default function StudentDashboard() {
                           className="w-full bg-[#fdf2e9] rounded-t-2xl flex flex-col items-center justify-center p-4 border border-orange-100"
                           style={{ height: "55px" }}
                         >
-                          <span className="text-xl font-semibold text-amber/80 ">
+                          <span className="text-xl font-semibold text-amber-dark/80 ">
                             3
                           </span>
                           <span className="text-xs font-semibold text-orange-400 uppercase tracking-widest mt-1">

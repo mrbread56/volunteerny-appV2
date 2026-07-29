@@ -24,8 +24,10 @@ const studentMain: NavItem[] = [
   { to: '/student/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/student/opportunities', label: 'Browse', icon: Search },
   { to: '/student/dashboard?tab=leaderboard', label: 'Leaderboard', icon: Trophy },
-  { to: '/student/dashboard?tab=calendar', label: 'Calendar', icon: Calendar },
-
+  // No 'Calendar' entry. StudentDashboard only accepts tab=dashboard |
+  // applications | hours | leaderboard | settings, so ?tab=calendar silently
+  // fell through to Overview while the sidebar item highlighted as active.
+  { to: '/student/dashboard?tab=hours', label: 'Hours', icon: Clock },
 ];
 const studentBottom: NavItem[] = [
   { to: '/student/profile', label: 'Profile', icon: UserCircle },
@@ -175,6 +177,8 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </Link>
         <button
           onClick={() => setMobileOpen(!mobileOpen)}
+          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+          aria-expanded={mobileOpen}
           className="p-2 text-ink-muted hover:text-ink rounded-lg"
         >
           {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}

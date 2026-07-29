@@ -278,11 +278,13 @@ export default function OrgDashboard() {
 
       sendTransactionalEmail({
         to: req.studentEmail,
-        subject: approved 
-          ? `✓ ${req.hours} Volunteer Hours Successfully Approved! 🎉`
-          : `⚠️ Volunteer Hour Claim Declined`,
-        templateName: approved ? "hours_confirmation" : "admin_alert",
+        subject: approved
+          ? `${req.hours} volunteer hours approved`
+          : `Update on your volunteer hours submission`,
+        templateName: approved ? "hours_confirmation" : "notification",
         templateData: {
+          heading: "Your volunteer hours were not approved",
+          details: `${orgProfile?.organizationName || "The organization"} reviewed the ${req.hours} hours you submitted for "${req.activity}" and was not able to approve them. If you think this is a mistake, contact your supervisor at the organization directly — they can re-submit the confirmation from their dashboard.`,
           studentName: req.studentName,
           oppTitle: req.activity,
           hours: req.hours,
@@ -290,9 +292,6 @@ export default function OrgDashboard() {
           orgName: orgProfile?.organizationName || "Verified Organization",
           supervisorName: req.coordinatorName || "Site Supervisor",
           subject: "Volunteer Hours Update",
-          details: approved 
-            ? `Your supervisor has approved your volunteer claim of ${req.hours} hours for ${req.activity}.`
-            : `Your claim of ${req.hours} hours for ${req.activity} was declined. Please verify inputs with your coordinator.`
         }
       }).catch(err => console.error("Could not send validation email:", err));
 
@@ -886,9 +885,9 @@ export default function OrgDashboard() {
         >
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-4xl font-mono font-medium leading-none">
+              <p className="text-4xl font-mono font-medium leading-none">
                 {stats.totalOpps}
-              </h3>
+              </p>
               <p className="text-blue-100 text-xs font-semibold tracking-wide mt-2 font-mono">
                 Opportunities
               </p>
@@ -902,14 +901,14 @@ export default function OrgDashboard() {
         >
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-4xl font-mono font-medium text-ink leading-none">
                 {stats.pendingApps}
-              </h3>
+              </p>
               <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
                 Pending Review
               </p>
             </div>
-            <Clock className="text-amber w-10 h-10" />
+            <Clock className="text-amber-dark w-10 h-10" />
           </div>
         </Card>
         <Card
@@ -918,9 +917,9 @@ export default function OrgDashboard() {
         >
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-4xl font-mono font-medium text-ink leading-none">
                 {stats.acceptedApps}
-              </h3>
+              </p>
               <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
                 Accepted
               </p>
@@ -934,9 +933,9 @@ export default function OrgDashboard() {
         >
           <div className="flex justify-between items-start">
             <div>
-              <h3 className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-4xl font-mono font-medium text-ink leading-none">
                 {stats.rejectedApps}
-              </h3>
+              </p>
               <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
                 Rejected
               </p>

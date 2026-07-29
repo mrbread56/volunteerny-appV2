@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,6 +55,8 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
       };
     }
   }, [isOpen]);
+
+  const dialogRef = useDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -195,7 +198,13 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
   };
 
   return (
-    <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Report a user"
+      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
+    >
       <Card className="w-full max-w-lg rounded-lg border border-line-light  bg-white overflow-hidden relative max-h-[90vh] flex flex-col">
         {/* Header decoration */}
         <div className="absolute top-0 left-0 right-0 h-2    " />

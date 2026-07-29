@@ -423,12 +423,38 @@ export const emailTemplates = {
   /**
    * 6. Admin Security & Notification Alerts
    */
+  /**
+   * 6a. Ordinary person-to-person notifications.
+   *
+   * Everything routine used to be sent through `admin_alert` below, so a
+   * volunteer coordinator being asked to confirm a student's hours received an
+   * email headed "System Security Alert" containing an "Incident Record". That
+   * reads as phishing to anyone who does not already know us, and it is the
+   * step the whole hours-verification loop depends on. Routine mail now uses
+   * this template; `admin_alert` is reserved for genuine security events.
+   */
+  notification: (heading: string, details: string, actionLabel?: string, actionUrl?: string) => {
+    const title = esc(heading) || "Volunteer North York";
+    const cta = actionLabel && actionUrl
+      ? `<p style="margin:28px 0 0"><a class="btn" href="${esc(actionUrl)}">${esc(actionLabel)}</a></p>`
+      : "";
+    const children = `
+      <h2 class="h2">${esc(heading)}</h2>
+      <div class="card">
+        <p style="margin:0">${esc(details)}</p>
+      </div>
+      ${cta}
+      <p style="margin-top:28px">Thank you for supporting students in our community.</p>
+    `;
+    return wrapBaseTemplate({ title, children, previewText: esc(details).slice(0, 120) });
+  },
+
   admin_alert: (subject: string, details: string) => {
     const title = "⚠️ System Security Alert";
     const children = `
       <h2 class="h2">Admin System Bulletin 🚨</h2>
       <p>A triggered flag/security report requires review. The event details are documented below:</p>
-      
+
       <div class="card alert-card">
         <h3>Incident Record</h3>
         <p><strong>Subject:</strong> ${esc(subject)}</p>

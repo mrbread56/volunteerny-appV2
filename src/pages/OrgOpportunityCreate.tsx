@@ -360,7 +360,9 @@ export default function OrgOpportunityCreate() {
 
       <Card className="border-none rounded-lg overflow-hidden">
         <CardHeader className="bg-blue-dark text-white p-10 border-none">
-          <CardTitle className="text-3xl text-white">Post New Opportunity</CardTitle>
+          {/* The page had no <h1> at all — its title rendered as an <h3>, so the
+              heading outline started three levels deep. */}
+          <CardTitle as="h1" className="text-3xl text-white">Post New Opportunity</CardTitle>
           <p className="text-blue-100 mt-2">Fill out the details to attract the best student volunteers.</p>
         </CardHeader>
         <CardContent className="p-10">
@@ -396,6 +398,7 @@ export default function OrgOpportunityCreate() {
                   <label className="text-sm font-medium text-ink-soft">Description</label>
                   <textarea 
                     className="w-full rounded-lg border border-line p-6 text-sm focus:ring-2 focus:ring-blue-dark focus:outline-none min-h-[150px] font-medium"
+                    aria-label="Description"
                     placeholder="Describe what volunteers will be doing..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
@@ -538,7 +541,7 @@ export default function OrgOpportunityCreate() {
                               <Popup className="rounded-lg overflow-hidden">
                                  <div className="p-2 text-center text-xs space-y-1">
                                     <div className="font-bold text-ink">Your Location</div>
-                                    <div className="text-xs text-amber font-mono font-bold uppercase">Active Tracker</div>
+                                    <div className="text-xs text-amber-dark font-mono font-bold uppercase">Active Tracker</div>
                                     <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.latitude.toFixed(4)}, Lng: {userCoords.longitude.toFixed(4)}</div>
                                  </div>
                               </Popup>
@@ -573,6 +576,7 @@ export default function OrgOpportunityCreate() {
                   <label className="text-sm font-medium text-ink-soft">Detailed Requirements</label>
                   <textarea 
                     className="w-full rounded-lg border border-line p-6 text-sm focus:ring-2 focus:ring-blue-dark focus:outline-none min-h-[100px] font-medium"
+                    aria-label="Detailed requirements"
                     placeholder="Specify any background checks, language requirements, or age limits..."
                     value={requirements}
                     onChange={(e) => setRequirements(e.target.value)}

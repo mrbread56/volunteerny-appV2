@@ -10,6 +10,7 @@ export interface UserProfile {
 }
 
 export interface StudentProfile {
+  referralCount?: number;
   uid: string;
   fullName: string;
   school: string;
@@ -17,7 +18,7 @@ export interface StudentProfile {
   neighborhood: string;
   interests: string[];
   skills: string[];
-  availability: string[];
+  availability?: string[];
   previousExperience?: string;
   resumeUrl?: string;
   passportUrl?: string;
@@ -42,7 +43,7 @@ export interface OrganizationProfile {
   mission: string;
   contactEmail: string;
   phone?: string;
-  address: string;
+  address?: string;
   organizationType?: string;
   northYorkConfirmed: boolean;
   websiteUrl?: string;
@@ -109,6 +110,14 @@ export interface Application {
   resumeUrl?: string;
   rejectionReason?: string;
   rejectionNote?: string;
+  // Denormalised onto the application document at write time so the student
+  // dashboard can render and email without a second read. These were being
+  // set and read already; the interface just did not admit them.
+  studentEmail?: string;
+  studentSchool?: string;
+  studentGrade?: string;
+  orgId?: string;
+  organizationId?: string;
 }
 
 export interface SavedOpportunity {

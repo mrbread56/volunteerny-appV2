@@ -24,10 +24,10 @@ import {
 
 const FEEDBACK_TYPES = [
   { value: '', label: '-- Choose Feedback Category * --' },
-  { value: 'bug', label: 'Report a Bug 🐞' },
-  { value: 'feature', label: 'Suggest a Feature 💡' },
-  { value: 'ux', label: 'User Experience (UX) Idea 🎨' },
-  { value: 'other', label: 'Other Support Ticket ⚙' },
+  { value: 'bug', label: 'Report a Bug' },
+  { value: 'feature', label: 'Suggest a Feature' },
+  { value: 'ux', label: 'User Experience (UX) Idea' },
+  { value: 'other', label: 'Other Support Ticket' },
 ];
 
 export default function FeedbackPage() {
@@ -238,7 +238,7 @@ export default function FeedbackPage() {
           {submittedFeedback ? (
             <Card className="rounded-lg border border-orange-100 overflow-hidden bg-white animate-fadeIn">
               <div className="p-8 text-center space-y-5">
-                <div className="w-16 h-16 bg-amber/10 text-amber rounded-lg flex items-center justify-center mx-auto border border-orange-100 animate-pulse">
+                <div className="w-16 h-16 bg-amber/10 text-amber-dark rounded-lg flex items-center justify-center mx-auto border border-orange-100 animate-pulse">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div className="space-y-2">
@@ -282,7 +282,7 @@ export default function FeedbackPage() {
 
                   {type === 'ux' && (
                     <div className="p-4 bg-blue-dark/5 text-blue-900 text-xs rounded-lg border border-blue-dark/10 leading-relaxed font-semibold animate-fadeIn">
-                      <span className="font-semibold block mb-1">💡 What does "UX" mean?</span> 
+                      <span className="font-semibold block mb-1">What does "UX" mean?</span> 
                       <strong>UX</strong> stands for <strong>User Experience</strong>. It represents how easy, natural, and friendly the website is to navigate. Submit a UX ticket if you feel a page is confusing, if buttons are hard to click on a phone, or if you have suggestions on how we can improve the layout styling!
                     </div>
                   )}
@@ -299,6 +299,7 @@ export default function FeedbackPage() {
                     <label className="text-[13px] font-medium text-ink">Detailed Description</label>
                     <textarea
                       rows={5}
+                      aria-label="Detailed description"
                       placeholder="Please describe the issue or suggestion in detail..."
                       className="w-full border border-line p-3.5 text-[14px] text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
                       value={message}
@@ -397,7 +398,7 @@ export default function FeedbackPage() {
 
           <Card className="p-6 border border-line rounded-lg bg-white space-y-4">
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-amber" /> Service Policy
+              <AlertTriangle className="w-4 h-4 text-amber-dark" /> Service Policy
             </h3>
             <p className="text-xs leading-relaxed text-ink-soft font-semibold">
               We strictly audit spam or duplicate submissions. Ensure detailed reports to help maintain an accessible community environment for all high school students and public organizations around York region.
@@ -440,7 +441,7 @@ export default function FeedbackPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
                           fb.type === 'bug' ? 'bg-red-50 text-red-600 border border-red-100' :
-                          fb.type === 'feature' ? 'bg-amber/10 text-amber border border-orange-100' :
+                          fb.type === 'feature' ? 'bg-amber/10 text-amber-dark border border-orange-100' :
                           fb.type === 'ux' ? 'bg-blue-dark/5 text-blue-dark border border-blue-dark/10' :
                           'bg-paper-3 text-ink-soft border border-line'
                         }`}>
@@ -504,7 +505,7 @@ export default function FeedbackPage() {
                   ) : (
                     <div className="bg-[#FAF9F6] border border-orange-100/60 rounded-lg px-5 py-4 text-xs text-ink-soft font-semibold flex flex-col gap-2 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-amber/10 rounded-lg blur-xl" />
-                      <div className="flex items-center gap-2 font-semibold text-xs text-amber">
+                      <div className="flex items-center gap-2 font-semibold text-xs text-amber-dark">
                         <span className="w-2 h-2 rounded-lg bg-amber animate-pulse" />
                         <span>Logged safely under review</span>
                       </div>

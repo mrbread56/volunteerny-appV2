@@ -60,7 +60,7 @@ export default function OrgOpportunityApplicants() {
     null,
   );
   const [filterTab, setFilterTab] = useState<
-    "all" | "pending" | "reviewed" | "accepted" | "terminated"
+    "all" | "pending" | "reviewed" | "accepted" | "rejected" | "terminated"
   >("pending");
   const [expandedMsgs, setExpandedMsgs] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -675,7 +675,7 @@ export default function OrgOpportunityApplicants() {
 
                       {(app.status === "pending" || app.status === "reviewed" || app.status === "rejected") && (
                         <Button
-                          variant={(app.status === "pending" || app.status === "reviewed") ? "default" : "ghost"}
+                          variant={(app.status === "pending" || app.status === "reviewed") ? "primary" : "ghost"}
                           className={cn(
                             "w-full font-bold uppercase text-xs tracking-widest h-12 rounded-lg",
                             (app.status === "pending" || app.status === "reviewed")

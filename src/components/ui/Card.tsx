@@ -29,8 +29,17 @@ export function CardHeader({ children, className }: { children: React.ReactNode;
   return <div className={cn('p-6 sm:p-8 border-b border-line', className)}>{children}</div>;
 }
 
-export function CardTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <h3 className={cn('text-xl font-semibold tracking-[-0.02em] text-ink', className)}>{children}</h3>;
+/**
+ * `as` exists because CardTitle was hardcoded to <h3>. Pages whose main title
+ * is a CardTitle therefore had no <h1> and started their heading outline three
+ * levels deep. Pass `as="h1"` (or h2) where the card *is* the page.
+ */
+export function CardTitle({ children, className, as: Tag = 'h3' }: {
+  children: React.ReactNode;
+  className?: string;
+  as?: 'h1' | 'h2' | 'h3' | 'h4';
+}) {
+  return <Tag className={cn('text-xl font-semibold tracking-[-0.02em] text-ink', className)}>{children}</Tag>;
 }
 
 export function CardContent({ children, className }: { children: React.ReactNode; className?: string }) {

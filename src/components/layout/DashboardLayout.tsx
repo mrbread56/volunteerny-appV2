@@ -95,7 +95,10 @@ export default function DashboardLayout({
           )}
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0">
+          {/* DashboardShell already renders the page's <main> landmark, so this
+              produced a nested <main> — invalid HTML and two "main" landmarks
+              for assistive tech to choose between. */}
+          <div className="flex-1 min-w-0">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 12 }}
@@ -104,7 +107,7 @@ export default function DashboardLayout({
             >
               {children}
             </motion.div>
-          </main>
+          </div>
         </div>
       </div>
     </div>

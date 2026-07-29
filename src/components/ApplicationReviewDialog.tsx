@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -57,6 +58,8 @@ export default function ApplicationReviewDialog({
     }
   }, [isOpen]);
 
+  const dialogRef = useDialog(isOpen, onClose);
+
   if (!isOpen || !application) return null;
 
   const handleOpenResume = (e: React.MouseEvent) => {
@@ -103,7 +106,13 @@ export default function ApplicationReviewDialog({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Review volunteer application"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

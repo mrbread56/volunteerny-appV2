@@ -233,11 +233,15 @@ export function FileUpload({
             isTooLarge ? "border-amber-400 bg-amber/10" : fileName ? "border-blue-dark bg-blue-dark/5" : ""
           )}
         >
+          {/* aria-label: the visible label above has no htmlFor and this input
+              is opacity-0 over the drop zone, so it had no accessible name —
+              a screen reader announced a bare, nameless file button. */}
           {(!fileName && !isTooLarge) && (
-            <input 
-              type="file" 
+            <input
+              type="file"
+              aria-label={label}
               ref={fileInputRef}
-              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
               accept={accept}
               onChange={(e) => e.target.files?.[0] && handleFile(e.target.files[0])}
             />
@@ -258,7 +262,7 @@ export function FileUpload({
               </>
             ) : isTooLarge ? (
               <>
-                <div className="w-14 h-14 bg-amber/10 rounded-xl flex items-center justify-center text-amber scale-110">
+                <div className="w-14 h-14 bg-amber/10 rounded-xl flex items-center justify-center text-amber-dark scale-110">
                   <AlertCircle className="w-7 h-7" />
                 </div>
                 <div>
@@ -396,7 +400,7 @@ export function FileUpload({
       {fileName && originalSize && originalSize > 80 && !isOptimized && (
         <div className="p-4 bg-amber/10 text-amber-900 border border-amber-100 rounded-lg flex flex-col items-center text-center gap-3 animate-in fade-in slide-in-">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber flex-shrink-0" />
+            <AlertCircle className="w-4 h-4 text-amber-dark flex-shrink-0" />
             <p className="text-xs font-bold leading-none">Database Optimization Available</p>
           </div>
           <p className="text-xs text-amber-800 leading-relaxed font-semibold">

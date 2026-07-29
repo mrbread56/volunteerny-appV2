@@ -393,6 +393,7 @@ export default function OrgProfile() {
                   className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-blue-dark min-h-[100px]"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
+                  aria-label="Basic description"
                   placeholder="Introduce your organization, objectives, and community presence..."
                 />
               </div>
@@ -402,6 +403,7 @@ export default function OrgProfile() {
                   Mission Statement
                 </label>
                 <textarea
+                  aria-label="Mission statement"
                   className="w-full rounded-lg border border-line p-4 text-sm focus:ring-2 focus:ring-blue-dark min-h-[100px]"
                   value={mission}
                   onChange={(e) => setMission(e.target.value)}

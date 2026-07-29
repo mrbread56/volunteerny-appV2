@@ -1,6 +1,6 @@
 import type { FC, ReactNode } from 'react';
 import { useRef, useState, useEffect } from 'react';
-import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import { motion, useInView, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'motion/react';
 import { ArrowRight, ChevronRight, Play } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -14,7 +14,7 @@ const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = 
       ref={ref}
       initial={{ opacity: 0, y: 28 }}
       animate={inView ? { opacity: 1, y: 0 } : {}}
-      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] as const }}
       className={className}
     >
       {children}
@@ -43,10 +43,18 @@ export default function Home() {
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.5], [0, -40]);
 
+  // WCAG 2.2.2: auto-advancing content must be pausable. It also used to ignore
+  // manual selection — picking a dot was overridden ~5s later because the
+  // interval never reset. `factIdx` in the dep array restarts the clock on every
+  // change, and `paused` covers hover, focus, and prefers-reduced-motion.
+  const [paused, setPaused] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+
   useEffect(() => {
-    const t = setInterval(() => setFactIdx((i) => (i + 1) % FACTS.length), 5000);
-    return () => clearInterval(t);
-  }, []);
+    if (paused || prefersReducedMotion) return;
+    const t = setTimeout(() => setFactIdx((i) => (i + 1) % FACTS.length), 5000);
+    return () => clearTimeout(t);
+  }, [factIdx, paused, prefersReducedMotion]);
 
   const handleDemo = async (role: 'student' | 'organization') => {
     setIsDemoLoading(role === 'student' ? 'student' : 'org');
@@ -59,14 +67,14 @@ export default function Home() {
   };
 
   const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } } };
-  const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } };
+  const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } } };
   // Same motion, but opacity stays at 1. The hero headline is the largest text
   // on the page, and fading it in from opacity: 0 behind a 0.15s stagger delay
   // plus a 0.8s tween left it unpainted until ~1.70s — the browser cannot count
   // an invisible element toward Largest Contentful Paint, so the animation
   // itself was the mobile LCP. Sliding without fading keeps the entrance while
   // letting the text paint on the first frame.
-  const riseUp = { hidden: { y: 24 }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] } } };
+  const riseUp = { hidden: { y: 24 }, visible: { y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } } };
 
   return (
     <div className="min-h-screen bg-white overflow-hidden">
@@ -116,15 +124,20 @@ export default function Home() {
           
           <Reveal delay={0.3}>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link to="/signup">
-                <button className="group bg-blue-dark text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 flex items-center gap-2.5 shadow-[0_2px_8px_rgba(31,76,99,0.2)]">
-                  Continue as a student <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+              {/* These were <Link><button>…</button></Link>: nested interactive
+                  elements, which is invalid HTML and gives unpredictable
+                  keyboard behaviour. The anchor now carries the styling. */}
+              <Link
+                to="/signup"
+                className="group bg-blue-dark text-white px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 inline-flex items-center gap-2.5 shadow-[0_2px_8px_rgba(31,76,99,0.2)]"
+              >
+                Continue as a student <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
-              <Link to="/signup">
-                <button className="group bg-white border border-gray-200 text-ink px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:border-blue-dark/30 hover:bg-gray-50 transition-all duration-300 flex items-center gap-2 shadow-sm">
-                  Continue as a organization <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-                </button>
+              <Link
+                to="/signup"
+                className="group bg-white border border-gray-200 text-ink px-8 py-3.5 rounded-full text-[14px] font-medium tracking-[-0.01em] hover:border-blue-dark/30 hover:bg-gray-50 transition-all duration-300 inline-flex items-center gap-2 shadow-sm"
+              >
+                Continue as an organization <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </Link>
             </div>
             
@@ -134,7 +147,7 @@ export default function Home() {
                 <button
                   onClick={() => handleDemo('student')}
                   disabled={!!isDemoLoading}
-                  className="text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="min-h-[44px] px-2 text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5" />
                   {isDemoLoading === 'student' ? 'Loading…' : 'Demo as a student'}
@@ -143,10 +156,10 @@ export default function Home() {
                 <button
                   onClick={() => handleDemo('organization')}
                   disabled={!!isDemoLoading}
-                  className="text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="min-h-[44px] px-2 text-ink-muted hover:text-blue-dark text-[13px] font-medium flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   <Play className="w-3.5 h-3.5" />
-                  {isDemoLoading === 'org' ? 'Loading…' : 'Demo as a organization'}
+                  {isDemoLoading === 'org' ? 'Loading…' : 'Demo as an organization'}
                 </button>
               </div>
             )}
@@ -174,7 +187,7 @@ export default function Home() {
             ].map(({ num, title, body }, i) => (
               <Reveal key={num} delay={i * 0.1} className="bg-white p-10 md:p-12 group hover:bg-gray-50/50 transition-colors duration-500">
                 <div className="flex items-center gap-3 mb-5">
-                  <span className="text-[13px] font-semibold tracking-[0.06em] text-amber">{num}</span>
+                  <span className="text-[13px] font-semibold tracking-[0.06em] text-amber-dark">{num}</span>
                   <div className="h-px flex-1 bg-gray-100 group-hover:bg-blue-dark/10 transition-colors duration-500" />
                 </div>
                 <h3 className="text-[18px] font-semibold text-ink tracking-[-0.02em] mb-3">{title}</h3>
@@ -199,14 +212,22 @@ export default function Home() {
           </Reveal>
 
           <Reveal delay={0.1}>
-            <div className="border border-gray-100 rounded-2xl p-10 md:p-16 min-h-[260px] relative">
+            <div
+              className="border border-gray-100 rounded-2xl p-10 md:p-16 min-h-[260px] relative"
+              onMouseEnter={() => setPaused(true)}
+              onMouseLeave={() => setPaused(false)}
+              onFocusCapture={() => setPaused(true)}
+              onBlurCapture={() => setPaused(false)}
+              aria-roledescription="carousel"
+              aria-label="Volunteering statistics"
+            >
               <AnimatePresence mode="wait">
                 <motion.div
                   key={factIdx}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
-                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+                  transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as const }}
                 >
                   <div className="flex items-baseline gap-4 mb-5">
                     <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none">
@@ -225,15 +246,24 @@ export default function Home() {
                 </motion.div>
               </AnimatePresence>
 
-              <div className="flex gap-2.5 mt-10">
-                {FACTS.map((_, i) => (
+              {/* These were 4px-tall unlabelled buttons — no accessible name at
+                  all, and far under the 24×24 WCAG 2.5.8 target minimum. The
+                  bar is now the visual, wrapped in a 24px-tall hit area. */}
+              <div className="flex gap-1 mt-8 -mb-2">
+                {FACTS.map((fact, i) => (
                   <button
-                    key={i}
+                    key={fact.stat}
                     onClick={() => setFactIdx(i)}
-                    className={`h-1 rounded-full transition-all duration-500 ${
-                      i === factIdx ? 'bg-blue-dark w-10' : 'bg-gray-200 hover:bg-gray-300 w-6'
-                    }`}
-                  />
+                    aria-label={`Show statistic ${i + 1} of ${FACTS.length}: ${fact.stat} ${fact.label}`}
+                    aria-current={i === factIdx ? 'true' : undefined}
+                    className="h-6 flex items-center px-0.5 group/dot"
+                  >
+                    <span
+                      className={`block h-1 rounded-full transition-all duration-500 ${
+                        i === factIdx ? 'bg-blue-dark w-10' : 'bg-gray-200 group-hover/dot:bg-gray-400 w-6'
+                      }`}
+                    />
+                  </button>
                 ))}
               </div>
             </div>

@@ -306,8 +306,8 @@ export default function StudentOpportunities() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-dark/15 rounded-lg blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-60 h-60 bg-[#FF6B35]/10 rounded-lg blur-3xl pointer-events-none" />
         <div className="relative max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber text-xs font-semibold tracking-wide leading-none">
-            <MapPin className="w-3 h-3 text-amber fill-orange-500/10 animate-pulse" />
+          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-dark text-xs font-semibold tracking-wide leading-none">
+            <MapPin className="w-3 h-3 text-amber-dark fill-orange-500/10 animate-pulse" />
             North York, Toronto Sector
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
@@ -352,7 +352,11 @@ export default function StudentOpportunities() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="relative">
              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />
+             {/* These four filters had no visible label and no accessible
+                 name, so a screen reader announced four unlabelled controls.
+                 The design keeps them label-free, so the name goes on aria-label. */}
              <Input 
+                aria-label="Search opportunities by keyword"
                 placeholder="Search keywords..." 
                 className="pl-10.5 rounded-lg border-line/80 bg-white" 
                 value={searchTerm} 
@@ -360,16 +364,19 @@ export default function StudentOpportunities() {
              />
           </div>
           <Select 
+            aria-label="Filter by category"
             options={categoriesOptions} 
             value={category} 
             onChange={(e) => setCategory(e.target.value)} 
           />
           <Select 
+            aria-label="Filter by exclusivity"
             options={exclusivesOptions} 
             value={exclusive} 
             onChange={(e) => setExclusive(e.target.value)} 
           />
           <Select 
+            aria-label="Filter by time commitment"
             options={COMMITMENTS} 
             value={commitment} 
             onChange={(e) => setCommitment(e.target.value)} 
@@ -443,7 +450,7 @@ export default function StudentOpportunities() {
                       <Popup className="rounded-lg overflow-hidden">
                          <div className="p-2 text-center text-xs space-y-1">
                             <div className="font-bold text-ink font-sans">Your Location</div>
-                            <div className="text-xs text-amber font-mono font-bold uppercase tracking-wider">{coords ? "Live GPS Tracker" : "Neighborhood Location"}</div>
+                            <div className="text-xs text-amber-dark font-mono font-bold uppercase tracking-wider">{coords ? "Live GPS Tracker" : "Neighborhood Location"}</div>
                             <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}</div>
                          </div>
                       </Popup>

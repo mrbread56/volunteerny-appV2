@@ -683,6 +683,13 @@ app.use(express.json());
           d.code || '',
           d.purpose === 'reset' ? 'reset' : 'verification'
         );
+      case 'notification':
+        return emailTemplates.notification(
+          d.heading || d.subject || 'Volunteer North York',
+          d.details || '',
+          d.actionLabel,
+          d.actionUrl
+        );
       case 'admin_alert':
         return emailTemplates.admin_alert(d.subject || 'Notification', d.details || '');
       default:

@@ -426,7 +426,7 @@ export default function StudentProfile() {
                 <div className="mt-4 pt-3 border-t border-line">
                   <span className={cn(
                     "text-xs font-medium",
-                    isUnlocked ? "text-amber" : "text-ink-muted"
+                    isUnlocked ? "text-amber-dark" : "text-ink-muted"
                   )}>
                     {isUnlocked ? "Unlocked ✓" : badge.requirement}
                   </span>
@@ -459,6 +459,7 @@ export default function StudentProfile() {
                   Full Name
                 </label>
                 <Input
+                  aria-label="Full name"
                   value={fullName}
                   onChange={(e) => {
                     setFullName(e.target.value);
@@ -482,6 +483,7 @@ export default function StudentProfile() {
                     Academic Institution
                   </label>
                   <Select
+                    aria-label="Academic institution"
                     value={school}
                     onChange={(e) => {
                       setSchool(e.target.value);
@@ -507,6 +509,7 @@ export default function StudentProfile() {
                     Grade Level
                   </label>
                   <Select
+                    aria-label="Grade level"
                     value={grade}
                     onChange={(e) => {
                       setGrade(e.target.value);
@@ -554,6 +557,7 @@ export default function StudentProfile() {
                       <Mail className="w-3.5 h-3.5 text-blue-dark" /> Verified School Email (read-only)
                     </label>
                     <Input
+                      aria-label="Verified school email (read-only)"
                       type="email"
                       value={user?.email || ""}
                       readOnly
@@ -664,7 +668,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
                           ? "bg-amber border-amber text-white  shadow-orange-500/15 scale-105"
-                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber hover:scale-[1.02]",
+                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark hover:scale-[1.02]",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -693,6 +697,7 @@ export default function StudentProfile() {
                   Previous Volunteering (Other Communities & Reasons)
                 </label>
                 <textarea
+                  aria-label="Previous volunteering experience"
                   value={previousExperience}
                   onChange={(e) => setPreviousExperience(e.target.value)}
                   placeholder="Tell us where else you've volunteered and what motivates you to help..."
@@ -759,7 +764,7 @@ export default function StudentProfile() {
                     </p>
                   )}
                   {fileUploadSuccess && (
-                    <p className="mt-2 text-xs font-semibold text-amber">
+                    <p className="mt-2 text-xs font-semibold text-amber-dark">
                       {fileUploadSuccess}
                     </p>
                   )}
@@ -803,6 +808,9 @@ export default function StudentProfile() {
                 </div>
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={trackerEnabled}
+                  aria-label="Participate in rankings"
                   onClick={() => setTrackerEnabled(!trackerEnabled)}
                   className={cn(
                     "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
@@ -829,6 +837,9 @@ export default function StudentProfile() {
                 </div>
                 <button
                   type="button"
+                  role="switch"
+                  aria-checked={trackerAnonymous}
+                  aria-label="Remain anonymous on the leaderboard"
                   disabled={!trackerEnabled}
                   onClick={() => setTrackerAnonymous(!trackerAnonymous)}
                   className={cn(
@@ -892,7 +903,7 @@ export default function StudentProfile() {
                 <span
                   className={cn(
                     "font-semibold",
-                    resumeUrl ? "text-blue-dark" : "text-amber",
+                    resumeUrl ? "text-blue-dark" : "text-amber-dark",
                   )}
                 >
                   {resumeUrl ? "Uploaded" : "Optional"}

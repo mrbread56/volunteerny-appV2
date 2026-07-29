@@ -27,6 +27,15 @@
   --color-line-light: #EDEAE3;
 
   /* ── Semantic (video 15: "red for danger, green for success") ── */
+  /* The 300/400/500/700/900 steps were referenced by CookieBanner and
+     DashboardLayout but never defined, so those classes emitted no CSS at all
+     and the elements fell back to `currentColor` (the cookie banner's shield
+     tile rendered transparent with a white border). Full ramp now defined. */
+  --color-primary-300: #7E9C8A;
+  --color-primary-400: #5B7D6A;
+  --color-primary-500: #3E6050;
+  --color-primary-700: #2C4638;
+  --color-primary-900: #22352B;
   --color-primary-950: #1E2B22;
   --color-accent-500: #E08A3C;
 

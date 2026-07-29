@@ -226,13 +226,27 @@ export default function Signup() {
         return;
       }
 
-      await sendEmailVerification(user);
-      await refreshProfile();
+      // The account and both profile documents exist at this point, so from
+      // here on nothing may reach the outer catch. It previously could: a
+      // failed sendEmailVerification threw into the generic handler and told
+      // the user "Something went wrong creating your account" even though the
+      // account was created, leaving them signed in but convinced they had
+      // failed — and every retry then hit auth/email-already-in-use.
+      try {
+        await sendEmailVerification(user);
+      } catch (verifyErr) {
+        console.error('Verification email could not be sent for', normalizedEmail, verifyErr);
+      }
+      try {
+        await refreshProfile();
+      } catch (refreshErr) {
+        console.error('Profile refresh after signup failed:', refreshErr);
+      }
 
       if (role === "student") {
         sendTransactionalEmail({
           to: normalizedEmail,
-          subject: "Welcome to Volunteer North York! 🚀",
+          subject: "Welcome to Volunteer North York",
           templateName: "welcome_student",
           templateData: {
             studentName: fullName || "Student"
@@ -241,11 +255,13 @@ export default function Signup() {
       } else {
         sendTransactionalEmail({
           to: contactEmail || normalizedEmail,
-          subject: `Registration for ${orgName} Received!`,
-          templateName: "admin_alert",
+          subject: `${orgName} is registered on Volunteer North York`,
+          templateName: "notification",
           templateData: {
-            subject: "Organization Registration Completed",
-            details: `Pending administrator activation.`
+            heading: `Welcome, ${orgName}`,
+            details: `Your organization account has been created. A member of our team reviews new organizations before opportunities go live, so you may not appear in search results right away. In the meantime you can finish your profile and draft your first opportunity.`,
+            actionLabel: "Complete your profile",
+            actionUrl: `${window.location.origin}/org/profile`
           }
         }).catch(err => console.error(err));
       }
@@ -267,7 +283,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center p-6 bg-white">
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-6 bg-white">
       
       <motion.div
         initial={{ opacity: 0, y: 15 }}

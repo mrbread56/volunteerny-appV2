@@ -14,6 +14,7 @@ export interface EmailPayload {
     | 'hours_confirmation'
     | 'new_applicant'
     | 'auth_verification'
+    | 'notification'
     | 'admin_alert';
   templateData: {
     studentName?: string;
@@ -29,7 +30,10 @@ export interface EmailPayload {
     code?: string;
     purpose?: 'verification' | 'reset';
     subject?: string;
+    heading?: string;
     details?: string;
+    actionLabel?: string;
+    actionUrl?: string;
     [key: string]: any;
   };
 }

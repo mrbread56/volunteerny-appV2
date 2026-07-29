@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { Button } from './ui/Button';
@@ -35,6 +36,8 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
     }
   }, [isOpen]);
 
+  const dialogRef = useDialog(isOpen, onClose);
+
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -46,7 +49,13 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+      <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Decline application"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+    >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}

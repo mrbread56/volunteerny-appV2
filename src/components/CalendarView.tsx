@@ -517,7 +517,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
           </div>
           <Button
             onClick={handleToggleGoogleLink}
-            variant={isGoogleCalendarLinked ? "outline" : "default"}
+            variant={isGoogleCalendarLinked ? "outline" : "primary"}
             disabled={isLinking}
             className={cn(
               "rounded-lg h-10 px-4 font-semibold uppercase text-xs tracking-wider shrink-0 transition-colors",
@@ -793,7 +793,7 @@ export default function CalendarView({ studentProfile, isDemoMode, user, refresh
                             <CheckCircle2 className="w-3.5 h-3.5 text-blue-dark" />
                             <span className={cn(
                               "font-semibold tracking-widest uppercase text-[8px]",
-                              log.approved ? "text-blue-dark" : "text-amber animate-pulse"
+                              log.approved ? "text-blue-dark" : "text-amber-dark animate-pulse"
                             )}>
                               {log.approved ? "Approved Volunteer Hours" : "Verification Outstanding"}
                             </span>

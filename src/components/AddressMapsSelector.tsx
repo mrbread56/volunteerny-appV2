@@ -193,6 +193,7 @@ export default function AddressMapsSelector({
           <input
             type="text"
             className="w-full pr-10 pl-4 py-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark focus:border-blue-dark bg-white"
+            aria-label="Search for an address"
             placeholder="Type address, e.g., 5075 Yonge St..."
             value={searchQuery}
             onChange={handleInputChange}
@@ -259,7 +260,7 @@ export default function AddressMapsSelector({
               <Popup className="rounded-lg overflow-hidden">
                 <div className="p-2 text-center text-xs space-y-1">
                   <div className="font-bold text-ink font-sans">Your Location</div>
-                  <div className="text-xs text-amber font-mono font-bold uppercase">Active Tracker</div>
+                  <div className="text-xs text-amber-dark font-mono font-bold uppercase">Active Tracker</div>
                   <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.latitude.toFixed(4)}, Lng: {userCoords.longitude.toFixed(4)}</div>
                 </div>
               </Popup>

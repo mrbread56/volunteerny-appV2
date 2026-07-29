@@ -52,7 +52,7 @@ export default function OpportunityCard({
               {opportunity.category}
             </span>
             {opportunity.exclusives?.map(exc => (
-              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber/10 text-amber border border-orange-100">
+              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber/10 text-amber-dark border border-orange-100">
                 {exc}
               </span>
             ))}
@@ -106,8 +106,8 @@ export default function OpportunityCard({
 
         {/* Match Percentage Pill - Only show for actual logged in students with positive skills matching */}
         {matchPercent > 0 && (
-          <div className="mb-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber/10 text-amber border border-orange-100 text-xs font-bold w-fit shrink-0">
-             <Sparkles className="w-3.5 h-3.5 text-amber animate-pulse" />
+          <div className="mb-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber/10 text-amber-dark border border-orange-100 text-xs font-bold w-fit shrink-0">
+             <Sparkles className="w-3.5 h-3.5 text-amber-dark animate-pulse" />
              <span>{matchPercent}% SKILLS MATCH</span>
           </div>
         )}
@@ -170,7 +170,9 @@ export default function OpportunityCard({
         {/* High-Converting CTA action orange button as specified */}
         <div className="mt-auto pt-2">
           <Link to={`/student/opportunities/${opportunity.id}`} className="block">
-            <Button className="w-full bg-amber hover:bg-amber text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg cursor-pointer transition-all active:scale-[0.98] group-hover:bg-blue-dark flex items-center justify-center gap-2">
+            {/* White on #E08A3C measured 2.67:1 — this is the primary CTA on
+                every card. amber-dark (#A85E22) clears AA at 4.87:1. */}
+            <Button className="w-full bg-amber-dark hover:bg-amber-dark text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg cursor-pointer transition-all active:scale-[0.98] group-hover:bg-blue-dark flex items-center justify-center gap-2">
               <span>View & Quick Apply</span>
               <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">→</span>
             </Button>

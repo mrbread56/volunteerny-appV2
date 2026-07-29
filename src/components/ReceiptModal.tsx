@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import React, { useRef, useState, useEffect } from 'react';
 import { ShieldCheck, Printer, Clipboard, Clock, CheckCircle, FileText, Download, Mail, Check, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -35,6 +36,8 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
       };
     }
   }, [isOpen]);
+
+  const dialogRef = useDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -111,7 +114,13 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
   };
 
   return (
-    <div className="fixed inset-0 bg-paper-3/45 backdrop-blur-sm flex items-center justify-center zp-6 sm:p-8 animate-fadeIn">
+    <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Volunteer hours receipt"
+      className="fixed inset-0 bg-paper-3/45 backdrop-blur-sm flex items-center justify-center z-50 p-6 sm:p-8 animate-fadeIn"
+    >
       <div className="bg-white rounded-lg max-w-lg w-full overflow-hidden  border border-line flex flex-col max-h-[90vh]">
         
         {/* Receipt content wrapper */}

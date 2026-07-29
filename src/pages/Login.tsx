@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from "firebase/auth";
-import { auth, db } from "../firebase/config";
-import { Button } from "../components/ui/Button";
-import { Input } from "../components/ui/Input";
-import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMfaClaim } from "../lib/mfa";
 import { Spinner } from "../components/ui/Spinner";
@@ -17,7 +14,9 @@ export default function Login() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
+  const [resetNotice, setResetNotice] = useState("");
+  const [isResetting, setIsResetting] = useState(false);
+
   const navigate = useNavigate();
   const { user, userProfile, profileMissing, mfaVerified, authError } = useAuth();
 
@@ -83,6 +82,35 @@ export default function Login() {
     }
   };
 
+  // There was previously no recovery path at all: a forgotten password locked
+  // the account permanently. The confirmation wording is deliberately identical
+  // whether or not the address exists, so this cannot be used to enumerate
+  // which emails are registered.
+  const handlePasswordReset = async () => {
+    const target = email.trim();
+    setError("");
+    setResetNotice("");
+    if (!target) {
+      setError("Enter your email address above, then choose “Forgot password?” again.");
+      return;
+    }
+    setIsResetting(true);
+    try {
+      await sendPasswordResetEmail(auth, target);
+    } catch (err: any) {
+      // auth/user-not-found must not be surfaced, for the reason above.
+      if (err?.code && err.code !== "auth/user-not-found") {
+        setError(friendlyAuthError(err.code));
+        setIsResetting(false);
+        return;
+      }
+    }
+    setResetNotice(
+      `If an account exists for ${target}, a password reset link is on its way. Check your spam folder if it doesn't arrive in a few minutes.`
+    );
+    setIsResetting(false);
+  };
+
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
     setError("");
@@ -113,7 +141,7 @@ export default function Login() {
 
   if (user && !userProfile && !profileMissing && !authError) {
     return (
-      <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center gap-4 bg-white">
+      <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center gap-4 bg-white">
         <Spinner size="lg" className="text-ink" label={null} />
         <p role="status" className="text-[13px] text-ink-soft">Signing you in…</p>
       </div>
@@ -123,7 +151,7 @@ export default function Login() {
   const displayError = error || authError;
 
   return (
-    <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center p-6 bg-white">
+    <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center p-6 bg-white">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
@@ -144,6 +172,12 @@ export default function Login() {
           </div>
         )}
         
+        {resetNotice && (
+          <div role="status" className="bg-blue-50 text-blue-dark p-3.5 text-[13px] border border-blue-105 mb-6 leading-relaxed">
+            {resetNotice}
+          </div>
+        )}
+
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
@@ -161,7 +195,17 @@ export default function Login() {
             />
           </div>
           <div>
-            <label htmlFor="login-password" className="block text-[13px] font-medium text-ink mb-1.5">Password</label>
+            <div className="flex items-baseline justify-between mb-1.5">
+              <label htmlFor="login-password" className="block text-[13px] font-medium text-ink">Password</label>
+              <button
+                type="button"
+                onClick={handlePasswordReset}
+                disabled={isResetting}
+                className="text-[12px] font-medium text-blue-dark hover:text-ink disabled:opacity-50"
+              >
+                {isResetting ? 'Sending…' : 'Forgot password?'}
+              </button>
+            </div>
             <input
               id="login-password"
               name="password"

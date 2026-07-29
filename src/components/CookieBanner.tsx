@@ -32,6 +32,8 @@ export default function CookieBanner() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 100, opacity: 0 }}
+          role="region"
+          aria-label="Cookie consent"
           className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md z-[100]"
         >
           <div className="bg-slate-900/95 text-white p-6 rounded-lg shadow-card border border-slate-800 backdrop-blur-md">
@@ -72,7 +74,7 @@ export default function CookieBanner() {
                 </Button>
               </div>
               <div className="text-center pt-1">
-                <Link to="/terms" className="text-xs text-ink-muted hover:text-white font-bold tracking-normalr font-mono">
+                <Link to="/terms" className="text-xs text-ink-muted hover:text-white font-bold font-mono">
                   View Terms of Service
                 </Link>
               </div>

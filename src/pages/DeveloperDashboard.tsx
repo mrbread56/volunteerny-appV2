@@ -66,12 +66,12 @@ export default function DeveloperDashboard() {
         },
         body: JSON.stringify({
           to: testEmailTo,
-          subject: testEmailTemplate === 'welcome_student' ? '✨ Welcome to Your OSSD Volunteer Hub Portfolio!' :
-                   testEmailTemplate === 'application_status' ? '🎉 Volunteer Application Accepted!' :
-                   testEmailTemplate === 'hours_confirmation' ? '📝 Community Involvement Hours Signed & Confirmed' :
-                   testEmailTemplate === 'new_applicant' ? '📬 New Applicant Submitted to Your Opportunity' :
-                   testEmailTemplate === 'auth_verification' ? '🔐 Secure OSSD Account Verification Code' :
-                   '⚠️ System Operations Alert - High Priority',
+          subject: testEmailTemplate === 'welcome_student' ? 'Welcome to Your OSSD Volunteer Hub Portfolio!' :
+                   testEmailTemplate === 'application_status' ? 'Volunteer Application Accepted!' :
+                   testEmailTemplate === 'hours_confirmation' ? 'Community Involvement Hours Signed & Confirmed' :
+                   testEmailTemplate === 'new_applicant' ? 'New Applicant Submitted to Your Opportunity' :
+                   testEmailTemplate === 'auth_verification' ? 'Secure OSSD Account Verification Code' :
+                   'System Operations Alert - High Priority',
           templateName: testEmailTemplate,
           templateData
         })
@@ -82,29 +82,29 @@ export default function DeveloperDashboard() {
         if (body.mode === 'smtp_production') {
           setTestEmailStatus({
             success: true,
-            message: `🟢 SMTP Delivery Succeeded! Email dispatched securely via SMTP Server (${body.host || 'volunteernorthyork.indevs.in'}) to ${testEmailTo}. MessageID: ${body.messageId}`
+            message: `SMTP Delivery Succeeded! Email dispatched securely via SMTP Server (${body.host || 'volunteernorthyork.indevs.in'}) to ${testEmailTo}. MessageID: ${body.messageId}`
           });
         } else if (body.mode === 'production') {
           setTestEmailStatus({
             success: true,
-            message: `🟢 Resend API Delivery Succeeded! Email dispatched securely via Resend to ${testEmailTo}. ID: ${body.id || 'N/A'}`
+            message: `Resend API Delivery Succeeded! Email dispatched securely via Resend to ${testEmailTo}. ID: ${body.id || 'N/A'}`
           });
         } else {
           setTestEmailStatus({
             success: false,
-            message: `⚠️ Simulation Fallback Active: Real email sending failed (Error: ${body.details || 'API Key or SMTP invalid'}), but the email HTML was successfully generated and recorded in the dev/test logs!`
+            message: `Simulation Fallback Active: Real email sending failed (Error: ${body.details || 'API Key or SMTP invalid'}), but the email HTML was successfully generated and recorded in the dev/test logs!`
           });
         }
       } else {
         setTestEmailStatus({
           success: false,
-          message: '🔴 API router returned a failure. Check server logs.'
+          message: 'API router returned a failure. Check server logs.'
         });
       }
     } catch (err: any) {
       setTestEmailStatus({
         success: false,
-        message: `🔴 Request failed: ${err.message || err}`
+        message: `Request failed: ${err.message || err}`
       });
     } finally {
       setIsSendingTestEmail(false);
@@ -629,7 +629,7 @@ export default function DeveloperDashboard() {
 
           <div className="bg-paper-2 rounded-lg p-6 text-left border border-line-light space-y-3">
             <h4 className="text-xs font-bold text-ink-soft uppercase tracking-wide flex items-center gap-2">
-              <Compass className="w-4 h-4 text-amber" /> Key Privileges Includes:
+              <Compass className="w-4 h-4 text-amber-dark" /> Key Privileges Includes:
             </h4>
             <ul className="text-xs text-ink-muted space-y-2 font-medium">
               <li className="flex items-center gap-2">
@@ -975,7 +975,7 @@ export default function DeveloperDashboard() {
                     {fb.aiOverview && (
                       <div className="border border-orange-100 bg-amber/10 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
                         <div className="flex items-center gap-2 text-orange-900 border-b border-orange-100/40 pb-2">
-                          <Sparkles className="w-4 h-4 text-amber" />
+                          <Sparkles className="w-4 h-4 text-amber-dark" />
                           <span className="text-xs uppercase tracking-widest font-bold">AI Overview Analysis</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">
@@ -984,7 +984,7 @@ export default function DeveloperDashboard() {
                             <span className={`inline-block text-xs font-bold uppercase px-2 py-0.5 rounded ${
                               fb.aiOverview.urgency === 'critical' || fb.aiOverview.urgency === 'high'
                                 ? 'bg-red-500/10 text-red-600 border border-red-200'
-                                : 'bg-amber/10 text-amber border border-amber/20'
+                                : 'bg-amber/10 text-amber-dark border border-amber/20'
                             }`}>
                               {fb.aiOverview.urgency || 'MEDIUM'}
                             </span>
@@ -997,7 +997,7 @@ export default function DeveloperDashboard() {
                           
                           {fb.aiOverview.suggestedFix && (
                             <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-orange-100 rounded-lg">
-                              <span className="text-xs text-amber uppercase tracking-widest block font-bold">suggested resolve tip</span>
+                              <span className="text-xs text-amber-dark uppercase tracking-widest block font-bold">suggested resolve tip</span>
                               <p className="text-orange-950 font-mono text-[10.5px] leading-relaxed italic">
                                 {fb.aiOverview.suggestedFix}
                               </p>
@@ -1684,7 +1684,7 @@ export default function DeveloperDashboard() {
             <div className="border border-orange-100 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
               <div className="space-y-1">
                 <p className="font-semibold text-orange-950 text-sm flex items-center gap-1.5 font-sans uppercase tracking-wide">
-                  <Mail className="w-4 h-4 text-amber animate-pulse" /> Send Live / Simulated Test Email
+                  <Mail className="w-4 h-4 text-amber-dark animate-pulse" /> Send Live / Simulated Test Email
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
                   Test the transactional system live! If your third-party credentials (Resend or SMTP) are invalid or unconfigured, the system will gracefully drop into the **Sandbox Fallback Mode** and generate a fully styled HTML email preview inside the dev log response below.

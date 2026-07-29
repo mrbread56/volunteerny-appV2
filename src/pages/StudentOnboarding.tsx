@@ -366,7 +366,7 @@ export default function StudentOnboarding() {
                       )}
                     >
                       <span>{item}</span>
-                      {availability.includes(item) && <Check className="w-4 h-4 text-amber shrink-0" />}
+                      {availability.includes(item) && <Check className="w-4 h-4 text-amber-dark shrink-0" />}
                     </button>
                   ))}
                 </div>
