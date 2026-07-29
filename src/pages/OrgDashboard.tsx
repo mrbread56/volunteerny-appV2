@@ -1196,6 +1196,7 @@ export default function OrgDashboard() {
                 </label>
                 <select
                   required
+                  aria-label="Select active student"
                   value={selectedStudentId}
                   onChange={(e) => setSelectedStudentId(e.target.value)}
                   className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
@@ -1217,6 +1218,7 @@ export default function OrgDashboard() {
                   <input
                     type="date"
                     required
+                    aria-label="Exact date of shift"
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
                     className="w-full text-xs font-semibold bg-paper-2 p-3 h-12 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
@@ -1230,6 +1232,7 @@ export default function OrgDashboard() {
                     type="number"
                     required
                     step="0.1"
+                    aria-label="Credits earned in hours"
                     placeholder="e.g. 4.5"
                     value={logHours}
                     onChange={(e) => setLogHours(e.target.value)}
@@ -1245,6 +1248,7 @@ export default function OrgDashboard() {
                 <input
                   type="text"
                   required
+                  aria-label="Volunteering activity name"
                   placeholder="e.g. Toronto Haven Food Bank Sorting Shift"
                   value={logActivity}
                   onChange={(e) => setLogActivity(e.target.value)}
