@@ -319,9 +319,20 @@ service cloud.firestore {
       allow update, delete: if isDeveloper();
     }
 
+    // The materialised leaderboard. Clients only ever read it; it is built by
+    // the server's Admin SDK (POST /api/leaderboard/refresh), which bypasses
+    // these rules entirely. Keeping client writes closed to everyone — not even
+    // developers — means a compromised dev account cannot forge rankings, and
+    // documents the fact that aggregation is deliberately server-only.
     match /leaderboards/{leaderboardId} {
       allow read: if isSignedIn();
-      allow write: if isDeveloper();
+      allow write: if false;
+    }
+
+    // OTP request counters, written only by the server's Admin SDK. Exposing
+    // these to clients would let a user reset their own rate limit.
+    match /otp_rate_limits/{uid} {
+      allow read, write: if false;
     }
 
     match /hoursRequests/{reqId} {

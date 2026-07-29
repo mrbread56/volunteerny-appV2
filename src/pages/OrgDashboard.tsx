@@ -41,6 +41,7 @@ import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
 import { serverTimestamp } from "firebase/firestore";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
+import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 
 export default function OrgDashboard() {
   const {
@@ -274,6 +275,11 @@ export default function OrgDashboard() {
 
         setSuccessMessage(approved ? "Hours approved successfully!" : "Hours request declined.");
         await fetchHoursRequests();
+
+        // The student's hour total just changed, so the materialised
+        // /leaderboards/global_top document is now stale. Fire-and-forget; the
+        // server throttles and also rebuilds on a timer.
+        if (approved) void requestLeaderboardRebuild();
       }
 
       sendTransactionalEmail({
@@ -788,6 +794,8 @@ export default function OrgDashboard() {
             loggedHours: updatedHours,
           });
           setLogResultStatus("success");
+          // Direct credit logging also moves the student's total.
+          void requestLeaderboardRebuild();
           setLogDate("");
           setLogHours("");
           setLogActivity("");

@@ -34,12 +34,23 @@ console.log('[Startup] APP_URL:', process.env.APP_URL || '(not set)');
 if (!process.env.RESEND_API_KEY) {
   console.warn('[Startup] WARNING: RESEND_API_KEY is not set — two-factor codes CANNOT be delivered.');
 }
+// MAIL_FROM being unset is survivable in development but not in production:
+// organizations are created with twoFactorEnabled: true, so if Resend rejects
+// the fallback sender then no organization can complete a login at all. A
+// warning was not enough — it scrolled past in the deploy log and the failure
+// only showed up later as "the code never arrives". Refuse to boot instead.
 if (!process.env.MAIL_FROM) {
-  console.warn(
-    '[Startup] WARNING: MAIL_FROM is not set. Falling back to ' +
-      '"vny@volunteernorthyork.indevs.in". If that domain is not verified in ' +
-      'Resend, every verification email will be rejected and 2FA will fail for everyone.'
-  );
+  const message =
+    'MAIL_FROM is not set. Every org login needs an emailed 2FA code, and the ' +
+    'fallback sender "vny@volunteernorthyork.indevs.in" only works if that ' +
+    'domain is verified in Resend. Verify a domain at https://resend.com/domains ' +
+    'and set MAIL_FROM (see .env.example).';
+
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[Startup] FATAL: ' + message);
+    process.exit(1);
+  }
+  console.warn('[Startup] WARNING: ' + message + ' (fatal in production)');
 }
 
 // Secure lazy initialization of firebase-admin
@@ -323,17 +334,77 @@ app.use(express.json());
     return getFirestore(adminObj.app(), databaseId);
   }
 
-  /** Simple rate limiter: max 5 OTP requests per 10-minute window per user. */
+  /**
+   * Rate limiter: max 5 OTP requests per 10-minute window per user.
+   *
+   * This used to be a bare in-process Map. The OTP *store* below already
+   * dual-writes to Firestore so codes survive a restart, but the limiter did
+   * not — so on any deployment with more than one instance (or after a restart)
+   * the "5 per 10 minutes" ceiling silently became 5 per instance, per restart.
+   * The counter now lives in Firestore alongside the code, with the Map kept
+   * only as a same-process fast path and as a fallback if Firestore is down.
+   *
+   * Fails CLOSED on a Firestore read error only if the local Map already shows
+   * the user at the limit; otherwise a transient outage would lock everyone out.
+   */
   const otpRateLimit = new Map<string, { count: number; windowStart: number }>();
-  function isOtpRateLimited(uid: string): boolean {
+  const RATE_WINDOW_MS = 10 * 60 * 1000;
+  const RATE_MAX = 5;
+
+  async function isOtpRateLimited(uid: string): Promise<boolean> {
     const now = Date.now();
-    const entry = otpRateLimit.get(uid);
-    if (!entry || now - entry.windowStart > 10 * 60 * 1000) {
-      otpRateLimit.set(uid, { count: 1, windowStart: now });
-      return false;
+    const local = otpRateLimit.get(uid);
+    const localFresh = local && now - local.windowStart <= RATE_WINDOW_MS;
+
+    let ref: any = null;
+    try {
+      const adminObj = getAdminObj();
+      if (adminObj) ref = adminFirestore().collection('otp_rate_limits').doc(uid);
+    } catch {
+      ref = null;
     }
-    entry.count++;
-    return entry.count > 5;
+
+    if (!ref) {
+      // No Firestore: fall back to the per-process counter.
+      if (!localFresh) {
+        otpRateLimit.set(uid, { count: 1, windowStart: now });
+        return false;
+      }
+      local!.count++;
+      return local!.count > RATE_MAX;
+    }
+
+    try {
+      // A transaction is what makes this correct across instances — two servers
+      // racing on the same uid cannot both read "4" and both write "5".
+      const overLimit = await adminFirestore().runTransaction(async (tx: any) => {
+        const snap = await tx.get(ref);
+        const data = snap.exists ? snap.data() : null;
+        const windowStart = typeof data?.windowStart === 'number' ? data.windowStart : 0;
+
+        if (!data || now - windowStart > RATE_WINDOW_MS) {
+          tx.set(ref, { count: 1, windowStart: now });
+          return false;
+        }
+        const count = (typeof data.count === 'number' ? data.count : 0) + 1;
+        tx.set(ref, { count, windowStart }, { merge: true });
+        return count > RATE_MAX;
+      });
+
+      otpRateLimit.set(uid, {
+        count: overLimit ? RATE_MAX + 1 : (localFresh ? local!.count + 1 : 1),
+        windowStart: localFresh ? local!.windowStart : now,
+      });
+      return overLimit;
+    } catch (err: any) {
+      console.warn('[otp] rate-limit transaction failed, using in-process counter:', err.message);
+      if (!localFresh) {
+        otpRateLimit.set(uid, { count: 1, windowStart: now });
+        return false;
+      }
+      local!.count++;
+      return local!.count > RATE_MAX;
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════
@@ -425,6 +496,108 @@ app.use(express.json());
     }
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // LEADERBOARD AGGREGATION
+  //
+  // scalableLeaderboard.ts shipped an aggregateGlobalLeaderboard() that its own
+  // comment said runs "periodically via a Cloud Function or cron worker". No
+  // such worker existed, so /leaderboards/global_top was never written and the
+  // Leaderboard tab only ever showed hardcoded placeholder peers.
+  //
+  // It also could not have worked from the browser: firestore.rules allows
+  // `list` on /students only to the owner or a developer, and allows `write` on
+  // /leaderboards only to a developer. Aggregation is inherently a privileged,
+  // cross-user read, so it belongs here on the Admin SDK, which bypasses rules.
+  // ══════════════════════════════════════════════════════════════════
+
+  const LEADERBOARD_TOP_N = 100;
+  let lastAggregateAt = 0;
+
+  async function rebuildGlobalLeaderboard(): Promise<{ count: number }> {
+    const dbAdmin = adminFirestore();
+
+    // trackerEnabled === false means the student opted out of rankings, so they
+    // must not appear at all. Firestore cannot combine that inequality with an
+    // orderBy on a different field without a composite index, so we over-fetch
+    // and filter in memory — cheap at this collection size.
+    const snap = await dbAdmin
+      .collection('students')
+      .orderBy('hours', 'desc')
+      .limit(LEADERBOARD_TOP_N * 2)
+      .get();
+
+    const entries = snap.docs
+      .map((d: any) => ({ id: d.id, data: d.data() || {} }))
+      .filter(({ data }: any) => data.trackerEnabled !== false)
+      .slice(0, LEADERBOARD_TOP_N)
+      .map(({ id, data }: any) => ({
+        userId: id,
+        // Honour the anonymity toggle here, server-side. Sending the real name
+        // and letting the client hide it would leak it to every viewer.
+        name: data.trackerAnonymous ? 'Anonymous Student' : (data.fullName || 'Anonymous Student'),
+        score: Number(data.hours || 0),
+        updatedAt: new Date().toISOString(),
+      }));
+
+    await dbAdmin.collection('leaderboards').doc('global_top').set(
+      { entries, lastUpdated: new Date().toISOString(), totalTracked: entries.length },
+      { merge: true }
+    );
+
+    lastAggregateAt = Date.now();
+    return { count: entries.length };
+  }
+
+  /**
+   * Called by the client after any event that changes a student's hour total
+   * (an organization approving hours, a direct credit log). Throttled so a burst
+   * of approvals collapses into one rebuild — /leaderboards/global_top is a
+   * single document and Firestore caps sustained writes to roughly 1/sec on one
+   * document.
+   */
+  app.post('/api/leaderboard/refresh', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.json({ success: true, skipped: 'demo-mode' });
+      }
+      if (!getAdminObj()) {
+        return res.status(500).json({ error: 'Server configuration error.' });
+      }
+
+      const THROTTLE_MS = 30 * 1000;
+      if (Date.now() - lastAggregateAt < THROTTLE_MS) {
+        return res.json({ success: true, throttled: true });
+      }
+
+      const result = await rebuildGlobalLeaderboard();
+      return res.json({ success: true, ...result });
+    } catch (err: any) {
+      console.error('[leaderboard] rebuild failed:', err);
+      return res.status(500).json({ error: 'Failed to rebuild leaderboard', details: err.message });
+    }
+  });
+
+  // A safety net so the board cannot go permanently stale if no approvals
+  // happen to fire the endpoint above. Cheap: one indexed query every 15 min.
+  const LEADERBOARD_INTERVAL_MS = 15 * 60 * 1000;
+  if (getAdminObj()) {
+    // Build once at boot so a fresh deploy never serves an empty board, then
+    // keep it warm on a timer.
+    rebuildGlobalLeaderboard()
+      .then(({ count }) => console.log(`[leaderboard] built at startup — ${count} ranked student(s)`))
+      .catch((err) => console.warn('[leaderboard] startup build failed:', err.message));
+
+    setInterval(() => {
+      rebuildGlobalLeaderboard().catch((err) =>
+        console.warn('[leaderboard] scheduled rebuild failed:', err.message)
+      );
+    }, LEADERBOARD_INTERVAL_MS).unref();
+  }
+
   // ── SEND OTP ──
   app.post('/api/auth/send-otp', async (req, res) => {
     try {
@@ -433,7 +606,7 @@ app.use(express.json());
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
-      if (isOtpRateLimited(authContext.uid)) {
+      if (await isOtpRateLimited(authContext.uid)) {
         return res.status(429).json({ error: 'Too many requests. Please wait a few minutes.' });
       }
 
@@ -829,7 +1002,11 @@ app.use(express.json());
         category: type || 'other',
         urgency: 'medium',
         summary: `Feedback received regarding: ${subject}`,
-        suggestedFix: 'Standard review required. AI overview is pending configuration of Gemini API Key.',
+        // This branch is a graceful degradation, not an error — the ticket is
+        // still filed and triaged by hand. Don't name the missing env var in a
+        // response that reaches end users.
+        suggestedFix: 'Standard review required — this ticket will be triaged manually.',
+        aiAvailable: false,
       });
     }
 

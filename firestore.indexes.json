@@ -1,0 +1,70 @@
+{
+  "//": "Composite indexes required by this app. Firestore auto-creates single-field indexes, but any query combining an equality filter with an orderBy on a different field — or two equality filters — needs an entry here. Without this file those queries throw 'The query requires an index' the first time they run against real data (demo mode never hits Firestore, which is why they pass locally). Deploy with: firebase deploy --only firestore:indexes",
+  "indexes": [
+    {
+      "//": "StudentDashboard: applications where studentId == uid, ordered by appliedAt desc, limit 50",
+      "collectionGroup": "applications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "appliedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "OrgOpportunityApplicants / OrgDashboard: applications for one opportunity, newest first",
+      "collectionGroup": "applications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "opportunityId", "order": "ASCENDING" },
+        { "fieldPath": "appliedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "waitlistService: promote the oldest waitlisted applicant for an opportunity",
+      "collectionGroup": "applications",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "opportunityId", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" },
+        { "fieldPath": "appliedAt", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "OrgDashboard: hoursRequests addressed to this coordinator, pending only",
+      "collectionGroup": "hoursRequests",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "coordinatorContact", "order": "ASCENDING" },
+        { "fieldPath": "status", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "StudentOpportunities: is this specific opportunity already saved by this student",
+      "collectionGroup": "savedOpportunities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "opportunityId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "//": "StudentDashboard: this student's most recent saves",
+      "collectionGroup": "savedOpportunities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "studentId", "order": "ASCENDING" },
+        { "fieldPath": "savedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "//": "OrgDashboard: this organization's opportunities, newest first",
+      "collectionGroup": "opportunities",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "orgId", "order": "ASCENDING" },
+        { "fieldPath": "createdAt", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}

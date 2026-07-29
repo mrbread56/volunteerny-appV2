@@ -11,7 +11,8 @@ import {
   increment,
   writeBatch
 } from 'firebase/firestore';
-import { db } from '../firebase/config';
+import { auth, db } from '../firebase/config';
+import { API_BASE_URL } from './config';
 
 export interface LeaderboardEntry {
   userId: string;
@@ -56,39 +57,36 @@ export async function submitUserScore(userId: string, userName: string, scoreDel
  * and materializes the aggregated result into a single, static shared document 
  * at '/leaderboards/global_top'.
  */
-export async function aggregateGlobalLeaderboard(): Promise<void> {
+/**
+ * Ask the server to rebuild /leaderboards/global_top.
+ *
+ * This replaces a client-side aggregateGlobalLeaderboard() that could never
+ * have worked: firestore.rules allows `list` on /students only to the owner or
+ * a developer, and `write` on /leaderboards only to a developer. Aggregation is
+ * a privileged cross-user read, so it runs on the server's Admin SDK. Nothing
+ * called the old function either, which is why the board was always empty.
+ *
+ * Fire-and-forget: the caller's own write has already succeeded by this point,
+ * and the server also rebuilds on a 15-minute timer, so a failure here is not
+ * worth surfacing to the user.
+ */
+export async function requestLeaderboardRebuild(): Promise<void> {
   try {
-    // 1. Query the top 100 students efficiently using Firestore indexes
-    const studentsQuery = query(
-      collection(db, 'students'),
-      orderBy('hours', 'desc'),
-      limit(100)
-    );
-    
-    const snapshot = await getDocs(studentsQuery);
-    
-    // 2. Map and serialize the top 100 leaderboard list
-    const topEntries: LeaderboardEntry[] = snapshot.docs.map(docSnap => {
-      const data = docSnap.data();
-      return {
-        userId: docSnap.id,
-        name: data.fullName || 'Anonymous Student',
-        score: Number(data.hours || 0),
-        updatedAt: data.updatedAt ? data.updatedAt.toDate ? data.updatedAt.toDate().toISOString() : data.updatedAt : new Date().toISOString()
-      };
+    const user = auth.currentUser;
+    let token: string | null = null;
+    if (user) token = await user.getIdToken();
+    if (!token) {
+      const demoRole = localStorage.getItem('demo_mode_role');
+      if (demoRole) token = `demo-mode-token-${demoRole}`;
+    }
+    if (!token) return;
+
+    await fetch(`${API_BASE_URL}/api/leaderboard/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     });
-    
-    // 3. Write back the finished aggregation list to a single cached document at /leaderboards/global_top
-    const leaderboardDocRef = doc(db, 'leaderboards', 'global_top');
-    await setDoc(leaderboardDocRef, {
-      entries: topEntries,
-      lastUpdated: new Date().toISOString(),
-      totalTracked: snapshot.size
-    }, { merge: true });
-    
-  } catch (error) {
-    console.error('Failed to run high-throughput aggregation:', error);
-    throw error;
+  } catch (err) {
+    console.warn('[leaderboard] rebuild request failed:', err);
   }
 }
 
