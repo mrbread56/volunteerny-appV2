@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { motionAllowed } from './useMotionAllowed';
 
 /**
  * Number ticker — digits count up to a value when they scroll into view.
@@ -14,23 +15,6 @@ import { useEffect, useRef } from 'react';
  * This hook only ever animates from a starting value up to what is already
  * there, so the honest value is the fallback.
  */
-
-/**
- * Reduced-motion branches are nearly impossible to review, because whichever
- * setting the machine happens to have is the only branch anyone ever sees.
- * `?motion=full` pins the full animation so it can be checked deliberately.
- *
- * The override only ever widens what is shown; with no query param the real OS
- * preference is authoritative, so a visitor who asked for reduced motion always
- * gets reduced motion.
- */
-function motionAllowed(): boolean {
-  if (typeof window === 'undefined') return false;
-  const q = new URLSearchParams(window.location.search).get('motion');
-  if (q === 'full') return true;
-  if (q === 'reduce') return false;
-  return !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-}
 
 export function useCountUp<T extends HTMLElement>(
   target: number,

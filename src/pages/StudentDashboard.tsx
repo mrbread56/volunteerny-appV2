@@ -1356,6 +1356,18 @@ export default function StudentDashboard() {
                   </div>
                 </div>
 
+                {/* Disclaimer box */}
+                <div className="bg-amber/10 border-2 border-dashed border-amber p-6 rounded-lg space-y-3">
+                  <h3 className="text-amber-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-2">
+                    <span>⚠️</span> REQUIREMENT DISCLAIMER
+                  </h3>
+
+                  <p className="text-[11px] text-amber-900 leading-relaxed font-semibold">
+                    While logging hours on Volunteer NY updates your digital
+                    portal metrics instantly, <strong>you may still require a physical community involvement form with your supervisor's signature to submit to your high school.</strong>
+                  </p>
+                </div>
+
                  {/* Unofficial Disclaimer Warning Box */}
                 <div className="bg-white border border-line rounded-lg p-5 text-center space-y-3 shadow-sm">
                   <div>
@@ -2015,6 +2027,17 @@ export default function StudentDashboard() {
               <p className="text-xs text-ink-soft font-semibold leading-relaxed">
                 Fill in the details below. We will send an automatic email notification directly to your supervisor's email coordinates to authorize these hours.
               </p>
+              
+              {/* Disclaimer box */}
+              <div className="bg-amber/10 border-2 border-dashed border-amber p-4 rounded-lg space-y-2 mt-4">
+                <h3 className="text-amber-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
+                  <span>⚠️</span> REQUIREMENT DISCLAIMER
+                </h3>
+                <p className="text-[11px] text-amber-900 leading-relaxed font-semibold">
+                  While logging hours on Volunteer NY updates your digital
+                  portal metrics instantly, <strong>you may still require a physical community involvement form with your supervisor's signature to submit to your high school.</strong>
+                </p>
+              </div>
             </div>
 
             {logError && (
