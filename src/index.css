@@ -147,12 +147,47 @@ h4, h5, h6 {
  *
  * Global transition so all interactive elements feel responsive.
  */
-button, a, [role="button"] {
-  transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease, transform 0.15s cubic-bezier(0.23, 1, 0.32, 1);
+/*
+ * Press feedback, with asymmetric easing.
+ *
+ * The press and the release are NOT the same motion, and giving them one shared
+ * duration is what made this feel mushy before. Pressing is the user's own
+ * action, so it has to register immediately — 90ms, ease-out. Releasing is the
+ * interface answering back, so it settles over 320ms on a spring-like curve.
+ * Fast down, slow up: the same asymmetry a real physical key has.
+ *
+ * The release curve lives on the base state and the press curve overrides it in
+ * :active, which is how one property gets two different timings in pure CSS.
+ */
+button, a, [role="button"], [data-pressable] {
+  transition:
+    color 0.15s ease,
+    background-color 0.15s ease,
+    border-color 0.15s ease,
+    opacity 0.15s ease,
+    box-shadow 0.32s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-button:active:not(:disabled), [role="button"]:active:not(:disabled) {
-  transform: scale(0.98);
+button:active:not(:disabled),
+a:active,
+[role="button"]:active:not(:disabled),
+[data-pressable]:active:not([aria-disabled="true"]) {
+  /* 0.97 rather than 0.98 — at 0.98 the movement is below the perception
+     threshold on small controls, so it reads as nothing happening at all. */
+  transform: scale(0.97);
+  transition-duration: 0.09s;
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+
+/*
+ * Large surfaces need a smaller ratio than small ones. A card scaled to 0.97
+ * moves its corners a long way and looks like it is collapsing, while a 40px
+ * button at 0.97 barely moves. Scale is perceived by absolute displacement, not
+ * percentage, so the big things get a gentler figure.
+ */
+[data-pressable="card"]:active {
+  transform: scale(0.988);
 }
 
 /*
@@ -166,12 +201,23 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
     scroll-behavior: auto !important;
   }
 
-  button, a, [role="button"] {
+  button, a, [role="button"], [data-pressable] {
     transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
   }
 
-  button:active:not(:disabled), [role="button"]:active:not(:disabled) {
+  /*
+   * Reduced motion means less movement, not less feedback — a press with no
+   * response at all reads as a dead control. The scale is dropped and replaced
+   * with a brightness shift, which confirms the press without any vestibular
+   * component.
+   */
+  button:active:not(:disabled),
+  a:active,
+  [role="button"]:active:not(:disabled),
+  [data-pressable]:active,
+  [data-pressable="card"]:active {
     transform: none;
+    filter: brightness(0.94);
   }
 
   /*
