@@ -4,6 +4,7 @@ import { motion, useInView, AnimatePresence, useScroll, useTransform, useReduced
 import { ArrowRight, ChevronRight, Play } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCountUp } from '../hooks/useCountUp';
 
 /* ── Reveal wrapper ── */
 const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = ({ children, className = '', delay = 0 }) => {
@@ -23,12 +24,34 @@ const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = 
 };
 
 /* ── Researched volunteer facts ── */
+/* Split into value + suffix so the number can be counted up while the unit stays
+   put. `decimals` has to be explicit: 4.1 must render "4.1" the whole way, not
+   drift to "4" at the end. */
 const FACTS = [
-  { stat: '4.1B', label: 'volunteer hours', text: 'contributed across Canada in 2023, with an estimated economic value exceeding $50 billion.', source: 'Statistics Canada' },
-  { stat: '82%', label: 'of Canadians', text: 'engage in informal volunteering, helping neighbours, mentoring peers, or assisting community members.', source: 'Volunteer Canada, 2024' },
-  { stat: '27%', label: 'more likely', text: 'to find employment after volunteering, according to longitudinal studies tracking youth who served in high school.', source: 'Corporation for National & Community Service, 2023' },
-  { stat: '76%', label: 'of volunteers', text: 'report that regular service has improved their physical health and overall sense of well-being.', source: 'UnitedHealth Group, 2023' },
+  { value: 4.1, decimals: 1, suffix: 'B', label: 'volunteer hours', text: 'contributed across Canada in 2023, with an estimated economic value exceeding $50 billion.', source: 'Statistics Canada' },
+  { value: 82, decimals: 0, suffix: '%', label: 'of Canadians', text: 'engage in informal volunteering, helping neighbours, mentoring peers, or assisting community members.', source: 'Volunteer Canada, 2024' },
+  { value: 27, decimals: 0, suffix: '%', label: 'more likely', text: 'to find employment after volunteering, according to longitudinal studies tracking youth who served in high school.', source: 'Corporation for National & Community Service, 2023' },
+  { value: 76, decimals: 0, suffix: '%', label: 'of volunteers', text: 'report that regular service has improved their physical health and overall sense of well-being.', source: 'UnitedHealth Group, 2023' },
 ];
+
+/**
+ * The counting number.
+ *
+ * `tabular-nums` is not cosmetic here. In proportional figures a "1" is narrower
+ * than an "8", so a counter running 0 -> 82 visibly jitters as its width changes
+ * every frame. Fixed-width digits hold the number still while it climbs.
+ *
+ * The final value is what renders in the markup, so a visitor with JS disabled
+ * or reduced motion on reads the true statistic rather than a zero.
+ */
+function StatNumber({ fact }: { fact: typeof FACTS[number] }) {
+  const ref = useCountUp<HTMLSpanElement>(fact.value, fact.decimals);
+  return (
+    <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none tabular-nums">
+      <span ref={ref}>{fact.value.toFixed(fact.decimals)}</span>{fact.suffix}
+    </span>
+  );
+}
 
 /* ═══════════════════════
    HOME
@@ -188,7 +211,19 @@ export default function Home() {
               <Reveal key={num} delay={i * 0.1} className="bg-white p-10 md:p-12 group hover:bg-gray-50/50 transition-colors duration-500">
                 <div className="flex items-center gap-3 mb-5">
                   <span className="text-[13px] font-semibold tracking-[0.06em] text-amber-dark">{num}</span>
-                  <div className="h-px flex-1 bg-gray-100 group-hover:bg-blue-dark/10 transition-colors duration-500" />
+                  {/* Line drawing: the rule traces itself out from the numeral
+                      rather than being there from the start. origin-left is what
+                      makes it read as drawn — scaling from the centre would look
+                      like it is growing in both directions at once. The stagger
+                      comes from the parent Reveal's delay, so the three rules
+                      draw in sequence. */}
+                  <motion.div
+                    className="h-px flex-1 bg-gray-200 group-hover:bg-blue-dark/20 transition-colors duration-500 origin-left"
+                    initial={{ scaleX: 0 }}
+                    whileInView={{ scaleX: 1 }}
+                    viewport={{ once: true, margin: '-80px' }}
+                    transition={{ duration: 0.9, delay: i * 0.1 + 0.25, ease: [0.22, 1, 0.36, 1] as const }}
+                  />
                 </div>
                 <h3 className="text-[18px] font-semibold text-ink tracking-[-0.02em] mb-3">{title}</h3>
                 <p className="text-[14px] text-ink-soft leading-[1.7]">{body}</p>
@@ -230,9 +265,7 @@ export default function Home() {
                   transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] as const }}
                 >
                   <div className="flex items-baseline gap-4 mb-5">
-                    <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none">
-                      {FACTS[factIdx].stat}
-                    </span>
+                    <StatNumber fact={FACTS[factIdx]} />
                     <span className="text-[16px] sm:text-[18px] font-medium text-ink-soft tracking-[-0.02em]">
                       {FACTS[factIdx].label}
                     </span>
@@ -252,9 +285,9 @@ export default function Home() {
               <div className="flex gap-1 mt-8 -mb-2">
                 {FACTS.map((fact, i) => (
                   <button
-                    key={fact.stat}
+                    key={fact.label}
                     onClick={() => setFactIdx(i)}
-                    aria-label={`Show statistic ${i + 1} of ${FACTS.length}: ${fact.stat} ${fact.label}`}
+                    aria-label={`Show statistic ${i + 1} of ${FACTS.length}: ${fact.value}${fact.suffix} ${fact.label}`}
                     aria-current={i === factIdx ? 'true' : undefined}
                     className="h-6 flex items-center px-0.5 group/dot"
                   >
