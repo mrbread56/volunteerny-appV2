@@ -9,6 +9,9 @@
     "start": "node dist/server.cjs",
     "lint": "tsc --noEmit",
     "check:firebase": "tsx scripts/check-firebase.ts",
+    "check:signup": "tsx scripts/check-signup.ts",
+    "check:queries": "tsx scripts/check-queries.ts",
+    "deploy:rules": "tsx scripts/deploy-rules.ts",
     "test": "playwright test",
     "test:rules": "firebase emulators:exec --only firestore \"vitest run tests/firestore.rules.test.js\""
   },

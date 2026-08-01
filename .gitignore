@@ -16,3 +16,6 @@ firebase-blueprint.json
 # Sync manifests (local cache, regenerable)
 .cortex/manifests/
 .vercel
+
+test-results/
+playwright-report/

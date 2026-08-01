@@ -70,7 +70,7 @@ import { Award, Zap, BookOpen, Briefcase, Heart, ShieldCheck } from "lucide-reac
 import DashboardLayout from "../components/layout/DashboardLayout";
 
 export default function StudentDashboard() {
-  const { user, userProfile, studentProfile, isDemoMode, refreshProfile, loading } =
+  const { user, userProfile, studentProfile, isDemoMode, refreshProfile, loading, profilesLoaded } =
     useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -121,13 +121,18 @@ export default function StudentDashboard() {
   const [showPrintModal, setShowPrintModal] = useState(false);
 
   // New Academic Verification Check: Force newly created Accounts to complete the details
+  //
+  // `profilesLoaded` is required here. `loading` is already false by the time a
+  // user signs in (it flipped on the first, anonymous auth callback), so this
+  // used to run while studentProfile was still null and bounced EVERY returning
+  // student to onboarding — including ones who had completed it.
   useEffect(() => {
-    if (!loading && user) {
+    if (!loading && profilesLoaded && user) {
       if (!studentProfile || !studentProfile.school) {
         navigate("/student/onboarding");
       }
     }
-  }, [user, studentProfile, loading, navigate]);
+  }, [user, studentProfile, loading, profilesLoaded, navigate]);
 
   // Hour Logging and tracking states
   const loggedHoursList = studentProfile?.loggedHours || [];

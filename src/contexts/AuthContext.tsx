@@ -17,6 +17,15 @@ interface AuthContextType {
    * recovery message rather than looping through the MFA gate forever.
    */
   profileMissing: boolean;
+  /**
+   * True once the profile read for the current user has finished, whatever the
+   * outcome. `loading` cannot answer this: it flips to false on the first
+   * onAuthStateChanged callback (the anonymous one), so after a sign-in it is
+   * already false while studentProfile/orgProfile are still null. Anything that
+   * branches on "this user has no student profile" must wait for this flag, or
+   * it acts on a profile that simply hasn't arrived yet.
+   */
+  profilesLoaded: boolean;
   authError: string | null;
   refreshProfile: () => Promise<void>;
   logout: () => Promise<void>;
@@ -50,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [orgProfile, setOrgProfile] = useState<OrganizationProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [profileMissing, setProfileMissing] = useState(false);
+  const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
@@ -190,6 +200,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const fetchProfiles = async (currentUser: User | { uid: string }) => {
+    setProfilesLoaded(false);
     try {
       const userEmail = (currentUser as any).email || '';
       const isDevEmail = isDeveloperEmail(userEmail);
@@ -324,6 +335,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Error fetching profiles:', error);
         setAuthError('An unexpected error occurred while loading your profile. Please try again.');
       }
+    } finally {
+      // Whatever happened, callers may now trust that a null studentProfile /
+      // orgProfile means "no document", not "still in flight".
+      setProfilesLoaded(true);
     }
   };
 
@@ -344,8 +359,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const demo2FA = role === 'student' ? false : localStorage.getItem('demo_2fa_enabled') !== 'false';
       setUserProfile({ uid: mockUser.uid, email: mockUser.email || '', role, twoFactorEnabled: demo2FA, createdAt: new Date() as any });
       setProfileMissing(false);
-      
-      const isVerified = sessionStorage.getItem(`mfa_verified_${mockUser.uid}`) === 'true' || 
+      setProfilesLoaded(true);
+
+      const isVerified = sessionStorage.getItem(`mfa_verified_${mockUser.uid}`) === 'true' ||
                          localStorage.getItem(`mfa_verified_${mockUser.uid}`) === 'true';
       setMfaVerifiedState(isVerified);
 
@@ -422,6 +438,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setOrgProfile(null);
           setMfaVerifiedState(false);
           setProfileMissing(false);
+          setProfilesLoaded(false);
         }
         setLoading(false);
       }
@@ -431,13 +448,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [isDemoMode]);
 
   const refreshProfile = async () => {
-    if (user) {
+    // `auth.currentUser`, not the `user` state. Signup calls this from a handler
+    // that started while `user` was still null, so the captured state value was
+    // null and refreshProfile silently did nothing — leaving profileMissing
+    // stuck true right after a successful signup.
+    const current = auth.currentUser || user;
+    if (current) {
       if (isDemoMode) {
         const demoRole = localStorage.getItem('demo_mode_role');
         const demo2FA = demoRole === 'student' ? false : localStorage.getItem('demo_2fa_enabled') !== 'false';
         setUserProfile({
-          uid: user.uid,
-          email: user.email || '',
+          uid: current.uid,
+          email: current.email || '',
           role: (demoRole as any) || 'student',
           twoFactorEnabled: demo2FA,
           createdAt: new Date() as any
@@ -454,7 +476,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
       } else {
-        await fetchProfiles(user);
+        await fetchProfiles(current);
       }
     }
   };
@@ -487,6 +509,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setStudentProfile(null);
     setOrgProfile(null);
     setProfileMissing(false);
+    setProfilesLoaded(false);
   };
 
   const connectGmail = async () => {
@@ -601,8 +624,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem('isLoggedIn', 'true');
     const demo2FA = role === 'student' ? false : localStorage.getItem('demo_2fa_enabled') !== 'false';
     setUserProfile({ uid: mockUser.uid, email: mockUser.email || '', role, twoFactorEnabled: demo2FA, createdAt: new Date() as any });
-      setProfileMissing(false);
-    
+    setProfileMissing(false);
+    setProfilesLoaded(true);
+
     // Automatically set MFA verified for demo sessions to bypass routing blocks
     setMfaVerifiedState(true);
     sessionStorage.setItem(`mfa_verified_${mockUser.uid}`, 'true');
@@ -650,8 +674,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       userProfile, 
       studentProfile, 
       orgProfile, 
-      loading, 
+      loading,
       profileMissing,
+      profilesLoaded,
       authError,
       refreshProfile, 
       isDemoMode, 

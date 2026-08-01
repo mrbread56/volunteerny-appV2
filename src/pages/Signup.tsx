@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification, deleteUser } from "firebase/auth";
-import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -68,7 +68,16 @@ export default function Signup() {
   const navigate = useNavigate();
   const { user, userProfile, profileMissing, refreshProfile } = useAuth();
 
+  // Set for the whole duration of handleSignup. createUserWithEmailAndPassword
+  // signs the user in immediately, so onAuthStateChanged fires and reads
+  // users/{uid} *before* the setDoc below has written it — profileMissing flips
+  // true, the redirect effect below fired, and Signup unmounted mid-submit,
+  // stranding the user on "Account setup didn't finish". The redirect must not
+  // act on the transient state of a signup that is still running.
+  const signupInFlight = React.useRef(false);
+
   React.useEffect(() => {
+    if (signupInFlight.current) return;
     if (!user) return;
     // Same profile-resolution race as Login.tsx: `user` lands before the
     // Firestore profile read finishes, so routing on an undefined role sent
@@ -144,19 +153,37 @@ export default function Signup() {
     }
 
     setIsLoading(true);
+    signupInFlight.current = true;
     setError("");
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-
       const normalizedEmail = email.trim().toLowerCase();
 
-      // The auth account now exists. If either profile write fails we must NOT
-      // leave it behind: an auth record with no matching Firestore profile is a
-      // "ghost account" that makes every future signup attempt fail with
-      // auth/email-already-in-use while login has no profile to load. So we roll
-      // the auth account back and surface the real error instead of swallowing it.
+      // A signup that died after the auth account was created but before the
+      // profile was written used to be unrecoverable: retrying hit
+      // auth/email-already-in-use forever. Sign back in with the same
+      // credentials instead and finish the profile writes. If the password
+      // doesn't match, the email really is someone else's — rethrow the
+      // original error so the message is unchanged for that case.
+      let user;
+      try {
+        user = (await createUserWithEmailAndPassword(auth, email, password)).user;
+      } catch (createErr: any) {
+        if (createErr?.code !== 'auth/email-already-in-use') throw createErr;
+        try {
+          user = (await signInWithEmailAndPassword(auth, email, password)).user;
+        } catch {
+          throw createErr;
+        }
+        // Already fully set up — this is a sign-in, not a signup.
+        const existing = await getDoc(doc(db, "users", user.uid));
+        if (existing.exists()) {
+          await refreshProfile();
+          signupInFlight.current = false;
+          return;
+        }
+      }
+
       try {
         await setDoc(doc(db, "users", user.uid), {
           uid: user.uid,
@@ -206,22 +233,18 @@ export default function Signup() {
             verificationStatus: hasCra === "yes" ? "pending" : "unverified",
           });
         }
-      } catch (profileErr) {
-        // handleFirestoreError was here but it THROWS, which exits the catch
-        // before deleteUser runs below - leaving a ghost auth account that
-        // blocks future signups with this email. Log and continue to rollback.
+      } catch (profileErr: any) {
+        // Deliberately NOT deleteUser(). Rolling the auth account back on any
+        // profile-write failure is what made this look like "the site forgot my
+        // account": the password was accepted at signup, the write failed, the
+        // credentials were destroyed, and the next login said "Incorrect email
+        // or password". Keep the account — the resume path above lets the same
+        // email and password retry and finish the profile.
         console.error('Profile write failed during signup:', profileErr);
-        try {
-          await deleteUser(user);
-        } catch (rollbackErr) {
-          console.error(
-            "Signup rollback failed - orphaned auth account may remain for",
-            normalizedEmail,
-            rollbackErr
-          );
-        }
         setError(
-          "We couldn't finish setting up your account, so nothing was saved. Please try again."
+          profileErr?.code === 'permission-denied'
+            ? "Your account was created, but we couldn't save your profile. Please try submitting again."
+            : "We couldn't finish setting up your profile. Your account is safe — please try again."
         );
         return;
       }
@@ -279,6 +302,7 @@ export default function Signup() {
       setError(friendlyErrors[err.code] || 'Something went wrong creating your account. Please try again.');
     } finally {
       setIsLoading(false);
+      signupInFlight.current = false;
     }
   };
 
