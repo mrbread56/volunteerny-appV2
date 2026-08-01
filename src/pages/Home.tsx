@@ -1,9 +1,10 @@
 import type { FC, ReactNode } from 'react';
-import { useRef, useState, useEffect } from 'react';
-import { motion, useInView, AnimatePresence, useScroll, useTransform, useReducedMotion } from 'motion/react';
-import { ArrowRight, ChevronRight, Play } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'motion/react';
+import { ArrowRight, ChevronRight, Play, ChevronLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useCarousel } from '../hooks/useCarousel';
 
 /* ── Reveal wrapper ── */
 const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = ({ children, className = '', delay = 0 }) => {
@@ -30,31 +31,66 @@ const FACTS = [
   { stat: '76%', label: 'of volunteers', text: 'report that regular service has improved their physical health and overall sense of well-being.', source: 'UnitedHealth Group, 2023' },
 ];
 
+/* ── What people are saying ── */
+const TESTIMONIALS = [
+  {
+    quote: 'This website is really helpful. It makes finding volunteer opportunities much easier, which can often be hard to find.',
+    name: 'Arshan',
+    role: 'Student',
+  },
+  {
+    quote: 'What you are doing is extremely useful and I know of lots of high school kids (and community organizations!) that would be ready to use it immediately.',
+    name: 'Dr. Marsha Chechik',
+    role: 'Professor, Department of Computer Science\nUniversity of Toronto',
+  },
+  {
+    quote: "This website makes it much easier for students to discover volunteer opportunities and connect with organizations that need help. It's a simple idea with real potential to make volunteering more accessible and encourage community involvement.",
+    name: 'Caleb',
+    role: 'Student',
+  },
+  {
+    quote: 'Finding a place to volunteer for is one of the biggest challenges and this website solves that issue.',
+    name: 'Roy',
+    role: 'Student',
+  },
+];
+
+/* Shared by the visible slide and the invisible height sizer below it, so the
+   two can never disagree about how tall a quote is. */
+const Quote: FC<{ testimonial: (typeof TESTIMONIALS)[number] }> = ({ testimonial }) => (
+  <>
+    <blockquote className="text-ink-soft text-[16px] sm:text-[19px] leading-[1.7] max-w-2xl">
+      {testimonial.quote}
+    </blockquote>
+    <figcaption className="mt-7">
+      <span className="block text-[15px] font-semibold text-ink tracking-[-0.02em]">{testimonial.name}</span>
+      <span className="block text-[13px] text-ink-muted leading-[1.5] mt-1 whitespace-pre-line">{testimonial.role}</span>
+    </figcaption>
+  </>
+);
+
+/* Slides travel in the direction you asked for: next enters from the right,
+   previous from the left. Needs to be variants rather than inline objects —
+   AnimatePresence only passes `custom` to variant functions. */
+const slide = {
+  enter: (d: number) => ({ opacity: 0, x: d * 40 }),
+  center: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] as const } },
+  exit: (d: number) => ({ opacity: 0, x: d * -40, transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] as const } }),
+};
+
 /* ═══════════════════════
    HOME
    ═══════════════════════ */
 export default function Home() {
   const { user, userProfile, enableDemoMode } = useAuth();
   const navigate = useNavigate();
-  const [factIdx, setFactIdx] = useState(0);
+  const facts = useCarousel(FACTS.length);
+  const reviews = useCarousel(TESTIMONIALS.length, 6500);
   const [isDemoLoading, setIsDemoLoading] = useState<'student' | 'org' | null>(null);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.5], [0, -40]);
-
-  // WCAG 2.2.2: auto-advancing content must be pausable. It also used to ignore
-  // manual selection — picking a dot was overridden ~5s later because the
-  // interval never reset. `factIdx` in the dep array restarts the clock on every
-  // change, and `paused` covers hover, focus, and prefers-reduced-motion.
-  const [paused, setPaused] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
-
-  useEffect(() => {
-    if (paused || prefersReducedMotion) return;
-    const t = setTimeout(() => setFactIdx((i) => (i + 1) % FACTS.length), 5000);
-    return () => clearTimeout(t);
-  }, [factIdx, paused, prefersReducedMotion]);
 
   const handleDemo = async (role: 'student' | 'organization') => {
     setIsDemoLoading(role === 'student' ? 'student' : 'org');
@@ -214,16 +250,13 @@ export default function Home() {
           <Reveal delay={0.1}>
             <div
               className="border border-gray-100 rounded-2xl p-10 md:p-16 min-h-[260px] relative"
-              onMouseEnter={() => setPaused(true)}
-              onMouseLeave={() => setPaused(false)}
-              onFocusCapture={() => setPaused(true)}
-              onBlurCapture={() => setPaused(false)}
+              {...facts.pauseProps}
               aria-roledescription="carousel"
               aria-label="Volunteering statistics"
             >
               <AnimatePresence mode="wait">
                 <motion.div
-                  key={factIdx}
+                  key={facts.index}
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -12 }}
@@ -231,17 +264,17 @@ export default function Home() {
                 >
                   <div className="flex items-baseline gap-4 mb-5">
                     <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none">
-                      {FACTS[factIdx].stat}
+                      {FACTS[facts.index].stat}
                     </span>
                     <span className="text-[16px] sm:text-[18px] font-medium text-ink-soft tracking-[-0.02em]">
-                      {FACTS[factIdx].label}
+                      {FACTS[facts.index].label}
                     </span>
                   </div>
                   <p className="text-ink-soft text-[15px] sm:text-[17px] leading-[1.7] max-w-xl mb-8">
-                    {FACTS[factIdx].text}
+                    {FACTS[facts.index].text}
                   </p>
                   <p className="text-xs font-medium text-ink-muted tracking-[-0.01em]">
-                    {FACTS[factIdx].source}
+                    {FACTS[facts.index].source}
                   </p>
                 </motion.div>
               </AnimatePresence>
@@ -253,18 +286,113 @@ export default function Home() {
                 {FACTS.map((fact, i) => (
                   <button
                     key={fact.stat}
-                    onClick={() => setFactIdx(i)}
+                    onClick={() => facts.go(i)}
                     aria-label={`Show statistic ${i + 1} of ${FACTS.length}: ${fact.stat} ${fact.label}`}
-                    aria-current={i === factIdx ? 'true' : undefined}
+                    aria-current={i === facts.index ? 'true' : undefined}
                     className="h-6 flex items-center px-0.5 group/dot"
                   >
                     <span
                       className={`block h-1 rounded-full transition-all duration-500 ${
-                        i === factIdx ? 'bg-blue-dark w-10' : 'bg-gray-200 group-hover/dot:bg-gray-400 w-6'
+                        i === facts.index ? 'bg-blue-dark w-10' : 'bg-gray-200 group-hover/dot:bg-gray-400 w-6'
                       }`}
                     />
                   </button>
                 ))}
+              </div>
+            </div>
+          </Reveal>
+        </div>
+      </section>
+
+      {/* Divider */}
+      <div className="max-w-5xl mx-auto px-6"><div className="h-px bg-gray-100" /></div>
+
+      {/* ── TESTIMONIALS ── */}
+      <section className="py-28 lg:py-36">
+        <div className="max-w-6xl mx-auto px-6">
+          <Reveal className="mb-16">
+            <h2 className="text-[1.75rem] sm:text-[2.5rem] font-semibold text-ink tracking-[-0.035em] leading-tight">
+              What people are{' '}
+              <span className="font-display italic text-blue-dark">saying</span>
+            </h2>
+          </Reveal>
+
+          {/* One slide at a time: stacking every quote made the section as tall
+              as the hero, and it only gets worse as reviews are added. */}
+          <Reveal delay={0.1}>
+            <div
+              className="border border-gray-100 rounded-2xl p-10 md:p-16 min-h-[300px] sm:min-h-[280px] relative overflow-hidden"
+              {...reviews.pauseProps}
+              aria-roledescription="carousel"
+              aria-label="What people are saying"
+            >
+              <span aria-hidden="true" className="block font-display text-[3.5rem] leading-none text-amber-dark/25 mb-1">
+                &ldquo;
+              </span>
+
+              {/* Every quote is rendered, stacked in one grid cell, so the card
+                  is always as tall as the longest one. Without this the card
+                  resized between slides and the controls jumped under the
+                  cursor mid-autoplay. Sizing off the real quotes rather than a
+                  hardcoded min-height means it stays right as reviews are
+                  added. */}
+              <div className="grid">
+                {TESTIMONIALS.map((t) => (
+                  <figure key={t.name} aria-hidden="true" className="[grid-area:1/1] invisible">
+                    <Quote testimonial={t} />
+                  </figure>
+                ))}
+
+                <AnimatePresence mode="wait" custom={reviews.dir * reviews.travel}>
+                  <motion.figure
+                    key={reviews.index}
+                    className="[grid-area:1/1]"
+                    custom={reviews.dir * reviews.travel}
+                    variants={slide}
+                    initial="enter"
+                    animate="center"
+                    exit="exit"
+                  >
+                    <Quote testimonial={TESTIMONIALS[reviews.index]} />
+                  </motion.figure>
+                </AnimatePresence>
+              </div>
+
+              <div className="flex items-center justify-between mt-10 -mb-2">
+                <div className="flex gap-1">
+                  {TESTIMONIALS.map((t, i) => (
+                    <button
+                      key={t.name}
+                      onClick={() => reviews.go(i)}
+                      aria-label={`Show review ${i + 1} of ${TESTIMONIALS.length}, from ${t.name}`}
+                      aria-current={i === reviews.index ? 'true' : undefined}
+                      className="h-6 flex items-center px-0.5 group/dot"
+                    >
+                      <span
+                        className={`block h-1 rounded-full transition-all duration-500 ${
+                          i === reviews.index ? 'bg-blue-dark w-10' : 'bg-gray-200 group-hover/dot:bg-gray-400 w-6'
+                        }`}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={reviews.prev}
+                    aria-label="Previous review"
+                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-ink-muted hover:text-blue-dark hover:border-blue-dark/30 transition-colors"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={reviews.next}
+                    aria-label="Next review"
+                    className="w-9 h-9 rounded-full border border-gray-200 flex items-center justify-center text-ink-muted hover:text-blue-dark hover:border-blue-dark/30 transition-colors"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
             </div>
           </Reveal>
