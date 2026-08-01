@@ -136,6 +136,10 @@ async function run(role: 'student' | 'organization') {
     // their own verified hours. This is what the onboarding payload was
     // accidentally tripping. If this ever stops throwing, students can credit
     // themselves volunteer hours.
+    console.log(
+      '[INFO] the next PERMISSION_DENIED line is EXPECTED — it is this check ' +
+        'confirming a student cannot write their own hours.'
+    );
     let denied = false;
     try {
       await setDoc(doc(db, 'students', uid), { loggedHours: [{ hours: 500 }] }, { merge: true });

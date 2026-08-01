@@ -41,7 +41,25 @@
       element at 1.93s. Preloading it from the document promotes it to a
       high-priority fetch that starts immediately.
     -->
-    <link rel="preload" as="image" href="/hero-bg.png" fetchpriority="high" />
+    <script>
+      // Only "/" paints hero-bg.png, and it is that route's LCP element, so the
+      // preload is worth keeping there — the image is referenced from a CSS
+      // class inside a JS chunk, so without it the fetch cannot start until the
+      // bundle parses.
+      //
+      // It must NOT be unconditional though: as a plain <link> in this shared
+      // index.html it fired on every entry point, costing anyone who deep-linked
+      // to /login, /signup or a dashboard a 292KB download they never used, and
+      // logging "preloaded but not used" on each of those routes.
+      if (location.pathname === '/') {
+        var heroPreload = document.createElement('link');
+        heroPreload.rel = 'preload';
+        heroPreload.as = 'image';
+        heroPreload.href = '/hero-bg.png';
+        heroPreload.fetchPriority = 'high';
+        document.head.appendChild(heroPreload);
+      }
+    </script>
     <!--
       leaflet.css used to load render-blocking from unpkg.com on EVERY page,
       though maps appear on two of them, and it made a third-party CDN a single

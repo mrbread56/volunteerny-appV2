@@ -25,6 +25,26 @@ let adminApp: any = null;
 
 const seen = new Map<string, { count: number; routes: Set<string>; type: string }>();
 
+/**
+ * Known-benign console output, with the reason it is benign. Anything not
+ * matched here is reported as a real finding — the point of this sweep is that
+ * a clean run prints zero, so recurring noise has to be classified rather than
+ * mentally filtered every time.
+ */
+const EXPECTED: { match: RegExp; why: string }[] = [
+  {
+    match: /403 \(Forbidden\)/,
+    why:
+      'the developer dashboard calls /api/email/history, which gates on the ' +
+      'VITE_DEVELOPER_EMAILS allowlist rather than the Firestore role. The seeded ' +
+      'test account is deliberately not on that allowlist, so 403 is correct.',
+  },
+];
+
+function expectedReason(text: string): string | null {
+  return EXPECTED.find((e) => e.match.test(text))?.why ?? null;
+}
+
 function record(type: string, text: string, route: string) {
   // Collapse volatile ids so the same failure groups into one row.
   const key = `${type}|${text.replace(/[0-9a-f]{8,}/gi, '<id>').slice(0, 220)}`;
@@ -81,16 +101,27 @@ test.afterAll(async () => {
   }
 
   const rows = [...seen.entries()].sort((x, y) => y[1].count - x[1].count);
-  const errors = rows.filter(([k]) => k.startsWith('error') || k.startsWith('pageerror'));
-  const warnings = rows.filter(([k]) => k.startsWith('warning'));
+  const classified = rows.map(([key, v]) => {
+    const [type, text] = key.split('|');
+    return { type, text, ...v, why: expectedReason(text) };
+  });
+  const unexpected = classified.filter((r) => !r.why);
+  const expected = classified.filter((r) => r.why);
 
   console.log(`\n================ CONSOLE SWEEP ================`);
-  console.log(`distinct errors: ${errors.length}   distinct warnings: ${warnings.length}`);
-  console.log(`total error events: ${errors.reduce((n, [, v]) => n + v.count, 0)}`);
-  for (const [key, v] of [...errors, ...warnings]) {
-    const [type, text] = key.split('|');
-    console.log(`\n[${type}] x${v.count}  routes: ${[...v.routes].join(', ')}`);
-    console.log(`  ${text}`);
+  console.log(`UNEXPECTED: ${unexpected.length} distinct (${unexpected.reduce((n, r) => n + r.count, 0)} events)`);
+  console.log(`expected/benign: ${expected.length} distinct`);
+
+  for (const r of unexpected) {
+    console.log(`\n  [${r.type}] x${r.count}  routes: ${[...r.routes].join(', ')}`);
+    console.log(`    ${r.text}`);
+  }
+  if (!unexpected.length) console.log('\n  nothing unexpected.');
+
+  for (const r of expected) {
+    console.log(`\n  (expected) [${r.type}] x${r.count}  routes: ${[...r.routes].join(', ')}`);
+    console.log(`    ${r.text}`);
+    console.log(`    why: ${r.why}`);
   }
   console.log(`\n===============================================\n`);
 });
