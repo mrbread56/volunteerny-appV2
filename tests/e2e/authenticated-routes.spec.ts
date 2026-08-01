@@ -16,6 +16,10 @@ const a: any = (admin as any).default || admin;
 const EMAIL = `e2e_student_${Date.now()}@example.com`;
 const PASSWORD = 'e2eStudent!123';
 let uid = '';
+// Held directly rather than looked up from admin.apps at teardown: this spec
+// runs against the real project, so a cleanup that resolves the wrong app (or
+// none) leaves a live account behind in the database real users sign in to.
+let adminApp: any = null;
 
 // Firestore's transport logs benign noise (WebChannel retries, deprecation
 // notices). Only genuine application failures should fail the run.
@@ -33,14 +37,14 @@ function isRealError(msg: ConsoleMessage) {
 }
 
 test.beforeAll(async () => {
-  const app = a.initializeApp(
+  adminApp = a.initializeApp(
     { credential: a.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) },
     `e2e-${Date.now()}`
   );
-  const db = app.firestore();
+  const db = adminApp.firestore();
   db.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
 
-  const user = await app.auth().createUser({ email: EMAIL, password: PASSWORD, emailVerified: true });
+  const user = await adminApp.auth().createUser({ email: EMAIL, password: PASSWORD, emailVerified: true });
   uid = user.uid;
   await db.collection('users').doc(uid).set({
     uid, email: EMAIL, role: 'student', twoFactorEnabled: false,
@@ -54,11 +58,9 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  if (!uid) return;
-  const app = a.apps.length ? a.apps[a.apps.length - 1] : null;
-  if (!app) return;
-  const db = app.firestore();
-  await app.auth().deleteUser(uid).catch(() => {});
+  if (!uid || !adminApp) return;
+  const db = adminApp.firestore();
+  await adminApp.auth().deleteUser(uid).catch(() => {});
   for (const c of ['users', 'students']) await db.collection(c).doc(uid).delete().catch(() => {});
 });
 

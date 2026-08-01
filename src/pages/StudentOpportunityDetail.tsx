@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 import { Badge } from '../components/ui/Badge';
 import { MapPin, Calendar, Clock, ArrowLeft, Building2, Share2, Bookmark, CheckCircle2, Users, X, Mail, Phone, Globe, ShieldAlert } from 'lucide-react';
 import { formatDate, cn, copyToClipboard } from '../lib/utils';
+import { fetchAcceptedCount } from '../lib/opportunityCapacity';
 import ReportModal from '../components/ReportModal';
 
 export default function StudentOpportunityDetail() {
@@ -213,16 +214,24 @@ export default function StudentOpportunityDetail() {
     }
 
     try {
-      // Fetch accepted count to see if full
-      const acceptedQ = query(
-        collection(db, 'applications'),
-        where('opportunityId', '==', id),
-        where('status', '==', 'accepted')
-      );
-      const snap = await getDocs(acceptedQ);
-      currentAcceptedCount = snap.size;
-      if (currentAcceptedCount >= maxVolunteers) {
-        determinedStatus = 'waitlist';
+      // Capacity comes from the server, not from a client query.
+      //
+      // Counting accepted applications means reading OTHER students'
+      // application documents, which the security rules correctly deny. That
+      // query used to live here, inside this same try, so the permission-denied
+      // it always threw skipped the addDoc below entirely — nobody could apply
+      // to anything. The endpoint returns just an integer.
+      //
+      // A failed capacity read must not block the application: fall back to
+      // 'pending' and let the organization triage. Losing the auto-waitlist is
+      // far cheaper than losing the application.
+      try {
+        currentAcceptedCount = await fetchAcceptedCount(id);
+        if (currentAcceptedCount >= maxVolunteers) {
+          determinedStatus = 'waitlist';
+        }
+      } catch (capacityErr) {
+        console.warn('Could not read opportunity capacity, applying as pending:', capacityErr);
       }
 
       await addDoc(collection(db, 'applications'), {

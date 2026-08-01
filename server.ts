@@ -598,6 +598,52 @@ app.use(express.json());
     }, LEADERBOARD_INTERVAL_MS).unref();
   }
 
+  /**
+   * How many volunteers an opportunity has already accepted.
+   *
+   * The apply flow needs this to decide between 'pending' and 'waitlist', but a
+   * student cannot compute it client-side: it means counting OTHER students'
+   * application documents, which the security rules correctly refuse. That
+   * query sat in the same try block as the addDoc that creates the
+   * application, so the permission-denied it always raised aborted the write —
+   * no student could apply to anything.
+   *
+   * Counting here with the Admin SDK keeps the rules tight and returns only an
+   * integer, never another student's record.
+   */
+  app.get('/api/opportunities/:id/accepted-count', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Demo sessions have no real documents to count.
+      if (authContext.isDemo) {
+        return res.json({ acceptedCount: 0, demo: true });
+      }
+      if (!getAdminObj()) {
+        return res.status(500).json({ error: 'Server configuration error.' });
+      }
+
+      const opportunityId = String(req.params.id || '');
+      if (!opportunityId || opportunityId.length > 128) {
+        return res.status(400).json({ error: 'Invalid opportunity id.' });
+      }
+
+      const snap = await adminFirestore()
+        .collection('applications')
+        .where('opportunityId', '==', opportunityId)
+        .where('status', '==', 'accepted')
+        .count()
+        .get();
+
+      return res.json({ acceptedCount: snap.data().count });
+    } catch (err: any) {
+      console.error('[applications] accepted-count failed:', err);
+      return res.status(500).json({ error: 'Failed to read capacity.' });
+    }
+  });
+
   // ── SEND OTP ──
   app.post('/api/auth/send-otp', async (req, res) => {
     try {

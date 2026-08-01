@@ -176,10 +176,24 @@ export default function Signup() {
           throw createErr;
         }
         // Already fully set up — this is a sign-in, not a signup.
-        const existing = await getDoc(doc(db, "users", user.uid));
-        if (existing.exists()) {
+        //
+        // The account is signed in from here on, so a failure below must never
+        // be reported as "we couldn't create your account". If we cannot tell
+        // whether a profile exists, fall through and let the writes below run:
+        // setDoc is idempotent for a profile this user already owns.
+        let alreadySetUp = false;
+        try {
+          alreadySetUp = (await getDoc(doc(db, "users", user.uid))).exists();
+        } catch (lookupErr) {
+          console.warn('Could not check for an existing profile, continuing:', lookupErr);
+        }
+        if (alreadySetUp) {
           await refreshProfile();
           signupInFlight.current = false;
+          // The redirect effect routes on userProfile, but it is skipped while
+          // signupInFlight is set — navigate explicitly so this never dead-ends
+          // on the form.
+          navigate(role === "student" ? "/student/dashboard" : "/org/dashboard");
           return;
         }
       }

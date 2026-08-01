@@ -452,7 +452,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // that started while `user` was still null, so the captured state value was
     // null and refreshProfile silently did nothing — leaving profileMissing
     // stuck true right after a successful signup.
-    const current = auth.currentUser || user;
+    //
+    // Demo mode must NOT prefer auth.currentUser: enableDemoMode never signs the
+    // real account out, so a signed-in user who starts a demo would otherwise
+    // have the demo profile built from their real uid and email.
+    const current = isDemoMode ? user : (auth.currentUser || user);
     if (current) {
       if (isDemoMode) {
         const demoRole = localStorage.getItem('demo_mode_role');
