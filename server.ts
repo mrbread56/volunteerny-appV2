@@ -62,6 +62,21 @@ if (MAIL_CONFIG_ERROR) {
   console.error('[Startup] MAIL DISABLED: ' + MAIL_CONFIG_ERROR);
 }
 
+// This project has no "(default)" Firestore database, only named ones, so an
+// unset FIREBASE_DATABASE_ID makes every Admin SDK call fail with a bare
+// "5 NOT_FOUND" that names nothing. Observed in production: the leaderboard
+// rebuild and the capacity endpoint both returned it. Say which variable is
+// missing instead of leaving a gRPC status code to be decoded.
+if (!process.env.FIREBASE_DATABASE_ID) {
+  console.error(
+    '[Startup] FIREBASE_DATABASE_ID is not set. The Admin SDK will address the ' +
+      '"(default)" database, which does not exist in this project, so every server-side ' +
+      'Firestore call fails with "5 NOT_FOUND" — leaderboard rebuilds and OTP persistence ' +
+      'included. Run `npm run check:firebase` to list the databases that exist, then set it ' +
+      'in the deployment environment.'
+  );
+}
+
 /** Returns true when it has already answered the request. */
 function mailUnavailable(res: any): boolean {
   if (!MAIL_CONFIG_ERROR) return false;
