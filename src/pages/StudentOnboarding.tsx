@@ -131,7 +131,13 @@ export default function StudentOnboarding() {
       passportUrl: passportBase64 ? compressFile(passportBase64) : '',
       trackerEnabled: leaderboardConsent,
       trackerAnonymous: false,
-      loggedHours: []
+      // Deliberately NOT loggedHours. Verified hours are written only by the
+      // organization that supervised them, and the students update rule enforces
+      // that by rejecting any owner write whose diff touches loggedHours. Signup
+      // does not create the field, so merging `loggedHours: []` here ADDED it to
+      // the diff and every onboarding submission was denied with
+      // "Missing or insufficient permissions". Readers already treat an absent
+      // value as [].
     };
 
     if (isDemoMode) {

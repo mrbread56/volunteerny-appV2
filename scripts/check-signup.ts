@@ -103,6 +103,48 @@ async function run(role: 'student' | 'organization') {
   assert.ok(detail.exists(), `${role} profile document missing after signup`);
 
   console.log(`[PASS] ${role}: signup wrote both documents, and sign-in with the same password works`);
+
+  if (role === 'student') {
+    // Onboarding is the step immediately after signup, and it is a students
+    // UPDATE, which is a different rule from the create above. It was denied
+    // for every student because the payload included `loggedHours: []` — a
+    // field only an organization may write — so the diff tripped the guard.
+    await setDoc(
+      doc(db, 'students', uid),
+      {
+        uid,
+        fullName: 'Check Signup',
+        school: 'Earl Haig Secondary School',
+        grade: '11',
+        neighborhood: 'Willowdale',
+        interests: ['Environment'],
+        skills: ['Leadership'],
+        availability: ['Flexible'],
+        previousExperience: 'Some experience',
+        resumeUrl: '',
+        passportUrl: '',
+        trackerEnabled: true,
+        trackerAnonymous: false,
+      },
+      { merge: true }
+    );
+    const onboarded = await getDoc(doc(db, 'students', uid));
+    assert.equal(onboarded.data()!.school, 'Earl Haig Secondary School');
+    console.log('[PASS] student: onboarding update saved');
+
+    // The other half of the same rule: a student must never be able to write
+    // their own verified hours. This is what the onboarding payload was
+    // accidentally tripping. If this ever stops throwing, students can credit
+    // themselves volunteer hours.
+    let denied = false;
+    try {
+      await setDoc(doc(db, 'students', uid), { loggedHours: [{ hours: 500 }] }, { merge: true });
+    } catch (err: any) {
+      denied = err.code === 'permission-denied';
+    }
+    assert.ok(denied, 'a student was able to write their own loggedHours');
+    console.log('[PASS] student: self-crediting loggedHours is still rejected');
+  }
 }
 
 async function cleanup() {
