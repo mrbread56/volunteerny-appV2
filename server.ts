@@ -34,23 +34,40 @@ console.log('[Startup] APP_URL:', process.env.APP_URL || '(not set)');
 if (!process.env.RESEND_API_KEY) {
   console.warn('[Startup] WARNING: RESEND_API_KEY is not set — two-factor codes CANNOT be delivered.');
 }
-// MAIL_FROM being unset is survivable in development but not in production:
-// organizations are created with twoFactorEnabled: true, so if Resend rejects
-// the fallback sender then no organization can complete a login at all. A
-// warning was not enough — it scrolled past in the deploy log and the failure
-// only showed up later as "the code never arrives". Refuse to boot instead.
-if (!process.env.MAIL_FROM) {
-  const message =
-    'MAIL_FROM is not set. Every org login needs an emailed 2FA code, and the ' +
+/**
+ * MAIL_FROM gates outbound email only — it must NOT gate the whole API.
+ *
+ * This used to `process.exit(1)` in production. On a long-running host that is
+ * a visible crash loop, but this app is also deployed to Vercel, where the
+ * whole Express app is one serverless function: exiting at module load meant
+ * EVERY /api/* route, including ones that never send mail, answered
+ * `500 FUNCTION_INVOCATION_FAILED` with no indication of why. Observed live —
+ * /api/auth/google/url, /api/leaderboard/refresh and even /api/nonexistent all
+ * returned that, so a single unset mail variable read as "the entire backend is
+ * down".
+ *
+ * Now the failure is scoped to the endpoints that actually need it, and it says
+ * what is wrong instead of crashing.
+ */
+const MAIL_CONFIG_ERROR: string | null = !process.env.MAIL_FROM
+  ? 'MAIL_FROM is not set. Every org login needs an emailed 2FA code, and the ' +
     'fallback sender "vny@volunteernorthyork.indevs.in" only works if that ' +
     'domain is verified in Resend. Verify a domain at https://resend.com/domains ' +
-    'and set MAIL_FROM (see .env.example).';
+    'and set MAIL_FROM (see .env.example).'
+  : null;
 
-  if (process.env.NODE_ENV === 'production') {
-    console.error('[Startup] FATAL: ' + message);
-    process.exit(1);
-  }
-  console.warn('[Startup] WARNING: ' + message + ' (fatal in production)');
+if (MAIL_CONFIG_ERROR) {
+  // Loud at boot, and repeated on every mail request below, so it cannot scroll
+  // past unnoticed the way the old warning did.
+  console.error('[Startup] MAIL DISABLED: ' + MAIL_CONFIG_ERROR);
+}
+
+/** Returns true when it has already answered the request. */
+function mailUnavailable(res: any): boolean {
+  if (!MAIL_CONFIG_ERROR) return false;
+  console.error('[mail] request refused: ' + MAIL_CONFIG_ERROR);
+  res.status(503).json({ error: 'Email is not configured on this server.', details: MAIL_CONFIG_ERROR });
+  return true;
 }
 
 // Secure lazy initialization of firebase-admin
@@ -646,6 +663,7 @@ app.use(express.json());
 
   // ── SEND OTP ──
   app.post('/api/auth/send-otp', async (req, res) => {
+    if (mailUnavailable(res)) return;
     try {
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.email) {
@@ -917,6 +935,7 @@ app.use(express.json());
   }
 
   app.post('/api/email/send', async (req, res) => {
+    if (mailUnavailable(res)) return;
     try {
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
