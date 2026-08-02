@@ -65,14 +65,25 @@ export default function OrgOpportunityApplicants() {
   const [expandedMsgs, setExpandedMsgs] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isBulkRejecting, setIsBulkRejecting] = useState(false);
-  const pendingUpdates = useRef<Record<string, { timeout: NodeJS.Timeout, previousState: Application }>>({});
+  // `settle` is the resolve() of the promise updateStatus handed its caller.
+  // Without it, Undo cleared the timer and the caller (ApplicationReviewDialog)
+  // was left awaiting a promise that could never resolve — its spinner never
+  // stopped. Every path that retires an entry must settle it exactly once.
+  type PendingUpdate = {
+    timeout: NodeJS.Timeout;
+    previousState: Application;
+    settle: (result: { success: boolean; emailSent: boolean; receiptGenerated: boolean; error?: string }) => void;
+  };
+  const pendingUpdates = useRef<Record<string, PendingUpdate>>({});
 
   const cancelUpdate = (appId: string) => {
-    if (pendingUpdates.current[appId]) {
-      clearTimeout(pendingUpdates.current[appId].timeout);
-      setApplicants(prev => prev.map(a => a.id === appId ? pendingUpdates.current[appId].previousState : a));
+    const pending = pendingUpdates.current[appId];
+    if (pending) {
+      clearTimeout(pending.timeout);
       delete pendingUpdates.current[appId];
+      setApplicants(prev => prev.map(a => a.id === appId ? pending.previousState : a));
       setSuccessMessage("Action undone.");
+      pending.settle({ success: false, emailSent: false, receiptGenerated: false, error: "undone" });
     }
   };
 
@@ -280,8 +291,26 @@ export default function OrgOpportunityApplicants() {
     };
 
 
-    const currentState = applicants.find(a => a.id === appId);
-    if (!currentState) return { success: false, emailSent: false, receiptGenerated: false };
+    const visibleState = applicants.find(a => a.id === appId);
+    if (!visibleState) return { success: false, emailSent: false, receiptGenerated: false };
+
+    // Acting twice on the same applicant inside the 5s undo window used to
+    // leave the first timer running: the map entry was simply overwritten. The
+    // orphaned timer then fired, ran `delete pendingUpdates.current[appId]` on
+    // the SECOND action's entry (killing its Undo), and wrote the first,
+    // now-superseded status in a race with the second write. Retire the
+    // previous action here — the newer one wins.
+    const superseded = pendingUpdates.current[appId];
+    if (superseded) {
+      clearTimeout(superseded.timeout);
+      delete pendingUpdates.current[appId];
+      superseded.settle({ success: false, emailSent: false, receiptGenerated: false, error: "superseded" });
+    }
+
+    // Undo must restore what was actually persisted, not the superseded
+    // action's optimistic row — otherwise undoing the second action leaves the
+    // applicant showing a status that was never written to Firestore.
+    const currentState = superseded ? superseded.previousState : visibleState;
 
     // Optimistically update UI immediately
     let updatedApps: Application[] = [];
@@ -361,7 +390,7 @@ export default function OrgOpportunityApplicants() {
         }
       }, 5000);
 
-      pendingUpdates.current[appId] = { timeout: timeoutId, previousState: currentState };
+      pendingUpdates.current[appId] = { timeout: timeoutId, previousState: currentState, settle: resolve };
     });
   };
 

@@ -129,13 +129,24 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
       };
 
       try {
+        // /api/feedback/analyze requires a bearer token. This request sent
+        // none, so triage 401'd on every real report and every one of them was
+        // filed with the hardcoded placeholder summary above — silently,
+        // because a non-ok response just leaves the fallback in place.
+        // FeedbackPage already sends the token; this call was the odd one out.
+        const token = isDemoMode ? 'demo-mode-token-student' : await user?.getIdToken();
         const aiResponse = await fetch(`${API_BASE_URL}/api/feedback/analyze`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
           body: JSON.stringify({ subject: `SAFETY REPORT: ${reason}`, message: description, type: 'safety' }),
         });
         if (aiResponse.ok) {
           aiOverview = await aiResponse.json();
+        } else {
+          console.warn('AI triage for this safety report was rejected:', aiResponse.status, await aiResponse.text());
         }
       } catch (aiErr) {
         console.warn('AI evaluation failed for report, using fallback metadata:', aiErr);

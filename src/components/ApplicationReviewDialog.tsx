@@ -80,6 +80,16 @@ export default function ApplicationReviewDialog({
         await new Promise(resolve => setTimeout(resolve, 800 - elapsed));
       }
 
+      // The applicants page defers its write by 5s so the toast can offer Undo.
+      // Undoing, or acting on the same applicant again inside that window,
+      // settles this promise as unsuccessful — but nothing failed, so showing
+      // the red "critical error" panel would be a lie. Just close.
+      if (res.error === "undone" || res.error === "superseded") {
+        setSubmittingState('idle');
+        onClose();
+        return;
+      }
+
       if (!res.success) {
         throw new Error(res.error || "Failed to update record in Firestore database context.");
       }
