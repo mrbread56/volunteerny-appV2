@@ -79,26 +79,34 @@ export default function DeveloperDashboard() {
 
       if (res.ok) {
         const body = await res.json();
-        if (body.mode === 'smtp_production') {
+        // These branches used to test for 'smtp_production' and 'production'.
+        // /api/email/send has only ever answered 'live' (Resend accepted it) or
+        // 'demo' (simulated, nothing sent), so every genuinely delivered email
+        // fell through to the failure branch and was reported as a failure.
+        if (body.mode === 'live') {
           setTestEmailStatus({
             success: true,
-            message: `SMTP Delivery Succeeded! Email dispatched securely via SMTP Server (${body.host || 'volunteernorthyork.indevs.in'}) to ${testEmailTo}. MessageID: ${body.messageId}`
+            message: `Delivery succeeded — Resend accepted the message for ${testEmailTo}.`
           });
-        } else if (body.mode === 'production') {
+        } else if (body.mode === 'demo') {
           setTestEmailStatus({
-            success: true,
-            message: `Resend API Delivery Succeeded! Email dispatched securely via Resend to ${testEmailTo}. ID: ${body.id || 'N/A'}`
+            success: false,
+            message: `Demo mode: the HTML was rendered and logged, but no email was sent. Sign in with a real developer account to send for real.`
           });
         } else {
           setTestEmailStatus({
             success: false,
-            message: `Simulation Fallback Active: Real email sending failed (Error: ${body.details || 'API Key or SMTP invalid'}), but the email HTML was successfully generated and recorded in the dev/test logs!`
+            message: `The server returned 200 but did not confirm delivery (mode: ${body.mode || 'unknown'}${body.warning ? `, ${body.warning}` : ''}).`
           });
         }
       } else {
+        // The endpoint explains itself (503 = RESEND_API_KEY missing, 429 =
+        // rate limited, 400 = bad template). "Check server logs" threw that
+        // away and sent the developer to the wrong place.
+        const body = await res.json().catch(() => ({}) as any);
         setTestEmailStatus({
           success: false,
-          message: 'API router returned a failure. Check server logs.'
+          message: `${res.status}: ${body.error || 'The email API returned a failure.'}${body.details ? ` — ${body.details}` : ''}`
         });
       }
     } catch (err: any) {

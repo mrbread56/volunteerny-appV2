@@ -42,6 +42,7 @@ import { serverTimestamp } from "firebase/firestore";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
+import { totalLoggedHours } from "../lib/hours";
 
 export default function OrgDashboard() {
   const {
@@ -262,9 +263,13 @@ export default function OrgDashboard() {
               `Student record not found for ${req.studentName || req.studentId}, so the hours could not be credited.`
             );
           }
-          const currentHours = studentSnap.data().loggedHours || [];
+          const updatedHours = [...(studentSnap.data().loggedHours || []), newLogItem];
+          // students/{uid}.hours is the field the leaderboard rebuild orders by.
+          // Only loggedHours was ever written, so every student ranked at 0.
+          // Recompute the scalar in the same write as the array.
           await updateDoc(studentRef, {
-            loggedHours: [...currentHours, newLogItem]
+            loggedHours: updatedHours,
+            hours: totalLoggedHours(updatedHours),
           });
         }
 
@@ -549,7 +554,13 @@ export default function OrgDashboard() {
             ? `Your application for "${opportunityTitle}" was accepted! 🎉`
             : `Application Update for "${opportunityTitle}"`;
 
-          await sendTransactionalEmail({
+          // sendTransactionalEmail never throws: it resolves with
+          // { success: false } on failure. This set emailSent = true
+          // unconditionally, so the organization was told the applicant had
+          // been notified even when no email left the building. (The identical
+          // bug was already fixed in OrgOpportunityApplicants.tsx; the fix
+          // never reached this copy.)
+          const emailResult = await sendTransactionalEmail({
             to: studentEmail,
             subject: subject,
             templateName: "application_status",
@@ -563,7 +574,10 @@ export default function OrgDashboard() {
                 : undefined
             }
           });
-          emailSent = true;
+          emailSent = emailResult.success;
+          if (!emailResult.success) {
+            console.error("Applicant status email was not delivered:", emailResult.error);
+          }
         }
       } catch (e) {
         console.error("Failed to compile or dispatch Resend notification:", e);
@@ -792,6 +806,7 @@ export default function OrgDashboard() {
           const updatedHours = [...currentHours, newLogItem];
           await updateDoc(studentRef, {
             loggedHours: updatedHours,
+            hours: totalLoggedHours(updatedHours),
           });
           setLogResultStatus("success");
           // Direct credit logging also moves the student's total.
