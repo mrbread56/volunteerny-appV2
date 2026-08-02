@@ -197,27 +197,44 @@ export default function OrgOpportunityCreate() {
 
   // Auto-geocode location
   React.useEffect(() => {
+    // The debounce was cleared on cleanup but the request it had already
+    // started was not, so an in-flight lookup outlived the address it was for.
+    // Two consequences: a slow response for an older address could land after a
+    // newer one and silently overwrite the coordinates actually saved with the
+    // opportunity, and leaving the page logged the aborted fetch as
+    // "Geocoding error: TypeError: Failed to fetch" (found by npm run
+    // sweep:console) on whatever route the user had moved to.
+    const controller = new AbortController();
+
     const geocode = async () => {
       if (!location || location.length < 5 || isVirtual) return;
-      
+
       setIsGeocoding(true);
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&viewbox=-79.638,43.855,-79.116,43.581&bounded=0`);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&viewbox=-79.638,43.855,-79.116,43.581&bounded=0`,
+          { signal: controller.signal }
+        );
         const data = await response.json();
-        
+
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           setCoords({ lat: parseFloat(lat), lng: parseFloat(lon) });
         }
       } catch (error) {
+        // We cancelled it ourselves; not a failure worth reporting.
+        if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
       } finally {
-        setIsGeocoding(false);
+        if (!controller.signal.aborted) setIsGeocoding(false);
       }
     };
 
     const timeoutId = setTimeout(geocode, 1000); // 1s debounce
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [location, isVirtual]);
 
   function MapController({ center }: { center: { lat: number; lng: number } }) {
@@ -299,7 +316,13 @@ export default function OrgOpportunityCreate() {
 
     const opportunityData = {
       orgId: user.uid,
-      orgName: orgProfile?.organizationName,
+      // The `|| ''` is load-bearing. orgProfile is null until AuthContext has
+      // read organizations/{uid}, and PrivateRoute releases the page as soon as
+      // users/{uid} lands — so posting quickly after arriving here sent
+      // `orgName: undefined`, which the Firestore SDK rejects outright
+      // ("Unsupported field value: undefined"). The whole addDoc failed, and the
+      // organization was told to check its connection.
+      orgName: orgProfile?.organizationName || '',
       title,
       description,
       location,

@@ -196,6 +196,7 @@ export default function StudentOpportunityDetail() {
           id: 'demo-app-' + Date.now(),
           opportunityId: id,
           opportunityTitle: opportunity.title,
+          orgId: opportunity.orgId,
           studentId: user?.uid || 'demo-student-1',
           studentName: studentProfile?.fullName || 'Alex Volunteer',
           status: determinedStatus,
@@ -236,6 +237,11 @@ export default function StudentOpportunityDetail() {
 
       await addDoc(collection(db, 'applications'), {
         opportunityId: id,
+        // Who the student actually volunteered for. Without this, "Rate this
+        // organization" on the student dashboard built its rating document
+        // with orgId: undefined — which the Firestore SDK rejects outright, so
+        // the rating was silently discarded.
+        orgId: opportunity.orgId,
         studentId: user.uid,
         status: determinedStatus,
         appliedAt: serverTimestamp(),
