@@ -3,6 +3,7 @@ import { useAuth } from "../contexts/AuthContext";
 import SuccessAnimation from "../components/SuccessAnimation";
 import { db } from "../firebase/config";
 import { subscribeToScalableLeaderboard } from "../lib/scalableLeaderboard";
+import { totalLoggedHours } from "../lib/hours";
 import {
   collection,
   query,
@@ -113,6 +114,7 @@ export default function StudentDashboard() {
   const [ratingStars, setRatingStars] = useState(0);
   const [ratingComment, setRatingComment] = useState("");
   const [isSubmittingRating, setIsSubmittingRating] = useState(false);
+  const [ratingError, setRatingError] = useState("");
   const [existingRatings, setExistingRatings] = useState<Record<string, boolean>>({});
   const [selectedReceiptApp, setSelectedReceiptApp] =
     useState<Application | null>(null);
@@ -136,10 +138,7 @@ export default function StudentDashboard() {
 
   // Hour Logging and tracking states
   const loggedHoursList = studentProfile?.loggedHours || [];
-  const totalCompletedHours = loggedHoursList.reduce(
-    (acc, current) => acc + Number(current.hours || 0),
-    0,
-  );
+  const totalCompletedHours = totalLoggedHours(loggedHoursList);
   const hourGoal = 40;
 
   const [selectedVolunteeringId, setSelectedVolunteeringId] = useState("");
@@ -314,6 +313,12 @@ export default function StudentDashboard() {
     }
   };
 
+  useEffect(() => {
+    if (!errorMessage) return;
+    const timer = setTimeout(() => setErrorMessage(null), 5000);
+    return () => clearTimeout(timer);
+  }, [errorMessage]);
+
   const handleToggleCompetitiveness = async () => {
     if (!user) return;
     const newVal = !(studentProfile?.trackerEnabled ?? true);
@@ -330,6 +335,7 @@ export default function StudentDashboard() {
       await refreshProfile();
     } catch (err) {
       console.error("Error updating trackerEnabled", err);
+      setErrorMessage("Couldn't change your leaderboard visibility. Please try again.");
     }
   };
 
@@ -349,6 +355,7 @@ export default function StudentDashboard() {
       await refreshProfile();
     } catch (err) {
       console.error("Error updating trackerAnonymous", err);
+      setErrorMessage("Couldn't change your leaderboard anonymity. Please try again.");
     }
   };
 
@@ -366,7 +373,14 @@ export default function StudentDashboard() {
       });
       await refreshProfile();
     } catch (err) {
+      // Worth being loud about: silently failing to turn two-factor ON is a
+      // security setting the student believes they changed.
       console.error("Error updating twoFactorEnabled", err);
+      setErrorMessage(
+        newVal
+          ? "Two-factor authentication was NOT turned on. Please try again."
+          : "Couldn't turn off two-factor authentication. Please try again."
+      );
     }
   };
 
@@ -388,8 +402,23 @@ export default function StudentDashboard() {
   const handleSubmitRating = async () => {
     if (!ratingApp || !user || ratingStars < 1) return;
     setIsSubmittingRating(true);
+    setRatingError("");
     try {
-      const ratingId = `${user.uid}_${ratingApp.orgId || ratingApp.organizationId}_${ratingApp.opportunityId}`;
+      // Applications written before orgId was stored on them have neither
+      // orgId nor organizationId, and `orgId: undefined` is rejected outright
+      // by the Firestore SDK — which is why every rating from a real student
+      // vanished. Recover the org from the opportunity for those.
+      let orgId: string | undefined = ratingApp.orgId || ratingApp.organizationId;
+      if (!orgId && !isDemoMode && ratingApp.opportunityId) {
+        const oppSnap = await getDoc(doc(db, "opportunities", ratingApp.opportunityId));
+        orgId = oppSnap.data()?.orgId;
+      }
+      if (!orgId) {
+        setRatingError("We couldn't work out which organization this was for, so the rating wasn't saved. Please let us know via Feedback.");
+        return;
+      }
+
+      const ratingId = `${user.uid}_${orgId}_${ratingApp.opportunityId}`;
       if (isDemoMode) {
         const existing = JSON.parse(localStorage.getItem('demo_ratings') || '[]');
         existing.push({ id: ratingId, stars: ratingStars, comment: ratingComment, orgName: ratingApp.orgName || ratingApp.organizationName, opportunityTitle: ratingApp.opportunityTitle });
@@ -398,21 +427,30 @@ export default function StudentDashboard() {
         await setDoc(doc(db, 'orgRatings', ratingId), {
           studentId: user.uid,
           studentName: studentProfile?.fullName || user.displayName || 'Student',
-          orgId: ratingApp.orgId || ratingApp.organizationId,
+          orgId,
           orgName: ratingApp.orgName || ratingApp.organizationName || 'Organization',
           opportunityId: ratingApp.opportunityId,
           opportunityTitle: ratingApp.opportunityTitle || 'Opportunity',
           stars: ratingStars,
+          // The rules cap this at 500 chars; the textarea does too, but a
+          // rejected write here used to be invisible.
           comment: ratingComment,
           createdAt: serverTimestamp(),
         });
       }
-      setExistingRatings(prev => ({ ...prev, [`${ratingApp.orgId || ratingApp.organizationId}_${ratingApp.opportunityId}`]: true }));
+      setExistingRatings(prev => ({ ...prev, [`${orgId}_${ratingApp.opportunityId}`]: true }));
       setRatingApp(null);
       setRatingStars(0);
       setRatingComment("");
-    } catch (err) {
+    } catch (err: any) {
+      // Previously a console.error only: the modal just sat there, the spinner
+      // stopped, and the student's rating was discarded without a word.
       console.error('Failed to submit rating:', err);
+      setRatingError(
+        err?.code === 'permission-denied'
+          ? "We couldn't save this rating. You can only rate an organization you volunteered with."
+          : "We couldn't save your rating. Please check your connection and try again."
+      );
     } finally {
       setIsSubmittingRating(false);
     }
@@ -1084,6 +1122,21 @@ export default function StudentDashboard() {
       activeTab={activeTab}
       onTabChange={handleTabChange}
     >
+      {/* `errorMessage` was declared and never set or rendered. The settings
+          toggles below (leaderboard visibility, anonymity, two-factor) each
+          swallowed their write failure in a console.error, so a student who
+          switched two-factor ON and hit a rules or network error saw the switch
+          simply not move, with no explanation. */}
+      {errorMessage && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide flex items-center gap-2 max-w-[90vw]"
+        >
+          {errorMessage}
+        </div>
+      )}
+
       <AnimatePresence mode="wait">
         {["dashboard", "applications", "hours"].includes(activeTab) && (
           <motion.div
@@ -1164,7 +1217,7 @@ export default function StudentDashboard() {
                             <button
                               title="Rate this organization"
                               className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-blue-dark/10 hover:bg-blue-dark/20 text-blue-dark border border-blue-dark/20 rounded-full flex items-center gap-1 transition-all duration-200 whitespace-nowrap"
-                              onClick={() => { setRatingApp(app); setRatingStars(0); setRatingComment(""); }}
+                              onClick={() => { setRatingApp(app); setRatingStars(0); setRatingComment(""); setRatingError(""); }}
                             >
                               <Star className="w-3.5 h-3.5" />
                               <span>Rate</span>
@@ -1981,11 +2034,16 @@ export default function StudentDashboard() {
       {ratingApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="w-full max-w-md bg-white p-8 space-y-5 relative">
-            <button onClick={() => setRatingApp(null)} className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
+            <button onClick={() => { setRatingApp(null); setRatingError(""); }} className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-bold text-ink">Rate your experience</h3>
             <p className="text-sm text-ink-soft">{ratingApp.opportunityTitle || ratingApp.orgName || 'Organization'}</p>
+            {ratingError && (
+              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3 text-[13px] border border-red-200 leading-relaxed">
+                {ratingError}
+              </div>
+            )}
             <div className="flex gap-1 py-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setRatingStars(s)} className="p-1 transition-transform hover:scale-110">
