@@ -111,29 +111,40 @@ export default function OrgOpportunityEdit() {
   const [coords, setCoords] = useState({ lat: 43.7615, lng: -79.4111 });
   const [isGeocoding, setIsGeocoding] = useState(false);
 
-  // Auto-geocode location
+  // Auto-geocode location — same abort handling as OrgOpportunityCreate; see
+  // the note there for why an unaborted in-flight lookup could overwrite the
+  // coordinates of a newer address.
   useEffect(() => {
+    const controller = new AbortController();
+
     const geocode = async () => {
       if (!location || location.length < 5 || isVirtual) return;
-      
+
       setIsGeocoding(true);
       try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&viewbox=-79.638,43.855,-79.116,43.581&bounded=0`);
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(location)}&viewbox=-79.638,43.855,-79.116,43.581&bounded=0`,
+          { signal: controller.signal }
+        );
         const data = await response.json();
-        
+
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           setCoords({ lat: parseFloat(lat), lng: parseFloat(lon) });
         }
       } catch (error) {
+        if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
       } finally {
-        setIsGeocoding(false);
+        if (!controller.signal.aborted) setIsGeocoding(false);
       }
     };
 
     const timeoutId = setTimeout(geocode, 1000); // 1s debounce
-    return () => clearTimeout(timeoutId);
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
   }, [location, isVirtual]);
 
   function MapController({ center }: { center: { lat: number; lng: number } }) {
