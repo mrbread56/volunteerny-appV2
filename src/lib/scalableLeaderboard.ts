@@ -1,16 +1,4 @@
-import { 
-  collection, 
-  doc, 
-  setDoc, 
-  updateDoc, 
-  getDocs, 
-  onSnapshot, 
-  query, 
-  orderBy, 
-  limit, 
-  increment,
-  writeBatch
-} from 'firebase/firestore';
+import { doc, onSnapshot } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { API_BASE_URL } from './config';
 
@@ -21,42 +9,15 @@ export interface LeaderboardEntry {
   updatedAt: any;
 }
 
-/**
- * --------------------------------------------------------------------------
- * 1. HIGH-THROUGHPUT WRITE OPERATION
- * --------------------------------------------------------------------------
- * Updates the user's score. To achieve extreme throughput (5,000+ writes/sec) 
- * and avoid Firestore's 1-write/second limit on a single shared document,
- * we write to the user's individual document under `/students/{userId}`.
- * 
- * Since `{userId}` matches the authenticated user ID (a high-entropy UUID),
- * concurrent writes are distributed uniformly across Firestore's physical partitions,
- * eliminating document locking overhead and hotspotting.
- */
-export async function submitUserScore(userId: string, userName: string, scoreDelta: number): Promise<void> {
-  const studentRef = doc(db, 'students', userId);
-  
-  // Update the user's score using atomic increments. This is extremely fast
-  // and does not experience contention with other distinct users.
-  await setDoc(studentRef, {
-    fullName: userName,
-    hours: increment(scoreDelta),
-    updatedAt: new Date(),
-    trackerEnabled: true
-  }, { merge: true });
-}
+// submitUserScore() used to live here: an increment() write to
+// students/{uid}.hours, described as the "high-throughput write operation". It
+// had zero callers, so the scalar the leaderboard orders by was never written
+// and every student ranked at 0. The total is now recomputed from loggedHours
+// by whoever approves the hours (see src/lib/hours.ts) — deleted rather than
+// wired up, because an increment racing that recompute would double-count, and
+// it also silently set trackerEnabled: true, opting students back into a
+// ranking they may have left.
 
-/**
- * --------------------------------------------------------------------------
- * 2. BACKGROUND AGGREGATION & COMPUTATION METHOD
- * --------------------------------------------------------------------------
- * Runs periodically (e.g., every 1-2 seconds) via a highly-optimized background 
- * process (such as a Cloud Function or a structured cron worker). 
- * 
- * This aggregates the top 100 players from the indexed '/students' collection 
- * and materializes the aggregated result into a single, static shared document 
- * at '/leaderboards/global_top'.
- */
 /**
  * Ask the server to rebuild /leaderboards/global_top.
  *

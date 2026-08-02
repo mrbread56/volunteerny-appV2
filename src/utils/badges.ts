@@ -1,7 +1,8 @@
-import { 
-  Trophy, 
-  Award, 
-  Zap, 
+import { totalLoggedHours } from "../lib/hours";
+import {
+  Trophy,
+  Award,
+  Zap,
   ShieldCheck, 
   Briefcase, 
   BookOpen, 
@@ -23,10 +24,7 @@ export interface BadgeDefinition {
 
 export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDefinition; isUnlocked: boolean }[] {
   const loggedHoursList = profile?.loggedHours || [];
-  const totalHours = loggedHoursList.reduce(
-    (acc, current) => acc + Number(current.hours || 0),
-    0
-  );
+  const totalHours = totalLoggedHours(loggedHoursList);
 
   const skillsCount = profile?.skills?.length || 0;
   const hasSchool = !!profile?.school && profile?.school !== "Other";

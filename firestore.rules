@@ -261,9 +261,15 @@ service cloud.firestore {
       
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidStudent(incoming()) && 
                     (!('loggedHours' in incoming()) || incoming().loggedHours.size() == 0);
+      // `hours` is the denormalised total of `loggedHours` and is what the
+      // leaderboard rebuild orders by, so it is exactly as self-crediting as the
+      // array is: the owner may not touch either. The organization writes both
+      // in one updateDoc when it approves hours, so hasOnly must name both —
+      // with only ['loggedHours'] the combined write is rejected outright.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours'])) ||
-        (isVerifiedOrg() && incoming().diff(existing()).affectedKeys().hasOnly(['loggedHours'])) ||
+        (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours', 'hours'])) ||
+        (isVerifiedOrg() && incoming().diff(existing()).affectedKeys().hasOnly(['loggedHours', 'hours']) &&
+         (absent(incoming(), 'hours') || incoming().hours is number)) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();

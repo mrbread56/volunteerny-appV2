@@ -21,7 +21,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
 } from 'firebase/auth';
-import { initializeFirestore, doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { initializeFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { totalLoggedHours } from '../src/lib/hours';
 import * as admin from 'firebase-admin';
 import assert from 'node:assert/strict';
 import dotenv from 'dotenv';
@@ -42,7 +43,7 @@ const auth = getAuth(app);
 const PASSWORD = 'checkSignup!123';
 const uids: string[] = [];
 
-async function run(role: 'student' | 'organization') {
+async function run(role: 'student' | 'organization'): Promise<string> {
   const email = `check_signup_${role}_${Date.now()}@example.com`;
   const { user } = await createUserWithEmailAndPassword(auth, email, PASSWORD);
   uids.push(user.uid);
@@ -148,19 +149,44 @@ async function run(role: 'student' | 'organization') {
     }
     assert.ok(denied, 'a student was able to write their own loggedHours');
     console.log('[PASS] student: self-crediting loggedHours is still rejected');
+
+    // `hours` is the denormalised total the leaderboard ranks on. Blocking only
+    // the array would have left the scalar writable, i.e. any student could set
+    // themselves to the top of the board without a single approved hour.
+    let scoreDenied = false;
+    try {
+      await setDoc(doc(db, 'students', uid), { hours: 9999 }, { merge: true });
+    } catch (err: any) {
+      scoreDenied = err.code === 'permission-denied';
+    }
+    assert.ok(scoreDenied, 'a student was able to write their own leaderboard score');
+    console.log('[PASS] student: self-setting the leaderboard score is rejected');
   }
+
+  return uid;
+}
+
+// One admin handle, shared by the read-back below and by cleanup.
+let adminDb: any = null;
+function adminFirestore() {
+  if (adminDb) return adminDb;
+  const a: any = (admin as any).default || admin;
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!key) return null;
+  const adminApp = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'check-signup-admin');
+  adminDb = adminApp.firestore();
+  adminDb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+  adminDb.__app = adminApp;
+  return adminDb;
 }
 
 async function cleanup() {
-  const a: any = (admin as any).default || admin;
-  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-  if (!key) {
+  const adb = adminFirestore();
+  if (!adb) {
     console.log(`[WARN] no service account key — leaving throwaway accounts: ${uids.join(', ')}`);
     return;
   }
-  const adminApp = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'cleanup');
-  const adb = adminApp.firestore();
-  adb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+  const adminApp = adb.__app;
   for (const uid of uids) {
     await adminApp.auth().deleteUser(uid).catch(() => {});
     for (const c of ['users', 'students', 'organizations']) {
@@ -170,11 +196,62 @@ async function cleanup() {
   console.log(`[INFO] cleaned up ${uids.length} throwaway account(s)`);
 }
 
+/**
+ * The other side of the same rule: an organization approving hours writes
+ * loggedHours AND the denormalised `hours` total in ONE updateDoc, because the
+ * leaderboard orders on that scalar. While the rule said
+ * hasOnly(['loggedHours']) that combined write was rejected outright — so
+ * widening it is the difference between approvals working and every approval
+ * failing. That cannot be checked by reading the rule; it has to be run.
+ */
+async function checkOrgCreditsHours(studentUid: string) {
+  const email = `check_credit_org_${Date.now()}@example.com`;
+  const { user } = await createUserWithEmailAndPassword(auth, email, PASSWORD);
+  uids.push(user.uid);
+  try {
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid,
+      email,
+      role: 'organization',
+      twoFactorEnabled: true,
+      createdAt: serverTimestamp(),
+    });
+  } catch (e: any) {
+    console.error('   step that failed: org users setDoc', e.code, 'currentUser', auth.currentUser?.uid, 'target', user.uid);
+    throw e;
+  }
+
+  const loggedHours = [{ id: 'log-check-1', activity: 'Check', hours: 2.5, date: '2026-01-01', approved: true }];
+  // The write under test: rejected outright while the rule said
+  // hasOnly(['loggedHours']).
+  await updateDoc(doc(db, 'students', studentUid), {
+    loggedHours,
+    hours: totalLoggedHours(loggedHours),
+  });
+
+  // Read back with the Admin SDK, not the client. This one process has been
+  // three different users in turn, and the client's cached listen on
+  // students/{studentUid} is still the student's — reading it back as the org
+  // fails here for that reason alone, which says nothing about the app (where
+  // an org session is never also a student session). What we need to confirm
+  // is what was persisted.
+  const adb = adminFirestore();
+  if (!adb) {
+    console.log('[WARN] no service account key — skipping the credited-total read-back');
+    return;
+  }
+  const credited = await adb.collection('students').doc(studentUid).get();
+  assert.equal(credited.data()!.hours, 2.5, 'the org wrote loggedHours but not the ranked total');
+  assert.equal(credited.data()!.loggedHours.length, 1, 'the org write did not land');
+  console.log('[PASS] organization: approving hours writes loggedHours and the ranked total together');
+}
+
 (async () => {
   let failed = false;
   try {
-    await run('student');
+    const studentUid = await run('student');
     await run('organization');
+    await checkOrgCreditsHours(studentUid);
   } catch (err: any) {
     failed = true;
     console.error(`[FAIL] ${err?.code || ''} ${err?.message || err}`);
