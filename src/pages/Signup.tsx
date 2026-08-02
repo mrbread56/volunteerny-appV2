@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendEmailVerification } from "firebase/auth";
+import { useNavigate, useLocation, Link } from "react-router-dom";
+// No signInWithPopup / GoogleAuthProvider here on purpose — registration is
+// manual only. See the note next to the role-select buttons.
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { Button } from "../components/ui/Button";
@@ -63,10 +65,21 @@ export default function Signup() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
+
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, userProfile, profileMissing, refreshProfile } = useAuth();
+
+  // Login.tsx redirects here with an explanatory message when a Google popup
+  // creates an account that has no profile yet. The message was passed but
+  // never rendered, so the user arrived at a bare signup form with no idea why.
+  const handoffMessage = (location.state as { message?: string } | null)?.message;
+
+  // A signed-in account that has no users/{uid} document: a Google sign-in that
+  // just created the auth record, or a signup that died after the account was
+  // created. The account already exists, so this form completes its profile
+  // rather than creating anything — hence no email/password fields.
+  const completingExistingAccount = !!user && profileMissing && !userProfile;
 
   // Set for the whole duration of handleSignup. createUserWithEmailAndPassword
   // signs the user in immediately, so onAuthStateChanged fires and reads
@@ -83,6 +96,11 @@ export default function Signup() {
     // Firestore profile read finishes, so routing on an undefined role sent
     // people to the wrong dashboard and let the guards bounce them.
     if (!userProfile && !profileMissing) return;
+    // A session whose profile is genuinely missing is the one case that must
+    // STAY here — this form is its recovery. Redirecting it sent every new
+    // Google user to /student/dashboard, where the guard showed a dead-end
+    // "contact support" screen.
+    if (completingExistingAccount) return;
 
     if (userProfile?.role === 'developer') {
       navigate("/developer/dashboard", { replace: true });
@@ -91,7 +109,7 @@ export default function Signup() {
     } else {
       navigate("/student/dashboard", { replace: true });
     }
-  }, [user, userProfile, profileMissing, navigate]);
+  }, [user, userProfile, profileMissing, completingExistingAccount, navigate]);
   
   // Form State
   const [fullName, setFullName] = useState("");
@@ -157,7 +175,12 @@ export default function Signup() {
     setError("");
 
     try {
-      const normalizedEmail = email.trim().toLowerCase();
+      // The account may already exist and be signed in — a Google popup that
+      // just created it, or a resumed half-finished signup. In that case this
+      // submit only writes the missing profile documents; creating anything
+      // would fail with auth/email-already-in-use.
+      let account = completingExistingAccount ? user : null;
+      const normalizedEmail = (account?.email || email).trim().toLowerCase();
 
       // A signup that died after the auth account was created but before the
       // profile was written used to be unrecoverable: retrying hit
@@ -165,42 +188,44 @@ export default function Signup() {
       // credentials instead and finish the profile writes. If the password
       // doesn't match, the email really is someone else's — rethrow the
       // original error so the message is unchanged for that case.
-      let user;
-      try {
-        user = (await createUserWithEmailAndPassword(auth, email, password)).user;
-      } catch (createErr: any) {
-        if (createErr?.code !== 'auth/email-already-in-use') throw createErr;
+      if (!account) {
         try {
-          user = (await signInWithEmailAndPassword(auth, email, password)).user;
-        } catch {
-          throw createErr;
-        }
-        // Already fully set up — this is a sign-in, not a signup.
-        //
-        // The account is signed in from here on, so a failure below must never
-        // be reported as "we couldn't create your account". If we cannot tell
-        // whether a profile exists, fall through and let the writes below run:
-        // setDoc is idempotent for a profile this user already owns.
-        let alreadySetUp = false;
-        try {
-          alreadySetUp = (await getDoc(doc(db, "users", user.uid))).exists();
-        } catch (lookupErr) {
-          console.warn('Could not check for an existing profile, continuing:', lookupErr);
-        }
-        if (alreadySetUp) {
-          await refreshProfile();
-          signupInFlight.current = false;
-          // The redirect effect routes on userProfile, but it is skipped while
-          // signupInFlight is set — navigate explicitly so this never dead-ends
-          // on the form.
-          navigate(role === "student" ? "/student/dashboard" : "/org/dashboard");
-          return;
+          account = (await createUserWithEmailAndPassword(auth, email, password)).user;
+        } catch (createErr: any) {
+          if (createErr?.code !== 'auth/email-already-in-use') throw createErr;
+          try {
+            account = (await signInWithEmailAndPassword(auth, email, password)).user;
+          } catch {
+            throw createErr;
+          }
+          // Already fully set up — this is a sign-in, not a signup.
+          //
+          // The account is signed in from here on, so a failure below must
+          // never be reported as "we couldn't create your account". If we
+          // cannot tell whether a profile exists, fall through and let the
+          // writes below run: setDoc is idempotent for a profile this user
+          // already owns.
+          let alreadySetUp = false;
+          try {
+            alreadySetUp = (await getDoc(doc(db, "users", account.uid))).exists();
+          } catch (lookupErr) {
+            console.warn('Could not check for an existing profile, continuing:', lookupErr);
+          }
+          if (alreadySetUp) {
+            await refreshProfile();
+            signupInFlight.current = false;
+            // The redirect effect routes on userProfile, but it is skipped
+            // while signupInFlight is set — navigate explicitly so this never
+            // dead-ends on the form.
+            navigate(role === "student" ? "/student/dashboard" : "/org/dashboard");
+            return;
+          }
         }
       }
 
       try {
-        await setDoc(doc(db, "users", user.uid), {
-          uid: user.uid,
+        await setDoc(doc(db, "users", account.uid), {
+          uid: account.uid,
           email: normalizedEmail,
           role,
           // Two-factor is required for organizations (they hold contact details
@@ -212,8 +237,8 @@ export default function Signup() {
         });
 
         if (role === "student") {
-          await setDoc(doc(db, "students", user.uid), {
-            uid: user.uid,
+          await setDoc(doc(db, "students", account.uid), {
+            uid: account.uid,
             fullName,
             school: school || selectedSchool,
             grade,
@@ -225,8 +250,8 @@ export default function Signup() {
             passportUrl: "",
           });
         } else {
-          await setDoc(doc(db, "organizations", user.uid), {
-            uid: user.uid,
+          await setDoc(doc(db, "organizations", account.uid), {
+            uid: account.uid,
             organizationName: orgName,
             mission,
             organizationType: orgType,
@@ -270,7 +295,9 @@ export default function Signup() {
       // account was created, leaving them signed in but convinced they had
       // failed — and every retry then hit auth/email-already-in-use.
       try {
-        await sendEmailVerification(user);
+        // A Google account arrives with a Google-verified address already, so
+        // a second round trip would just be noise.
+        if (!account.emailVerified) await sendEmailVerification(account);
       } catch (verifyErr) {
         console.error('Verification email could not be sent for', normalizedEmail, verifyErr);
       }
@@ -332,11 +359,20 @@ export default function Signup() {
         <Card className="w-full overflow-hidden">
           <CardHeader className="text-center pb-2 pt-10">
             <CardTitle className="text-[1.5rem] font-semibold tracking-[-0.02em] text-ink">
-              Create an Account
+              {completingExistingAccount ? "Finish setting up your account" : "Create an Account"}
             </CardTitle>
-            <p className="text-ink-soft text-[14px] mt-2">Join Volunteer North York</p>
+            <p className="text-ink-soft text-[14px] mt-2">
+              {completingExistingAccount
+                ? `Signed in as ${user?.email || "your Google account"}`
+                : "Join Volunteer North York"}
+            </p>
           </CardHeader>
           <CardContent className="space-y-6 pt-6 pb-10">
+            {handoffMessage && (
+              <div role="status" className="bg-blue-50 text-blue-dark p-3.5 text-[13px] border border-blue-105 leading-relaxed">
+                {handoffMessage}
+              </div>
+            )}
             {error && (
               <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -371,9 +407,15 @@ export default function Signup() {
                   </div>
                 </Button>
 
+                {/* Deliberately no "Continue with Google" here. Registration
+                    collects a role, school, grade, organization type and CRA
+                    number — none of which Google provides — so a Google button
+                    would save no steps while adding a second account-creation
+                    path to keep correct. Google is sign-in only; /login deletes
+                    the empty account its popup creates for a stranger. */}
                 {role && (
-                  <Button 
-                    className="w-full mt-4" 
+                  <Button
+                    className="w-full mt-4"
                     variant="primary"
                     onClick={() => setSetupStage("form")}
                   >
@@ -442,26 +484,31 @@ export default function Signup() {
                   </>
                 )}
                 
-                <div className="pt-4 border-t border-line">
-                  <div className="text-[14px] font-medium text-ink mb-4">Account Details</div>
-                  <div className="space-y-4">
-                    <Input
-                      label="Email Address"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <Input
-                      label="Password"
-                      type="password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      placeholder="At least 6 characters"
-                    />
+                {/* The account already exists when we got here via Google, so
+                    asking for an email and a password would be asking for
+                    credentials that cannot be applied to it. */}
+                {!completingExistingAccount && (
+                  <div className="pt-4 border-t border-line">
+                    <div className="text-[14px] font-medium text-ink mb-4">Account Details</div>
+                    <div className="space-y-4">
+                      <Input
+                        label="Email Address"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                      />
+                      <Input
+                        label="Password"
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                        placeholder="At least 6 characters"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
 
                 <div className="flex items-center gap-2 pt-4">
                   <input
@@ -491,7 +538,7 @@ export default function Signup() {
                     className="flex-[2]"
                     isLoading={isLoading}
                   >
-                    Create Account
+                    {completingExistingAccount ? "Finish Setup" : "Create Account"}
                   </Button>
                 </div>
               </form>

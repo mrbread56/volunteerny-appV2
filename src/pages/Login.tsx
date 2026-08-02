@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from "firebase/auth";
-import { auth } from "../firebase/config";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { auth, db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMfaClaim } from "../lib/mfa";
 import { Spinner } from "../components/ui/Spinner";
@@ -20,7 +21,15 @@ export default function Login() {
   const navigate = useNavigate();
   const { user, userProfile, profileMissing, mfaVerified, authError } = useAuth();
 
+  // Set for the whole duration of handleGoogleLogin. The popup signs the user
+  // in, so onAuthStateChanged fires and profileMissing flips true while we are
+  // still deciding whether to delete the account it just created — and the
+  // effect below would race us to /signup, without the explanation we want to
+  // hand over. The Google handler owns the routing for its own flow.
+  const googleFlowInFlight = React.useRef(false);
+
   useEffect(() => {
+    if (googleFlowInFlight.current) return;
     if (!user) return;
 
     // Wait until the profile is actually resolved before routing.
@@ -32,9 +41,23 @@ export default function Login() {
     // /student/dashboard before their real role was known. The role guard then
     // bounced them again, producing the flicker-then-stall on sign-in.
     //
-    // profileMissing is the terminal "no profile document" state; those users
-    // still need to leave /login so App's route guard can show the recovery UI.
+    // profileMissing is the terminal "no profile document" state.
     if (!userProfile && !profileMissing) return;
+
+    // An authenticated account with no profile document — a brand-new Google
+    // sign-in, or a signup that died after the auth record was created.
+    //
+    // This is checked BEFORE the MFA gate on purpose. There is no profile, so
+    // there is no twoFactorEnabled to read and verifyMfaClaim falls back to the
+    // (false) claim, which sent them to /mfa — a challenge for an account with
+    // no contact record to challenge against. /signup can complete the profile
+    // for a session that already exists, so send them somewhere they can
+    // actually recover. GlobalAuthGuard likewise skips the MFA redirect while
+    // profileMissing is set, so the two agree.
+    if (profileMissing && !userProfile) {
+      navigate("/signup", { replace: true });
+      return;
+    }
 
     const isVerified = verifyMfaClaim(user, userProfile, mfaVerified);
     if (!isVerified) {
@@ -47,7 +70,6 @@ export default function Login() {
     } else if (userProfile?.role === 'organization') {
       navigate("/org/dashboard", { replace: true });
     } else {
-      // Students, and orphaned accounts (profileMissing) that need the recovery screen.
       navigate("/student/dashboard", { replace: true });
     }
   }, [user, userProfile, profileMissing, mfaVerified, navigate]);
@@ -113,6 +135,7 @@ export default function Login() {
 
   const handleGoogleLogin = async () => {
     setIsGoogleLoading(true);
+    googleFlowInFlight.current = true;
     setError("");
     try {
       const provider = new GoogleAuthProvider();
@@ -120,22 +143,55 @@ export default function Login() {
         prompt: 'select_account'
       });
       const credential = await signInWithPopup(auth, provider);
-      
-      const isNewUser = credential.user.metadata.creationTime === credential.user.metadata.lastSignInTime;
-      if (isNewUser) {
-        // Don't delete the user - that's destructive. Just sign them out
-        // and redirect to signup so they can complete registration properly.
-        await auth.signOut();
-        navigate("/signup", { state: { message: "Looks like you don't have an account yet. Sign up first, then you can log in with Google." } });
+
+      // signInWithPopup CREATES the Firebase account the moment it resolves;
+      // there is no "try before you buy". Registration is deliberately manual
+      // only (it collects a role, school, grade, org type, CRA number — none of
+      // which Google can supply), so an account created by this button is an
+      // accident of the SDK, not a signup, and it must not survive.
+      //
+      // The previous code just signed the new user out. That left an auth
+      // record with no profile which its owner could neither sign in with (no
+      // profile, so every route bounced) nor register with
+      // (auth/email-already-in-use, forever) — permanently locked out on their
+      // first click of "Continue with Google". Delete it instead: the account
+      // is seconds old, owns nothing, and the popup is a fresh reauthentication
+      // so deleteUser will not ask for one.
+      //
+      // Checking for the profile document beats the creationTime ===
+      // lastSignInTime heuristic: it also catches a returning user whose
+      // profile write failed on an earlier attempt.
+      const profileSnap = await getDoc(doc(db, "users", credential.user.uid));
+      if (!profileSnap.exists()) {
+        try {
+          await deleteUser(credential.user);
+        } catch (cleanupErr) {
+          // Could not remove it (offline, token too old). Do NOT sign out —
+          // /signup can finish the profile for a session that already exists,
+          // and that is the only escape from the lockout described above.
+          console.error('Could not remove the empty Google account, falling back to profile recovery:', cleanupErr);
+          navigate("/signup", {
+            replace: true,
+            state: { message: "Almost there — we just need a few details to finish setting up your account." },
+          });
+          return;
+        }
+        navigate("/signup", {
+          replace: true,
+          state: {
+            message: "There's no account for that Google address yet. Sign up here first — it takes a minute, and afterwards you can use Continue with Google to sign in.",
+          },
+        });
         return;
       }
-      
+
     } catch (err: any) {
       if (err.code !== 'auth/popup-closed-by-user') {
         setError(err.code ? friendlyAuthError(err.code) : (err.message || 'Failed to sign in with Google.'));
       }
     } finally {
       setIsGoogleLoading(false);
+      googleFlowInFlight.current = false;
     }
   };
 
