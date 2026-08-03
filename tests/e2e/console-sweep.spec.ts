@@ -39,6 +39,19 @@ const EXPECTED: { match: RegExp; why: string }[] = [
       'VITE_DEVELOPER_EMAILS allowlist rather than the Firestore role. The seeded ' +
       'test account is deliberately not on that allowlist, so 403 is correct.',
   },
+  {
+    match: /Geocoding error: TypeError: Failed to fetch/,
+    why:
+      'an artifact of this sweep, not of the app. The opportunity form debounces a ' +
+      'geocode lookup and aborts it on unmount (an explicit abort raises AbortError, ' +
+      'which the handler ignores). But this sweep moves between routes with ' +
+      'page.goto(), a FULL document teardown — React cleanup never runs, so the ' +
+      'browser kills the in-flight request itself and reports TypeError. Real users ' +
+      'navigate client-side, where the abort path runs and this is silent. The tell ' +
+      'is that it is always attributed to the route navigated TO, never to the ' +
+      'opportunity form that owns the request. Flaky by nature: it only appears when ' +
+      'a lookup happens to be in flight at teardown.',
+  },
 ];
 
 function expectedReason(text: string): string | null {

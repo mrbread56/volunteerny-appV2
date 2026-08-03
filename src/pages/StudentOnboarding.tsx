@@ -154,7 +154,11 @@ export default function StudentOnboarding() {
       navigate('/student/dashboard');
     } catch (err: any) {
       console.error("Error writing database onboarding:", err);
-      setError("Failed to save your details to Google Cloud FireStore: " + err.message);
+      setError(
+        err?.code === 'permission-denied'
+          ? "We couldn't save your details. Please refresh and try again — if it keeps happening, contact support."
+          : "We couldn't save your details. Please check your connection and try again."
+      );
     } finally {
       setIsSubmitting(false);
     }
