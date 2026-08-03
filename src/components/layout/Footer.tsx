@@ -30,29 +30,41 @@ export default function Footer() {
           {/* Product */}
           <div>
             <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Product</h4>
-            <ul className="space-y-3">
+            {/* Tighter than it looks: the links below carry py-1.5, so the
+                visual rhythm is unchanged while each tap target clears the
+                24px minimum. They were 15px tall — the height of the text
+                itself — which is hard to hit accurately on a phone. */}
+            <ul className="space-y-1">
               {/* /student/opportunities is a PrivateRoute and is Disallow'd in
                   robots.txt, so this bounced anonymous visitors to /login. */}
-              <li><Link to="/signup" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Browse Opportunities</Link></li>
-              <li><Link to="/signup" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Join as Organisation</Link></li>
-              <li><Link to="/login" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Sign In</Link></li>
+              <li><Link to="/signup" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Browse Opportunities</Link></li>
+              <li><Link to="/signup" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Join as Organisation</Link></li>
+              <li><Link to="/login" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Sign In</Link></li>
             </ul>
           </div>
 
           {/* Support */}
           <div>
             <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Support</h4>
-            <ul className="space-y-3">
-              <li><Link to="/feedback" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Feedback</Link></li>
+            {/* Tighter than it looks: the links below carry py-1.5, so the
+                visual rhythm is unchanged while each tap target clears the
+                24px minimum. They were 15px tall — the height of the text
+                itself — which is hard to hit accurately on a phone. */}
+            <ul className="space-y-1">
+              <li><Link to="/feedback" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Feedback</Link></li>
             </ul>
           </div>
 
           {/* Legal */}
           <div>
             <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Legal</h4>
-            <ul className="space-y-3">
-              <li><Link to="/terms" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Terms of Service</Link></li>
-              <li><Link to="/privacy" className="text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Privacy Policy</Link></li>
+            {/* Tighter than it looks: the links below carry py-1.5, so the
+                visual rhythm is unchanged while each tap target clears the
+                24px minimum. They were 15px tall — the height of the text
+                itself — which is hard to hit accurately on a phone. */}
+            <ul className="space-y-1">
+              <li><Link to="/terms" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Terms of Service</Link></li>
+              <li><Link to="/privacy" className="inline-block py-1.5 text-[13px] text-paper/75 hover:text-paper transition-colors duration-200">Privacy Policy</Link></li>
             </ul>
           </div>
         </div>

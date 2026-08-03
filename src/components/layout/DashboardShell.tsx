@@ -205,7 +205,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       )}
 
       {/* Main content — subtle gray bg so cards pop (video: lighter cards on darker bg) */}
-      <main className="flex-1 lg:ml-[240px] min-h-screen">
+      {/* min-w-0 is load-bearing, not tidying. A flex item defaults to
+          min-width:auto, which refuses to shrink below its content's intrinsic
+          width — so any page with something wide inside pushed THIS element
+          past the viewport and gave the whole document a horizontal scrollbar,
+          rather than the content reflowing. Measured on
+          /org/opportunities/new at 375px: main rendered 382.7px wide inside a
+          375.3px parent. With min-w-0 the content reflows and nothing is cut
+          off. Every dashboard page renders through here, so removing it
+          re-breaks all of them the moment one gains a wide child. */}
+      <main className="flex-1 min-w-0 lg:ml-[240px] min-h-screen">
         <div className="pt-14 lg:pt-0">
           {children}
         </div>
