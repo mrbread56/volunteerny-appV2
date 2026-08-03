@@ -64,6 +64,11 @@ const TESTIMONIALS = [
     role: 'Associate Professor, Cheriton School of Computer Science\nUniversity of Waterloo',
   },
   {
+    quote: "This volunteer website is really helpful because it makes it easy to find volunteer opportunities. It's a great way to give back to the community, gain valuable experience, and meet new people.",
+    name: 'Thomas',
+    role: 'Student',
+  },
+  {
     quote: 'There is currently a large gap between organizations in their search for helpful volunteers and students themselves looking for opportunities. This site/app could potentially help bridge the gap and provide an easier method to get out and get connected.',
     name: 'Jerett Hatt',
     role: 'Community Outreach Assistant\nOffice of Councillor Lily Cheng',
