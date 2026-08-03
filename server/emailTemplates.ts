@@ -44,6 +44,16 @@ const BG_COLOR = "#f8fafc"; // Slate 50
 
 /**
  * Wraps HTML content in a pristine, responsive email wrapper with high-contrast layouts.
+ *
+ * The footer used to carry a "Notification Preferences / Unsubscribe / Contact
+ * Support" row. Removed by request, and none of it worked anyway: /about and
+ * /support are not routes, and App.tsx sends unmatched paths to
+ * <Navigate to="/">, so those links silently dropped the reader on the
+ * homepage. There is still no self-serve unsubscribe to link to — don't
+ * reinstate any of them without a route that actually handles it.
+ *
+ * (This note lives here rather than as an HTML comment on purpose: anything
+ * inside the template string is transmitted in every email.)
  */
 function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplateProps): string {
   return `<!DOCTYPE html>
@@ -270,18 +280,6 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
     <div class="footer">
       <p>Sent with key credentials by <strong>${BRAND_NAME}</strong></p>
       <p>High School Community Involvement Portfolio &amp; Opportunities Directory</p>
-      <!--
-        /about and /support are not routes. App.tsx sends every unmatched path
-        to <Navigate to="/">, so both of these silently dropped the reader on
-        the homepage — an "Unsubscribe" link that does nothing is a broken
-        promise, not just a dead link. /feedback exists and reaches a human, so
-        both point there until there is a real self-serve unsubscribe.
-      -->
-      <p>
-        <a href="${BRAND_URL()}/student/profile">Notification Preferences</a> &nbsp;&bull;&nbsp;
-        <a href="${BRAND_URL()}/feedback">Unsubscribe</a> &nbsp;&bull;&nbsp;
-        <a href="${BRAND_URL()}/feedback">Contact Support</a>
-      </p>
       <p style="font-size: 11px; margin-top: 12px; color: #94a3b8;">&copy; ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
     </div>
   </div>
