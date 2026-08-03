@@ -2,6 +2,7 @@
  * Modern, responsive templates for Volunteer North York
  * Crafted with clean typography, elegant negative space, and a refined professional layout.
  */
+import { appOrigin } from "./appUrl";
 
 interface BaseTemplateProps {
   title: string;
@@ -26,7 +27,12 @@ function esc(value: unknown): string {
 }
 
 const BRAND_NAME = "Volunteer North York";
-const BRAND_URL = process.env.APP_URL || "https://volunteernorthyork.indevs.in";
+// Was a const: `process.env.APP_URL || "https://volunteernorthyork.indevs.in"`.
+// The default was the MAIL_FROM domain, which sends mail and serves no website,
+// so every button below was a dead link — and being a const, it was evaluated
+// at import time, before server.ts had run dotenv.config(), so setting APP_URL
+// could not have fixed it either. Must stay a call. See server/appUrl.ts.
+const BRAND_URL = () => appOrigin();
 const BRAND_COLOR = "#2563eb"; // Modern Blue 600
 const TEXT_COLOR = "#334155"; // Slate 700
 const BG_COLOR = "#f8fafc"; // Slate 50
@@ -259,10 +265,17 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
     <div class="footer">
       <p>Sent with key credentials by <strong>${BRAND_NAME}</strong></p>
       <p>High School Community Involvement Portfolio &amp; Opportunities Directory</p>
+      <!--
+        /about and /support are not routes. App.tsx sends every unmatched path
+        to <Navigate to="/">, so both of these silently dropped the reader on
+        the homepage — an "Unsubscribe" link that does nothing is a broken
+        promise, not just a dead link. /feedback exists and reaches a human, so
+        both point there until there is a real self-serve unsubscribe.
+      -->
       <p>
-        <a href="${BRAND_URL}/student/profile">Notification Preferences</a> &nbsp;&bull;&nbsp; 
-        <a href="${BRAND_URL}/about">Unsubscribe</a> &nbsp;&bull;&nbsp; 
-        <a href="${BRAND_URL}/support">Contact Support</a>
+        <a href="${BRAND_URL()}/student/profile">Notification Preferences</a> &nbsp;&bull;&nbsp;
+        <a href="${BRAND_URL()}/feedback">Unsubscribe</a> &nbsp;&bull;&nbsp;
+        <a href="${BRAND_URL()}/feedback">Contact Support</a>
       </p>
       <p style="font-size: 11px; margin-top: 12px; color: #94a3b8;">&copy; ${new Date().getFullYear()} ${BRAND_NAME}. All rights reserved.</p>
     </div>
@@ -292,7 +305,7 @@ export const emailTemplates = {
       </div>
 
       <div style="text-align: center;">
-        <a href="${BRAND_URL}/login" class="btn">Explore Volunteer Placements</a>
+        <a href="${BRAND_URL()}/login" class="btn">Explore Volunteer Placements</a>
       </div>
 
       <p>If you have any questions or need helper tips on eligible shifts, reply directly to this email or read our guidelines at the Local High School Hub.</p>
@@ -325,12 +338,12 @@ export const emailTemplates = {
       ${status === "accepted" ? `
         <p><strong>Next Steps:</strong> Please contact the supervisor immediately to coordinate your shift schedule and community hour sign-off tracking.</p>
         <div style="text-align: center;">
-          <a href="${BRAND_URL}/student/dashboard" class="btn">View Dashboard Details</a>
+          <a href="${BRAND_URL()}/student/dashboard" class="btn">View Dashboard Details</a>
         </div>
       ` : `
         <p>Don't worry! There are hundreds of other verified placements seeking passionate students around our community. Head back to the search dashboard to find your fit.</p>
         <div style="text-align: center;">
-          <a href="${BRAND_URL}/student/opportunities" class="btn" style="background-color: #475569;">Find Other Opportunities</a>
+          <a href="${BRAND_URL()}/student/opportunities" class="btn" style="background-color: #475569;">Find Other Opportunities</a>
         </div>
       `}
 
@@ -360,7 +373,7 @@ export const emailTemplates = {
       <p>These hours have been automatically added to your dynamic progress dashboard. You can export your official community hours transcript PDF directly from your profile dashboard for graduation submission.</p>
 
       <div style="text-align: center;">
-        <a href="${BRAND_URL}/student/dashboard" class="btn">View Hour Logbook</a>
+        <a href="${BRAND_URL()}/student/dashboard" class="btn">View Hour Logbook</a>
       </div>
 
       <p>Thank you for making our community a better place through your service!</p>
@@ -387,7 +400,7 @@ export const emailTemplates = {
       <p>Please review their application in your Admin Dashboard to either Accept their placement or decline with constructive feedback.</p>
 
       <div style="text-align: center;">
-        <a href="${BRAND_URL}/org/dashboard" class="btn">Review Application</a>
+        <a href="${BRAND_URL()}/org/dashboard" class="btn">Review Application</a>
       </div>
 
       <p>Thank you for supporting youth involvement in secondary schools!</p>

@@ -5,6 +5,7 @@ import fs from 'fs';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
+import { appOrigin } from './server/appUrl.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -267,9 +268,10 @@ app.use(express.json());
 
   // CORS and Preflight handler
   app.use((req, res, next) => {
-    const allowedOrigin = process.env.NODE_ENV === 'production'
-      ? (process.env.APP_URL || 'https://volunteernorthyork.indevs.in')
-      : '*';
+    // Same wrong default as the email templates had: this allowed the
+    // MAIL_FROM domain, which is not where the app is served from, and did not
+    // allow the origin that actually calls this API. See server/appUrl.ts.
+    const allowedOrigin = process.env.NODE_ENV === 'production' ? appOrigin() : '*';
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');

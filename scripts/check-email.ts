@@ -14,6 +14,9 @@
  * path — an unverified MAIL_FROM means no organization can log in at all.
  */
 import dotenv from 'dotenv';
+import fs from 'node:fs';
+import { emailTemplates } from '../server/emailTemplates';
+import { CANONICAL_APP_ORIGIN, appOrigin } from '../server/appUrl';
 
 dotenv.config();
 
@@ -26,7 +29,72 @@ function fail(msg: string) {
   failed = true;
 }
 
+/**
+ * A delivered email whose every button is a dead link is not a working email.
+ *
+ * Both causes of that are checked here, because neither is visible from the
+ * inbox: the wrong origin baked into the templates, and the canonical origin
+ * drifting away from the one index.html/sitemap.xml advertise.
+ */
+function checkLinks() {
+  // Render a real template rather than inspecting the source, so this follows
+  // whatever the code actually does at send time.
+  const html = emailTemplates.welcome_student?.('Check') ?? '';
+  const hrefs = [...html.matchAll(/href="(https?:\/\/[^"]+)"/g)].map((m) => m[1]);
+  if (hrefs.length === 0) {
+    fail('rendered welcome_student contains no links at all — template may be broken.');
+    return;
+  }
+
+  const expected = appOrigin();
+  const wrong = [...new Set(hrefs.filter((h) => !h.startsWith(expected + '/') && h !== expected))];
+  if (wrong.length) {
+    fail(`email buttons point somewhere other than ${expected}: ${wrong.join(', ')}`);
+  } else {
+    console.log(`[PASS] email links all point at ${expected} (${hrefs.length} checked)`);
+  }
+
+  // The mail domain is for sending only and serves no website. This is the
+  // exact regression that shipped dead buttons.
+  const mailDomain = (from?.match(/<([^>]+)>/)?.[1] || from || '').split('@')[1]?.toLowerCase();
+  if (mailDomain && hrefs.some((h) => h.toLowerCase().includes(mailDomain))) {
+    fail(`email links point at the MAIL_FROM domain "${mailDomain}", which sends mail and serves no site.`);
+  }
+
+  // A link to a path App.tsx does not route is not a dead 404 — the catch-all
+  // sends it to <Navigate to="/">, so the reader lands on the homepage with no
+  // idea why. That is how "Unsubscribe" pointed at /about for so long.
+  const appSrc = fs.readFileSync('src/App.tsx', 'utf8');
+  const routed = new Set(
+    [...appSrc.matchAll(/path="([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith('/'))
+  );
+  const paths = [...new Set(hrefs.map((h) => h.replace(expected, '')).filter(Boolean))];
+  const unrouted = paths.filter((p) => {
+    if (routed.has(p)) return false;
+    // Allow a routed prefix with params, e.g. /opportunities/:id
+    return ![...routed].some((r) => r.includes(':') && p.startsWith(r.split('/:')[0] + '/'));
+  });
+  if (unrouted.length) {
+    fail(`email links point at paths App.tsx does not route (they silently redirect home): ${unrouted.join(', ')}`);
+  } else {
+    console.log(`[PASS] every email link targets a real route (${paths.length} distinct paths)`);
+  }
+
+  // index.html and sitemap.xml are static and cannot import the constant, so
+  // assert they agree instead of trusting anyone to update all three.
+  for (const file of ['index.html', 'public/sitemap.xml']) {
+    const text = fs.readFileSync(file, 'utf8');
+    const origins = [...new Set([...text.matchAll(/https?:\/\/[a-z0-9.-]+\.(?:vercel\.app|web\.app|onrender\.com|indevs\.in)/gi)].map((m) => m[0]))];
+    const mismatched = origins.filter((o) => o !== CANONICAL_APP_ORIGIN);
+    if (mismatched.length) {
+      fail(`${file} advertises ${mismatched.join(', ')} but CANONICAL_APP_ORIGIN is ${CANONICAL_APP_ORIGIN}.`);
+    }
+  }
+}
+
 (async () => {
+  checkLinks();
+
   if (!key) {
     fail('RESEND_API_KEY is not set — no email can be sent, including two-factor codes.');
     process.exit(1);
