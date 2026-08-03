@@ -2,7 +2,12 @@
  * Modern, responsive templates for Volunteer North York
  * Crafted with clean typography, elegant negative space, and a refined professional layout.
  */
-import { appOrigin } from "./appUrl";
+// The .js extension is required, not cosmetic: package.json is
+// "type": "module", so Vercel resolves this file as real ESM, where an
+// extensionless relative import throws ERR_MODULE_NOT_FOUND at load time and
+// takes the entire API down with it. tsx and esbuild --bundle both resolve it
+// either way, which is why it passes locally and fails only when deployed.
+import { appOrigin } from "./appUrl.js";
 
 interface BaseTemplateProps {
   title: string;
