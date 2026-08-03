@@ -49,9 +49,24 @@ const TESTIMONIALS = [
     role: 'Student',
   },
   {
+    quote: 'It is an awesome platform! The design is great, the workflow seems smooth, and the functions are comprehensive.',
+    name: 'Dr. Jian Zhao',
+    role: 'Associate Professor, Cheriton School of Computer Science\nUniversity of Waterloo',
+  },
+  {
     quote: 'Finding a place to volunteer for is one of the biggest challenges and this website solves that issue.',
     name: 'Roy',
     role: 'Student',
+  },
+  {
+    quote: 'This is a very interesting project, and potentially very useful to schools and students.',
+    name: 'Dr. Jeffery Avery',
+    role: 'Associate Professor, Cheriton School of Computer Science\nUniversity of Waterloo',
+  },
+  {
+    quote: 'There is currently a large gap between organizations in their search for helpful volunteers and students themselves looking for opportunities. This site/app could potentially help bridge the gap and provide an easier method to get out and get connected.',
+    name: 'Jerett Hatt',
+    role: 'Community Outreach Assistant\nOffice of Councillor Lily Cheng',
   },
 ];
 
