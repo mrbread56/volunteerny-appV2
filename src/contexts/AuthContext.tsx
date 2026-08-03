@@ -218,8 +218,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Auto-resolve developer session safely
         if (isDevEmail) {
+          const wasAlreadyDeveloper = data.role === 'developer';
           data.role = 'developer';
           data.twoFactorEnabled = true;
+
+          // This override was memory-only. firestore.rules decides on the
+          // stored role (plus the bootstrap allowlist), so an allowlisted
+          // account whose document still said 'student' got the entire Control
+          // Room and permission-denied on everything inside it — the UI and the
+          // database disagreed about who this person was.
+          //
+          // Persist it so they agree. The write is authorised by the bootstrap
+          // clause in isDeveloper(), which is why it can succeed at all; a
+          // non-allowlisted user cannot reach this branch, and isValidUser
+          // still refuses 'developer' on the self-service create/update paths,
+          // so this is not a self-promotion route.
+          if (!wasAlreadyDeveloper) {
+            try {
+              const { updateDoc } = await import('firebase/firestore');
+              await updateDoc(doc(db, 'users', currentUser.uid), { role: 'developer', twoFactorEnabled: true });
+            } catch (promoteErr) {
+              console.error(
+                'Account %s is in VITE_DEVELOPER_EMAILS but its stored role could not be updated. ' +
+                'The developer UI will render and privileged operations will be denied. ' +
+                'Add this address to developerEmails() in firestore.rules and redeploy (npm run deploy:rules).',
+                userEmail,
+                promoteErr
+              );
+            }
+          }
+
           if (data.isBanned) {
             data.isBanned = false;
             try {

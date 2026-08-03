@@ -27,10 +27,28 @@ service cloud.firestore {
       );
     }
 
+    // The bootstrap allowlist. Keep in sync with VITE_DEVELOPER_EMAILS in .env —
+    // `npm run deploy:rules` refuses to deploy when the two disagree, because a
+    // developer email that is in the app but not here gets the whole Control
+    // Room UI and permission-denied on every privileged operation, which reads
+    // as "the site is broken" rather than "you are not authorized".
+    //
+    // Rules cannot read environment variables, so this list has to be literal.
+    // It is only the bootstrap: once users/{uid}.role == 'developer' the first
+    // clause below carries the session, and an existing developer can promote
+    // another account by writing that field (see the /users match block).
+    function developerEmails() {
+      return ['kiamehrmetanat@gmail.com'];
+    }
+
     function isDeveloper() {
       return isSignedIn() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer' || 
-        request.auth.token.email == 'kiamehrmetanat@gmail.com'
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer' ||
+        // email_verified matters here. Firebase does not require ownership proof
+        // to create an account with a given address, so without it anyone could
+        // register an unclaimed allowlisted address and be handed developer.
+        // Every current developer signs in with Google, which verifies.
+        (request.auth.token.email in developerEmails() && request.auth.token.email_verified == true)
       );
     }
 

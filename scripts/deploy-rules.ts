@@ -50,6 +50,29 @@ const rollbackTo = process.argv.includes('--rollback')
   let rulesetName = rollbackTo;
   if (!rulesetName) {
     const source = fs.readFileSync('firestore.rules', 'utf8');
+
+    // firestore.rules cannot read env vars, so the developer bootstrap
+    // allowlist is duplicated there as a literal. Duplicated constants drift,
+    // and this one drifts silently in the worst direction: an email in
+    // VITE_DEVELOPER_EMAILS but not in the rules gets the entire Control Room
+    // UI and permission-denied on every privileged operation. Refuse to ship
+    // that rather than let someone discover it in production.
+    const inRules = (source.match(/function developerEmails\(\)\s*\{\s*return \[([^\]]*)\]/) || [])[1];
+    if (inRules === undefined) {
+      console.error('firestore.rules has no developerEmails() function — cannot verify the allowlist.');
+      process.exit(1);
+    }
+    const norm = (list: string[]) => [...new Set(list.map((e) => e.trim().replace(/^['"]|['"]$/g, '').toLowerCase()).filter(Boolean))].sort();
+    const rulesList = norm(inRules.split(','));
+    const envList = norm((process.env.VITE_DEVELOPER_EMAILS || '').split(','));
+    if (JSON.stringify(rulesList) !== JSON.stringify(envList)) {
+      console.error('developer allowlist mismatch — refusing to deploy.');
+      console.error(`  firestore.rules      : ${rulesList.join(', ') || '(empty)'}`);
+      console.error(`  VITE_DEVELOPER_EMAILS: ${envList.join(', ') || '(empty)'}`);
+      console.error('  Make them identical, then deploy. Both must list every developer.');
+      process.exit(1);
+    }
+
     const created = await fetch(`https://firebaserules.googleapis.com/v1/projects/${PROJECT}/rulesets`, {
       method: 'POST',
       headers,
