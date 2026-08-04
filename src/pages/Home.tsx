@@ -68,6 +68,11 @@ const TESTIMONIALS = [
     name: 'Thomas',
     role: 'Student',
   },
+  {
+    quote: 'This website does a great job of making it easier for students to find volunteer opportunities and connect with organizations that are looking for help. I think the idea has a lot of potential, as it removes many of the barriers to getting involved and encourages more students to participate in their communities.',
+    name: 'Noah',
+    role: 'Student',
+  },
 ];
 
 /* Shared by the visible slide and the invisible height sizer below it, so the
@@ -373,8 +378,15 @@ export default function Home() {
                 </AnimatePresence>
               </div>
 
-              <div className="flex items-center justify-between mt-10 -mb-2">
-                <div className="flex gap-1">
+              <div className="flex items-center justify-between gap-3 mt-10 -mb-2">
+                {/* flex-wrap + min-w-0 because the dots are fixed-width (w-6,
+                    w-10 when active) and this row is justify-between against
+                    the arrows. That fitted the original four testimonials and
+                    silently stopped fitting as the list grew: at eight, the row
+                    measured 268px inside a 190px container at 320px wide, and
+                    the last two dots were clipped outside the card. Wrapping
+                    keeps it correct for any number of quotes. */}
+                <div className="flex gap-0.5 sm:gap-1 flex-wrap min-w-0">
                   {TESTIMONIALS.map((t, i) => (
                     <button
                       key={t.name}
@@ -385,14 +397,16 @@ export default function Home() {
                     >
                       <span
                         className={`block h-1 rounded-full transition-all duration-500 ${
-                          i === reviews.index ? 'bg-blue-dark w-10' : 'bg-gray-200 group-hover/dot:bg-gray-400 w-6'
+                          i === reviews.index
+                            ? 'bg-blue-dark w-6 sm:w-10'
+                            : 'bg-gray-200 group-hover/dot:bg-gray-400 w-3 sm:w-6'
                         }`}
                       />
                     </button>
                   ))}
                 </div>
 
-                <div className="flex gap-2">
+                <div className="flex gap-2 shrink-0">
                   <button
                     onClick={reviews.prev}
                     aria-label="Previous review"
