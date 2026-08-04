@@ -68,11 +68,6 @@ const TESTIMONIALS = [
     name: 'Thomas',
     role: 'Student',
   },
-  {
-    quote: 'There is currently a large gap between organizations in their search for helpful volunteers and students themselves looking for opportunities. This site/app could potentially help bridge the gap and provide an easier method to get out and get connected.',
-    name: 'Jerett Hatt',
-    role: 'Community Outreach Assistant\nOffice of Councillor Lily Cheng',
-  },
 ];
 
 /* Shared by the visible slide and the invisible height sizer below it, so the
