@@ -606,7 +606,10 @@ app.use(express.json());
       return res.json({ success: true, ...result });
     } catch (err: any) {
       console.error('[leaderboard] rebuild failed:', err);
-      return res.status(500).json({ error: 'Failed to rebuild leaderboard', details: err.message });
+      return res.status(500).json({
+        error: 'Failed to rebuild leaderboard',
+        ...(process.env.NODE_ENV !== 'production' ? { details: err?.message } : {}),
+      });
     }
   });
 
@@ -1013,17 +1016,36 @@ app.use(express.json());
           from: fromAddress,
         });
         await clearOtp(authContext.uid);
+        // details and hint are diagnostics for whoever runs the server, not for
+        // the organization staring at the screen. Unconditionally they leaked
+        // the raw Resend message, our sending address and a note about domain
+        // verification to an end user who can act on none of it — and this is
+        // the two-factor gate, so it is shown to every organization whenever
+        // mail is misconfigured. The sibling /api/email/send already gates its
+        // details on NODE_ENV; this route did not. Full text is logged above.
         return res.status(502).json({
-          error: 'We could not deliver your verification email.',
-          details: error.message,
-          hint: `Sender address in use: ${fromAddress}. If that domain is not verified in Resend, delivery will always fail — set MAIL_FROM to a verified sender.`,
+          error:
+            'We could not send your verification code. Please try again in a moment, ' +
+            'and contact support if it keeps happening.',
+          ...(process.env.NODE_ENV !== 'production'
+            ? {
+                details: error.message,
+                hint: `Sender address in use: ${fromAddress}. If that domain is not verified in Resend, delivery will always fail — set MAIL_FROM to a verified sender.`,
+              }
+            : {}),
         });
       }
 
       res.json({ success: true });
     } catch (err: any) {
+      // Was: `Crash: ${err.message}. Please check server logs.` — a raw
+      // exception handed to an organization, telling them to read logs they
+      // have no access to. The stack is logged here for whoever does.
       console.error('[send-otp] Crash:', err);
-      res.status(500).json({ error: `Crash: ${err.message}. Please check server logs.` });
+      res.status(500).json({
+        error: 'Something went wrong sending your verification code. Please try again.',
+        ...(process.env.NODE_ENV !== 'production' ? { details: err?.message } : {}),
+      });
     }
   });
 
