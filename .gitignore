@@ -19,3 +19,20 @@ firebase-blueprint.json
 
 test-results/
 playwright-report/
+
+# ── Build artifacts and scratch files ──
+# A 1.1MB compiled Vite bundle (index.js) and a stray Home_Overwritten.tsx were
+# committed to the repo root, alongside ~40 one-off .cjs/.py scripts left over
+# from earlier patch work. They were unreferenced by any config and made the
+# project look unfinished to anyone opening it. These patterns stop that
+# recurring; put throwaway scripts in scripts/ or outside the repo.
+index.js
+bundle.js
+*_Overwritten.tsx
+*.patch
+server_out.txt
+_probe*.ts
+_tmp*
+script-grep*.cjs
+strip_*.cjs
+revert_*.cjs
