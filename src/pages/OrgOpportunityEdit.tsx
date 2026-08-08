@@ -209,13 +209,21 @@ export default function OrgOpportunityEdit() {
           } else if (typeof data.dateTime === 'string') {
             setDateTime(data.dateTime.slice(0, 16));
           }
-          setCategory(data.category);
-          setRequirements(data.requirements);
-          setMaxVolunteers(data.maxVolunteers.toString());
-          setSelectedSkills(data.skillsNeeded);
+          // Defaulted, because a document missing any of these used to be
+          // unrecoverable rather than merely incomplete:
+          //   - maxVolunteers.toString() threw, so the page hit the error
+          //     boundary and the opportunity could never be opened;
+          //   - skillsNeeded fed straight into state and back out on save, so
+          //     an absent field wrote `skillsNeeded: undefined`, which the
+          //     Firestore SDK rejects — the whole update failed and the
+          //     organization simply could not edit that opportunity.
+          setCategory(data.category || '');
+          setRequirements(data.requirements || '');
+          setMaxVolunteers(String(data.maxVolunteers ?? ''));
+          setSelectedSkills(data.skillsNeeded || []);
           setSelectedExclusives(data.exclusives || []);
-          setTimeCommitment(data.timeCommitment);
-          setIsVirtual(data.isVirtual);
+          setTimeCommitment(data.timeCommitment || '');
+          setIsVirtual(Boolean(data.isVirtual));
           const currentAutoCreate = (data as any).autoCreateGroupChat !== false;
           setAutoCreateGroupChat(currentAutoCreate);
           initialAutoCreateGroupChatRef.current = currentAutoCreate;

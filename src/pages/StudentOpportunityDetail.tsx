@@ -357,16 +357,24 @@ export default function StudentOpportunityDetail() {
               {opportunity.requirements}
             </p>
 
-            <div className="mt-10">
-               <h3 className="text-xl font-bold text-ink mb-4">Skills Needed</h3>
-               <div className="flex flex-wrap gap-2">
-                  {opportunity.skillsNeeded.map(skill => (
-                    <Badge key={skill} variant="secondary" className="px-4 py-2 text-sm font-medium">
-                       {skill}
-                    </Badge>
-                  ))}
-               </div>
-            </div>
+            {/* Guarded, and the whole section is dropped when empty.
+                `opportunity.skillsNeeded.map(...)` threw for any document
+                without the field, and a throw in render hits the error boundary
+                — so one opportunity missing one optional array replaced the
+                entire page with "Something went wrong" for every student who
+                opened it. Found by the end-to-end journey spec. */}
+            {(opportunity.skillsNeeded?.length ?? 0) > 0 && (
+              <div className="mt-10">
+                 <h3 className="text-xl font-bold text-ink mb-4">Skills Needed</h3>
+                 <div className="flex flex-wrap gap-2">
+                    {opportunity.skillsNeeded!.map(skill => (
+                      <Badge key={skill} variant="secondary" className="px-4 py-2 text-sm font-medium">
+                         {skill}
+                      </Badge>
+                    ))}
+                 </div>
+              </div>
+            )}
           </div>
         </div>
 

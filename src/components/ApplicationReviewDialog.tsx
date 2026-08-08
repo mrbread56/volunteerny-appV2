@@ -489,10 +489,18 @@ export default function ApplicationReviewDialog({
                 {/* Skills & Interests */}
                 {student && (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6 border-t border-line-light">
+                     {/* `?? []`, because these came straight off a Firestore
+                         document. A student whose profile predates these fields
+                         or who skipped onboarding threw here, and a throw in
+                         render takes the whole dialog to the error boundary —
+                         so the organization could not review that applicant at
+                         all. An empty list is the honest rendering. */}
                      <section>
                         <p className="text-xs font-semibold text-ink-soft tracking-wide mb-4">Skills</p>
                         <div className="flex flex-wrap gap-2">
-                           {student.skills.map(skill => (
+                           {(student.skills ?? []).length === 0 ? (
+                             <span className="text-[13px] text-ink-muted">Not listed</span>
+                           ) : (student.skills ?? []).map(skill => (
                              <Badge key={skill} variant="secondary" className="bg-blue-dark/5 text-[#153343] border-none font-bold uppercase text-xs tracking-widest px-3 py-1">
                                 {skill}
                              </Badge>
@@ -502,7 +510,9 @@ export default function ApplicationReviewDialog({
                      <section>
                         <p className="text-xs font-semibold text-ink-soft tracking-wide mb-4">Interests</p>
                         <div className="flex flex-wrap gap-2">
-                           {student.interests.map(interest => (
+                           {(student.interests ?? []).length === 0 ? (
+                             <span className="text-[13px] text-ink-muted">Not listed</span>
+                           ) : (student.interests ?? []).map(interest => (
                              <Badge key={interest} variant="secondary" className="border-line text-ink-soft font-bold uppercase text-xs tracking-widest px-3 py-1">
                                 {interest}
                              </Badge>

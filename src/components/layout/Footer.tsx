@@ -29,7 +29,7 @@ export default function Footer() {
 
           {/* Product */}
           <div>
-            <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Product</h4>
+            <h2 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Product</h2>
             {/* Tighter than it looks: the links below carry py-1.5, so the
                 visual rhythm is unchanged while each tap target clears the
                 24px minimum. They were 15px tall — the height of the text
@@ -45,7 +45,7 @@ export default function Footer() {
 
           {/* Support */}
           <div>
-            <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Support</h4>
+            <h2 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Support</h2>
             {/* Tighter than it looks: the links below carry py-1.5, so the
                 visual rhythm is unchanged while each tap target clears the
                 24px minimum. They were 15px tall — the height of the text
@@ -57,7 +57,7 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <h4 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Legal</h4>
+            <h2 className="text-xs font-semibold tracking-[0.1em] uppercase text-paper/60 mb-5">Legal</h2>
             {/* Tighter than it looks: the links below carry py-1.5, so the
                 visual rhythm is unchanged while each tap target clears the
                 24px minimum. They were 15px tall — the height of the text

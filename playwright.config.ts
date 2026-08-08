@@ -12,6 +12,18 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
   },
+  // Without this, every spec depended on someone having started a dev server by
+  // hand: forget, and the whole suite fails with ERR_CONNECTION_REFUSED, which
+  // reads like broken tests rather than a missing server. reuseExistingServer
+  // means a server you already have running is used as-is.
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: true,
+    timeout: 120000,
+    stdout: 'ignore',
+    stderr: 'pipe',
+  },
   projects: [
     {
       name: 'chromium',
