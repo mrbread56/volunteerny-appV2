@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useDialog } from "../hooks/useDialog";
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase/config";
 import {
@@ -133,6 +134,8 @@ export default function OrgDashboard() {
   const [selectedStatPopup, setSelectedStatPopup] = useState<
     "opportunities" | "pending" | "accepted" | "rejected" | null
   >(null);
+  const closeStatPopup = React.useCallback(() => setSelectedStatPopup(null), []);
+  const statDialogRef = useDialog(!!selectedStatPopup, closeStatPopup);
 
   // Search input States
   const [oppSearchTerm, setOppSearchTerm] = useState("");
@@ -1415,6 +1418,10 @@ export default function OrgDashboard() {
         {selectedStatPopup && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
+              ref={statDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Applications breakdown"
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}

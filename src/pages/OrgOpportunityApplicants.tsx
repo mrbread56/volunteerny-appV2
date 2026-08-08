@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useDialog } from "../hooks/useDialog";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import {
@@ -137,6 +138,8 @@ export default function OrgOpportunityApplicants() {
 
   // Recommendation state
   const [recApp, setRecApp] = useState<any>(null);
+  const closeRecDialog = React.useCallback(() => setRecApp(null), []);
+  const refDialogRef = useDialog(!!recApp, closeRecDialog);
   const [recText, setRecText] = useState("");
   const [recRating, setRecRating] = useState(0);
   const [isSubmittingRec, setIsSubmittingRec] = useState(false);
@@ -788,8 +791,14 @@ export default function OrgOpportunityApplicants() {
       {/* Write Reference Modal */}
       {recApp && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white p-8 space-y-5 relative">
-            <button onClick={() => setRecApp(null)} className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
+          <div
+            ref={refDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Write a reference"
+            className="w-full max-w-md bg-white p-8 space-y-5 relative"
+          >
+            <button onClick={() => setRecApp(null)} aria-label="Close" className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-bold text-ink">Write a reference</h3>

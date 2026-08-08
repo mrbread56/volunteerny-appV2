@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { collection, query, getDocs, where, limit, orderBy, addDoc, serverTimestamp, deleteDoc } from 'firebase/firestore';
@@ -141,6 +142,8 @@ export default function StudentOpportunities() {
   const [commitment, setCommitment] = useState('');
   const [virtualOnly, setVirtualOnly] = useState(false);
   const [sharingOpp, setSharingOpp] = useState<Opportunity | null>(null);
+  const closeShareDialog = useCallback(() => setSharingOpp(null), []);
+  const shareDialogRef = useDialog(!!sharingOpp, closeShareDialog);
 
   const categoriesOptions = [{ value: '', label: 'All Categories' }, ...OPPORTUNITY_CATEGORIES.map(cat => ({ value: cat, label: cat }))];
   const exclusivesOptions = [{ value: '', label: 'All Eligibility' }, ...OPPORTUNITY_EXCLUSIVES.map(exc => ({ value: exc, label: exc }))];
@@ -488,7 +491,16 @@ export default function StudentOpportunities() {
       {sharingOpp && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
            <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSharingOpp(null)} />
-           <Card className="relative w-full max-w-md bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden">
+           {/* Wrapper carries the ref and dialog role — Card neither forwards a
+               ref nor accepts ARIA props. */}
+           <div
+             ref={shareDialogRef}
+             role="dialog"
+             aria-modal="true"
+             aria-label="Share this opportunity"
+             className="relative w-full max-w-md"
+           >
+           <Card className="relative w-full bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden">
               <button aria-label="Close dialog" 
                 onClick={() => setSharingOpp(null)}
                 className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
@@ -512,6 +524,7 @@ export default function StudentOpportunities() {
                  </div>
               </div>
            </Card>
+           </div>
         </div>
       )}
     </div>
