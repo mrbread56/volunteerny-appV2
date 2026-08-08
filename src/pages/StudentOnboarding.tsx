@@ -197,9 +197,19 @@ export default function StudentOnboarding() {
           ))}
         </div>
 
+        {/* role="alert" is what makes this reach a screen reader. Without it
+            the message renders and is announced to nobody: a blind student
+            presses Continue, the step does not advance, and there is no
+            indication why. Login and Signup already do this; onboarding was the
+            outlier. The shake animation carries the same information visually,
+            which is exactly why the non-visual channel has to be explicit. */}
         {error && (
-          <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-xs font-bold max-w-xl mx-auto animate-shake">
-            <ShieldAlert className="w-5 h-5 shrink-0" />
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg flex items-center gap-3 text-xs font-bold max-w-xl mx-auto animate-shake"
+          >
+            <ShieldAlert className="w-5 h-5 shrink-0" aria-hidden="true" />
             <span>{error}</span>
           </div>
         )}

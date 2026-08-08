@@ -1085,10 +1085,19 @@ export default function StudentDashboard() {
           fetchedOpps = JSON.parse(localStorage.getItem("demo_opportunities") || "[]");
         }
 
-        // Fallback to pool if empty
-        if (fetchedOpps.length === 0) {
-          fetchedOpps = pool;
-        }
+        // NO fallback to `pool` here. This is the real, signed-in path, and
+        // `pool` is fabricated demo content — invented titles, invented
+        // addresses, invented organizations ("Alan Turing", "David Suzuki Jr").
+        //
+        // With an empty opportunities collection, which is exactly the state on
+        // launch day, every real student was shown three volunteer placements
+        // that do not exist. Worse, /student/opportunities renders a correct
+        // empty state, so the dashboard and the browse page flatly contradicted
+        // each other: three listings on one screen, "nothing available" on the
+        // next.
+        //
+        // An honest empty state is the right answer. `pool` is still used by
+        // the demo-mode branch above, which is what it was written for.
 
         // Apply dynamic scoring and sorting in Production Mode
         const scoredOpps = fetchedOpps.map(opp => ({ opp, score: getMatchScore(opp) }));
