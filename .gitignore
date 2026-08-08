@@ -36,3 +36,8 @@ _tmp*
 script-grep*.cjs
 strip_*.cjs
 revert_*.cjs
+
+# Database snapshots from `npm run backup`. These contain student personal data
+# — names, emails, schools, and base64 resume/passport uploads for people who
+# are mostly minors. Never commit one.
+backups/

@@ -16,7 +16,7 @@
  *   MfaClaimMiddleware — final claim check before children render
  */
 import React from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { verifyMfaClaim } from '../lib/mfa';
 import { isDeveloperUser } from '../lib/devAccess';
@@ -30,39 +30,54 @@ export const LoadingFallback = () => (
 );
 
 
-// Shown when a user is authenticated but has no profile document, i.e. their
-// signup died partway through and left an orphaned auth account. Signing out
-// is the escape hatch; the account itself must be cleared server-side before
-// the address can be reused.
+// Shown when a user is authenticated but has no profile document — their signup
+// died between the auth account being created and the profile being written.
+//
+// This used to be a dead end reading "contact support so we can clear the
+// incomplete account". That was wrong on two counts. The app can repair this
+// itself: /signup completes the profile for a session that already exists, and
+// Login.tsx has always redirected these users straight there. So the guard was
+// telling people to email a human about something one click could fix, while
+// the login page quietly fixed it — the same state, two different answers.
+//
+// A backup taken on 8 Aug 2026 found NINE accounts in this state, including a
+// @tdsb.ca school-board student. Every one of them had been told to write an
+// email.
 const AccountSetupIncomplete: React.FC = () => {
   const { logout } = useAuth();
   return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6">
       <div className="w-full max-w-md bg-white border border-line p-8 text-center space-y-5">
         <h2 className="text-2xl font-semibold text-ink tracking-[-0.02em]">
-          Account setup didn't finish
+          Let's finish setting up your account
         </h2>
         <p className="text-[14px] text-ink-soft leading-relaxed">
-          Your sign-in worked, but your profile was never fully created, so there's
-          nothing to load yet. This usually means an earlier sign-up was interrupted.
+          You're signed in, but your profile was never finished — usually because an
+          earlier sign-up was interrupted. You can complete it now; you won't need to
+          create a new account or use a different email address.
         </p>
-        <p className="text-[14px] text-ink-soft leading-relaxed">
-          Please contact support so we can clear the incomplete account, then you'll
-          be able to sign up again with the same email address.
-        </p>
-        <a
-          href="mailto:privacy@volunteernorthyork.indevs.in"
-          className="block text-blue-dark font-medium hover:underline"
+        <Link
+          to="/signup"
+          className="block w-full h-11 leading-[2.75rem] bg-blue-dark text-paper text-[14px] font-medium hover:bg-ink transition-colors"
         >
-          privacy@volunteernorthyork.indevs.in
-        </a>
+          Finish setting up my account
+        </Link>
         <button
           type="button"
           onClick={() => { void logout(); }}
-          className="w-full h-11 bg-blue-dark text-paper text-[14px] font-medium hover:bg-ink transition-colors"
+          className="w-full h-11 border border-line text-ink text-[14px] font-medium hover:bg-paper-2 transition-colors"
         >
           Sign out
         </button>
+        <p className="text-[12px] text-ink-muted leading-relaxed pt-1">
+          Still stuck?{' '}
+          <a
+            href="mailto:privacy@volunteernorthyork.indevs.in"
+            className="text-blue-dark hover:underline"
+          >
+            privacy@volunteernorthyork.indevs.in
+          </a>
+        </p>
       </div>
     </div>
   );
