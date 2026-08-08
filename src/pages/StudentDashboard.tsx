@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
+import { DEMO_OPPORTUNITIES } from './studentDashboard/demoOpportunities';
 import { useAuth } from "../contexts/AuthContext";
 import SuccessAnimation from "../components/SuccessAnimation";
 import { db } from "../firebase/config";
@@ -775,131 +777,16 @@ export default function StudentDashboard() {
       if (!user) return;
       setIsLoading(true);
 
-      // Define standard opportunities pool for Fallback & Demo
-      const pool: Opportunity[] = [
-        {
-          id: "demo-opp-1",
-          orgId: "demo-org-1",
-          title: "Math Tutor for Grade 9 Students",
-          description: "Help high school students with algebra, geometry, and key math concepts.",
-          location: "5100 Yonge St, North York",
-          dateTime: new Date(Date.now() + 86400000 * 2) as any,
-          category: "Tutoring",
-          requirements: "Excellent tutoring skills.",
-          maxVolunteers: 5,
-          skillsNeeded: ["Teaching", "Communication"],
-          timeCommitment: "Short-term",
-          isVirtual: false,
-          createdAt: new Date(Date.now() - 86400000 * 3) as any,
-        },
-        {
-          id: "demo-opp-2",
-          orgId: "demo-org-2",
-          title: "Community Garden Cleanup Initiative",
-          description: "Join us for a day of planting, raking, and cleanup at the organic community art garden.",
-          location: "Lee Lifeson Art Park, North York",
-          dateTime: new Date(Date.now() + 86400000 * 7) as any,
-          category: "Environment",
-          requirements: "Love for outdoor work.",
-          maxVolunteers: 15,
-          skillsNeeded: ["Physical Work", "Leadership"],
-          timeCommitment: "One-time",
-          isVirtual: false,
-          createdAt: new Date(Date.now() - 86400000 * 5) as any,
-        },
-        {
-          id: "demo-opp-3",
-          orgId: "demo-org-3",
-          title: "Senior Tech Support Circle",
-          description: "Empower local seniors by teaching them how to safely browse, use smartphones, and connect with families.",
-          location: "21 Hendon Ave, North York",
-          dateTime: new Date(Date.now() + 86400000 * 1) as any,
-          category: "Seniors",
-          requirements: "Patience and tech knowledge.",
-          maxVolunteers: 4,
-          skillsNeeded: ["Computer & Tech", "Communication"],
-          timeCommitment: "Long-term",
-          isVirtual: false,
-          createdAt: new Date(Date.now() - 86400000 * 1) as any,
-        },
-        {
-          id: "demo-opp-4",
-          orgId: "demo-org-4",
-          title: "Spring Festival Event Organizer",
-          description: "Support logistically with stage coordination, welcoming community guests, and running vendor booths.",
-          location: "Mel Lastman Square",
-          dateTime: new Date(Date.now() + 86400000 * 5) as any,
-          category: "Event Planning",
-          requirements: "Cheerful personality.",
-          maxVolunteers: 10,
-          skillsNeeded: ["Organization", "Event Support"],
-          timeCommitment: "One-time",
-          isVirtual: false,
-          createdAt: new Date(Date.now() - 86400000 * 2) as any,
-        },
-        {
-          id: "demo-opp-5",
-          orgId: "demo-org-5",
-          title: "Weekend Food Hamper Drive",
-          description: "Help organize, load, and dispense essential grocery items for local families in North York.",
-          location: "North York Foodbank Hub",
-          dateTime: new Date(Date.now() + 86400000 * 4) as any,
-          category: "Food Banks",
-          requirements: "Must be able to lift up to 15 lbs.",
-          maxVolunteers: 8,
-          skillsNeeded: ["Physical Work", "Organization"],
-          timeCommitment: "Short-term",
-          isVirtual: false,
-          createdAt: new Date(Date.now() - 86400000 * 6) as any,
-        },
-        {
-          id: "demo-opp-6",
-          orgId: "demo-org-1",
-          title: "HTML/JS Coding Club Instructor",
-          description: "Contribute to building introductory coding exercises and run workshops for kids.",
-          location: "5100 Yonge St, North York",
-          dateTime: new Date(Date.now() + 86400000 * 3) as any,
-          category: "Technology",
-          requirements: "Proficient in basic HTML / CSS / Javascript.",
-          maxVolunteers: 3,
-          skillsNeeded: ["Computer & Tech", "Teaching"],
-          timeCommitment: "Long-term",
-          isVirtual: true,
-          createdAt: new Date(Date.now() - 86400000 * 4) as any,
-        }
-      ];
+      // Demo-mode fixtures only — see src/pages/studentDashboard/demoOpportunities.ts
+      // for why this must never reach the real signed-in path.
+      const pool: Opportunity[] = DEMO_OPPORTUNITIES;
 
+      // Ranking lives in src/lib/matchScore.ts. It was redefined inside this
+      // effect on every run and closed over the profile; as a free function it
+      // can be read and tested without rendering this component.
       const myInterests = studentProfile?.interests || [];
       const mySkills = studentProfile?.skills || [];
-
-      // Unified ranking function matching categories and skills
-      const getMatchScore = (opp: Opportunity) => {
-        let score = 0;
-        // Primary Match: Category matches student's interests (cause categories)
-        if (opp.category && myInterests.some(interest => interest.toLowerCase() === opp.category.toLowerCase())) {
-          score += 30;
-        }
-        // Secondary Match: Overlap of required skills vs student skills
-        if (opp.skillsNeeded && opp.skillsNeeded.length > 0) {
-          const overlap = opp.skillsNeeded.filter(skill => 
-            mySkills.some(s => s.toLowerCase() === skill.toLowerCase())
-          );
-          score += overlap.length * 15;
-        }
-        // Text keyword searches
-        const lowerText = `${opp.title} ${opp.description} ${opp.category || ""}`.toLowerCase();
-        myInterests.forEach(interest => {
-          if (lowerText.includes(interest.toLowerCase())) {
-            score += 5;
-          }
-        });
-        mySkills.forEach(skill => {
-          if (lowerText.includes(skill.toLowerCase())) {
-            score += 5;
-          }
-        });
-        return score;
-      };
+      const getMatchScore = (opp: Opportunity) => scoreOpportunity(opp, myInterests, mySkills);
 
       if (isDemoMode) {
         // Mock data for demo mode synced via local storage
