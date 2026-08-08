@@ -519,7 +519,10 @@ export default function OrgOpportunityEdit() {
              </section>
 
              <section className="space-y-4 pt-4">
-                <h3 className="text-xl font-bold flex items-center gap-2 text-red-600 border-l-4 border-red-500 pl-4">Danger Zone</h3>
+                {/* No left stripe: the heading is already red, says "Danger
+                    Zone", and sits directly above a red-tinted panel. Three
+                    signals for one message, one of which is colour-only. */}
+                <h3 className="text-xl font-bold flex items-center gap-2 text-red-600">Danger Zone</h3>
                 <div className="bg-red-50 border border-red-100 rounded-lg p-6 space-y-4">
                   {!confirmingDelete ? (
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">

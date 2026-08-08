@@ -1064,19 +1064,16 @@ export default function StudentDashboard() {
               </div>
               {applications.length > 0 ? (
                 <div className="space-y-4">
+                  {/* These cards carry no status-coloured left border. It
+                      duplicated the <Badge> below, which already spells the
+                      status out in words, and colour alone is not an accessible
+                      way to carry meaning (WCAG 1.4.1) — a colourblind student,
+                      or anyone using a screen reader, got nothing from the
+                      stripe and everything from the badge. */}
                   {applications.map((app) => (
                     <Card
                       key={app.id}
-                      className="p-6 border-l-4 overflow-hidden relative"
-                      style={{
-                        borderColor:
-                          app.status === "accepted"
-                            ? "var(--color-blue-dark)"
-                            : app.status === "rejected" ||
-                                app.status === "terminated"
-                              ? "#ef4444"
-                              : "#eab308",
-                      }}
+                      className="p-6 overflow-hidden relative"
                     >
                       <div className="flex flex-col sm:flex-row justify-between sm:items-start gap-4 mb-2">
                         <div className="flex-1 min-w-0">
