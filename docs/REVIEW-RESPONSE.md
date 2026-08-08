@@ -9,10 +9,10 @@ owner · ➖ noted, no action needed
 
 | Status | Count |
 |---|---|
-| ✅ Done | 17 |
-| 🔄 In progress | 4 |
-| ⬜ Not started | 5 |
-| 📌 Owner action | 3 |
+| ✅ Done | 20 |
+| 🔄 In progress | 2 |
+| ⬜ Not started | 4 |
+| 📌 Owner action | 2 |
 | ➖ Acknowledged | 3 |
 
 ---
@@ -53,8 +53,8 @@ owner · ➖ noted, no action needed
 | ID | His point | Status | Evidence |
 |---|---|---|---|
 | R17 | Take documentation seriously — reduce single-developer dependency | ✅ | README + ARCHITECTURE + STATUS + ROADMAP + this file |
-| R18 | Discipline and organisation in the workflow | 🔄 | Docs organised, commits explain the *why*. **Still missing: CI** (B4) — every check is run by hand |
-| R19 | Explain the project: origin, goal, market, team size, deadline | 📌 | **Owner.** README has a marked placeholder. He asked for this directly and only you can answer it |
+| R18 | Discipline and organisation in the workflow | ✅ | Docs organised under `docs/`, commits explain the *why*, and CI (`e8cc64d`) runs every check on push so none of it depends on memory |
+| R19 | Explain the project: origin, goal, market, team size, deadline | ✅ | Answered by the owner. Summary in the README, full background in [`PROJECT.md`](PROJECT.md): origin, the 40-hour requirement, a 20-student survey (75% confirm the problem), reviews from Professors Chechik, Zhao and Avery, sole developer, no deadline |
 
 ## 5. Testing
 
@@ -64,7 +64,7 @@ owner · ➖ noted, no action needed
 | R21 | Detailed tests for auth | ✅ | `check:signup`, `check:security` |
 | R22 | Detailed tests for the application flow | ✅ | `check:flows` — apply → accept → hours → approve → leaderboard → rate, 13/13 |
 | R23 | Detailed tests for the org flow | ✅ | `check:flows` + hand-tested through the UI |
-| R24 | Cheaper long-term maintenance through tests | 🔄 | 9 check scripts exist. **They do not run automatically** — see B4 |
+| R24 | Cheaper long-term maintenance through tests | ✅ | 9 check scripts, now run automatically by CI on every push. It caught a regression within minutes of existing |
 
 ## 6. Security review before production
 
@@ -101,7 +101,6 @@ owner · ➖ noted, no action needed
 |---|---|---|
 | R31 | Split the three oversized pages | Every hard-to-find bug in this audit lived in them |
 | R32 | One shared error-handling pattern | Silent failures kept recurring because there was no standard |
-| B4 | CI on push | Nothing currently stops a regression reaching `main` |
 | — | Finish the developer-console walkthrough | 1,836 lines only partly exercised |
 | — | Firestore backups | Unverified. Hour records are graduation evidence |
 
@@ -109,6 +108,5 @@ owner · ➖ noted, no action needed
 
 | ID | Question |
 |---|---|
-| R19 | What is the project for, who uses it, which schools, how many students, who maintains it, what does "production" mean here? |
 | R29 | A working `RESEND_API_KEY` — **without it no organization can sign in at all** |
 | — | Confirm Firestore backups are enabled |

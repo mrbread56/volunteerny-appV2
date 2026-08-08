@@ -4,10 +4,21 @@ A web platform connecting Ontario high-school students with volunteer
 opportunities at community organizations, and tracking the community-involvement
 hours students need in order to graduate.
 
-> **About this project — to be completed by the project owner.**
-> What it is for, who it serves, which schools, expected scale, who maintains
-> it, and what "production" means for this project. Everything below is
-> technical and derived from the code.
+**The problem.** Ontario high school students must complete 40 hours of
+community involvement to graduate. Doing the hours is achievable; *finding*
+opportunities that match your interests, availability and location is the hard
+part. In a survey of 20 Toronto students, 15 (75%) said finding a place to
+volunteer was one of the biggest challenges of volunteering.
+
+**Who it is for.** High school students across Toronto, and the nonprofit
+organizations that need volunteers. Started in North York, not limited to it.
+
+**Who builds it.** One person — the founder, a high school student, is the sole
+developer. There is no fixed deadline; the project is being stabilised before
+new features are added.
+
+Full background, the survey, and reviews from three university professors:
+[`docs/PROJECT.md`](docs/PROJECT.md).
 
 ---
 
@@ -15,6 +26,7 @@ hours students need in order to graduate.
 
 | File | What it holds |
 |---|---|
+| [`docs/PROJECT.md`](docs/PROJECT.md) | Why the project exists: the problem, the student survey, academic reviews |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the system works: data model, authorization design, why each server route exists |
 | [`docs/STATUS.md`](docs/STATUS.md) | Every known bug and gap, with evidence. Start here before changing anything |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | v1.0 blockers, then v1.1 / v2.0 / v3.0 |
