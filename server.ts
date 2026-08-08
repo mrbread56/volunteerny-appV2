@@ -767,6 +767,97 @@ app.use(express.json());
   });
 
   /**
+   * The slice of a student's profile an organization may see while reviewing
+   * their application.
+   *
+   * students/{uid} previously allowed `get` to any account with
+   * role == 'organization' — the same flaw as the hours write above. An
+   * organization account is free and instant, so anyone could read any
+   * student's full record given a uid, and that record carries resumeUrl and
+   * passportUrl: whole identity documents, base64-encoded inline, for students
+   * who are mostly minors.
+   *
+   * Two changes, both here rather than in rules, because "does this student
+   * have an application to one of our opportunities" is a query and rules can
+   * only read an exact path:
+   *
+   *   1. The caller must own an opportunity this student applied to. Any
+   *      status counts — an organization has to read a pending applicant in
+   *      order to decide on them.
+   *   2. The response is an allow-list. passportUrl is deliberately absent: no
+   *      organization-facing screen has ever displayed it, so it now leaves
+   *      Firestore for nobody but the student and a developer.
+   */
+  app.get('/api/students/:id/review-profile', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) return res.json({ profile: null, demo: true });
+      if (!getAdminObj()) return res.status(500).json({ error: 'Server configuration error.' });
+
+      const studentId = String(req.params.id || '');
+      if (!studentId || studentId.length > 128) {
+        return res.status(400).json({ error: 'Invalid student id.' });
+      }
+
+      const adb = adminFirestore();
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      const isDeveloperCaller =
+        caller?.role === 'developer' ||
+        (process.env.VITE_DEVELOPER_EMAILS || '')
+          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+          .includes((authContext.email || '').toLowerCase());
+      if (!isDeveloperCaller && caller?.role !== 'organization') {
+        return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      let authorised = isDeveloperCaller;
+      if (!authorised) {
+        const oppSnap = await adb.collection('opportunities')
+          .where('orgId', '==', authContext.uid).limit(30).get();
+        const oppIds = oppSnap.docs.map((d: any) => d.id);
+        if (oppIds.length) {
+          const appSnap = await adb.collection('applications')
+            .where('studentId', '==', studentId)
+            .where('opportunityId', 'in', oppIds)
+            .limit(1).get();
+          authorised = !appSnap.empty;
+        }
+      }
+      if (!authorised) {
+        console.warn(`[review-profile] ${authContext.uid} tried to read unrelated student ${studentId}`);
+        return res.status(403).json({ error: 'That student has not applied to any of your opportunities.' });
+      }
+
+      const snap = await adb.collection('students').doc(studentId).get();
+      if (!snap.exists) return res.status(404).json({ error: 'Student not found.' });
+      const d = snap.data() || {};
+
+      return res.json({
+        profile: {
+          uid: studentId,
+          fullName: d.fullName ?? '',
+          school: d.school ?? '',
+          grade: d.grade ?? '',
+          neighborhood: d.neighborhood ?? '',
+          interests: Array.isArray(d.interests) ? d.interests : [],
+          skills: Array.isArray(d.skills) ? d.skills : [],
+          availability: Array.isArray(d.availability) ? d.availability : [],
+          previousExperience: d.previousExperience ?? '',
+          resumeUrl: d.resumeUrl ?? '',
+          // passportUrl intentionally omitted — see the note above.
+        },
+      });
+    } catch (err: any) {
+      console.error('[review-profile] failed:', err);
+      return res.status(500).json({ error: 'Could not load that student profile.' });
+    }
+  });
+
+  /**
    * How many volunteers an opportunity has already accepted.
    *
    * The apply flow needs this to decide between 'pending' and 'waitlist', but a

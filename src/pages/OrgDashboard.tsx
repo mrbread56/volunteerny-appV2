@@ -45,6 +45,7 @@ import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { totalLoggedHours } from "../lib/hours";
 import { approveStudentHours } from "../lib/approveHours";
+import { fetchReviewProfile } from "../lib/reviewProfile";
 
 export default function OrgDashboard() {
   const {
@@ -699,10 +700,12 @@ export default function OrgDashboard() {
     }
 
     try {
-      const studentSnap = await getDoc(doc(db, "students", app.studentId));
-      if (studentSnap.exists()) {
-        setReviewStudent(studentSnap.data() as StudentProfile);
-      }
+      // Server-side: the rules could not check that this student ever applied
+      // to us, so any organization could read any student's record — including
+      // their passport. The endpoint proves the relationship and returns an
+      // allow-listed subset without it.
+      const profile = await fetchReviewProfile(app.studentId);
+      if (profile) setReviewStudent(profile);
     } catch (err) {
       console.error("Error fetching student profile:", err);
     }

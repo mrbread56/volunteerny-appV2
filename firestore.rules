@@ -279,8 +279,22 @@ service cloud.firestore {
     }
 
     match /students/{uid} {
-      // Allow single document get if the user is signed in (owners, verifiers, developers)
-      allow get: if isSignedIn() && (isOwner(uid) || isVerifiedOrg() || isDeveloper()) && isValidId(uid);
+      // The student, and developers. NOT organizations.
+      //
+      // isVerifiedOrg() used to be here, which meant any account with
+      // role == 'organization' could read ANY student document given a uid —
+      // and these documents carry resumeUrl and passportUrl, whole identity
+      // documents base64-encoded inline, for students who are mostly minors.
+      // An organization account is free and instant, so that was a standing
+      // invitation.
+      //
+      // Whether a student applied to one of this organization's opportunities
+      // is a query, and rules can only read an exact document path, so this
+      // could not be narrowed here. Organizations now read through
+      // GET /api/students/:id/review-profile, which runs that query and
+      // returns an allow-listed subset — deliberately without passportUrl,
+      // which no organization-facing screen has ever shown.
+      allow get: if isSignedIn() && (isOwner(uid) || isDeveloper()) && isValidId(uid);
       // Only students and developers can run list queries
       allow list: if isSignedIn() && (isOwner(uid) || isDeveloper());
       

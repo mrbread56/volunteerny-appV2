@@ -277,6 +277,21 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
     studentId: victimStudentId, hours: 5, requestId: 'does-not-exist',
   });
   expectStatus('org cites a non-existent hoursRequest', forgedRequest.status, [403]);
+
+  // (g) READING a student's record — the same relationship problem as writing.
+  const reviewCall = (token: string, id: string) =>
+    fetch(`${BASE}/api/students/${encodeURIComponent(id)}/review-profile`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+  const unrelatedRead = await reviewCall(orgToken, victimStudentId);
+  expectStatus('UNRELATED org reads a student profile', unrelatedRead.status, [403]);
+
+  const studentRead = await reviewCall(studentToken, victimStudentId);
+  expectStatus('student reads another student via the review endpoint', studentRead.status, [403]);
+
+  const anonRead = await fetch(`${BASE}/api/students/${victimStudentId}/review-profile`);
+  expectStatus('anonymous reads the review endpoint', anonRead.status, [401]);
 }
 
 // ── 2. Firestore rules, via the client SDK ─────────────────────────────────
@@ -323,6 +338,8 @@ async function firestoreChecks(
     updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'verified' }));
   await mustDeny('org opts itself out of two-factor', () =>
     updateDoc(doc(db, 'users', org.uid), { twoFactorEnabled: false }));
+  await mustDeny('org reads a student profile directly (resume + passport)', () =>
+    getDoc(doc(db, 'students', studentA.uid)));
   await mustDeny('org enumerates every student', () =>
     getDocs(query(collection(db, 'students'), fsLimit(5))));
   await mustDeny('org lists applications it does not own', () =>

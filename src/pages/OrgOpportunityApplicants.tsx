@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useDialog } from "../hooks/useDialog";
+import { fetchReviewProfile } from "../lib/reviewProfile";
 import { useParams, useNavigate } from "react-router-dom";
 import { db } from "../firebase/config";
 import {
@@ -447,10 +448,11 @@ export default function OrgOpportunityApplicants() {
     }
 
     try {
-      const studentSnap = await getDoc(doc(db, "students", app.studentId));
-      if (studentSnap.exists()) {
-        setReviewStudent(studentSnap.data() as StudentProfile);
-      }
+      // See src/lib/reviewProfile.ts — the rules could not check that this
+      // student ever applied to us, so this read moved behind an endpoint that
+      // can, and which never returns passportUrl.
+      const profile = await fetchReviewProfile(app.studentId);
+      if (profile) setReviewStudent(profile);
     } catch (err: any) {
       console.error("Error fetching student profile:", err);
       setErrorMessage(err.message || "Error fetching student profile.");

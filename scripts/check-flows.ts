@@ -171,6 +171,23 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
     await updateDoc(doc(db, 'applications', appRef.id), { status: 'accepted' });
     console.log('[PASS] organization: listed and accepted the application');
 
+    // The organization must still be able to review its own applicant. The
+    // direct read is denied now (it exposed every student's resume and
+    // passport to any organization), so this goes through the endpoint that
+    // proves the relationship first. check-security covers the refusal side;
+    // this is the half that proves reviewing still works.
+    {
+      const orgToken = await auth.currentUser!.getIdToken();
+      const r = await fetch(`${apiBase}/api/students/${student.uid}/review-profile`, {
+        headers: { Authorization: `Bearer ${orgToken}` },
+      });
+      const body: any = await r.json().catch(() => ({}));
+      assert.ok(r.ok, `the organization could not review its own applicant: ${r.status} ${body?.error || ''}`);
+      assert.equal(body.profile?.fullName, 'Flow Student', 'the review profile came back without the applicant name');
+      assert.ok(!('passportUrl' in (body.profile || {})), 'passportUrl must never reach an organization');
+      console.log('[PASS] organization: can review its own applicant, and gets no passportUrl');
+    }
+
     // ── student rates the org ───────────────────────────────────────────────
     // This is the write that was silently discarded: orgId came back undefined,
     // which both the SDK and `incoming().orgId is string` reject.
