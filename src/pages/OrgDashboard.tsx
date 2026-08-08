@@ -254,6 +254,9 @@ export default function OrgDashboard() {
           // applications and opportunities to prove it. It settles the
           // hoursRequest in the same transaction, so the request can no longer
           // be marked approved while the credit failed.
+          // Rejects rather than resolving on refusal, so a 403 from the
+          // relationship check skips the success message below and lands in
+          // this function's catch, which shows the server's wording.
           await approveStudentHours({
             studentId: req.studentId,
             hours: Number(req.hours),
