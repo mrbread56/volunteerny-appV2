@@ -38,3 +38,34 @@ export function isDeveloperEmail(email: string | null | undefined): boolean {
 export function isDevAllowlistMissing(): boolean {
   return AUTHORIZED_DEV_EMAILS.length === 0;
 }
+
+/**
+ * The real "is this a developer?" test, and the one the UI should use.
+ *
+ * firestore.rules has always answered this as:
+ *
+ *     users/{uid}.role == 'developer'  OR  (allowlisted email AND email_verified)
+ *
+ * The client only ever checked the second half. So promoting a second
+ * developer — the supported way, by setting the role, which is what
+ * check:flows exercises — produced an account the system disagreed with
+ * itself about: Firestore granted every privilege, the navbar showed
+ * "Developer", routing sent them to /developer/dashboard, and the page itself
+ * answered "Access Denied". Verified by signing in as exactly such an account.
+ *
+ * Trusting the role here grants nothing new. Authority still lives in the rules
+ * and on the server; this only stops the interface contradicting them. And the
+ * role cannot be self-assigned: `isValidUser` accepts only 'student' or
+ * 'organization' at create time, and the update rule requires
+ * `incoming().role == existing().role`, so only an existing developer can set
+ * it.
+ *
+ * The email allowlist remains the bootstrap, for the first developer and for
+ * the offline path in AuthContext where the profile cannot be read at all.
+ */
+export function isDeveloperUser(
+  email: string | null | undefined,
+  role: string | null | undefined,
+): boolean {
+  return role === 'developer' || isDeveloperEmail(email);
+}

@@ -1,6 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
-import { isDeveloperEmail } from '../lib/devAccess';
+import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
@@ -395,7 +395,7 @@ export default function DeveloperDashboard() {
 
   // BAN & UNBAN Control
   const handleToggleBan = async (userId: string, isCurrentlyBanned: boolean) => {
-    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
+    if (!isDeveloperUser(user?.email, userProfile?.role) && !isDemoMode) {
       alert('Access Denied: You do not have permission to perform this action.');
       return;
     }
@@ -417,7 +417,7 @@ export default function DeveloperDashboard() {
         const userDoc = await getDoc(userRef);
         if (userDoc.exists()) {
           const uData = userDoc.data();
-          if (uData.email && isDeveloperEmail(uData.email)) {
+          if (isDeveloperUser(uData.email, uData.role)) {
             alert('Security Restriction: System developers cannot be suspended.');
             return;
           }
@@ -447,7 +447,7 @@ export default function DeveloperDashboard() {
 
   // PURGE MEMBER Firestore Records
   const handleDeleteUser = async (userId: string, role: 'student' | 'organization') => {
-    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
+    if (!isDeveloperUser(user?.email, userProfile?.role) && !isDemoMode) {
       setDeveloperDeleteError('Access Denied: You do not have permission to execute administrative deletes.');
       return;
     }
@@ -478,7 +478,7 @@ export default function DeveloperDashboard() {
 
   // GLOBAL SCANNED PURGE FOR 'onwoo' OR TRACES
   const handleGlobalPurgeOnwoo = async () => {
-    if (!isDeveloperEmail(user?.email) && !isDemoMode) {
+    if (!isDeveloperUser(user?.email, userProfile?.role) && !isDemoMode) {
       setDeveloperDeleteError('Access Denied: You do not have permission to execute global purges.');
       return;
     }
@@ -617,7 +617,7 @@ export default function DeveloperDashboard() {
     return matchesFilter && matchesSearch;
   });
 
-  if (!isDemoMode && user && !isDeveloperEmail(user.email)) {
+  if (!isDemoMode && user && !isDeveloperUser(user.email, userProfile?.role)) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-paper-2 p-6 text-center">
         <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">

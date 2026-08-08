@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, Link } f
 import { MotionConfig } from 'motion/react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { verifyMfaClaim } from './lib/mfa';
-import { isDeveloperEmail } from './lib/devAccess';
+import { isDeveloperUser } from './lib/devAccess';
 import Navbar from './components/layout/Navbar';
 import Footer from './components/layout/Footer';
 import DashboardShell from './components/layout/DashboardShell';
@@ -206,7 +206,7 @@ const PrivateRoute = ({ children, role }: { children: React.ReactNode, role?: 's
   }
 
   // Account Suspension interception
-  const isDev = isDeveloperEmail(user?.email);
+  const isDev = isDeveloperUser(user?.email, userProfile?.role);
   if (userProfile?.isBanned && !isDev) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">

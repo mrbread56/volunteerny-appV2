@@ -1370,14 +1370,34 @@ app.use(express.json());
       }
 
       // Recipient addresses are personal data, so this is developer-only.
+      //
+      // "Developer" means the same thing here as in firestore.rules and in the
+      // client: the role on the account, OR the bootstrap email allowlist. This
+      // route checked only the allowlist, so a developer promoted by role — the
+      // supported way to add a second one — loaded the Control Room and got 403
+      // on every request it makes. The role is read server-side from Firestore,
+      // never from the request, and it cannot be self-assigned (the rules
+      // require incoming().role == existing().role on update).
       const devEmails = (process.env.VITE_DEVELOPER_EMAILS || '')
         .split(',')
         .map((e) => e.trim().toLowerCase())
         .filter(Boolean);
       const callerEmail = (authContext.email || '').toLowerCase();
-      const isDeveloper = authContext.isDemo
-        ? authContext.role === 'developer'
-        : devEmails.includes(callerEmail);
+
+      let isDeveloper: boolean;
+      if (authContext.isDemo) {
+        isDeveloper = authContext.role === 'developer';
+      } else {
+        isDeveloper = devEmails.includes(callerEmail);
+        if (!isDeveloper && getAdminObj()) {
+          try {
+            const snap = await adminFirestore().collection('users').doc(authContext.uid).get();
+            isDeveloper = snap.exists && snap.data()?.role === 'developer';
+          } catch (lookupErr: any) {
+            console.warn('[email/history] role lookup failed, falling back to allowlist:', lookupErr?.message);
+          }
+        }
+      }
 
       if (!isDeveloper) {
         return res.status(403).json({ error: 'Forbidden' });
