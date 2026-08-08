@@ -296,6 +296,27 @@ async function firestoreChecks(
   await mustDeny('org lists applications it does not own', () =>
     getDocs(query(collection(db, 'applications'), where('studentId', '==', studentB.uid), fsLimit(5))));
 
+  // Bounds on the organization branch of students/{uid}. hasOnly() limits WHICH
+  // fields an org may write but not WHOSE document, so these caps are currently
+  // the only thing limiting the damage. See the note on that rule.
+  await mustDeny('org forges an absurd hours total', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { hours: 999999 }));
+  await mustDeny('org writes a negative hours total', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { hours: -50 }));
+  await mustDeny('org writes an oversized loggedHours array', () =>
+    updateDoc(doc(db, 'students', studentA.uid), {
+      loggedHours: Array.from({ length: 501 }, (_, i) => ({ id: `x${i}`, hours: 1, approved: true })),
+    }));
+  await mustDeny('org escalates beyond loggedHours/hours', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { hours: 5, fullName: 'hijacked' }));
+
+  // Documented, deliberately: this SUCCEEDS today. An organization with no
+  // relationship to the student can still credit them. The assertion is here so
+  // the day it starts failing — because hours approval moved server-side — the
+  // suite tells us, rather than the change going unnoticed.
+  await mustAllow('KNOWN GAP: unrelated org can still credit a student (see rules note)', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { hours: 1 }));
+
   // Signed out entirely.
   await signOut(auth);
   await mustDeny('anonymous reads a student profile', () => getDoc(doc(db, 'students', studentA.uid)));

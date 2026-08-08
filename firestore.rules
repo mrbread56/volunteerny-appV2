@@ -101,14 +101,21 @@ service cloud.firestore {
               data.fullName is string && data.fullName.size() <= 100 &&
               (absent(data, 'school') || (data.school is string && data.school.size() <= 100)) &&
               (absent(data, 'grade') || data.grade in ['9', '10', '11', '12', '']) &&
-              (absent(data, 'neighborhood') || data.neighborhood is string) &&
-              (absent(data, 'interests') || data.interests is list) &&
-              (absent(data, 'skills') || data.skills is list) &&
-              (absent(data, 'availability') || data.availability is list) &&
-              (absent(data, 'previousExperience') || data.previousExperience is string) &&
-              (absent(data, 'resumeUrl') || data.resumeUrl is string) &&
-              (absent(data, 'passportUrl') || data.passportUrl is string) &&
-              (absent(data, 'loggedHours') || data.loggedHours is list) &&
+              (absent(data, 'neighborhood') || (data.neighborhood is string && data.neighborhood.size() <= 100)) &&
+              (absent(data, 'interests') || (data.interests is list && data.interests.size() <= 50)) &&
+              (absent(data, 'skills') || (data.skills is list && data.skills.size() <= 50)) &&
+              (absent(data, 'availability') || (data.availability is list && data.availability.size() <= 50)) &&
+              (absent(data, 'previousExperience') || (data.previousExperience is string && data.previousExperience.size() <= 5000)) &&
+              // resumeUrl and passportUrl are not URLs: they hold the whole file
+              // as a base64 data URI inside this document. Every other field here
+              // is capped and these two were not, which is a resource-exhaustion
+              // hole AND a correctness one — Firestore rejects any document over
+              // 1 MiB, so an oversized upload made the student's entire profile
+              // unsaveable rather than just refusing the file. 400_000 each keeps
+              // both plus the rest of the document comfortably under the limit.
+              (absent(data, 'resumeUrl') || (data.resumeUrl is string && data.resumeUrl.size() <= 400000)) &&
+              (absent(data, 'passportUrl') || (data.passportUrl is string && data.passportUrl.size() <= 400000)) &&
+              (absent(data, 'loggedHours') || (data.loggedHours is list && data.loggedHours.size() <= 500)) &&
               (absent(data, 'isBanned') || data.isBanned is bool);
     }
 
@@ -284,10 +291,30 @@ service cloud.firestore {
       // array is: the owner may not touch either. The organization writes both
       // in one updateDoc when it approves hours, so hasOnly must name both —
       // with only ['loggedHours'] the combined write is rejected outright.
+      // ⚠️ KNOWN GAP — read before changing.
+      //
+      // hasOnly() restricts WHICH fields an organization may write. It does not
+      // restrict WHOSE document it may write them to. isVerifiedOrg() only
+      // checks that the caller's users doc says role == 'organization', and
+      // creating an organization account is free and instant, so as written any
+      // account can credit OR erase the hours of any student it can name.
+      // Ontario requires 40 community-involvement hours to graduate, so that is
+      // forging (or destroying) a graduation record.
+      //
+      // The relationship "this org owns an opportunity this student applied to"
+      // is not expressible here: rules can only exists()/get() an exact document
+      // path, and applications have auto-generated ids. The real fix is to move
+      // hours approval behind the server's Admin SDK, which can run that query,
+      // and drop the organization branch from this rule entirely.
+      //
+      // Until then these bounds cap the blast radius: a forged total is capped,
+      // the array cannot be used for resource exhaustion, and negatives (which
+      // would let a leaderboard entry be driven below zero) are rejected.
       allow update: if isSignedIn() && isValidId(uid) && (
         (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours', 'hours'])) ||
         (isVerifiedOrg() && incoming().diff(existing()).affectedKeys().hasOnly(['loggedHours', 'hours']) &&
-         (absent(incoming(), 'hours') || incoming().hours is number)) ||
+         (absent(incoming(), 'hours') || (incoming().hours is number && incoming().hours >= 0 && incoming().hours <= 10000)) &&
+         (absent(incoming(), 'loggedHours') || (incoming().loggedHours is list && incoming().loggedHours.size() <= 500))) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
