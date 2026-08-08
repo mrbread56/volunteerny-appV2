@@ -23,9 +23,38 @@ import {
 import * as admin from 'firebase-admin';
 import assert from 'node:assert/strict';
 import dotenv from 'dotenv';
-import { totalLoggedHours } from '../src/lib/hours';
+import { spawn, ChildProcess } from 'node:child_process';
 
 dotenv.config();
+
+/**
+ * Hours approval is a server call now, so this walk of the real flow needs a
+ * real server. Booted from the production bundle on a spare port and killed
+ * afterwards, same as scripts/check-security.ts.
+ */
+const API_PORT = 3198;
+const apiBase = `http://localhost:${API_PORT}`;
+let apiServer: ChildProcess | null = null;
+
+async function bootApi() {
+  let log = '';
+  apiServer = spawn(process.execPath, ['dist/server.cjs'], {
+    cwd: process.cwd(),
+    env: { ...process.env, NODE_ENV: 'production', PORT: String(API_PORT) },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  apiServer.stdout?.on('data', (d) => { log += d.toString(); });
+  apiServer.stderr?.on('data', (d) => { log += d.toString(); });
+  for (let i = 0; i < 80; i++) {
+    if (apiServer.exitCode !== null) throw new Error(`server exited ${apiServer.exitCode}:\n${log}`);
+    try {
+      const r = await fetch(`${apiBase}/api/email/history`);
+      if (r.status === 401) return;
+    } catch { /* not up yet */ }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`server did not answer on ${apiBase}:\n${log}`);
+}
 
 const app = initializeApp({
   apiKey: process.env.VITE_FIREBASE_API_KEY,
@@ -87,6 +116,7 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
 (async () => {
   let failed = false;
   try {
+    await bootApi();
     const org = await signUpAs('organization');
     const student = await signUpAs('student');
     console.log('[PASS] both accounts created through the client SDK');
@@ -185,17 +215,40 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
     ));
     assert.equal(pending.size, 1, 'the coordinator cannot see the hours request addressed to them');
 
-    const logged = [{
-      id: `log-${stamp}`, activity: 'Flow Check Opportunity', hours: 3.5,
-      date: '2026-01-01', coordinatorName: 'Flow Org',
-      coordinatorContact: org.email, approved: true,
-    }];
-    await updateDoc(doc(db, 'students', student.uid), {
-      loggedHours: logged,
-      hours: totalLoggedHours(logged),
+    // Through the server, because no client may write hours any more. This is
+    // the half of the change that matters most: check-security proves an
+    // unrelated organization is refused, and this proves a legitimate one is
+    // still allowed. A fix that only did the first would have quietly broken
+    // hours approval for everybody.
+    const orgIdToken = await auth.currentUser!.getIdToken();
+    const approveRes = await fetch(`${apiBase}/api/hours/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${orgIdToken}` },
+      body: JSON.stringify({
+        studentId: student.uid,
+        hours: 3.5,
+        activity: 'Flow Check Opportunity',
+        date: '2026-01-01',
+        requestId: reqId,
+      }),
     });
-    await updateDoc(doc(db, 'hoursRequests', reqId), { status: 'approved' });
-    console.log('[PASS] organization: approved the hours');
+    const approveBody: any = await approveRes.json().catch(() => ({}));
+    assert.ok(
+      approveRes.ok,
+      `the coordinator named on the request was refused: ${approveRes.status} ${approveBody?.error || ''}`
+    );
+    assert.equal(approveBody.hours, 3.5, 'the endpoint returned the wrong total');
+    console.log('[PASS] organization: approved the hours through /api/hours/approve');
+
+    // The endpoint settles the request in the same transaction, so this must
+    // already be true without a second write.
+    const settled = (await getDocs(query(
+      collection(db, 'hoursRequests'),
+      where('coordinatorContact', '==', org.email.toLowerCase()),
+      where('status', '==', 'pending'),
+    ))).size;
+    assert.equal(settled, 0, 'the hours request was not settled by the approval');
+    console.log('[PASS] the hours request was settled in the same transaction');
 
     const adb = adminFirestore();
     if (adb) {
@@ -261,5 +314,6 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
     }
     console.log(`[INFO] cleaned up ${uids.length} account(s) and ${docs.length} document(s)`);
   }
+  if (apiServer) apiServer.kill();
   process.exit(failed ? 1 : 0);
 })();

@@ -44,6 +44,7 @@ import { sendTransactionalEmail } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { totalLoggedHours } from "../lib/hours";
+import { approveStudentHours } from "../lib/approveHours";
 
 export default function OrgDashboard() {
   const {
@@ -245,41 +246,23 @@ export default function OrgDashboard() {
         await fetchHoursRequests();
       } else {
         if (approved) {
-          const newLogItem = {
-            id: `log-req-${req.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-            activity: req.activity + ` (${orgProfile?.organizationName || req.organization})`,
-            hours: req.hours,
+          // Server-side, not updateDoc. The rules cannot check that this
+          // organization has any relationship to this student — hasOnly()
+          // restricts which fields are written, never whose document — so the
+          // authority lives behind /api/hours/approve, which can query
+          // applications and opportunities to prove it. It settles the
+          // hoursRequest in the same transaction, so the request can no longer
+          // be marked approved while the credit failed.
+          await approveStudentHours({
+            studentId: req.studentId,
+            hours: Number(req.hours),
+            activity: `${req.activity} (${orgProfile?.organizationName || req.organization})`,
             date: req.date,
-            coordinatorName: orgProfile?.organizationName || req.coordinatorName,
-            coordinatorContact: user?.email || req.coordinatorContact,
-            approved: true
-          };
-
-          const studentRef = doc(db, "students", req.studentId);
-          const studentSnap = await getDoc(studentRef);
-          if (!studentSnap.exists()) {
-            // Without this guard the missing student was skipped silently, the
-            // request was still marked "approved" below, and the org saw
-            // "Hours approved successfully!" - while the student was never
-            // credited and the request vanished from the queue for good.
-            throw new Error(
-              `Student record not found for ${req.studentName || req.studentId}, so the hours could not be credited.`
-            );
-          }
-          const updatedHours = [...(studentSnap.data().loggedHours || []), newLogItem];
-          // students/{uid}.hours is the field the leaderboard rebuild orders by.
-          // Only loggedHours was ever written, so every student ranked at 0.
-          // Recompute the scalar in the same write as the array.
-          await updateDoc(studentRef, {
-            loggedHours: updatedHours,
-            hours: totalLoggedHours(updatedHours),
+            requestId: req.id,
           });
+        } else {
+          await updateDoc(doc(db, "hoursRequests", req.id), { status: "declined" });
         }
-
-        const reqRef = doc(db, "hoursRequests", req.id);
-        await updateDoc(reqRef, {
-          status: approved ? "approved" : "declined"
-        });
 
         setSuccessMessage(approved ? "Hours approved successfully!" : "Hours request declined.");
         await fetchHoursRequests();
@@ -805,11 +788,16 @@ export default function OrgDashboard() {
             if (sEmail) studentEmail = sEmail;
           }
 
-          const currentHours = studentSnap.data().loggedHours || [];
-          const updatedHours = [...currentHours, newLogItem];
-          await updateDoc(studentRef, {
-            loggedHours: updatedHours,
-            hours: totalLoggedHours(updatedHours),
+          // Same reason as the request-approval path above: the credit is
+          // written by the server, which can prove this student actually
+          // volunteered with us. A student the organization has no accepted
+          // application for is now refused with a clear message instead of
+          // being silently credited.
+          await approveStudentHours({
+            studentId: selectedStudentId,
+            hours: Number(logHours),
+            activity: newLogItem.activity,
+            date: logDate,
           });
           setLogResultStatus("success");
           // Direct credit logging also moves the student's total.

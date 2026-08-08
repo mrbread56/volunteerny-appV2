@@ -628,6 +628,145 @@ app.use(express.json());
   }
 
   /**
+   * Credit a student with approved volunteer hours.
+   *
+   * This exists because the rule it replaces could not be made safe.
+   * firestore.rules let any account with role == 'organization' write
+   * loggedHours and hours to ANY student document: hasOnly() constrains which
+   * fields may be written, never whose document they are written to. Creating
+   * an organization account is free and instant, so anyone could credit — or
+   * erase — the hours of any student whose uid they knew. Ontario requires 40
+   * community-involvement hours to graduate, which makes that a forged or
+   * destroyed graduation record.
+   *
+   * The missing check is "does this organization actually have a relationship
+   * with this student", and rules cannot express it: they can only read an
+   * exact document path, while the answer needs a query over applications and
+   * opportunities. The Admin SDK can run that query, so the authority moves
+   * here and the organization branch is gone from the rules entirely.
+   *
+   * A caller must satisfy one of:
+   *   - it is named on the pending hoursRequest being approved, or
+   *   - the student holds an accepted application to an opportunity it owns.
+   */
+  app.post('/api/hours/approve', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.json({ success: true, demo: true, hours: 0 });
+      }
+      if (!getAdminObj()) return res.status(500).json({ error: 'Server configuration error.' });
+
+      const adb = adminFirestore();
+      const { studentId, requestId, activity, hours, date } = req.body || {};
+
+      if (typeof studentId !== 'string' || !studentId || studentId.length > 128) {
+        return res.status(400).json({ error: 'A valid studentId is required.' });
+      }
+      const parsedHours = Number(hours);
+      if (!Number.isFinite(parsedHours) || parsedHours <= 0 || parsedHours > 24) {
+        return res.status(400).json({ error: 'Hours must be a number between 0 and 24.' });
+      }
+
+      // The caller must be an organization. Read the role server-side; never
+      // trust a role claim that arrived in the request.
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      const isDeveloperCaller =
+        caller?.role === 'developer' ||
+        (process.env.VITE_DEVELOPER_EMAILS || '')
+          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+          .includes((authContext.email || '').toLowerCase());
+      if (!isDeveloperCaller && caller?.role !== 'organization') {
+        return res.status(403).json({ error: 'Only an organization can approve volunteer hours.' });
+      }
+
+      // ── The relationship check that rules could not do ──
+      let authorised = isDeveloperCaller;
+      let requestRef: FirebaseFirestore.DocumentReference | null = null;
+
+      if (!authorised && typeof requestId === 'string' && requestId) {
+        requestRef = adb.collection('hoursRequests').doc(requestId);
+        const reqSnap = await requestRef.get();
+        const reqData = reqSnap.exists ? reqSnap.data() : null;
+        const callerEmail = (caller?.email || authContext.email || '').trim().toLowerCase();
+        if (
+          reqData &&
+          reqData.studentId === studentId &&
+          (reqData.coordinatorContact || '').trim().toLowerCase() === callerEmail &&
+          reqData.status === 'pending'
+        ) {
+          authorised = true;
+        }
+      }
+
+      if (!authorised) {
+        // Does this student hold an accepted application to one of our
+        // opportunities? `in` takes at most 30 values, so cap the scan.
+        const oppSnap = await adb.collection('opportunities')
+          .where('orgId', '==', authContext.uid).limit(30).get();
+        const oppIds = oppSnap.docs.map((d: any) => d.id);
+        if (oppIds.length) {
+          const appSnap = await adb.collection('applications')
+            .where('studentId', '==', studentId)
+            .where('opportunityId', 'in', oppIds)
+            .limit(10).get();
+          authorised = appSnap.docs.some((d: any) => d.data().status === 'accepted');
+        }
+      }
+
+      if (!authorised) {
+        console.warn(`[hours/approve] ${authContext.uid} tried to credit unrelated student ${studentId}`);
+        return res.status(403).json({
+          error: 'You can only credit hours for a student who volunteered with your organization.',
+        });
+      }
+
+      // ── Write ──
+      const studentRef = adb.collection('students').doc(studentId);
+      const result = await adb.runTransaction(async (tx: any) => {
+        const snap = await tx.get(studentRef);
+        if (!snap.exists) throw new Error('STUDENT_NOT_FOUND');
+        const existing = Array.isArray(snap.data().loggedHours) ? snap.data().loggedHours : [];
+        if (existing.length >= 500) throw new Error('TOO_MANY_ENTRIES');
+        const entry = {
+          id: 'log_' + crypto.randomBytes(6).toString('hex'),
+          activity: String(activity || 'Volunteer Activity').slice(0, 200),
+          hours: parsedHours,
+          date: String(date || new Date().toISOString().slice(0, 10)).slice(0, 32),
+          approved: true,
+          approvedBy: authContext.uid,
+          approvedAt: new Date().toISOString(),
+        };
+        const loggedHours = [...existing, entry];
+        // Recomputed from the array, never incremented, so a retry cannot
+        // double-count and the scalar can never drift from its source.
+        const total = loggedHours.reduce((sum: number, l: any) => {
+          const n = Number(l?.hours);
+          return sum + (Number.isFinite(n) ? n : 0);
+        }, 0);
+        tx.update(studentRef, { loggedHours, hours: total });
+        if (requestRef) tx.update(requestRef, { status: 'approved' });
+        return { total, entryId: entry.id };
+      });
+
+      return res.json({ success: true, hours: result.total, entryId: result.entryId });
+    } catch (err: any) {
+      if (err?.message === 'STUDENT_NOT_FOUND') {
+        return res.status(404).json({ error: 'That student record no longer exists, so the hours were not credited.' });
+      }
+      if (err?.message === 'TOO_MANY_ENTRIES') {
+        return res.status(409).json({ error: 'This student has reached the maximum number of logged activities.' });
+      }
+      console.error('[hours/approve] failed:', err);
+      return res.status(500).json({ error: 'Could not credit the hours. Please try again.' });
+    }
+  });
+
+  /**
    * How many volunteers an opportunity has already accepted.
    *
    * The apply flow needs this to decide between 'pending' and 'waitlist', but a

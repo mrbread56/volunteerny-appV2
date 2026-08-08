@@ -291,30 +291,31 @@ service cloud.firestore {
       // array is: the owner may not touch either. The organization writes both
       // in one updateDoc when it approves hours, so hasOnly must name both —
       // with only ['loggedHours'] the combined write is rejected outright.
-      // ⚠️ KNOWN GAP — read before changing.
+      // NO CLIENT may write loggedHours or hours — not the student, and no
+      // longer the organization either.
       //
-      // hasOnly() restricts WHICH fields an organization may write. It does not
-      // restrict WHOSE document it may write them to. isVerifiedOrg() only
-      // checks that the caller's users doc says role == 'organization', and
-      // creating an organization account is free and instant, so as written any
-      // account can credit OR erase the hours of any student it can name.
-      // Ontario requires 40 community-involvement hours to graduate, so that is
-      // forging (or destroying) a graduation record.
+      // There used to be an organization branch here guarded by
+      // isVerifiedOrg() && hasOnly(['loggedHours','hours']). hasOnly() restricts
+      // WHICH fields are written, never WHOSE document they are written to, and
+      // isVerifiedOrg() only checks that the caller's own users doc says
+      // role == 'organization' — which anyone gets, free and instantly, by
+      // signing up. So any account could credit OR erase the volunteer hours of
+      // any student whose uid it knew. Ontario requires 40
+      // community-involvement hours to graduate, making that a forged or
+      // destroyed graduation record.
       //
-      // The relationship "this org owns an opportunity this student applied to"
-      // is not expressible here: rules can only exists()/get() an exact document
-      // path, and applications have auto-generated ids. The real fix is to move
-      // hours approval behind the server's Admin SDK, which can run that query,
-      // and drop the organization branch from this rule entirely.
+      // The missing test is "did this student actually volunteer with this
+      // organization", which needs a query across applications and
+      // opportunities. Rules can only read an exact document path, so they
+      // cannot answer it — no amount of tightening here would have. The
+      // authority now lives in POST /api/hours/approve, which runs that query
+      // with the Admin SDK (bypassing these rules by design) and writes the
+      // array and the total in one transaction.
       //
-      // Until then these bounds cap the blast radius: a forged total is capped,
-      // the array cannot be used for resource exhaustion, and negatives (which
-      // would let a leaderboard entry be driven below zero) are rejected.
+      // Deliberately no organization branch below. Adding one back re-opens the
+      // hole; scripts/check-security.ts asserts it stays shut.
       allow update: if isSignedIn() && isValidId(uid) && (
         (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours', 'hours'])) ||
-        (isVerifiedOrg() && incoming().diff(existing()).affectedKeys().hasOnly(['loggedHours', 'hours']) &&
-         (absent(incoming(), 'hours') || (incoming().hours is number && incoming().hours >= 0 && incoming().hours <= 10000)) &&
-         (absent(incoming(), 'loggedHours') || (incoming().loggedHours is list && incoming().loggedHours.size() <= 500))) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();

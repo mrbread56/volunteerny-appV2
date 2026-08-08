@@ -221,13 +221,25 @@ async function checkOrgCreditsHours(studentUid: string) {
     throw e;
   }
 
+  // This used to assert the organization COULD write here. It must now be
+  // refused: hasOnly() restricted which fields were written but never whose
+  // document, so that branch let any organization credit or erase any
+  // student's hours. It is gone, and POST /api/hours/approve is the only path
+  // — it proves the relationship first. See scripts/check-security.ts for the
+  // tests that cover the endpoint.
   const loggedHours = [{ id: 'log-check-1', activity: 'Check', hours: 2.5, date: '2026-01-01', approved: true }];
-  // The write under test: rejected outright while the rule said
-  // hasOnly(['loggedHours']).
-  await updateDoc(doc(db, 'students', studentUid), {
-    loggedHours,
-    hours: totalLoggedHours(loggedHours),
-  });
+  let denied = false;
+  try {
+    await updateDoc(doc(db, 'students', studentUid), {
+      loggedHours,
+      hours: totalLoggedHours(loggedHours),
+    });
+  } catch (err: any) {
+    denied = err?.code === 'permission-denied';
+  }
+  assert.ok(denied, 'an organization was able to write student hours directly from the client');
+  console.log('[PASS] organization: cannot write student hours directly from the client');
+  return;
 
   // Read back with the Admin SDK, not the client. This one process has been
   // three different users in turn, and the client's cached listen on

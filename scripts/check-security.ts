@@ -160,9 +160,10 @@ const ROUTES: Array<{ method: string; path: string; body?: unknown }> = [
   { method: 'POST', path: '/api/email/send', body: { to: 'x@example.com', subject: 's', templateName: 'welcome_student' } },
   { method: 'GET', path: '/api/email/history' },
   { method: 'POST', path: '/api/feedback/analyze', body: { subject: 's', message: 'm' } },
+  { method: 'POST', path: '/api/hours/approve', body: { studentId: 'x', hours: 1 } },
 ];
 
-async function apiChecks(studentToken: string) {
+async function apiChecks(studentToken: string, orgToken: string, victimStudentId: string) {
   console.log('\n── HTTP API ──');
 
   // (a) No credentials at all.
@@ -245,6 +246,37 @@ async function apiChecks(studentToken: string) {
   });
   if (legit.status === 400) fail('same-origin actionUrl was REJECTED — the fix breaks genuine mail');
   else pass(`same-origin actionUrl still accepted → ${legit.status}`);
+
+  // (f) HOURS APPROVAL — the authority that moved off the client.
+  //
+  // Rules can no longer be the check here, so these are the check. Before the
+  // move, every one of these was a successful write straight from a browser.
+  const hoursCall = (token: string, body: unknown) =>
+    fetch(`${BASE}/api/hours/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify(body),
+    });
+
+  const asStudent = await hoursCall(studentToken, { studentId: victimStudentId, hours: 5 });
+  expectStatus('student calls /api/hours/approve (not an organization)', asStudent.status, [403]);
+
+  const unrelated = await hoursCall(orgToken, { studentId: victimStudentId, hours: 5 });
+  expectStatus('UNRELATED org credits a student it never worked with', unrelated.status, [403]);
+
+  const forged = await hoursCall(orgToken, { studentId: victimStudentId, hours: 99999 });
+  expectStatus('org submits an out-of-range hours value', forged.status, [400]);
+
+  const negative = await hoursCall(orgToken, { studentId: victimStudentId, hours: -5 });
+  expectStatus('org submits negative hours', negative.status, [400]);
+
+  const noStudent = await hoursCall(orgToken, { hours: 5 });
+  expectStatus('org omits studentId', noStudent.status, [400]);
+
+  const forgedRequest = await hoursCall(orgToken, {
+    studentId: victimStudentId, hours: 5, requestId: 'does-not-exist',
+  });
+  expectStatus('org cites a non-existent hoursRequest', forgedRequest.status, [403]);
 }
 
 // ── 2. Firestore rules, via the client SDK ─────────────────────────────────
@@ -296,26 +328,17 @@ async function firestoreChecks(
   await mustDeny('org lists applications it does not own', () =>
     getDocs(query(collection(db, 'applications'), where('studentId', '==', studentB.uid), fsLimit(5))));
 
-  // Bounds on the organization branch of students/{uid}. hasOnly() limits WHICH
-  // fields an org may write but not WHOSE document, so these caps are currently
-  // the only thing limiting the damage. See the note on that rule.
+  // The organization branch is gone from students/{uid}. No client writes
+  // hours now — the server does, after proving the relationship. Each of these
+  // was possible before that change.
+  await mustDeny('org credits a student directly from the client', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { hours: 1 }));
   await mustDeny('org forges an absurd hours total', () =>
     updateDoc(doc(db, 'students', studentA.uid), { hours: 999999 }));
-  await mustDeny('org writes a negative hours total', () =>
-    updateDoc(doc(db, 'students', studentA.uid), { hours: -50 }));
-  await mustDeny('org writes an oversized loggedHours array', () =>
-    updateDoc(doc(db, 'students', studentA.uid), {
-      loggedHours: Array.from({ length: 501 }, (_, i) => ({ id: `x${i}`, hours: 1, approved: true })),
-    }));
+  await mustDeny('org ERASES a student\'s logged hours', () =>
+    updateDoc(doc(db, 'students', studentA.uid), { loggedHours: [], hours: 0 }));
   await mustDeny('org escalates beyond loggedHours/hours', () =>
     updateDoc(doc(db, 'students', studentA.uid), { hours: 5, fullName: 'hijacked' }));
-
-  // Documented, deliberately: this SUCCEEDS today. An organization with no
-  // relationship to the student can still credit them. The assertion is here so
-  // the day it starts failing — because hours approval moved server-side — the
-  // suite tells us, rather than the change going unnoticed.
-  await mustAllow('KNOWN GAP: unrelated org can still credit a student (see rules note)', () =>
-    updateDoc(doc(db, 'students', studentA.uid), { hours: 1 }));
 
   // Signed out entirely.
   await signOut(auth);
@@ -347,13 +370,16 @@ async function cleanup() {
     const studentB = await makeUser('student');
     const org = await makeUser('organization');
 
-    // A real, signed ID token for the student — the same thing the browser sends.
+    // Real, signed ID tokens — the same thing the browser sends.
     await signOut(auth);
-    const signedIn = await signInWithEmailAndPassword(auth, studentA.email, PASSWORD);
-    const studentToken = await signedIn.user.getIdToken();
+    const studentToken = await (await signInWithEmailAndPassword(auth, studentA.email, PASSWORD)).user.getIdToken();
+    await signOut(auth);
+    const orgToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken();
 
     await bootServer();
-    await apiChecks(studentToken);
+    // studentB is the victim: the org has no opportunity, application or hours
+    // request connecting it to them.
+    await apiChecks(studentToken, orgToken, studentB.uid);
     await firestoreChecks(studentA, studentB, org);
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
