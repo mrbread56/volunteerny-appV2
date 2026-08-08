@@ -12,6 +12,7 @@
     "check:esm": "tsc --noEmit --module nodenext --moduleResolution nodenext --target es2022 --skipLibCheck --esModuleInterop --resolveJsonModule server.ts api/index.ts server/emailTemplates.ts server/appUrl.ts",
     "check:firebase": "tsx scripts/check-firebase.ts",
     "check:signup": "tsx scripts/check-signup.ts",
+    "check:security": "npm run build && tsx scripts/check-security.ts",
     "check:flows": "tsx scripts/check-flows.ts",
     "check:email": "tsx scripts/check-email.ts",
     "check:queries": "tsx scripts/check-queries.ts",

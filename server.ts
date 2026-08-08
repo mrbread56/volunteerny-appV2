@@ -5,7 +5,7 @@ import fs from 'fs';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
-import { appOrigin } from './server/appUrl.js';
+import { appOrigin, CANONICAL_APP_ORIGIN } from './server/appUrl.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -290,8 +290,23 @@ app.use(express.json());
     // Limit referrer leakage
     res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
     // Enforce HTTPS in production
-    if (process.env.NODE_ENV === 'production' && req.hostname !== 'localhost' && req.headers['x-forwarded-proto'] !== 'https') {
-      return res.redirect(`https://${req.get('host')}${req.url}`);
+    // 307, not the default 302. A 302 tells clients they may retry as GET with
+    // the body dropped, so any POST that hit this path — applying, sending
+    // mail, verifying an OTP — would silently arrive as an empty GET instead of
+    // failing loudly. 307 preserves method and body. It is also deliberately
+    // temporary rather than 301/308: a permanently-cached redirect keyed to a
+    // hostname is painful to undo if the domain ever moves.
+    //
+    // Loopback is exempt so local production-mode testing works. 127.0.0.1 and
+    // ::1 are spelled out because req.hostname !== 'localhost' alone redirected
+    // them, which is what made the security suite's probe hang.
+    const loopback = ['localhost', '127.0.0.1', '::1', '[::1]'];
+    if (
+      process.env.NODE_ENV === 'production' &&
+      !loopback.includes(req.hostname) &&
+      req.headers['x-forwarded-proto'] !== 'https'
+    ) {
+      return res.redirect(307, `https://${req.get('host')}${req.url}`);
     }
     next();
   });
@@ -882,6 +897,55 @@ app.use(express.json());
   const isEmailAddress = (v: unknown): v is string =>
     typeof v === 'string' && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
+  /**
+   * The button URL in a `notification` email must point at this app.
+   *
+   * Any signed-in account can call /api/email/send — that is by design, because
+   * the client sends welcome, application-status and hours emails. But the
+   * `notification` template renders a call-to-action button straight from
+   * request data, so `actionUrl` let any account that could sign up (which is
+   * anyone, instantly, for free) send mail that:
+   *
+   *   - originates from our Resend domain and therefore passes SPF and DKIM,
+   *   - is pixel-identical to a genuine Volunteer North York notice,
+   *   - and links wherever the sender likes.
+   *
+   * That is a working phishing kit aimed at the exact population this site
+   * collects: high-school students, many of them minors. The rate limit caps
+   * the volume at ~200 messages per account per 10 minutes; it does nothing
+   * about how convincing each one is. It also risks the sending domain being
+   * blacklisted, which would silently break every real transactional email.
+   *
+   * Constraining the link to our own origin removes the payload while leaving
+   * every legitimate caller working — all of them build the URL from the app's
+   * own origin already.
+   */
+  function isSafeActionUrl(value: unknown): boolean {
+    if (value === undefined || value === null || value === '') return true;
+    if (typeof value !== 'string') return false;
+    let parsed: URL;
+    try {
+      parsed = new URL(value);
+    } catch {
+      return false; // relative or malformed — not something we will put in mail
+    }
+    // Both the configured origin AND the canonical one. The callers build these
+    // from window.location.origin, so if APP_URL ever drifts from the domain
+    // the app is actually served on, matching only appOrigin() would start
+    // rejecting genuine welcome and hours emails. Accepting the canonical
+    // origin as well keeps real mail working through that misconfiguration
+    // without widening this to anything an attacker controls.
+    const allowedOrigins = [appOrigin(), CANONICAL_APP_ORIGIN];
+    return allowedOrigins.some((o) => {
+      try {
+        const a = new URL(o);
+        return parsed.protocol === a.protocol && parsed.host === a.host;
+      } catch {
+        return false;
+      }
+    });
+  }
+
   /** Maps the client's templateName + templateData onto the positional
    *  template functions in server/emailTemplates.ts. */
   function renderTemplate(templateName: string, d: any): string | null {
@@ -954,6 +1018,15 @@ app.use(express.json());
       }
       if (typeof subject !== 'string' || !subject.trim()) {
         return res.status(400).json({ error: 'A subject line is required.' });
+      }
+
+      // Checked before rendering, so a rejected link never reaches the mailer.
+      if (!isSafeActionUrl((templateData || {}).actionUrl)) {
+        console.warn(`[email/send] Blocked off-site actionUrl from ${authContext.uid}:`, (templateData || {}).actionUrl);
+        return res.status(400).json({
+          error: 'The action link must point at Volunteer North York.',
+          details: 'Off-site links are not permitted in outbound email.',
+        });
       }
 
       const html = renderTemplate(templateName, templateData || {});
