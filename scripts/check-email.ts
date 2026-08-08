@@ -64,10 +64,22 @@ function checkLinks() {
   // A link to a path App.tsx does not route is not a dead 404 — the catch-all
   // sends it to <Navigate to="/">, so the reader lands on the homepage with no
   // idea why. That is how "Unsubscribe" pointed at /about for so long.
-  const appSrc = fs.readFileSync('src/App.tsx', 'utf8');
+  // Read wherever the route table actually lives. It moved from App.tsx to
+  // src/routes/AppRoutes.tsx when routing and guards were separated, and this
+  // check silently started seeing zero routes — which made it report every
+  // link as dead. Scanning both, and refusing to pass when neither yields any
+  // route, means a future move fails loudly instead of quietly.
+  const routeSources = ['src/routes/AppRoutes.tsx', 'src/App.tsx']
+    .filter((f) => fs.existsSync(f))
+    .map((f) => fs.readFileSync(f, 'utf8'))
+    .join('\n');
   const routed = new Set(
-    [...appSrc.matchAll(/path="([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith('/'))
+    [...routeSources.matchAll(/path="([^"]+)"/g)].map((m) => m[1]).filter((p) => p.startsWith('/'))
   );
+  if (routed.size === 0) {
+    fail('found no <Route path="..."> anywhere — the route table has moved and this check needs updating.');
+    return;
+  }
   const paths = [...new Set(hrefs.map((h) => h.replace(expected, '')).filter(Boolean))];
   const unrouted = paths.filter((p) => {
     if (routed.has(p)) return false;
@@ -94,6 +106,14 @@ function checkLinks() {
 
 (async () => {
   checkLinks();
+
+  // --links-only: verify the templates without touching Resend. CI runs this
+  // on every push, including from forks that have no credentials, so a dead
+  // button in an email is caught by the same gate as a type error.
+  if (process.argv.includes('--links-only')) {
+    console.log(failed ? '[FAIL] email link checks failed.' : '[OK] email link checks passed.');
+    process.exit(failed ? 1 : 0);
+  }
 
   if (!key) {
     fail('RESEND_API_KEY is not set — no email can be sent, including two-factor codes.');
