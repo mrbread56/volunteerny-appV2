@@ -685,21 +685,29 @@ app.use(express.json());
       }
 
       // ── The relationship check that rules could not do ──
+      //
+      // The authorising fact must be one the STUDENT cannot fabricate.
+      //
+      // An earlier version of this endpoint accepted "the caller's email equals
+      // the request's coordinatorContact" on its own. That field is written by
+      // the student when they submit the request, so it authorised nothing: a
+      // student could name any address they controlled, register it as an
+      // organization (Firebase does not require proof of ownership to sign up),
+      // and approve their own graduation hours. check:security proves this by
+      // attempting exactly that.
+      //
+      // So a coordinator email match is now only ever a *tie-break* for which
+      // request to settle — never the reason the write is allowed.
       let authorised = isDeveloperCaller;
       let requestRef: FirebaseFirestore.DocumentReference | null = null;
+      let requestData: any = null;
 
-      if (!authorised && typeof requestId === 'string' && requestId) {
+      if (typeof requestId === 'string' && requestId) {
         requestRef = adb.collection('hoursRequests').doc(requestId);
         const reqSnap = await requestRef.get();
-        const reqData = reqSnap.exists ? reqSnap.data() : null;
-        const callerEmail = (caller?.email || authContext.email || '').trim().toLowerCase();
-        if (
-          reqData &&
-          reqData.studentId === studentId &&
-          (reqData.coordinatorContact || '').trim().toLowerCase() === callerEmail &&
-          reqData.status === 'pending'
-        ) {
-          authorised = true;
+        requestData = reqSnap.exists ? reqSnap.data() : null;
+        if (!requestData || requestData.studentId !== studentId || requestData.status !== 'pending') {
+          return res.status(403).json({ error: 'That hours request is not available for approval.' });
         }
       }
 
@@ -718,10 +726,26 @@ app.use(express.json());
         }
       }
 
+      // Second route, for hours volunteered outside a posted opportunity: the
+      // organization named as coordinator may sign off, but ONLY if a developer
+      // has vetted it. craVerified is settable by developers alone, so a
+      // throwaway account created to rubber-stamp its own request cannot reach
+      // this branch, while a real charity that was verified once can keep
+      // confirming hours for work it did not advertise on the platform.
+      if (!authorised && requestData) {
+        const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+        const vetted = orgSnap.exists && orgSnap.data()?.craVerified === true;
+        const callerEmail = (caller?.email || authContext.email || '').trim().toLowerCase();
+        const named = (requestData.coordinatorContact || '').trim().toLowerCase() === callerEmail;
+        if (vetted && named) authorised = true;
+      }
+
       if (!authorised) {
         console.warn(`[hours/approve] ${authContext.uid} tried to credit unrelated student ${studentId}`);
         return res.status(403).json({
-          error: 'You can only credit hours for a student who volunteered with your organization.',
+          error:
+            'You can only credit hours for a student who volunteered with your organization. ' +
+            'If they volunteered outside a posted opportunity, your organization needs to be verified first.',
         });
       }
 

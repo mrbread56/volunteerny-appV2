@@ -25,7 +25,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import {
   initializeFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc,
-  collection, getDocs, query, where, limit as fsLimit, serverTimestamp,
+  collection, getDocs, query, where, limit as fsLimit, serverTimestamp, addDoc,
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
 import { spawn, ChildProcess } from 'node:child_process';
@@ -294,6 +294,78 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
   expectStatus('anonymous reads the review endpoint', anonRead.status, [401]);
 }
 
+/**
+ * Self-approval of graduation hours.
+ *
+ * The student writes coordinatorContact when they submit an hours request, so
+ * if the approval endpoint treats "your email matches coordinatorContact" as
+ * proof of a relationship, the student is naming their own approver. Signing up
+ * costs nothing and Firebase does not require ownership proof of an address, so
+ * the same person can hold both accounts.
+ *
+ * Ontario requires 40 community-involvement hours to graduate. This must fail.
+ */
+async function selfApprovalCheck(student: { uid: string; email: string }) {
+  console.log('\n── Self-approval of hours ──');
+
+  // 1. As the student: submit a request naming an address we control.
+  await signOut(auth);
+  await signInWithEmailAndPassword(auth, student.email, PASSWORD);
+  const accompliceEmail = `check_sec_accomplice_${Date.now()}@example.com`;
+  const reqRef = await addDoc(collection(db, 'hoursRequests'), {
+    studentId: student.uid,
+    studentName: 'Sec Check',
+    studentEmail: student.email,
+    activity: 'Self-approval probe',
+    organization: 'Totally Real Charity',
+    hours: 20,
+    date: '2026-01-01',
+    coordinatorName: 'Me Again',
+    coordinatorContact: accompliceEmail,
+    status: 'pending',
+    requestedAt: new Date().toISOString(),
+  });
+
+  // 2. Register that same address as an organization.
+  await signOut(auth);
+  const { user: accomplice } = await createUserWithEmailAndPassword(auth, accompliceEmail, PASSWORD);
+  uids.push(accomplice.uid);
+  await setDoc(doc(db, 'users', accomplice.uid), {
+    uid: accomplice.uid, email: accompliceEmail, role: 'organization',
+    twoFactorEnabled: true, createdAt: serverTimestamp(),
+  });
+  await setDoc(doc(db, 'organizations', accomplice.uid), {
+    uid: accomplice.uid, organizationName: 'Totally Real Charity', mission: 'm',
+    organizationType: 'Other', address: 'a', coordinates: null, contactEmail: accompliceEmail,
+    phone: '', northYorkConfirmed: false, websiteUrl: '', hasCra: null, craNumber: '',
+    craVerified: false, verificationStatus: 'unverified',
+  });
+  const token = await accomplice.getIdToken();
+
+  // 3. Approve our own 40 hours.
+  const res = await fetch(`${BASE}/api/hours/approve`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ studentId: student.uid, requestId: reqRef.id, hours: 20, activity: 'Self-approval probe', date: '2026-01-01' }),
+  });
+
+  if (res.status === 403) {
+    pass('a student cannot approve their own hours via a self-named coordinator');
+  } else {
+    fail(`SELF-APPROVAL SUCCEEDED (status ${res.status}) — a student can grant themselves graduation hours`);
+  }
+
+  // Whatever the endpoint decided, the student must not have been credited.
+  const adb = adminFirestore();
+  if (adb) {
+    const after = await adb.collection('students').doc(student.uid).get();
+    const credited = Number(after.data()?.hours || 0);
+    if (credited === 0) pass('no hours were written by the self-approval attempt');
+    else fail(`student was credited ${credited} hours by a self-approval`);
+    await adb.collection('hoursRequests').doc(reqRef.id).delete().catch(() => {});
+  }
+}
+
 // ── 2. Firestore rules, via the client SDK ─────────────────────────────────
 
 async function firestoreChecks(
@@ -367,6 +439,18 @@ async function firestoreChecks(
     getDocs(query(collection(db, 'opportunities'), fsLimit(1))));
 }
 
+let _adb: any = null;
+function adminFirestore() {
+  if (_adb) return _adb;
+  const a: any = (admin as any).default || admin;
+  const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+  if (!key) return null;
+  const app2 = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'sec-admin-' + Date.now());
+  _adb = app2.firestore();
+  _adb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+  return _adb;
+}
+
 async function cleanup() {
   const a: any = (admin as any).default || admin;
   const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -397,6 +481,10 @@ async function cleanup() {
     // studentB is the victim: the org has no opportunity, application or hours
     // request connecting it to them.
     await apiChecks(studentToken, orgToken, studentB.uid);
+    // Runs before the Firestore half because it needs studentB's hours to still
+    // be zero, and it uses studentB so a credit here cannot be confused with
+    // the legitimate approval exercised in check:flows.
+    await selfApprovalCheck(studentB);
     await firestoreChecks(studentA, studentB, org);
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
