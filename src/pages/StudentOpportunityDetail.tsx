@@ -12,6 +12,7 @@ import { MapPin, Calendar, Clock, ArrowLeft, Building2, Share2, Bookmark, CheckC
 import { formatDate, cn, copyToClipboard } from '../lib/utils';
 import { fetchAcceptedCount } from '../lib/opportunityCapacity';
 import ReportModal from '../components/ReportModal';
+import { useDialog } from '../hooks/useDialog';
 
 export default function StudentOpportunityDetail() {
   const { id } = useParams();
@@ -25,6 +26,11 @@ export default function StudentOpportunityDetail() {
   const [hasApplied, setHasApplied] = useState(false);
   const [applicationMessage, setApplicationMessage] = useState('');
   const [showApplyModal, setShowApplyModal] = useState(false);
+  // useCallback so the identity is stable: useDialog depends on onClose, and a
+  // new closure every render would tear down and re-add the key handler
+  // (and re-steal focus) on each keystroke in the form.
+  const closeApplyModal = React.useCallback(() => setShowApplyModal(false), []);
+  const applyDialogRef = useDialog(showApplyModal, closeApplyModal);
   const [isSaved, setIsSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
 
@@ -473,13 +479,30 @@ export default function StudentOpportunityDetail() {
         />
       )}
 
-      {/* Apply Modal */}
+      {/* Apply Modal.
+          Wired to useDialog like the other four dialogs in the app. This one
+          had been missed, and it is the modal students actually use: without
+          it there was no role="dialog", no Escape, no focus trap and no focus
+          restore, so a keyboard user could tab straight past it into the page
+          behind with no way to close it. */}
       {showApplyModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowApplyModal(false)} />
-          <Card className="relative w-full max-w-xl mx-auto rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
-            <button 
+          {/* The ref and dialog semantics live on this wrapper: Card is a plain
+              function component that neither forwards a ref nor accepts ARIA
+              props, and widening its signature for one caller is a bigger
+              change than the problem needs. */}
+          <div
+            ref={applyDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Express interest in this opportunity"
+            className="relative w-full max-w-xl mx-auto"
+          >
+          <Card className="relative w-full rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
+            <button
               onClick={() => setShowApplyModal(false)}
+              aria-label="Close"
               className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
             >
               <X className="w-5 h-5" />
@@ -511,6 +534,7 @@ export default function StudentOpportunityDetail() {
                </form>
             </CardContent>
           </Card>
+          </div>
         </div>
       )}
     </div>
