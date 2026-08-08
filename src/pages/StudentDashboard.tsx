@@ -188,7 +188,10 @@ export default function StudentDashboard() {
         }
       });
       if (!reminderResult.success) {
+        // Correctly refuses to claim success — but said nothing at all, which
+        // to the student is indistinguishable from a button that does nothing.
         console.error("Failed to send hours request reminder:", reminderResult.error);
+        setErrorMessage("We couldn't send that reminder. Please try again in a moment.");
         return;
       }
       setReminderSuccessId(req.id);
@@ -197,6 +200,7 @@ export default function StudentDashboard() {
       }, 3000);
     } catch (err) {
       console.error("Failed to send hours request reminder:", err);
+      setErrorMessage("We couldn't send that reminder. Please try again in a moment.");
     } finally {
       setSendingReminderId(null);
     }
@@ -688,7 +692,12 @@ export default function StudentDashboard() {
       setInterestNote("");
       setTimeout(() => setShowSuccess(false), 5000);
     } catch (err) {
+      // The success banner is set INSIDE the try, above, so it never fired on
+      // failure — but nothing else did either. The student filled in the form,
+      // pressed submit, and got no banner and no error: indistinguishable from
+      // the button not working.
       console.error("Error submitting interest:", err);
+      setErrorMessage("We couldn't send that request. Please check your connection and try again.");
     } finally {
       setIsSubmitting(false);
     }

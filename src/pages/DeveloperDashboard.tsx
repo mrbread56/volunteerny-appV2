@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail } from '../lib/devAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -197,6 +197,17 @@ export default function DeveloperDashboard() {
   const [isReplying, setIsReplying] = useState<string | null>(null);
   const [filterType, setFilterType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  // Moderation actions used to fail silently: the write threw, a console line
+  // was logged, and the console reported nothing. On a queue of safety reports
+  // about minors, a moderator believing they had actioned something they had
+  // not is the worst possible failure mode.
+  const [actionError, setActionError] = useState<string | null>(null);
+  useEffect(() => {
+    if (!actionError) return;
+    const t = setTimeout(() => setActionError(null), 8000);
+    return () => clearTimeout(t);
+  }, [actionError]);
+
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isUserDeletingId, setIsUserDeletingId] = useState<string | null>(null);
   const [developerDeleteError, setDeveloperDeleteError] = useState<string>('');
@@ -410,18 +421,27 @@ export default function DeveloperDashboard() {
             alert('Security Restriction: System developers cannot be suspended.');
             return;
           }
-          await updateDoc(userRef, { isBanned: !isCurrentlyBanned });
-          
+          // Both documents in ONE batch. They were two sequential updateDocs,
+          // so the users doc could flip while the students/organizations doc
+          // did not — leaving an account banned in one place and active in the
+          // other, with the failure logged to a console nobody was reading.
+          // A batch is atomic: both land, or neither does.
+          const batch = writeBatch(db);
+          batch.update(userRef, { isBanned: !isCurrentlyBanned });
           if (uData.role === 'student') {
-            await updateDoc(doc(db, 'students', userId), { isBanned: !isCurrentlyBanned });
+            batch.update(doc(db, 'students', userId), { isBanned: !isCurrentlyBanned });
           } else if (uData.role === 'organization') {
-            await updateDoc(doc(db, 'organizations', userId), { isBanned: !isCurrentlyBanned });
+            batch.update(doc(db, 'organizations', userId), { isBanned: !isCurrentlyBanned });
           }
+          await batch.commit();
         }
       }
       loadData();
     } catch (err) {
       console.error('Ban action write failure:', err);
+      setActionError(
+        `Could not ${isCurrentlyBanned ? 'restore' : 'suspend'} that account — nothing was changed. Please try again.`
+      );
     }
   };
 
@@ -572,15 +592,19 @@ export default function DeveloperDashboard() {
       if (isDemoMode) {
         setReports(updated);
       } else {
-        try {
-          await updateDoc(doc(db, 'reports', reportId), { status: newStatus });
-        } catch (dbErr) {
-          console.warn('Real Firestore report update failed, using local fallback:', dbErr);
-        }
+        // No swallowing here. This used to catch the failure and log "using
+        // local fallback", so a safety report could be shown as resolved while
+        // the database still had it open — invisible on any other device, and
+        // silently dropped from the moderation queue.
+        await updateDoc(doc(db, 'reports', reportId), { status: newStatus });
       }
       loadData();
     } catch (err) {
       console.error('Failed to change report status:', err);
+      setActionError(
+        `That safety report is still ${newStatus === 'resolved' ? 'unresolved' : 'open'} — the change was not saved. Please try again.`
+      );
+      loadData();
     }
   };
 
@@ -668,6 +692,16 @@ export default function DeveloperDashboard() {
   // MAIN RUNNING CONTROL ROOM
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 space-y-8 animate-fadeIn">
+      {actionError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide max-w-[90vw]"
+        >
+          {actionError}
+        </div>
+      )}
+
       {/* Header info bar */}
       <div className="bg-blue-dark text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="space-y-3 relative z-10">

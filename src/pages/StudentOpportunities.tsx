@@ -144,6 +144,13 @@ export default function StudentOpportunities() {
   const [sharingOpp, setSharingOpp] = useState<Opportunity | null>(null);
   const closeShareDialog = useCallback(() => setSharingOpp(null), []);
   const shareDialogRef = useDialog(!!sharingOpp, closeShareDialog);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!saveError) return;
+    const timer = setTimeout(() => setSaveError(null), 5000);
+    return () => clearTimeout(timer);
+  }, [saveError]);
 
   const categoriesOptions = [{ value: '', label: 'All Categories' }, ...OPPORTUNITY_CATEGORIES.map(cat => ({ value: cat, label: cat }))];
   const exclusivesOptions = [{ value: '', label: 'All Eligibility' }, ...OPPORTUNITY_EXCLUSIVES.map(exc => ({ value: exc, label: exc }))];
@@ -249,43 +256,62 @@ export default function StudentOpportunities() {
     fetchOpps();
   }, [user]);
 
+  /**
+   * Bookmark or un-bookmark an opportunity.
+   *
+   * The optimistic update is now REVERTED when the write fails, and the
+   * student is told. It used to swallow the failure — the log line read
+   * "using local backup seamlessly" — and leave the icon filled in. So a
+   * bookmark could look saved while existing only in this browser's
+   * localStorage: gone on another device, and absent from the dashboard's
+   * saved list, which reads from Firestore. "Saved" is a promise to the
+   * person who clicked it; showing it for a write that failed breaks it.
+   *
+   * Demo mode keeps the localStorage path, because there is no Firestore
+   * behind it by design.
+   */
   const handleSave = async (oppId: string) => {
     if (!user) return;
-    try {
+    const wasSaved = savedIds.includes(oppId);
+
+    // Optimistic: the tap should feel instant.
+    setSavedIds(prev => (wasSaved ? prev.filter(id => id !== oppId) : [...prev, oppId]));
+
+    if (isDemoMode) {
       const localSaves = JSON.parse(localStorage.getItem('demo_saved_ids') || '[]');
-      if (savedIds.includes(oppId)) {
-        // Unsave
-        setSavedIds(prev => prev.filter(id => id !== oppId));
-        const updated = localSaves.filter((id: string) => id !== oppId);
-        localStorage.setItem('demo_saved_ids', JSON.stringify(updated));
+      const updated = wasSaved
+        ? localSaves.filter((id: string) => id !== oppId)
+        : [...new Set([...localSaves, oppId])];
+      localStorage.setItem('demo_saved_ids', JSON.stringify(updated));
+      return;
+    }
 
-        try {
-          const q = query(collection(db, 'savedOpportunities'), where('studentId', '==', user.uid), where('opportunityId', '==', oppId));
-          const snap = await getDocs(q);
-          await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-        } catch (dbErr) {
-          console.warn('Real Firestore unsave failed, local cache preserved:', dbErr);
-        }
+    try {
+      if (wasSaved) {
+        const q = query(
+          collection(db, 'savedOpportunities'),
+          where('studentId', '==', user.uid),
+          where('opportunityId', '==', oppId)
+        );
+        const snap = await getDocs(q);
+        await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
       } else {
-        // Save
-        setSavedIds(prev => [...prev, oppId]);
-        if (!localSaves.includes(oppId)) {
-          localSaves.push(oppId);
-          localStorage.setItem('demo_saved_ids', JSON.stringify(localSaves));
-        }
-
-        try {
-          await addDoc(collection(db, 'savedOpportunities'), {
-            studentId: user.uid,
-            opportunityId: oppId,
-            savedAt: serverTimestamp()
-          });
-        } catch (dbErr) {
-          console.warn('Real Firestore save failed, using local backup seamlessly:', dbErr);
-        }
+        await addDoc(collection(db, 'savedOpportunities'), {
+          studentId: user.uid,
+          opportunityId: oppId,
+          savedAt: serverTimestamp()
+        });
       }
     } catch (err) {
-      console.error('Error saving opportunity:', err);
+      console.error('Saving the opportunity failed:', err);
+      // Put the icon back where it was, so it never claims a state the
+      // database does not hold.
+      setSavedIds(prev => (wasSaved ? [...prev, oppId] : prev.filter(id => id !== oppId)));
+      setSaveError(
+        wasSaved
+          ? "We couldn't remove that bookmark. Please try again."
+          : "We couldn't save that opportunity. Please check your connection and try again."
+      );
     }
   };
 
@@ -304,6 +330,16 @@ export default function StudentOpportunities() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {saveError && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide max-w-[90vw]"
+        >
+          {saveError}
+        </div>
+      )}
+
       {/* Local Community Involvement Banner card */}
       <div className="relative overflow-hidden rounded-lg bg-blue-dark/5 text-ink border border-blue-dark/10 p-6 sm:p-10">
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-dark/15 rounded-lg blur-3xl pointer-events-none" />
