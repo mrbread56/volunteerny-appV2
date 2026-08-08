@@ -365,7 +365,7 @@ export default function OrgOpportunityEdit() {
                 <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Basic Information</h3>
                 <Input label="Opportunity Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 <div className="flex flex-col gap-1.5">
-                   <label className="text-sm font-medium text-ink-soft">Description</label>
+                   <label className="text-sm font-medium text-ink-soft">Description <span className="text-red-500">*</span></label>
                    <textarea aria-label="Description" className="w-full rounded-lg border border-line p-6 min-h-[150px] font-medium focus:ring-2 focus:ring-blue-dark focus:outline-none" value={description} onChange={(e) => setDescription(e.target.value)} required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -503,7 +503,7 @@ export default function OrgOpportunityEdit() {
              <section className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Requirements & Skills</h3>
                 <div className="flex flex-col gap-1.5">
-                   <label className="text-sm font-medium text-ink-soft">Detailed Requirements</label>
+                   <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-500">*</span></label>
                    <textarea aria-label="Detailed requirements" className="w-full rounded-lg border border-line p-6 min-h-[100px] font-medium" value={requirements} onChange={(e) => setRequirements(e.target.value)} required />
                 </div>
                 <div>
