@@ -25,7 +25,7 @@ service firebase.storage {
     }
     
     function callerRole() {
-      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+      return firestore.get(/databases/ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755/documents/users/$(request.auth.uid)).data.role;
     }
 
     function isOrgOrDeveloper() {
@@ -58,7 +58,7 @@ service firebase.storage {
     // actual participants, verified against the Firestore chat document.
     function isChatParticipant(chatId) {
       return isSignedIn() &&
-        request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants;
+        request.auth.uid in firestore.get(/databases/ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755/documents/chats/$(chatId)).data.participants;
     }
 
     match /chat_attachments/{chatId}/{fileName} {

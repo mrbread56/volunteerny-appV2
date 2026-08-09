@@ -1,55 +1,25 @@
-import React, { useCallback, useState, useRef } from 'react';
-import { Upload, FileText, X, CheckCircle2, Sparkles, AlertCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Upload, X, CheckCircle2, AlertCircle } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import { compressFile } from '../../utils/compress';
 import { Button } from './Button';
+import { uploadFileToStorage } from '../../lib/storageUpload';
 
 interface FileUploadProps {
   label: string;
-  onFileSelect: (base64: string | null, fileName: string | null) => void;
+  onFileSelect: (url: string | null, fileName: string | null) => void;
+  storagePath: string;
   currentFileName?: string | null;
   accept?: string;
   maxSizeMB?: number;
 }
 
-// Client-side image resize helper to squeeze image payloads down
-const compressImage = (base64: string, maxWidth = 1000, quality = 0.5): Promise<string> => {
-  return new Promise((resolve) => {
-    if (!base64 || !base64.startsWith('data:image/')) {
-      resolve(base64);
-      return;
-    }
-    const img = new Image();
-    img.src = base64;
-    img.onload = () => {
-      const canvas = document.createElement('canvas');
-      let width = img.width;
-      let height = img.height;
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0, width, height);
-        const compressedBase64 = canvas.toDataURL('image/jpeg', quality);
-        resolve(compressedBase64);
-      } else {
-        resolve(base64);
-      }
-    };
-    img.onerror = () => resolve(base64);
-  });
-};
-
 export function FileUpload({ 
   label, 
   onFileSelect, 
+  storagePath,
   currentFileName, 
   accept = ".pdf", 
-  maxSizeMB = 0.5 
+  maxSizeMB = 5 
 }: FileUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [fileName, setFileName] = useState<string | null>(currentFileName || null);
@@ -57,109 +27,71 @@ export function FileUpload({
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Compression & Optimizer State
-  const [rawBase64, setRawBase64] = useState<string | null>(null);
-  const [originalSize, setOriginalSize] = useState<number | null>(null);
-  const [compressedSize, setCompressedSize] = useState<number | null>(null);
-  const [isOptimized, setIsOptimized] = useState(false);
-  const [optimizing, setOptimizing] = useState(false);
-
   // Large File Resolution States
   const [isTooLarge, setIsTooLarge] = useState(false);
   const [tooLargeSizeKB, setTooLargeSizeKB] = useState<number | null>(null);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [pendingBase64, setPendingBase64] = useState<string | null>(null);
 
-  // Scanning state
-  const [scanning, setScanning] = useState(false);
-  const [scanStep, setScanStep] = useState<string>("");
-  const [scanClean, setScanClean] = useState<boolean | null>(null);
+  // Upload state
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
 
   // Sync prop updates from parent reactively
   React.useEffect(() => {
     if (!currentFileName) {
       setFileName(null);
-      setRawBase64(null);
-      setOriginalSize(null);
-      setCompressedSize(null);
-      setIsOptimized(false);
       setIsTooLarge(false);
       setTooLargeSizeKB(null);
       setPendingFile(null);
-      setPendingBase64(null);
-      setScanClean(null);
-      setScanning(false);
+      setUploading(false);
+      setUploadProgress(null);
     } else {
       setFileName(currentFileName);
-      setScanClean(true);
     }
   }, [currentFileName]);
 
-  const handleContainerClick = (e: React.MouseEvent) => {
-    // Left empty since we use the native absolute cursor input overlay now,
-    // which operates purely in user-space with zero programmatic delegation hacks
+  const doUpload = async (file: File) => {
+    setUploading(true);
+    setUploadProgress(0);
+    setError(null);
+    try {
+      const url = await uploadFileToStorage(
+        file,
+        `${storagePath}/${file.name}`,
+        (progress) => setUploadProgress(progress.percent)
+      );
+      setFileName(file.name);
+      onFileSelect(url, file.name);
+    } catch (err: any) {
+      console.error('Upload failed:', err);
+      setError('Upload failed. Please try again.');
+    } finally {
+      setUploading(false);
+      setUploadProgress(null);
+      setIsTooLarge(false);
+      setPendingFile(null);
+    }
   };
 
   const handleFile = (file: File) => {
     setError(null);
     setIsTooLarge(false);
     setTooLargeSizeKB(null);
-    setRawBase64(null);
-    setOriginalSize(null);
-    setCompressedSize(null);
-    setIsOptimized(false);
     setPendingFile(null);
-    setPendingBase64(null);
-    setScanClean(null);
-    setScanning(false);
+    setUploading(false);
+    setUploadProgress(null);
 
-    // Absolute payload ceiling is 8MB
-    if (file.size > 8 * 1024 * 1024) {
-      setError(`File is too large (max 8MB). Please choose a smaller file.`);
+    const sizeKB = Math.round(file.size / 1024);
+
+    if (file.size > maxSizeMB * 1024 * 1024) {
+      setIsTooLarge(true);
+      setTooLargeSizeKB(sizeKB);
+      setFileName(file.name);
+      setPendingFile(file);
       return;
     }
 
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const base64 = e.target?.result as string;
-      const sizeKB = Math.round(file.size / 1024);
-
-      if (file.size > maxSizeMB * 1024 * 1024) {
-        setIsTooLarge(true);
-        setTooLargeSizeKB(sizeKB);
-        setFileName(file.name);
-        setPendingFile(file);
-        setPendingBase64(base64);
-        return;
-      }
-
-      setFileName(file.name);
-      setScanning(true);
-      setScanStep("Initializing offline virus sandbox engine...");
-      
-      // Small delays to run progressive real-time scan layers
-      await new Promise((r) => setTimeout(r, 600));
-      setScanStep("Hashing file with SHA-256...");
-      await new Promise((r) => setTimeout(r, 500));
-      setScanStep("Checking malware blocklist signatures (ClamAV API)...");
-      await new Promise((r) => setTimeout(r, 500));
-      setScanStep("Verifying PDF structures for Trojan macro injections...");
-      await new Promise((r) => setTimeout(r, 600));
-
-      setScanning(false);
-      setScanClean(true);
-      setRawBase64(base64);
-      setOriginalSize(sizeKB);
-
-      // Automatically compress and optimize the payload to ensure smooth cloud storage
-      const compressed = compressFile(base64);
-      const compKB = Math.round((compressed.length * 0.75) / 1024);
-      
-      onFileSelect(compressed, file.name);
-      setCompressedSize(compKB);
-      setIsOptimized(true);
-    };
-    reader.readAsDataURL(file);
+    doUpload(file);
   };
 
   const onDrag = (e: React.DragEvent) => {
@@ -185,36 +117,16 @@ export function FileUpload({
     e.stopPropagation();
     e.preventDefault();
     setFileName(null);
-    setRawBase64(null);
-    setOriginalSize(null);
-    setCompressedSize(null);
-    setIsOptimized(false);
     setIsTooLarge(false);
     setTooLargeSizeKB(null);
     setPendingFile(null);
-    setPendingBase64(null);
+    setUploading(false);
+    setUploadProgress(null);
     onFileSelect(null, null);
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
-
-  const handleOptimize = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    if (!rawBase64) return;
-
-    setOptimizing(true);
-    setTimeout(() => {
-      const compressed = compressFile(rawBase64);
-      const compKB = Math.round((compressed.length * 0.75) / 1024);
-      
-      onFileSelect(compressed, fileName);
-      setCompressedSize(compKB);
-      setIsOptimized(true);
-      setOptimizing(false);
-    }, 150);
   };
 
   return (
@@ -233,10 +145,7 @@ export function FileUpload({
             isTooLarge ? "border-amber-400 bg-amber/10" : fileName ? "border-blue-dark bg-blue-dark/5" : ""
           )}
         >
-          {/* aria-label: the visible label above has no htmlFor and this input
-              is opacity-0 over the drop zone, so it had no accessible name —
-              a screen reader announced a bare, nameless file button. */}
-          {(!fileName && !isTooLarge) && (
+          {(!fileName && !isTooLarge && !uploading) && (
             <input
               type="file"
               aria-label={label}
@@ -248,16 +157,19 @@ export function FileUpload({
           )}
           
           <div className="flex flex-col items-center gap-3 relative z-0">
-            {scanning ? (
+            {uploading ? (
               <>
-                <div className="w-14 h-14 bg-blue-dark/5 border border-blue-dark/10 rounded-xl flex items-center justify-center text-blue-dark scale-110 animate-pulse">
-                  <div className="w-6 h-6 border-2 border-blue-dark border-blue-dark border-t-transparent rounded-lg animate-spin" />
+                <div className="w-14 h-14 bg-blue-dark/5 border border-blue-dark/10 rounded-xl flex items-center justify-center text-blue-dark scale-110">
+                  <div className="w-6 h-6 border-2 border-blue-dark border-t-transparent rounded-lg animate-spin" />
                 </div>
-                <div>
-                  <p className="text-sm font-semibold text-ink">Running Threat Analysis...</p>
-                  <p className="text-xs text-blue-dark font-bold mt-1.5 tracking-wide animate-pulse font-mono">
-                    🛡️ {scanStep}
-                  </p>
+                <div className="w-full max-w-[200px]">
+                  <p className="text-sm font-semibold text-ink mb-2">Uploading... {uploadProgress ?? 0}%</p>
+                  <div className="w-full bg-line rounded-full h-2">
+                    <div 
+                      className="bg-blue-dark h-2 rounded-full transition-all duration-300" 
+                      style={{ width: `${uploadProgress ?? 0}%` }}
+                    />
+                  </div>
                 </div>
               </>
             ) : isTooLarge ? (
@@ -283,19 +195,12 @@ export function FileUpload({
               <>
                 <div className="w-14 h-14 bg-blue-dark/10 rounded-xl flex items-center justify-center text-blue-dark scale-110 relative">
                   <CheckCircle2 className="w-7 h-7" />
-                  {scanClean && (
-                    <span className="absolute -top-1 -right-1 bg-blue-dark text-white rounded-lg p-0.5 text-xs font-bold px-1.5 border border-white flex items-center gap-0.5" title="Malware Scanned & Clean">
-                      🛡️ Safe
-                    </span>
-                  )}
+                  <span className="absolute -top-1 -right-1 bg-blue-dark text-white rounded-lg p-0.5 text-xs font-bold px-1.5 border border-white flex items-center gap-0.5" title="Uploaded">
+                    ✓
+                  </span>
                 </div>
                 <div>
                   <p className="text-sm font-semibold text-ink line-clamp-1 px-4">{fileName}</p>
-                  {originalSize && (
-                    <p className="text-xs text-ink-soft font-semibold mt-1">
-                      Size: {originalSize} KB {isOptimized && compressedSize ? `➔ Optimized: ${compressedSize} KB` : ''}
-                    </p>
-                  )}
                   <button 
                     type="button"
                     onClick={clearFile}
@@ -315,7 +220,7 @@ export function FileUpload({
                     <span className="text-blue-dark">Click to upload</span> or drag and drop
                   </p>
                   <p className="text-xs text-ink-soft font-medium tracking-wide mt-1">
-                    PDF format preferred (max {maxSizeMB}MB)
+                    Format {accept} (max {maxSizeMB}MB)
                   </p>
                 </div>
               </>
@@ -330,56 +235,24 @@ export function FileUpload({
         </div>
       </div>
 
-      {/* Large File Intervention Form (Option to Compress) */}
       {isTooLarge && tooLargeSizeKB && pendingFile && (
-        <div className="p-5 bg-amber/10 border border-amber-200 rounded-lg flex flex-col items-center text-center gap-3  animate-in fade-in duration-200">
+        <div className="p-5 bg-amber/10 border border-amber-200 rounded-lg flex flex-col items-center text-center gap-3 animate-in fade-in duration-200">
           <div className="flex items-center gap-2 text-amber-700">
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
-            <p className="text-xs font-semibold uppercase tracking-wider">File Optimization Tool</p>
+            <p className="text-xs font-semibold uppercase tracking-wider">File Size Limit Exceeded</p>
           </div>
           <p className="text-xs text-ink-soft leading-relaxed max-w-sm font-semibold">
-            This file is larger than the required 0.5 megabytes limit. Click below to automatically compress, shrink metadata, and adapt the file size for storage:
+            This file is larger than the {maxSizeMB}MB limit. Click below to upload it anyway (may be rejected by server rules depending on file type):
           </p>
           
           <div className="flex flex-wrap gap-2 justify-center w-full pt-1">
             <Button 
               type="button"
-              onClick={() => {
-                if (!pendingBase64) return;
-                setOptimizing(true);
-                
-                // Wrap heavy calculations in a short timeout to let React paint the spinning animation state first!
-                setTimeout(async () => {
-                  try {
-                    let optimizedBase64 = pendingBase64;
-                    const isImage = pendingFile.type.startsWith('image/') || pendingFile.name.endsWith('.jpg') || pendingFile.name.endsWith('.jpeg') || pendingFile.name.endsWith('.png');
-                    
-                    if (isImage) {
-                      optimizedBase64 = await compressImage(pendingBase64, 900, 0.4);
-                    }
-                    
-                    const compressed = compressFile(optimizedBase64);
-                    const newKB = Math.round((compressed.length * 0.75) / 1024);
-                    
-                    setRawBase64(pendingBase64);
-                    setOriginalSize(tooLargeSizeKB);
-                    setIsOptimized(true);
-                    setCompressedSize(newKB);
-                    onFileSelect(compressed, pendingFile.name);
-                    setIsTooLarge(false);
-                    setError(null);
-                  } catch (e) {
-                    console.error(e);
-                    setError("Failed to compress file.");
-                  } finally {
-                    setOptimizing(false);
-                  }
-                }, 150);
-              }}
-              className="px-5 text-xs bg-amber-600 hover:bg-amber-700 font-semibold uppercase rounded-lg tracking-wider gap-1.5  text-white h-9"
-              isLoading={optimizing}
+              onClick={() => doUpload(pendingFile)}
+              className="px-5 text-xs bg-amber-600 hover:bg-amber-700 font-semibold uppercase rounded-lg tracking-wider gap-1.5 text-white h-9"
+              isLoading={uploading}
             >
-              <Sparkles className="w-3.5 h-3.5" /> Compress & Save
+              <Upload className="w-3.5 h-3.5" /> Upload Anyway
             </Button>
             
             <Button 
@@ -393,39 +266,6 @@ export function FileUpload({
               Cancel
             </Button>
           </div>
-        </div>
-      )}
-
-      {/* Database Footprint Optimization Widget */}
-      {fileName && originalSize && originalSize > 80 && !isOptimized && (
-        <div className="p-4 bg-amber/10 text-amber-900 border border-amber-100 rounded-lg flex flex-col items-center text-center gap-3 animate-in fade-in slide-in-">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-amber-dark flex-shrink-0" />
-            <p className="text-xs font-bold leading-none">Database Optimization Available</p>
-          </div>
-          <p className="text-xs text-amber-800 leading-relaxed font-semibold">
-            This resume is {originalSize} KB, which can slow down cloud reading speeds. Compress it by up to 60% without altering its layout or content when viewed.
-          </p>
-          <Button 
-            onClick={handleOptimize}
-            className="h-10 px-5 text-xs bg-amber-600 hover:bg-amber-700 font-semibold uppercase rounded-lg tracking-wider gap-1.5  text-white"
-            isLoading={optimizing}
-          >
-            <Sparkles className="w-3.5 h-3.5" /> Optimize Resumé (Recommended)
-          </Button>
-        </div>
-      )}
-
-      {/* Optimization Success Indicator */}
-      {isOptimized && compressedSize && originalSize && (
-        <div className="p-4 bg-blue-dark/5 text-[#0F1E29] border border-blue-dark/10 rounded-lg flex flex-col items-center text-center gap-2  animate-in zoom-in-95">
-          <div className="flex items-center gap-1.5 text-blue-dark">
-            <Sparkles className="w-4 h-4" />
-            <span className="text-xs font-bold uppercase tracking-wider">File Footprint Optimized!</span>
-          </div>
-          <p className="text-xs text-blue-dark font-semibold leading-relaxed">
-            Successfully shrunk string data by <strong className="font-semibold">{Math.round((1 - (compressedSize / originalSize)) * 100)}%</strong> ({originalSize} KB ➔ {compressedSize} KB). This is much safer, faster, and lighter for the database server and other users!
-          </p>
         </div>
       )}
     </div>

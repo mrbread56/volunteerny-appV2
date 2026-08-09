@@ -434,14 +434,15 @@ export default function StudentOnboarding() {
                 </div>
                 
                 <FileUpload
-                  label="Upload Your Resume (Optional, PDF format under 500KB)"
-                  onFileSelect={(base64, fileName) => {
-                    setResumeBase64(base64 || '');
+                  label="Upload Your Resume (Optional, PDF)"
+                  storagePath={`students/${user?.uid}`}
+                  onFileSelect={(url, fileName) => {
+                    setResumeBase64(url || '');
                     setResumeFileName(fileName || '');
                   }}
                   currentFileName={resumeFileName}
                   accept=".pdf"
-                  maxSizeMB={0.5}
+                  maxSizeMB={5}
                 />
               </CardContent>
             </Card>

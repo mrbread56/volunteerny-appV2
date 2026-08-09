@@ -8,6 +8,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { compressFile } from '../utils/compress';
+import { uploadFileToStorage } from '../lib/storageUpload';
 import { 
   Send, 
   Sparkles, 
@@ -129,20 +130,17 @@ export default function FeedbackPage() {
     setError('');
 
     try {
-      // Convert file to Base64 and compress it
+      // Upload file to Storage
       let compressedData: string | null = null;
       if (file) {
         try {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (err) => reject(err);
-          });
-          compressedData = compressFile(base64);
+          compressedData = await uploadFileToStorage(
+            file,
+            `feedbacks/${user?.uid || 'anonymous'}/${file.name}`
+          );
         } catch (fileErr: any) {
-          console.error("Failed to read feedback attachment", fileErr);
-          setError("Failed to read feedback attachment");
+          console.error("Failed to upload feedback attachment", fileErr);
+          setError("Failed to upload feedback attachment");
           setIsSubmitting(false);
           return;
         }
