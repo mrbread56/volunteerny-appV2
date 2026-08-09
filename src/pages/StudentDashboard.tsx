@@ -8,6 +8,7 @@ import { useAuth } from "../contexts/AuthContext";
 import SuccessAnimation from "../components/SuccessAnimation";
 import { db } from "../firebase/config";
 import { subscribeToScalableLeaderboard } from "../lib/scalableLeaderboard";
+import { reportError } from "../lib/errors";
 import { totalLoggedHours } from "../lib/hours";
 import {
   collection,
@@ -803,9 +804,19 @@ export default function StudentDashboard() {
           const hoursList = hoursSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setHoursRequests(hoursList);
         } catch (hoursErr) {
-          console.warn("Could not query hours requests from Firestore, using local storage fallback:", hoursErr);
-          const savedReqs = JSON.parse(localStorage.getItem("demo_hours_requests") || "[]");
-          setHoursRequests(savedReqs.filter((r: any) => r.studentId === user.uid));
+          // No localStorage fallback here, on purpose. This used to fall back
+          // to the demo fixture on any query failure, so a real student whose
+          // read failed was shown a list of hour claims that were not in the
+          // database at all. These are graduation records; showing invented
+          // ones is worse than showing none. Say what happened instead.
+          setErrorMessage(
+            reportError(
+              'load hours requests',
+              hoursErr,
+              "We couldn't load your submitted hours just now. Please refresh to try again.",
+            ),
+          );
+          setHoursRequests([]);
         }
 
         // Fetch saved opportunities with robust fallback

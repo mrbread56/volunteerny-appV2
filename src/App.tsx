@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, useLocation } from 'react-router-dom';
 import { MotionConfig } from 'motion/react';
 import { AuthProvider } from './contexts/AuthContext';
+import { reportError } from './lib/errors';
 import { GlobalAuthGuard } from './routes/guards';
 import AppRoutes from './routes/AppRoutes';
 
@@ -17,7 +18,12 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Uncaught rendering error:', error, errorInfo);
+    // reportError forwards to the server. This used to be console.error alone,
+    // while the screen below told the user "our team has been notified" - the
+    // one place in the app where a whole-page crash happened was also the one
+    // place nobody was told about it.
+    reportError('react render crash', error);
+    console.error('Component stack:', errorInfo.componentStack);
   }
 
   render() {
@@ -31,7 +37,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
               </svg>
             </div>
             <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">Something went wrong</h1>
-            <p className="text-sm font-medium text-slate-600">We've encountered an unexpected error. Our team has been notified. Please try refreshing the page.</p>
+            <p className="text-sm font-medium text-slate-600">Something went wrong while loading this page. The problem has been recorded. Refreshing usually fixes it, and if it keeps happening please let us know.</p>
             <button
               onClick={() => window.location.reload()}
               className="mt-6 w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer"

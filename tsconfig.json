@@ -1,5 +1,13 @@
 {
   "compilerOptions": {
+    /* Enabled 9 August 2026. It cost nine fixes, three of which were real
+       bugs rather than missing annotations: a dead unauthenticated debug
+       endpoint at api/test.ts, a null dereference in the hours-approval path,
+       and formatDate(undefined) rendering "Invalid Date" on any single-date
+       opportunity whose shift had no date. There are still ~167 `any`s in
+       src/, so strict is on but only as strong as the types beneath it. It
+       stops the next 167. */
+    "strict": true,
     "target": "ES2022",
     "experimentalDecorators": true,
     "useDefineForClassFields": false,

@@ -33,7 +33,7 @@ import { spawn, ChildProcess } from 'node:child_process';
  */
 const API_PORT = 3198;
 const apiBase = `http://localhost:${API_PORT}`;
-let apiServer: ChildProcess | null = null;
+let apiServer: ChildProcess | undefined;
 
 async function bootApi() {
   let log = '';
@@ -330,6 +330,6 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
     }
     console.log(`[INFO] cleaned up ${uids.length} account(s) and ${docs.length} document(s)`);
   }
-  if (apiServer) apiServer.kill();
+  apiServer?.kill();
   process.exit(failed ? 1 : 0);
 })();

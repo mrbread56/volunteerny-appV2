@@ -50,6 +50,43 @@ console errors.
 
 ---
 
+## Closed 9 August 2026 (from the independent architecture review)
+
+**G2. Nothing reported errors anywhere, and the crash screen said otherwise.**
+`componentDidCatch` called `console.error` while the screen it rendered told the
+user "our team has been notified". Nobody was. `reportError()` now forwards to
+`POST /api/log/client-error`, which logs to the platform and records to a
+`clientErrors` collection; the boundary calls it; the copy no longer claims
+something untrue. The endpoint is unauthenticated on purpose, since the errors
+most worth seeing happen during sign-in, so it is rate limited per address,
+payload capped, and stores a fixed set of fields.
+
+**G5. Real students were shown invented hours data.** Both dashboards fell back
+to the demo fixture in `localStorage` whenever the hours query failed, so a
+failed read rendered as a list of hour claims the database did not hold. These
+are graduation records. Both fallbacks are gone; the failure is now reported.
+
+**G6. Backups ran only when someone remembered.** A daily scheduled workflow now
+takes one, and it is **encrypted with GPG before upload**, because a plain
+artifact would put minors' names, emails and uploaded documents into CI storage.
+Requires a `BACKUP_PASSPHRASE` secret and fails loudly without one.
+
+**G1. `strict` is on.** It cost nine fixes, three of them real bugs rather than
+missing annotations: `api/test.ts` was a dead unauthenticated debug endpoint
+shipping to production, `requestRef` could be dereferenced null in the
+hours-approval path, and `formatDate(undefined)` rendered "Invalid Date" on any
+single-date opportunity whose shift had no date. ~167 `any`s remain in `src/`,
+so strict is only as strong as the types beneath it, but it stops the next 167.
+
+**G7/G8. Dead configuration and stale claims.** Deleted `supabase/` (an
+abandoned stack) and `render.yaml` (a second, contradictory deployment story in
+a project that deploys to Vercel). `test:rules` invoked `vitest`, which is not
+installed, so it now explains itself instead of failing cryptically. The
+README's "known gaps" still claimed there was no CI and that routing was not
+separated from `App.tsx`; both had been done, and understating progress is the
+same failure as the `TODO.md` problem, in the other direction.
+
+
 ## Open issues
 
 Severity: **P0** blocks launch · **P1** fix before real students · **P2** should

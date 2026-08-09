@@ -490,7 +490,7 @@ app.use(express.json());
         const doc = await ref.get();
         if (doc.exists) {
           const data = doc.data();
-          if (isOtpRecord(data)) fromDb = { issuedAt: 0, attempts: 0, ...data };
+          if (isOtpRecord(data)) fromDb = data;
         }
       }
     } catch (err: any) {
@@ -712,12 +712,16 @@ app.use(express.json());
       // So a coordinator email match is now only ever a *tie-break* for which
       // request to settle — never the reason the write is allowed.
       let authorised = isDeveloperCaller;
-      let requestRef: FirebaseFirestore.DocumentReference | null = null;
+      let requestRef: FirebaseFirestore.DocumentReference | undefined;
       let requestData: any = null;
 
       if (typeof requestId === 'string' && requestId) {
-        requestRef = adb.collection('hoursRequests').doc(requestId);
-        const reqSnap = await requestRef.get();
+        // Via a local const: `adb` is `any`, so assigning straight to the
+        // outer `let` does not narrow away `undefined` and every later use
+        // needs a non-null assertion.
+        const ref = adb.collection('hoursRequests').doc(requestId) as FirebaseFirestore.DocumentReference;
+        requestRef = ref;
+        const reqSnap = await ref.get();
         requestData = reqSnap.exists ? reqSnap.data() : null;
         if (!requestData || requestData.studentId !== studentId || requestData.status !== 'pending') {
           return res.status(403).json({ error: 'That hours request is not available for approval.' });
@@ -768,7 +772,10 @@ app.use(express.json());
       // the same relationship check above, so an unrelated organization cannot
       // quietly kill a student's request either.
       if (declining) {
-        await requestRef!.update({
+        if (!requestRef) {
+          return res.status(400).json({ error: 'Declining requires the hours request to decline.' });
+        }
+        await requestRef.update({
           status: 'declined',
           declinedBy: authContext.uid,
           declinedAt: new Date().toISOString(),
@@ -1434,6 +1441,75 @@ app.use(express.json());
   });
 
     // Secure feedback analyze endpoint using Gemini
+  /**
+   * Client error sink.
+   *
+   * Until this existed, every caught error in the browser reached
+   * console.error and stopped there. Nobody found out that a student's hours
+   * submission failed, or that a page crashed, unless that student wrote in.
+   * The crash screen meanwhile told them "our team has been notified", which
+   * was not true of anyone.
+   *
+   * Deliberately unauthenticated: the errors most worth seeing happen during
+   * sign-in and signup, before there is a session to authenticate with. That
+   * makes it a write endpoint anyone can reach, so it is bounded on every axis
+   * that matters - a hard rate limit per address, a payload cap, a fixed set of
+   * stored fields, and a capped collection - rather than trusted.
+   */
+  const errorLogLimit = new Map<string, { count: number; windowStart: number }>();
+  function errorLogRateLimited(ip: string): boolean {
+    const now = Date.now();
+    const windowMs = 60 * 1000;
+    const entry = errorLogLimit.get(ip);
+    if (!entry || now - entry.windowStart > windowMs) {
+      errorLogLimit.set(ip, { count: 1, windowStart: now });
+      return false;
+    }
+    entry.count += 1;
+    return entry.count > 30;
+  }
+
+  app.post('/api/log/client-error', async (req, res) => {
+    try {
+      const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+      if (errorLogRateLimited(ip)) return res.status(429).json({ ok: false });
+
+      const { context, message, stack, path } = req.body || {};
+      if (typeof message !== 'string' || !message.trim()) return res.status(400).json({ ok: false });
+
+      // Whoever is running the server sees it immediately, even without
+      // Firestore. On Vercel this reaches the platform log (12-Factor XI).
+      console.error(`[client] ${String(context || 'unknown')} @ ${String(path || '?')}: ${message.slice(0, 300)}`);
+
+      // Best effort beyond that. A failure to record an error must never
+      // become a second error.
+      const adminObj = getAdminObj();
+      if (adminObj) {
+        // Only the caller's own token is trusted for identity - never a uid
+        // from the body, which anyone could set to anyone.
+        let uid: string | null = null;
+        try {
+          const auth = await verifyAuth(req);
+          if (auth?.uid && !auth.error) uid = auth.uid;
+        } catch { /* anonymous is fine and expected */ }
+
+        await adminFirestore().collection('clientErrors').add({
+          context: String(context || 'unknown').slice(0, 100),
+          message: String(message).slice(0, 1000),
+          stack: typeof stack === 'string' ? stack.slice(0, 4000) : null,
+          path: String(path || '').slice(0, 200),
+          uid,
+          userAgent: String(req.headers['user-agent'] || '').slice(0, 300),
+          at: new Date().toISOString(),
+        }).catch(() => {});
+      }
+
+      res.json({ ok: true });
+    } catch {
+      res.status(200).json({ ok: false });
+    }
+  });
+
   app.post('/api/feedback/analyze', async (req, res) => {
     // verifyAuth ALWAYS resolves to an object — it signals failure via the
     // `error` field, never by returning null. `if (!authContext)` was therefore

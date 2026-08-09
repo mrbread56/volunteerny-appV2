@@ -43,6 +43,7 @@ import { serverTimestamp } from "firebase/firestore";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
+import { reportError } from "../lib/errors";
 import { totalLoggedHours } from "../lib/hours";
 import { approveStudentHours } from "../lib/approveHours";
 import { fetchReviewProfile } from "../lib/reviewProfile";
@@ -210,7 +211,17 @@ export default function OrgDashboard() {
       }));
       setHoursRequests(list);
     } catch (e) {
-      console.error("Failed to fetch custom hours requests:", e);
+      // Deliberately no demo-fixture fallback. An organization seeing invented
+      // pending requests, or an empty queue that is really a failed read, both
+      // lead to a real student's hours going unapproved.
+      setErrorMessage(
+        reportError(
+          'load hours requests',
+          e,
+          "We couldn't load the hours awaiting your approval. Please refresh to try again.",
+        ),
+      );
+      setHoursRequests([]);
     }
   };
 

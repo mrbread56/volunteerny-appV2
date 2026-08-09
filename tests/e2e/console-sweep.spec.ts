@@ -116,7 +116,7 @@ test.afterAll(async () => {
   const rows = [...seen.entries()].sort((x, y) => y[1].count - x[1].count);
   const classified = rows.map(([key, v]) => {
     const [type, text] = key.split('|');
-    return { type, text, ...v, why: expectedReason(text) };
+    return { text, ...v, type, why: expectedReason(text) };
   });
   const unexpected = classified.filter((r) => !r.why);
   const expected = classified.filter((r) => r.why);

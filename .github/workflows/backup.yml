@@ -1,0 +1,76 @@
+# Scheduled database backup.
+#
+# `npm run backup` existed and nothing ran it. These are graduation records for
+# students who are mostly minors, and a backup nobody is reminded to take is a
+# plan, not a backup.
+#
+# The artifact is ENCRYPTED before it is uploaded. A plain artifact would put
+# names, emails, schools and base64 resume and passport scans of minors into CI
+# storage, which is exactly what .gitignore keeps them out of the repository to
+# avoid. Decrypt with:
+#
+#   gpg --decrypt --batch --passphrase "$BACKUP_PASSPHRASE" firestore-*.json.gpg > restore.json
+#   npm run restore -- restore.json            # dry run first
+#
+# If this job fails, it says so loudly. A backup job that fails quietly is the
+# "looks like protection and isn't" trap that scripts/backup.ts already refuses.
+name: Backup
+
+on:
+  schedule:
+    - cron: '0 7 * * *' # 07:00 UTC daily, roughly 2am Toronto
+  workflow_dispatch:
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+
+      - name: Check credentials are present
+        run: |
+          if [ -z "${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}" ]; then
+            echo "::error::Firebase secrets are missing, so no backup was taken. Add them under Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+          if [ -z "${{ secrets.BACKUP_PASSPHRASE }}" ]; then
+            echo "::error::BACKUP_PASSPHRASE is not set. Refusing to produce an unencrypted backup containing student personal data."
+            exit 1
+          fi
+
+      - name: Take the backup
+        env:
+          FIREBASE_SERVICE_ACCOUNT_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_KEY }}
+          FIREBASE_DATABASE_ID: ${{ secrets.FIREBASE_DATABASE_ID }}
+        # backup.ts exits non-zero if it read zero documents, so an empty or
+        # misconfigured run fails here rather than uploading a useless file.
+        run: npm run backup
+
+      - name: Encrypt
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          FILE=$(ls -1 backups/firestore-*.json | tail -1)
+          gpg --batch --yes --symmetric --cipher-algo AES256 \
+              --passphrase "$BACKUP_PASSPHRASE" \
+              --output "$FILE.gpg" "$FILE"
+          rm -f "$FILE"   # never let the plaintext reach the upload step
+          echo "ARTIFACT=$FILE.gpg" >> "$GITHUB_ENV"
+          ls -lh "$FILE.gpg"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: firestore-backup-${{ github.run_id }}
+          path: backups/*.json.gpg
+          retention-days: 30
+          if-no-files-found: error
+
+      - name: Report failure
+        if: failure()
+        run: echo "::error title=Backup failed::No database backup was taken today. Check this run, then take one by hand with npm run backup."

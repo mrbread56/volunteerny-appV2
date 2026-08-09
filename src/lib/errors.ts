@@ -102,5 +102,54 @@ export function toUserMessage(err: unknown, fallback = 'Something went wrong. Pl
  */
 export function reportError(context: string, err: unknown, fallback?: string): string {
   console.error(`[${context}]`, err);
+  sendToServer(context, err);
   return toUserMessage(err, fallback);
+}
+
+/**
+ * Forward the error to the server so somebody can actually see it.
+ *
+ * Before this, every reportError call ended at console.error, which means it
+ * ended nowhere: with one developer and no log drain, the only way to learn
+ * that a student's hours submission had failed was for that student to write
+ * in. The crash screen even claimed "our team has been notified", which was
+ * true of nobody.
+ *
+ * Fire and forget, and silent on failure. Reporting an error must never
+ * produce a second one, and must never delay whatever the caller does next.
+ * `keepalive` lets it survive the page unloading, which is exactly when a
+ * navigation-triggered failure would otherwise be lost.
+ */
+function sendToServer(context: string, err: unknown): void {
+  try {
+    // Browser only. This module is also imported by node-run check scripts,
+    // and `import.meta.env` is a Vite construct that throws under plain node —
+    // importing lib/config at the top of this file broke check:errors for
+    // exactly that reason.
+    if (typeof window === 'undefined' || typeof fetch !== 'function') return;
+
+    const message = err instanceof Error ? err.message : String(err ?? '');
+    if (!message) return;
+
+    let base = '';
+    try {
+      base = (import.meta as any)?.env?.VITE_API_URL || '';
+    } catch {
+      base = '';
+    }
+
+    void fetch(`${base}/api/log/client-error`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      keepalive: true,
+      body: JSON.stringify({
+        context,
+        message: message.slice(0, 1000),
+        stack: err instanceof Error ? err.stack?.slice(0, 4000) : undefined,
+        path: typeof location !== 'undefined' ? location.pathname : '',
+      }),
+    }).catch(() => {});
+  } catch {
+    /* never let logging break the thing it is logging */
+  }
 }

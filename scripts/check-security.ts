@@ -134,7 +134,7 @@ async function makeUser(role: 'student' | 'organization') {
 
 // ── 1. HTTP API ────────────────────────────────────────────────────────────
 
-let server: ChildProcess | null = null;
+let server: ChildProcess | undefined;
 
 async function bootServer() {
   // Piped, not ignored. The first version swallowed the child's output, so a
@@ -584,7 +584,7 @@ async function cleanup() {
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
   } finally {
-    if (server) server.kill();
+    server?.kill();
     await cleanup();
   }
 
