@@ -222,9 +222,6 @@ export default function DeveloperDashboard() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isUserDeletingId, setIsUserDeletingId] = useState<string | null>(null);
   const [developerDeleteError, setDeveloperDeleteError] = useState<string>('');
-  const [adminPurgeQuery, setAdminPurgeQuery] = useState('');
-  const [isGlobalPurging, setIsGlobalPurging] = useState(false);
-  const [adminPurgeSuccess, setAdminPurgeSuccess] = useState('');
 
 
   useEffect(() => {
