@@ -81,7 +81,7 @@ owner · ➖ noted, no action needed
 | ID | His point | Status | Evidence |
 |---|---|---|---|
 | R30 | **Separate the routing and the guard** | ✅ | `a34f96f`. `App.tsx` 409 → 85 lines. Guards now live in `src/routes/guards.tsx`, the route table in `src/routes/AppRoutes.tsx`. Pure move, verified by `sweep:console` |
-| R31 | Some files are far too big (~1,700 lines) | 🔄 | **In progress.** `StudentDashboard.tsx` 2,428 → 1,975 (-19%): demo fixtures, match scoring, the printable transcript and the whole leaderboard tab now live in their own modules, each verified after extraction. `DeveloperDashboard.tsx` 1,836 and `OrgDashboard.tsx` 1,552 not yet touched |
+| R31 | Some files are far too big (~1,700 lines) | 🔄 | **In progress.** `StudentDashboard.tsx` 2,428 → 1,841 (−24%): demo fixtures, match scoring, the printable transcript, the leaderboard tab and the settings tab all extracted, each verified after the move. `DeveloperDashboard.tsx` 1,836 and `OrgDashboard.tsx` 1,552 not yet touched |
 | R32 | Error handling needs normalising | 🔄 | ~20 individual silent failures fixed, and raw provider errors stopped leaking. **No single shared pattern yet** |
 | R33 | Component structure is acceptable — Calendar, ApplicationReview, Referral separated | ➖ | Agreed, no action. Note: `CalendarView.tsx` (827 lines) is never rendered |
 | R34 | Stack is standard and sensible | ➖ | Agreed, no action |
