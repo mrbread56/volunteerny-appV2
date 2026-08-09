@@ -14,6 +14,7 @@
  * If the rules ever regress to `data.field == null` on an optional field, the
  * students/organizations write here fails and this exits non-zero.
  */
+import './env';
 import { initializeApp } from 'firebase/app';
 import {
   getAuth,
@@ -25,9 +26,7 @@ import { initializeFirestore, doc, getDoc, setDoc, updateDoc, serverTimestamp } 
 import { totalLoggedHours } from '../src/lib/hours';
 import * as admin from 'firebase-admin';
 import assert from 'node:assert/strict';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const app = initializeApp({
   apiKey: process.env.VITE_FIREBASE_API_KEY,

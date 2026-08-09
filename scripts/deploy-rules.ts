@@ -12,11 +12,10 @@
  * It prints the ruleset it replaced, so a bad deploy can be rolled back with:
  *   npm run deploy:rules -- --rollback <previous-ruleset-name>
  */
+import './env';
 import * as admin from 'firebase-admin';
 import fs from 'node:fs';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const a: any = (admin as any).default || admin;
 const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;

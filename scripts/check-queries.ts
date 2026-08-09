@@ -13,6 +13,7 @@
  * Creates a throwaway student with the Admin SDK, queries as that student, and
  * deletes it afterwards.
  */
+import './env';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword } from 'firebase/auth';
 import {
@@ -25,9 +26,7 @@ import {
   getDocs,
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const app = initializeApp({
   apiKey: process.env.VITE_FIREBASE_API_KEY,

@@ -18,11 +18,10 @@
  * Idempotent: a student whose stored total already matches is skipped, so this
  * is safe to run repeatedly.
  */
+import './env';
 import * as admin from 'firebase-admin';
-import dotenv from 'dotenv';
 import { totalLoggedHours } from '../src/lib/hours';
 
-dotenv.config();
 
 const apply = process.argv.includes('--apply');
 const a: any = (admin as any).default || admin;

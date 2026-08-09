@@ -14,10 +14,9 @@
  * holder did not already have. It is not reachable from the app and there is no
  * endpoint behind it. Do not wire it into anything.
  */
+import './env';
 import * as admin from 'firebase-admin';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const email = process.argv[2];
 if (!email) {

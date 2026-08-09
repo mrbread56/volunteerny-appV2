@@ -19,12 +19,11 @@
  * Do not commit one, do not put one in a public folder, and if you copy one to
  * cloud storage make sure that storage is private.
  */
+import './env';
 import * as admin from 'firebase-admin';
 import fs from 'node:fs';
 import path from 'node:path';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 /** Every collection the app actually uses. Keep in sync with ARCHITECTURE.md. */
 const COLLECTIONS = [

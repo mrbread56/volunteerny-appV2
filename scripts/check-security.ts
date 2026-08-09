@@ -21,6 +21,7 @@
  *
  * Accounts are throwaway and deleted at the end.
  */
+import './env';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import {
@@ -29,9 +30,7 @@ import {
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
 import { spawn, ChildProcess } from 'node:child_process';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const app = initializeApp({
   apiKey: process.env.VITE_FIREBASE_API_KEY,

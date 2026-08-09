@@ -13,12 +13,11 @@
  * deliver from an unverified sender, and two-factor codes go through the same
  * path — an unverified MAIL_FROM means no organization can log in at all.
  */
-import dotenv from 'dotenv';
+import './env';
 import fs from 'node:fs';
 import { emailTemplates } from '../server/emailTemplates';
 import { CANONICAL_APP_ORIGIN, appOrigin } from '../server/appUrl';
 
-dotenv.config();
 
 const key = process.env.RESEND_API_KEY;
 const from = process.env.MAIL_FROM;

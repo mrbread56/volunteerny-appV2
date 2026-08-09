@@ -13,10 +13,9 @@
  * claims straight back — that proves write permission without changing anyone's
  * access.
  */
+import './env';
 import * as admin from 'firebase-admin';
-import dotenv from 'dotenv';
 
-dotenv.config();
 
 const adminObj: any = (admin as any).default || admin;
 

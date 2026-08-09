@@ -14,6 +14,7 @@
  *
  * Everything is created fresh and deleted afterwards, including on failure.
  */
+import './env';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import {
@@ -22,10 +23,8 @@ import {
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
 import assert from 'node:assert/strict';
-import dotenv from 'dotenv';
 import { spawn, ChildProcess } from 'node:child_process';
 
-dotenv.config();
 
 /**
  * Hours approval is a server call now, so this walk of the real flow needs a
