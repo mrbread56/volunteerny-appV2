@@ -52,7 +52,16 @@ let failures = 0;
 let passes = 0;
 
 function pass(msg: string) { passes++; console.log(`[PASS] ${msg}`); }
-function fail(msg: string) { failures++; console.error(`[FAIL] ${msg}`); }
+function fail(msg: string) {
+  failures++;
+  console.error(`[FAIL] ${msg}`);
+  // GitHub Actions logs need authentication to read, so a failure that only
+  // exists in the log is invisible to anyone triaging from the API or the
+  // summary page. ::error:: surfaces it as an annotation on the run itself.
+  if (process.env.GITHUB_ACTIONS) {
+    console.log(`::error title=check:security::${msg.split('\n').join(' ')}`);
+  }
+}
 
 /**
  * Every probe is time-boxed. The Firestore client retries some failures at the
