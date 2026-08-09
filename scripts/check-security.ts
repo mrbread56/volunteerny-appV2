@@ -46,7 +46,13 @@ const auth = getAuth(app);
 
 const PASSWORD = 'checkSecurity!123';
 const PORT = 3199;
-const BASE = `http://localhost:${PORT}`;
+// 127.0.0.1, never "localhost". On Linux CI runners localhost resolves to ::1
+// first and Node's fetch honours that, so if the server happens to bind IPv4
+// only, every probe fails and the suite reports "server did not come up" —
+// which looks like a security failure and is really a DNS preference. Windows
+// resolves localhost to 127.0.0.1 first, which is why this passed locally and
+// failed in CI.
+const BASE = `http://127.0.0.1:${PORT}`;
 const uids: string[] = [];
 let failures = 0;
 let passes = 0;
@@ -148,7 +154,11 @@ async function bootServer() {
   // Probe an API route rather than '/'. In production the SPA fallback needs
   // built client assets, so '/' can answer 500 for reasons unrelated to
   // whether the API — the thing under test — is listening.
-  for (let i = 0; i < 80; i++) {
+  // 180s, not 40s. A CI runner is slower than a laptop and the server does real
+  // work before it listens: Firebase Admin init, then a full leaderboard
+  // rebuild. Forty seconds was enough locally and is not a safe margin there.
+  const attempts = 360;
+  for (let i = 0; i < attempts; i++) {
     if (server.exitCode !== null) {
       throw new Error(`server exited early with code ${server.exitCode}. Output:\n${log}`);
     }
@@ -158,7 +168,9 @@ async function bootServer() {
     } catch { /* not up yet */ }
     await new Promise((r) => setTimeout(r, 500));
   }
-  throw new Error(`server did not answer on ${BASE} within 40s. Output:\n${log}`);
+  throw new Error(
+    `server did not answer on ${BASE} within ${(attempts * 500) / 1000}s. Output:\n${log || '(the server printed nothing)'}`,
+  );
 }
 
 const ROUTES: Array<{ method: string; path: string; body?: unknown }> = [
