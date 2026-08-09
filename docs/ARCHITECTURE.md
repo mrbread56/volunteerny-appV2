@@ -100,10 +100,13 @@ query fails with `5 NOT_FOUND`.
 
 ### Declared but unused
 
-`chats` and `messages` have complete security rules and **zero** references in
-the codebase. `recommendations` and `interestRequests` are referenced once each.
-Either build them or delete the rules — dead rules are surface area nobody is
-testing.
+`recommendations` and `interestRequests` are referenced once each.
+
+`chats` and `messages` used to sit here with a complete rule set and no code at
+all. Both the rules and the unrendered calendar component were deleted rather
+than left in place: an unused rule is live, reachable permission on the
+production database that no test covers and no feature justifies. Messaging is
+a v2 item; write the rules then, from the shape the feature actually needs.
 
 ### The one denormalisation
 
@@ -231,7 +234,6 @@ Ordered by how much pain it will cause.
    regression reaching `main`.
 4. **Uploads are base64 in Firestore documents.** Bounded by the 1 MiB document
    limit and expensive to read; belongs in Cloud Storage with signed URLs.
-5. **Dead rules.** `chats` and `messages` are unreachable but permissioned.
 6. **Developer identity is split** between a Firestore role and an email
    allowlist, so adding a developer means changing an environment variable.
 7. **Rules tests cannot run** in the current environment (need Java and the

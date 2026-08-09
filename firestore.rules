@@ -231,25 +231,6 @@ service cloud.firestore {
              data.status == 'pending';
     }
 
-    function isValidChat(data) {
-      return data.type in ['group', 'direct'] &&
-             data.participants is list &&
-             data.participants.size() >= 2 && data.participants.size() <= 200 &&
-             (data.type == 'direct' ? data.participants.size() == 2 : true) &&
-             request.auth.uid in data.participants &&
-             (absent(data, 'opportunityId') || (data.opportunityId is string && data.opportunityId.size() <= 128)) &&
-             (absent(data, 'opportunityTitle') || (data.opportunityTitle is string && data.opportunityTitle.size() <= 200)) &&
-             (absent(data, 'lastMessage') || (data.lastMessage is string && data.lastMessage.size() <= 500)) &&
-             (absent(data, 'updatedAt') || data.updatedAt == request.time);
-    }
-
-    function isValidMessage(data) {
-      return data.senderId == request.auth.uid &&
-             data.text is string && data.text.size() <= 4000 &&
-             data.createdAt == request.time &&
-             (absent(data, 'attachmentUrl') || (data.attachmentUrl is string && data.attachmentUrl.size() <= 1500));
-    }
-
     // --- Match Blocks ---
 
     match /users/{uid} {
@@ -490,39 +471,18 @@ service cloud.firestore {
       allow delete: if isDeveloper();
     }
 
-    match /chats/{chatId} {
-      allow read: if isSignedIn() && (request.auth.uid in resource.data.participants || isDeveloper());
-      allow create: if isVerifiedOrg() && isValidId(chatId) && isValidChat(incoming());
-      // Any participant can bump lastMessage/updatedAt (i.e. send a message).
-      // Only the organization side can change who's actually in the chat
-      // (adding an accepted student, removing a terminated one), and the
-      // chat's type can never change after creation.
-      allow update: if isSignedIn() && isValidId(chatId) && (request.auth.uid in existing().participants) &&
-                      incoming().type == existing().type &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['lastMessage', 'updatedAt', 'participants', 'lastRead']) &&
-                      (
-                        !incoming().diff(existing()).affectedKeys().hasAny(['participants']) ||
-                        (isVerifiedOrg() && incoming().participants is list &&
-                         incoming().participants.size() >= 1 && incoming().participants.size() <= 200 &&
-                         request.auth.uid in incoming().participants)
-                      ) &&
-                      (!incoming().diff(existing()).affectedKeys().hasAny(['lastRead']) || incoming().lastRead is map);
-      // Developers can always clean up; an org can delete a chat it's part of
-      // (used when an opportunity/group chat is deleted).
-      allow delete: if isDeveloper() || (isVerifiedOrg() && request.auth.uid in existing().participants);
-
-      match /messages/{messageId} {
-        allow read: if isSignedIn() && (request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants || isDeveloper());
-        allow create: if isSignedIn() && 
-                         request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
-                         isValidMessage(incoming());
-        allow update: if isDeveloper();
-        // Allow the org that owns the chat to delete messages as part of
-        // cascading a chat/opportunity deletion; developers can always clean up.
-        allow delete: if isDeveloper() ||
-                         (isVerifiedOrg() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
-      }
-    }
+    // chats/ and messages/ deliberately have NO rules.
+    //
+    // They had a complete rule set — read, create, update, delete, participant
+    // checks, a nested messages subcollection — and ZERO code. Nothing in the
+    // application ever read or wrote either collection. That is not harmless:
+    // it is live, reachable permission on the production database that no test
+    // covers and no feature justifies, and it made the project look like it had
+    // messaging when it did not.
+    //
+    // Messaging is a v2 item in docs/ROADMAP.md. Write these rules then, from
+    // the data shape the feature actually turns out to need, rather than
+    // inheriting a guess. Deleted rules are recoverable from git history.
 
     // ── Org → Student recommendations ──
     // An org writes a reference for a student after working with them.

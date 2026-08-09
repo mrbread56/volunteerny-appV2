@@ -260,8 +260,6 @@ Honest list; see [`docs/STATUS.md`](docs/STATUS.md) for the full audit.
   `DeveloperDashboard.tsx` ~1,800, `OrgDashboard.tsx` ~1,550. Routing and route
   guards are not separated from `App.tsx`.
 - **No automated CI.** The check scripts are run by hand.
-- **`chats` and `messages`** have security rules but no user interface.
-- **`CalendarView.tsx`** is complete but not rendered anywhere.
 - **Uploads are base64 inside Firestore documents**, not Cloud Storage, and are
   bounded by the 1 MiB document limit.
 - **Rules tests** (`test:rules`) need Java and the Firebase emulator, which are
