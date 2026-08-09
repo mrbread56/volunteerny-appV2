@@ -213,7 +213,11 @@ service cloud.firestore {
              data.studentEmail is string &&
              data.activity is string &&
              data.organization is string &&
-             data.hours is number &&
+             // Bounded. Every other field here is capped; this one was not, so a
+             // student could file a request for any number. It could never be
+             // credited (the server caps a single approval at 24), but it could
+             // fill an organization's queue with absurd claims.
+             data.hours is number && data.hours > 0 && data.hours <= 24 &&
              data.date is string &&
              data.coordinatorName is string &&
              data.coordinatorContact is string &&
@@ -445,10 +449,22 @@ service cloud.firestore {
          existing().status == 'pending' &&
          isValidHoursRequest(incoming()) && 
          incoming().diff(existing()).affectedKeys().hasOnly(['activity', 'organization', 'hours', 'date', 'coordinatorName', 'coordinatorContact'])) ||
-        // Coordinator can update status
-        (existing().coordinatorContact == request.auth.token.email && 
-         incoming().diff(existing()).affectedKeys().hasOnly(['status']) &&
-         incoming().status in ['approved', 'declined']) ||
+        // NO coordinator branch here, on purpose.
+        //
+        // It used to read:
+        //   existing().coordinatorContact == request.auth.token.email &&
+        //   diff.hasOnly(['status']) && status in ['approved','declined']
+        //
+        // coordinatorContact is written by the STUDENT when they create the
+        // request, so a student naming their own address satisfied it from
+        // their own session. It did not credit hours (students/{uid}.hours is
+        // server-only), but the organization's queue filters on status ==
+        // 'pending', so a self-settled request vanished from their list while
+        // the student's dashboard showed it as approved.
+        //
+        // Both transitions now go through POST /api/hours/approve, which
+        // verifies an actual relationship before settling anything. See
+        // docs/ARCHITECTURE-PRINCIPLES.md §2.
         isDeveloper()
       );
       allow delete: if isSignedIn() && (

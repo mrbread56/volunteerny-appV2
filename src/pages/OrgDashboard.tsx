@@ -266,7 +266,16 @@ export default function OrgDashboard() {
             requestId: req.id,
           });
         } else {
-          await updateDoc(doc(db, "hoursRequests", req.id), { status: "declined" });
+          // Server-side, like approving. The rule that used to allow this
+          // from the client identified the coordinator by an email the STUDENT
+          // wrote, so it also let a student settle their own request.
+          // Throws with a message safe to show; the surrounding catch reports it.
+          await approveStudentHours({
+            studentId: req.studentId,
+            hours: 0,
+            approved: false,
+            requestId: req.id,
+          });
         }
 
         setSuccessMessage(approved ? "Hours approved successfully!" : "Hours request declined.");

@@ -108,10 +108,28 @@ before real students depend on the data.
 regression reaching `main`. *Fix:* run `lint`, `check:security` and
 `check:flows` on push.
 
-**B5. `hoursRequests.hours` has no upper bound in the rules.**
-A student can submit a request for any number. The server caps a single
-approval at 24, so this cannot be credited, but the queue can be filled with
-absurd values. *Fix:* bound it in `isValidHoursRequest`.
+**B5. `hoursRequests.hours` had no upper bound.** *Resolved 9 August 2026.*
+Now `> 0 && <= 24` in `isValidHoursRequest`, matching the server's per-approval
+cap. Covered by `check:security`.
+
+**B16. A student could settle their own hours request through the rules.**
+*Resolved 9 August 2026.* Found by an independent architecture review, not by
+this engagement's own testing.
+
+The rules let "the coordinator" set `status`, identifying them as
+`existing().coordinatorContact == request.auth.token.email`. The student writes
+`coordinatorContact` when creating the request, so naming their own address
+satisfied it from their own session. It credited no hours (`students/{uid}.hours`
+is server-only), which is why it survived the earlier fix to the same flaw in
+the API. What it did do: the organization's queue filters on
+`status == 'pending'`, so a self-settled request vanished from their list while
+the student's dashboard displayed it as approved. A real request could be made
+to disappear, and the interface reported a state the database did not hold.
+
+The coordinator branch is gone. Declining now goes through
+`POST /api/hours/approve` alongside approving, so both transitions run the same
+relationship check. This is the third appearance of the same root cause, and it
+is why [`ARCHITECTURE-PRINCIPLES.md`](ARCHITECTURE-PRINCIPLES.md) §2 exists.
 
 **B6. Organization dashboard and developer console hand-test.** *(done)*
 Both walked through the real UI with real accounts. The developer console's six

@@ -665,13 +665,23 @@ app.use(express.json());
 
       const adb = adminFirestore();
       const { studentId, requestId, activity, hours, date } = req.body || {};
+      // Declining is a status transition on the same document, gated by the
+      // same relationship check. It used to be a direct client updateDoc, which
+      // forced firestore.rules to carry a "the coordinator may set status"
+      // branch — and the student writes coordinatorContact, so that branch let
+      // them settle their own request. Routing it here let the branch be
+      // deleted. See docs/ARCHITECTURE-PRINCIPLES.md §2.
+      const declining = req.body?.approved === false;
 
       if (typeof studentId !== 'string' || !studentId || studentId.length > 128) {
         return res.status(400).json({ error: 'A valid studentId is required.' });
       }
       const parsedHours = Number(hours);
-      if (!Number.isFinite(parsedHours) || parsedHours <= 0 || parsedHours > 24) {
+      if (!declining && (!Number.isFinite(parsedHours) || parsedHours <= 0 || parsedHours > 24)) {
         return res.status(400).json({ error: 'Hours must be a number between 0 and 24.' });
+      }
+      if (declining && !requestId) {
+        return res.status(400).json({ error: 'Declining requires the hours request to decline.' });
       }
 
       // The caller must be an organization. Read the role server-side; never
@@ -753,6 +763,19 @@ app.use(express.json());
       }
 
       // ── Write ──
+
+      // Declining settles the request and credits nothing. It runs only after
+      // the same relationship check above, so an unrelated organization cannot
+      // quietly kill a student's request either.
+      if (declining) {
+        await requestRef!.update({
+          status: 'declined',
+          declinedBy: authContext.uid,
+          declinedAt: new Date().toISOString(),
+        });
+        return res.json({ success: true, declined: true });
+      }
+
       const studentRef = adb.collection('students').doc(studentId);
       const result = await adb.runTransaction(async (tx: any) => {
         const snap = await tx.get(studentRef);

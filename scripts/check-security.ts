@@ -325,6 +325,75 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
  *
  * Ontario requires 40 community-involvement hours to graduate. This must fail.
  */
+/**
+ * The same self-approval attack as below, but through the SECURITY RULES
+ * instead of the API.
+ *
+ * The rules let "the coordinator" flip an hoursRequest to approved, identifying
+ * the coordinator as `existing().coordinatorContact == request.auth.token.email`.
+ * The student writes coordinatorContact when they create the request, so a
+ * student who names their own address satisfies that check from their own
+ * session.
+ *
+ * It does not credit hours (students/{uid}.hours is server-only), which is why
+ * this survived the API fix. What it does is worse than it looks: the
+ * organization's queue filters on status == 'pending', so a self-flipped
+ * request silently disappears from their list, while the student's dashboard
+ * renders it as approved. A real request can be made to vanish and the UI
+ * reports a state the database does not agree with.
+ *
+ * Also checks that an absurd hours value is refused at create time.
+ */
+async function hoursRequestRuleChecks(student: { uid: string; email: string }) {
+  console.log('\n── hoursRequests rules ──');
+  await signOut(auth);
+  await signInWithEmailAndPassword(auth, student.email, PASSWORD);
+
+  const base = {
+    studentId: student.uid,
+    studentName: 'Sec Check',
+    studentEmail: student.email,
+    activity: 'Rule probe',
+    organization: 'Somewhere',
+    date: '2026-01-01',
+    coordinatorName: 'Me',
+    status: 'pending',
+    requestedAt: new Date().toISOString(),
+  };
+
+  // A student naming themselves as the coordinator, then approving it.
+  const mine = await addDoc(collection(db, 'hoursRequests'), {
+    ...base, hours: 5, coordinatorContact: student.email,
+  });
+  await mustDeny('student approves their own hours request via the rules', () =>
+    updateDoc(doc(db, 'hoursRequests', mine.id), { status: 'approved' }));
+  await mustDeny('student declines their own hours request via the rules', () =>
+    updateDoc(doc(db, 'hoursRequests', mine.id), { status: 'declined' }));
+
+  // An unbounded hours value.
+  await mustDeny('student submits an absurd number of hours', () =>
+    addDoc(collection(db, 'hoursRequests'), {
+      ...base, hours: 100000, coordinatorContact: 'someone@example.org',
+    }));
+  await mustDeny('student submits negative hours', () =>
+    addDoc(collection(db, 'hoursRequests'), {
+      ...base, hours: -5, coordinatorContact: 'someone@example.org',
+    }));
+
+  // A plausible request must still be creatable, so the bound cannot pass by
+  // rejecting everything.
+  await mustAllow('a normal hours request is still accepted', () =>
+    addDoc(collection(db, 'hoursRequests'), {
+      ...base, hours: 4, coordinatorContact: 'someone@example.org',
+    }));
+
+  const adb = adminFirestore();
+  if (adb) {
+    const stale = await adb.collection('hoursRequests').where('studentId', '==', student.uid).get();
+    for (const d of stale.docs) await d.ref.delete().catch(() => {});
+  }
+}
+
 async function selfApprovalCheck(student: { uid: string; email: string }) {
   console.log('\n── Self-approval of hours ──');
 
@@ -508,6 +577,7 @@ async function cleanup() {
     // be zero, and it uses studentB so a credit here cannot be confused with
     // the legitimate approval exercised in check:flows.
     console.log('STAGE: self-approval check');
+    await hoursRequestRuleChecks(studentA);
     await selfApprovalCheck(studentB);
     console.log('STAGE: firestore rules checks');
     await firestoreChecks(studentA, studentB, org);

@@ -24,6 +24,8 @@ export async function approveStudentHours(input: {
   date?: string;
   /** Set when approving a pending hoursRequest, so the server can settle it in the same transaction. */
   requestId?: string;
+  /** false declines the request instead of crediting it. Requires requestId. */
+  approved?: boolean;
 }): Promise<{ hours: number; entryId?: string; demo?: boolean }> {
   const user = auth.currentUser;
   let token: string | null = user ? await user.getIdToken() : null;
