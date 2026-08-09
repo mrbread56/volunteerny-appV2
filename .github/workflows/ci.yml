@@ -130,17 +130,19 @@ jobs:
         if: steps.creds.outputs.present == 'true'
         run: |
           set -o pipefail
-          npx tsx scripts/check-security.ts 2>&1 | tee /tmp/sec.log && exit 0
-          code=$?
+          if npx tsx scripts/check-security.ts 2>&1 | tee /tmp/sec.log; then
+            exit 0
+          fi
           {
-            echo '### check:security failed'
+            echo "### check:security failed"
+            echo ""
             echo '```'
             tail -60 /tmp/sec.log
             echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::error title=check:security::$(grep -m3 -E '\[FAIL\]|crashed|Error' /tmp/sec.log | tr '
-' ' ' | cut -c1-500)"
-          exit $code
+          SUMMARY=$(grep -m3 -E "\[FAIL\]|crashed" /tmp/sec.log | tr -d '\r' | paste -sd '; ' - | cut -c1-500)
+          echo "::error title=check:security::${SUMMARY:-see the job summary for the full output}"
+          exit 1
 
       # The whole student-organization journey against real data.
       - name: Application and hours flows
