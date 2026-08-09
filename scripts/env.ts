@@ -31,13 +31,27 @@ let trimmed = 0;
 for (const [key, value] of Object.entries(process.env)) {
   if (typeof value !== 'string') continue;
 
-  // Trim the ends, then strip embedded newlines and carriage returns.
+  // Trim, strip line breaks anywhere in the value, then remove wrapping quotes.
   //
-  // Trimming alone is not enough. A value pasted into a narrow secret field can
-  // pick up a line break in the MIDDLE, and .trim() only touches the ends — the
-  // gRPC metadata error survives it. None of the variables this project reads
-  // may legitimately contain a line break.
+  // Each of these was a real CI failure, in this order:
+  //
+  //   1. A trailing newline from a copy that took the line ending with it.
+  //   2. A line break in the MIDDLE, from a value wrapping in a narrow field —
+  //      .trim() does not touch that, and gRPC rejects it in metadata headers.
+  //   3. Surrounding quotes. .env files often quote long values and dotenv
+  //      strips them on the way in; GitHub secrets are stored raw, so the
+  //      quotes survive. FIREBASE_SERVICE_ACCOUNT_KEY arrived as
+  //      '{"type":"service_account"...}' — apostrophes included — JSON.parse
+  //      threw, Firebase Admin never initialised, and every API route answered
+  //      500 instead of its real status. The security suite reported that as
+  //      "a student can grant themselves graduation hours", which was alarming
+  //      and entirely a configuration artefact.
+  //
+  // That third one is exactly why the suite passed locally and failed in CI.
   let next = value.trim().replace(/[\r\n]+/g, '');
+  if (next.length > 1 && ((next.startsWith("'") && next.endsWith("'")) || (next.startsWith('"') && next.endsWith('"')))) {
+    next = next.slice(1, -1).trim();
+  }
   if (next === value) continue;
 
   // The service account key is JSON. Removing real line breaks between tokens
