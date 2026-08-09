@@ -4,15 +4,19 @@ Every point from the reviewer's assessment, given an ID, a status, and the
 evidence for that status. Nothing is marked done without something you can
 re-run or read.
 
-**Legend**, ✅ done · 🔄 in progress · ⬜ not started · 📌 needs the project
-owner · ➖ noted, no action needed
+**Legend.** ✅ done · 🔄 in progress · ⬜ not started · 📌 needs the project
+owner · ➖ agreed, nothing to do
+
+A ➖ is not an open item. Those are points the reviewer made that we agree with
+and that require no change, such as "the stack is sensible" and "do not start
+over". They are recorded so it is clear they were read and considered.
 
 | Status | Count |
 |---|---|
-| ✅ Done | 23 |
+| ✅ Done | 24 |
 | 🔄 In progress | 1 |
 | ⬜ Not started | 4 |
-| 📌 Owner action | 2 |
+| 📌 Owner action | 1 |
 | ➖ Acknowledged | 3 |
 
 ---
@@ -74,7 +78,7 @@ owner · ➖ noted, no action needed
 | R26 | Review auth | ✅ | **Found and fixed a critical hole:** a student could approve their own graduation hours by naming an address they controlled as "coordinator" and registering it as an organization |
 | R27 | Review Firebase rules | ✅ | Audited with the official Firebase rules auditor. `email_verified` is checked on the admin bootstrap, 26 size limits, type safety, `get`/`list` correctly separated |
 | R28 | Review APIs to outside services | ✅ | **Found and fixed:** any account could send phishing from the verified mail domain with an arbitrary button link. Also three routes leaking raw provider errors to end users |
-| R29 | Integrations need real credentials (Resend, Google) | 📌 | **Needs the project owner.** `RESEND_API_KEY` is currently revoked, this is blocker B1 |
+| R29 | Integrations need real credentials (Resend, Google) | ✅ | Resolved. A new `RESEND_API_KEY` was issued and verified: the key is accepted, the sender domain `volunteernorthyork.indevs.in` is verified, and a real two-factor code was confirmed reaching Resend. Organizations can sign in again. Google OAuth is not used; sign-in is Firebase Auth |
 
 ## 7. Architecture and code structure
 

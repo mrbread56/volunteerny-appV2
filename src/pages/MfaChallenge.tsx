@@ -230,9 +230,34 @@ export default function MfaChallenge() {
               </button>
             </div>
             
+            {/* A way out that is not "sign out and try again forever".
+                Two-factor is mandatory for organizations and the code arrives
+                by email, so anything that stops delivery - a bounce, a spam
+                filter, a provider outage - locks the account permanently. The
+                screen previously offered only Resend and Sign out, neither of
+                which helps when mail is the thing that is broken. Support can
+                verify the account by hand; see docs/RUNBOOK.md. */}
+            <div className="pt-4 mt-2 border-t border-line text-center space-y-2">
+              <p className="text-xs text-ink-muted leading-relaxed">
+                Code still not arriving? Check your spam folder first. If it is not
+                there, email us from the address on this account and we can verify
+                it manually.
+              </p>
+              <a
+                href={`mailto:privacy@volunteernorthyork.indevs.in?subject=${encodeURIComponent(
+                  'Cannot receive verification code'
+                )}&body=${encodeURIComponent(
+                  `I am not receiving my verification code.\n\nAccount email: ${user?.email || ''}\n`
+                )}`}
+                className="inline-block text-xs font-semibold text-blue-dark hover:underline"
+              >
+                Contact support
+              </a>
+            </div>
+
             <div className="pt-2 text-center">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => auth.signOut()}
                 className="text-xs font-semibold text-ink-muted hover:text-red-500 transition-colors"
               >

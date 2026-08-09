@@ -57,23 +57,32 @@ fix · **P3** cosmetic or long-term.
 
 ### P0, blocks launch
 
-**B1. Email delivery.** *(resolved 9 Aug 2026)*
-A valid `RESEND_API_KEY` is in place, the sender domain is verified, and the
-two-factor path was confirmed reaching Resend. Original problem, kept for the
-record:
-`check:email` returns 401: the `RESEND_API_KEY` in `.env` is revoked or from
-another account. Two-factor is **mandatory** for organizations and the code is
-delivered by email, so with mail down **no organization can ever sign in**. The
-only controls on the MFA screen are "Resend" and "Sign out"; there is no
-alternative route in.
-*Verified:* hand-tested organization signup, reached `/mfa`, code never
-arrived. *Fix:* set a valid key; then re-run `check:email`.
+**B1. Email delivery.** *Resolved 9 August 2026.*
+A valid `RESEND_API_KEY` is in place and the sender domain
+`volunteernorthyork.indevs.in` is verified. `check:email` passes 4/4 and a real
+two-factor request was confirmed reaching Resend.
 
-**B2. There is no way to recover a locked-out organization.**
-Beyond B1: if a real organization's mail bounces, lands in spam, or Resend has
-an outage, then that account is permanently unreachable with no support path in the
-product. *Fix:* an admin-triggered manual verification in the developer console,
-or a documented support process.
+Kept here because of what it blocked: two-factor is mandatory for
+organizations and the code arrives by email, so while the key was dead **no
+organization could sign in at all**. They reached `/mfa`, requested a code, and
+it never came. Any future email outage has the same effect, which is what B2 is
+about.
+
+**B2. Recovering a locked-out organization.** *Resolved 9 August 2026.*
+Two-factor is mandatory for organizations and the code arrives by email, so any
+delivery failure (a bounce, a school spam filter, a provider outage) locked the
+account permanently. The screen offered only "Resend" and "Sign out", neither of
+which helps when mail is the broken part.
+
+There is now a support path on the screen itself, pre-filled with the account
+email so the request arrives with what support needs, and
+[`RUNBOOK.md`](RUNBOOK.md) documents how to verify an account by hand with
+`scripts/grant-mfa.ts` after confirming the requester owns it.
+
+*Not fully closed:* verification is still a manual operator step rather than
+something the developer console can do. That is deliberate for now, because an
+in-app button that bypasses two-factor on accounts holding minors' contact
+details needs its own security review before it exists.
 
 ### P1, fix before real students use it
 

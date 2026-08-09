@@ -30,6 +30,7 @@ Full background, the survey, and reviews from three university professors:
 | [`docs/ARCHITECTURE-PRINCIPLES.md`](docs/ARCHITECTURE-PRINCIPLES.md) | **What good looks like here**, the standard changes are held to, and the incident behind each rule |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the system works: data model, authorization design, why each server route exists |
 | [`docs/STATUS.md`](docs/STATUS.md) | Every known bug and gap, with evidence. Start here before changing anything |
+| [`docs/RUNBOOK.md`](docs/RUNBOOK.md) | What to do when something breaks in production |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | v1.0 blockers, then v1.1 / v2.0 / v3.0 |
 | [`docs/REVIEW-RESPONSE.md`](docs/REVIEW-RESPONSE.md) | Point-by-point response to the external technical review |
 | [`docs/security_spec.md`](docs/security_spec.md) | Security notes |
