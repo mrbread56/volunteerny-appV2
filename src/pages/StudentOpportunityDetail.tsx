@@ -215,7 +215,12 @@ export default function StudentOpportunityDetail() {
           status: determinedStatus,
           message: applicationMessage,
           appliedAt: new Date().toISOString(),
-          resumeUrl: studentProfile?.resumeUrl || ''
+          // The resume is NOT copied here. It is a base64 blob of up to 400 KB,
+          // so a student applying to twenty opportunities stored twenty copies —
+          // and every copy went stale the moment they updated it. The review
+          // dialog already falls back to the profile copy via
+          // /api/students/:id/review-profile, so the organization sees the
+          // current resume rather than a snapshot.
         };
         appsList2.push(newApp);
         localStorage.setItem('demo_applications', JSON.stringify(appsList2));

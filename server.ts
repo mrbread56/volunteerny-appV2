@@ -785,6 +785,19 @@ app.use(express.json());
 
       const studentRef = adb.collection('students').doc(studentId);
       const result = await adb.runTransaction(async (tx: any) => {
+        // Re-read the request INSIDE the transaction. The pre-check above runs
+        // before the transaction starts, so two concurrent approvals of the
+        // same request both passed it: each transaction then read loggedHours,
+        // appended, and the student was credited twice for one activity. The
+        // total is recomputed rather than incremented, which stops the scalar
+        // drifting from the array, but it faithfully totals a duplicate entry.
+        // On a 40-hour graduation requirement that is a falsified record.
+        if (requestRef) {
+          const live = await tx.get(requestRef);
+          if (!live.exists || live.data().status !== 'pending') {
+            throw new Error('ALREADY_SETTLED');
+          }
+        }
         const snap = await tx.get(studentRef);
         if (!snap.exists) throw new Error('STUDENT_NOT_FOUND');
         const existing = Array.isArray(snap.data().loggedHours) ? snap.data().loggedHours : [];
@@ -812,6 +825,9 @@ app.use(express.json());
 
       return res.json({ success: true, hours: result.total, entryId: result.entryId });
     } catch (err: any) {
+      if (err?.message === 'ALREADY_SETTLED') {
+        return res.status(409).json({ error: 'Those hours have already been settled. Refresh to see the current status.' });
+      }
       if (err?.message === 'STUDENT_NOT_FOUND') {
         return res.status(404).json({ error: 'That student record no longer exists, so the hours were not credited.' });
       }

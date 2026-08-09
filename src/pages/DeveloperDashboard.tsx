@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -303,7 +303,7 @@ export default function DeveloperDashboard() {
         // Fetch from real Firestore
         let fbList: any[] = [];
         try {
-          const fbSnap = await getDocs(collection(db, 'feedbacks'));
+          const fbSnap = await getDocs(query(collection(db, 'feedbacks'), limit(200)));
           fbList = fbSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (dbErr) {
           console.warn('Real Firestore feedbacks fetch failed, using local fallback:', dbErr);
@@ -328,7 +328,7 @@ export default function DeveloperDashboard() {
         // Fetch safety reports
         let repList: any[] = [];
         try {
-          const repSnap = await getDocs(collection(db, 'reports'));
+          const repSnap = await getDocs(query(collection(db, 'reports'), limit(200)));
           repList = repSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (dbErr) {
           console.warn('Real Firestore reports fetch failed:', dbErr);
@@ -346,12 +346,12 @@ export default function DeveloperDashboard() {
         setReports(uniqueReports);
         setRealReportCount(uniqueReports.length);
 
-        const studentSnap = await getDocs(collection(db, 'students'));
+        const studentSnap = await getDocs(query(collection(db, 'students'), limit(200)));
         const studentList = studentSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
         setStudents(studentList);
         setRealStudentCount(studentList.length);
 
-        const orgSnap = await getDocs(collection(db, 'organizations'));
+        const orgSnap = await getDocs(query(collection(db, 'organizations'), limit(200)));
         const orgList = orgSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
         setOrgs(orgList);
         setRealOrgCount(orgList.length);
@@ -487,70 +487,20 @@ export default function DeveloperDashboard() {
     }
   };
 
-  // GLOBAL SCANNED PURGE FOR 'onwoo' OR TRACES
-  const handleGlobalPurgeOnwoo = async () => {
-    if (!isDeveloperUser(user?.email, userProfile?.role) && !isDemoMode) {
-      setDeveloperDeleteError('Access Denied: You do not have permission to execute global purges.');
-      return;
-    }
-    const target = adminPurgeQuery.trim().toLowerCase();
-    if (target.length < 3) {
-      setDeveloperDeleteError('Please specify a target query of at least 3 characters to scan and purge.');
-      return;
-    }
-    setIsGlobalPurging(true);
-    setDeveloperDeleteError('');
-    setAdminPurgeSuccess('');
-
-    try {
-      let matchCount = 0;
-      if (isDemoMode) {
-        setStudents(prev => {
-          const filtered = prev.filter(s => {
-            const match = (s.fullName?.toLowerCase().includes(target) || s.school?.toLowerCase().includes(target) || s.uid.includes(target));
-            if (match) matchCount++;
-            return !match;
-          });
-          return filtered;
-        });
-        setOrgs(prev => {
-          const filtered = prev.filter(o => {
-            const match = (o.organizationName?.toLowerCase().includes(target) || o.contactEmail?.toLowerCase().includes(target) || o.uid.includes(target));
-            if (match) matchCount++;
-            return !match;
-          });
-          return filtered;
-        });
-      } else {
-        const scanAndPurgeCollection = async (col: 'students' | 'organizations') => {
-          const snap = await getDocs(collection(db, col));
-          for (const docSnap of snap.docs) {
-            const data = docSnap.data();
-            const strVal = JSON.stringify(data).toLowerCase();
-            const idVal = docSnap.id.toLowerCase();
-            if (strVal.includes(target) || idVal.includes(target)) {
-              await deleteDoc(doc(db, col, docSnap.id));
-              try {
-                await deleteDoc(doc(db, 'users', docSnap.id));
-              } catch (_) {}
-              matchCount++;
-            }
-          }
-        };
-
-        await scanAndPurgeCollection('students');
-        await scanAndPurgeCollection('organizations');
-      }
-
-      setAdminPurgeSuccess(`Administrative Cleanup Complete! Found and permanently purged ${matchCount} records matching "${target}".`);
-      loadData();
-    } catch (err: any) {
-      console.error('Global purge failure:', err);
-      setDeveloperDeleteError(`Global purge failed: ${err.message || err}`);
-    } finally {
-      setIsGlobalPurging(false);
-    }
-  };
+  // The global purge was removed on 9 August 2026 and must not come back.
+  //
+  // It matched by substring against JSON.stringify(entire document), then
+  // deleted every hit from students/organizations AND users, one at a time,
+  // with no dry run, no count preview, no typed confirmation and no undo.
+  //
+  // Student documents embed resumeUrl and passportUrl as base64 blobs of up to
+  // 400 KB each. Base64 contains essentially every short alphanumeric
+  // sequence, so a three-character query intended to remove one test
+  // organization matched every student on the platform. The 3-character
+  // minimum guard made it more dangerous, not less.
+  //
+  // It was written for a single one-off cleanup that is long finished.
+  // handleDeleteUser already removes one specific account deliberately.
 
   // DEVELOPER REPLY SUBMISSION
   const handleSendReply = async (fbId: string) => {

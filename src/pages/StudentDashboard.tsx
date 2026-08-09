@@ -787,7 +787,10 @@ export default function StudentDashboard() {
 
         // Fetch organizations database list for direct selection / verification
         try {
-          const orgsSnap = await getDocs(collection(db, "organizations"));
+          // Bounded. This populates the organization picker on the hours form and
+          // ran on every dashboard load; unbounded it was the entire collection
+          // fetched to fill a dropdown.
+          const orgsSnap = await getDocs(query(collection(db, "organizations"), limit(200)));
           const orgsList = orgsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           setAllOrganizations(orgsList);
         } catch (orgsErr) {

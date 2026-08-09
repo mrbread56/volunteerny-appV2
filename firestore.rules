@@ -155,13 +155,19 @@ service cloud.firestore {
     function isValidApplication(data) {
        return data.studentId == (resource == null ? request.auth.uid : resource.data.studentId) &&
               data.opportunityId is string &&
-              data.status in ['pending', 'accepted', 'rejected', 'terminated', 'waitlist'] &&
+              // 'reviewed' is in the Application type and OrgOpportunityApplicants
+             // writes it, but it was missing here, so every "Mark as reviewed"
+             // click was rejected with permission-denied. It passed in demo mode
+             // because demo mode never reaches Firestore.
+             data.status in ['pending', 'reviewed', 'accepted', 'rejected', 'terminated', 'waitlist'] &&
               (absent(data, 'opportunityTitle') || data.opportunityTitle is string) &&
               (absent(data, 'studentName') || data.studentName is string) &&
               (absent(data, 'previousExperience') || data.previousExperience is string) &&
               (absent(data, 'message') || data.message is string) &&
               data.appliedAt == (resource == null ? request.time : resource.data.appliedAt) &&
-              (absent(data, 'resumeUrl') || data.resumeUrl is string);
+              // Same 400 KB cap the student document already enforces. Without it an
+             // application could carry most of the 1 MiB document limit.
+             (absent(data, 'resumeUrl') || (data.resumeUrl is string && data.resumeUrl.size() <= 400000));
     }
 
     function isValidSavedOpportunity(data) {

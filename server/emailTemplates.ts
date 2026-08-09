@@ -427,13 +427,13 @@ export const emailTemplates = {
       
       <div style="text-align: center; margin: 32px 0;">
         <p class="auth-subtitle">${headText}</p>
-        <div class="auth-box">${code}</div>
+        <div class="auth-box">${esc(code)}</div>
         <p style="font-size: 12px; color: #94a3b8; margin-top: 12px;">This security code is active for 15 minutes.</p>
       </div>
 
       <p>For your security, never share this code with anyone. Our support desk will never ask for your verification credentials.</p>
     `;
-    return wrapBaseTemplate({ title, children, previewText: `${headText}: ${code}` });
+    return wrapBaseTemplate({ title, children, previewText: `${headText}: ${esc(code)}` });
   },
 
   /**
