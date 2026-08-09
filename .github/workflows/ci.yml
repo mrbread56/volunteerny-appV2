@@ -63,6 +63,9 @@ jobs:
       - name: Printable transcript
         run: npx tsx scripts/check-certificate.ts
 
+      - name: Error message mapping
+        run: npx tsx scripts/check-errors.ts
+
   live:
     name: Security and flows (real project)
     runs-on: ubuntu-latest

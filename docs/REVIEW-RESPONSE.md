@@ -9,8 +9,8 @@ owner · ➖ noted, no action needed
 
 | Status | Count |
 |---|---|
-| ✅ Done | 20 |
-| 🔄 In progress | 2 |
+| ✅ Done | 21 |
+| 🔄 In progress | 1 |
 | ⬜ Not started | 4 |
 | 📌 Owner action | 2 |
 | ➖ Acknowledged | 3 |
@@ -82,7 +82,7 @@ owner · ➖ noted, no action needed
 |---|---|---|---|
 | R30 | **Separate the routing and the guard** | ✅ | `a34f96f`. `App.tsx` 409 → 85 lines. Guards now live in `src/routes/guards.tsx`, the route table in `src/routes/AppRoutes.tsx`. Pure move, verified by `sweep:console` |
 | R31 | Some files are far too big (~1,700 lines) | 🔄 | **In progress.** `StudentDashboard.tsx` 2,428 → 1,841 (−24%) and `OrgDashboard.tsx` 1,552 → 1,381 (−11%). Extracted: demo fixtures, match scoring, the printable transcript, the student leaderboard and settings tabs, and the organization hours tab — each verified after the move. `DeveloperDashboard.tsx` 1,836 not yet touched; it uses a ternary chain rather than independent guards, so its tabs need restructuring rather than lifting |
-| R32 | Error handling needs normalising | 🔄 | ~20 individual silent failures fixed, and raw provider errors stopped leaking. **No single shared pattern yet** |
+| R32 | Error handling needs normalising | ✅ | `src/lib/errors.ts` is now the single mapping: `toUserMessage()` for Firebase Auth and Firestore codes, `reportError()` to log the original and return a safe sentence. Login and Signup's duplicated maps both delegate to it. Pinned by `check:errors` in CI, and the convention is written up in [`ARCHITECTURE.md`](ARCHITECTURE.md). ~20 silent failures fixed earlier; 12 `alert()` calls remain, to convert on contact |
 | R33 | Component structure is acceptable — Calendar, ApplicationReview, Referral separated | ➖ | Agreed, no action. Note: `CalendarView.tsx` (827 lines) is never rendered |
 | R34 | Stack is standard and sensible | ➖ | Agreed, no action |
 
@@ -100,7 +100,6 @@ owner · ➖ noted, no action needed
 | ID | Work | Why it matters |
 |---|---|---|
 | R31 | Split the three oversized pages | Every hard-to-find bug in this audit lived in them |
-| R32 | One shared error-handling pattern | Silent failures kept recurring because there was no standard |
 | — | Finish the developer-console walkthrough | 1,836 lines only partly exercised |
 | — | Firestore backups | Unverified. Hour records are graduation evidence |
 

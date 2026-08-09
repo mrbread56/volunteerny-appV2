@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { reportError } from "../lib/errors";
 import { useAuth } from "../contexts/AuthContext";
 import { db, auth } from "../firebase/config";
 import { doc, updateDoc, deleteDoc } from "firebase/firestore";
@@ -165,8 +166,10 @@ export default function OrgProfile() {
       });
       await refreshProfile();
     } catch (err: any) {
-      console.error("Error updating twoFactorEnabled", err);
-      alert(`Failed to update 2FA setting: ${err.message || 'Please check your connection and try again.'}`);
+      // Was a browser alert containing err.message — a raw Firebase string,
+      // shown blocking and unstyled. reportError logs the original and returns
+      // a sentence.
+      setError(reportError('org 2FA toggle', err, 'Could not change the two-factor setting. Please try again.'));
     }
   };
 

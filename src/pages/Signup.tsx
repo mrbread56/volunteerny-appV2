@@ -5,6 +5,7 @@ import { useNavigate, useLocation, Link } from "react-router-dom";
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
+import { toUserMessage } from "../lib/errors";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
@@ -332,15 +333,7 @@ export default function Signup() {
 
       navigate(role === "student" ? "/student/onboarding" : "/org/profile");
     } catch (err: any) {
-      const friendlyErrors: Record<string, string> = {
-        'auth/email-already-in-use': 'This email is already registered. Please sign in instead.',
-        'auth/weak-password': 'Password is too weak. Please use at least 6 characters.',
-        'auth/invalid-email': 'Please enter a valid email address.',
-        'auth/too-many-requests': 'Too many attempts. Please wait a moment and try again.',
-        'auth/network-request-failed': 'Network error. Please check your internet connection.',
-        'auth/operation-not-allowed': 'Sign-up is temporarily unavailable. Please try again later.',
-      };
-      setError(friendlyErrors[err.code] || 'Something went wrong creating your account. Please try again.');
+      setError(toUserMessage(err, 'Something went wrong creating your account. Please try again.'));
     } finally {
       setIsLoading(false);
       signupInFlight.current = false;

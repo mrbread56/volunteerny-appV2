@@ -5,6 +5,7 @@ import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMfaClaim } from "../lib/mfa";
+import { toUserMessage } from "../lib/errors";
 import { Spinner } from "../components/ui/Spinner";
 import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
@@ -74,20 +75,10 @@ export default function Login() {
     }
   }, [user, userProfile, profileMissing, mfaVerified, navigate]);
 
-  const friendlyAuthError = (code: string) => {
-    const map: Record<string, string> = {
-      'auth/invalid-credential': 'Incorrect email or password. Please try again.',
-      'auth/user-not-found': 'No account found with this email. Please sign up first.',
-      'auth/wrong-password': 'Incorrect password. Please try again.',
-      'auth/too-many-requests': 'Too many failed attempts. Please wait a moment and try again.',
-      'auth/user-disabled': 'This account has been disabled. Please contact support.',
-      'auth/network-request-failed': 'Network error. Please check your internet connection.',
-      'auth/invalid-email': 'Please enter a valid email address.',
-      'auth/popup-blocked': 'Pop-up was blocked by your browser. Please allow pop-ups and try again.',
-      'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
-    };
-    return map[code] || 'Something went wrong. Please try again.';
-  };
+  // Delegates to the shared map in lib/errors. This used to be a private copy
+  // that overlapped Signup's on three codes and disagreed on the wording, and
+  // covered no Firestore errors at all.
+  const friendlyAuthError = (code: string) => toUserMessage({ code });
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

@@ -237,3 +237,44 @@ Ordered by how much pain it will cause.
 7. **Rules tests cannot run** in the current environment (need Java and the
    Firebase emulator), so rules are verified by live adversarial tests
    (`check:security`) instead of unit tests.
+
+---
+
+## Error handling
+
+One rule, because breaking it is this codebase's most repeated bug:
+
+**A user action that can fail must tell the user when it fails, and must never
+show them a raw error.**
+
+Use `lib/errors.ts`:
+
+```ts
+import { reportError } from '../lib/errors';
+
+try {
+  await saveProfile();
+} catch (err) {
+  // Logs the real error, returns a sentence safe to display.
+  setErrorMessage(reportError('save profile', err, "Couldn't save your profile."));
+}
+```
+
+`toUserMessage()` maps Firebase Auth and Firestore codes to plain language and
+falls back rather than leaking; `reportError()` pairs that with a console log so
+the developer keeps the detail. `npm run check:errors` pins the behaviour.
+
+Why it matters here specifically:
+
+- **Silent failure.** A `catch` that only calls `console.error` is a button that
+  does nothing. Around twenty of these were found and fixed — saving an
+  opportunity, submitting a rating, toggling two-factor, resolving a safety
+  report. Each looked like a working feature.
+- **Leaking.** Firebase messages name internal collections; provider messages
+  cite their own documentation. Three server routes were returning those
+  verbatim to end users, including on the two-factor screen.
+- **`alert()`.** Blocking, unstyled, unannounced to screen readers. Twelve
+  remain; convert them when you touch the surrounding code.
+
+Both duplicated auth-error maps (Login and Signup, overlapping on three codes
+and disagreeing on the wording) now delegate here.
