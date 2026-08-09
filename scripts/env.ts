@@ -29,12 +29,32 @@ dotenv.config();
 
 let trimmed = 0;
 for (const [key, value] of Object.entries(process.env)) {
-  if (typeof value === 'string' && value !== value.trim()) {
-    process.env[key] = value.trim();
-    trimmed++;
-    // Name the variable, never the value — these are secrets.
-    console.warn(`[env] ${key} had surrounding whitespace, which has been trimmed.`);
+  if (typeof value !== 'string') continue;
+
+  // Trim the ends, then strip embedded newlines and carriage returns.
+  //
+  // Trimming alone is not enough. A value pasted into a narrow secret field can
+  // pick up a line break in the MIDDLE, and .trim() only touches the ends — the
+  // gRPC metadata error survives it. None of the variables this project reads
+  // may legitimately contain a line break.
+  let next = value.trim().replace(/[\r\n]+/g, '');
+  if (next === value) continue;
+
+  // The service account key is JSON. Removing real line breaks between tokens
+  // is harmless, but if the result stops parsing, the original was structured
+  // in a way this must not touch — keep it and let the caller fail loudly.
+  if (key === 'FIREBASE_SERVICE_ACCOUNT_KEY') {
+    try {
+      JSON.parse(next);
+    } catch {
+      next = value.trim();
+    }
   }
+
+  process.env[key] = next;
+  trimmed++;
+  // Name the variable, never the value — these are secrets.
+  console.warn(`[env] ${key} contained whitespace or line breaks, which have been removed.`);
 }
 if (trimmed && process.env.GITHUB_ACTIONS) {
   console.log(
