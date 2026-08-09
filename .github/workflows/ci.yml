@@ -123,9 +123,24 @@ jobs:
       # Adversarial: cross-tenant reads, privilege escalation, API
       # authorization, and the self-approval attack on graduation hours. A
       # regression here is a security incident, not a failed test.
+      # Output is teed to a file and the tail republished as an annotation and
+      # into the job summary. Actions logs require authentication to read, so
+      # without this a failure here is a red X with no retrievable reason.
       - name: Security (51 adversarial checks)
         if: steps.creds.outputs.present == 'true'
-        run: npx tsx scripts/check-security.ts
+        run: |
+          set -o pipefail
+          npx tsx scripts/check-security.ts 2>&1 | tee /tmp/sec.log && exit 0
+          code=$?
+          {
+            echo '### check:security failed'
+            echo '```'
+            tail -60 /tmp/sec.log
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=check:security::$(grep -m3 -E '\[FAIL\]|crashed|Error' /tmp/sec.log | tr '
+' ' ' | cut -c1-500)"
+          exit $code
 
       # The whole student-organization journey against real data.
       - name: Application and hours flows
