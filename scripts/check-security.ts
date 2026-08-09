@@ -488,6 +488,7 @@ async function cleanup() {
 
 (async () => {
   try {
+    console.log('STAGE: creating throwaway accounts');
     const studentA = await makeUser('student');
     const studentB = await makeUser('student');
     const org = await makeUser('organization');
@@ -498,14 +499,18 @@ async function cleanup() {
     await signOut(auth);
     const orgToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken();
 
+    console.log('STAGE: booting server');
     await bootServer();
     // studentB is the victim: the org has no opportunity, application or hours
     // request connecting it to them.
+    console.log('STAGE: server up, running API checks');
     await apiChecks(studentToken, orgToken, studentB.uid);
     // Runs before the Firestore half because it needs studentB's hours to still
     // be zero, and it uses studentB so a credit here cannot be confused with
     // the legitimate approval exercised in check:flows.
+    console.log('STAGE: self-approval check');
     await selfApprovalCheck(studentB);
+    console.log('STAGE: firestore rules checks');
     await firestoreChecks(studentA, studentB, org);
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
