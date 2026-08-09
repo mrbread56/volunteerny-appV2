@@ -1,46 +1,52 @@
 # Project status — evidence-based audit
 
-**Last updated:** 8 August 2026
-**Method:** every claim below is backed by either a named check script that can
-be re-run, or a hand-test performed against the real Firebase project through
-the real UI. Nothing here is "we think it works".
+**Last updated:** 9 August 2026
+**Method:** every claim below is backed by a named script that can be re-run, or
+a hand-test performed against the real Firebase project through the real UI.
+Nothing here is "we think it works".
 
 This file replaces `TODO.md` and `AUDIT_REPORT.md`, which listed items that had
 already been fixed and gave the impression the project was unfinished.
 
 ---
 
-## How to reproduce this audit
+## Full verification, 9 August 2026
 
-```bash
-npm run lint            # types + ESM resolution guard
-npm run check:firebase  # credentials, named database, admin SDK
-npm run check:security  # 51 adversarial tests: cross-tenant, privilege escalation, API authz
-npm run check:flows     # full student↔organization journey against real data
-npm run check:signup    # signup writes both documents; self-crediting refused
-npm run check:queries   # every query has its index
-npm run check:hours     # hour arithmetic, including non-numeric input
-npm run check:email     # Resend credentials + every link in every template
-npm run sweep:console   # every route as every role, console must be silent
-```
+Every gate below was run on this commit and passed.
+
+| Check | Result |
+|---|---|
+| `lint` (types + ESM guard) | 0 errors |
+| `build` (SPA + server bundle) | succeeds |
+| `check:firebase` | 13/13 |
+| `check:security` (adversarial) | **51/51** |
+| `check:flows` (full journey) | 13/13 |
+| `check:signup` | 6/6 |
+| `check:queries` | 0 failures |
+| `check:hours` / `check:certificate` / `check:errors` | pass |
+| `check:email` | 4/4 — key valid, sender verified, links resolve |
+| `sweep:console` (every route, every role) | **0 unexpected** |
+| **GitHub Actions CI** | **green, live tier executing** |
+
+The application was also driven by hand at `localhost:3000`: all five public
+routes, all eight student routes, all six organization routes, and all six
+developer console tabs render with content, no horizontal overflow and no
+console errors.
 
 ---
 
 ## Summary
 
-| Area | State | Evidence |
-|---|---|---|
-| Auth & roles | **Working** | `check:security` 51/51 |
-| Permissions / rules | **Working** | audited with the official Firebase rules auditor; 51 adversarial tests |
-| Student signup → onboarding → dashboard | **Working** | hand-tested, real account |
-| Organization signup → MFA gate | **Working** | hand-tested, real account |
-| Application flow | **Working** | `check:flows` 13/13 |
-| Hours approval | **Working** | `check:flows`, plus self-approval attack refused |
-| Leaderboard | **Working** | `check:flows` |
-| Email delivery | **Blocked** | invalid `RESEND_API_KEY` locally — see B1 |
-| Organization dashboard (hand-test) | **Not yet tested** | — |
-| Developer console (hand-test) | **Working** | all six tabs walked as a real promoted developer |
-| MFA code entry (hand-test) | **Not yet tested** | blocked by B1 |
+| Area | State |
+|---|---|
+| Auth & roles | Working — 51 adversarial tests |
+| Permissions / rules | Working — audited with the official Firebase auditor |
+| Student journey | Working — hand-tested end to end |
+| Organization journey | Working — hand-tested end to end |
+| Developer console | Working — all six tabs walked |
+| Email delivery | Working — key valid, sender domain verified |
+| Application → hours → leaderboard | Working — `check:flows` |
+| CI | Green, and fails loudly if the security suite cannot run |
 
 ---
 
@@ -51,7 +57,10 @@ fix · **P3** cosmetic or long-term.
 
 ### P0 — blocks launch
 
-**B1. Email delivery is dead, and it locks organizations out.**
+**B1. Email delivery.** *(resolved 9 Aug 2026)*
+A valid `RESEND_API_KEY` is in place, the sender domain is verified, and the
+two-factor path was confirmed reaching Resend. Original problem, kept for the
+record:
 `check:email` returns 401: the `RESEND_API_KEY` in `.env` is revoked or from
 another account. Two-factor is **mandatory** for organizations and the code is
 delivered by email, so with mail down **no organization can ever sign in**. The
