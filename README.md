@@ -27,6 +27,7 @@ Full background, the survey, and reviews from three university professors:
 | File | What it holds |
 |---|---|
 | [`docs/PROJECT.md`](docs/PROJECT.md) | Why the project exists: the problem, the student survey, academic reviews |
+| [`docs/ARCHITECTURE-PRINCIPLES.md`](docs/ARCHITECTURE-PRINCIPLES.md) | **What good looks like here** — the standard changes are held to, and the incident behind each rule |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the system works: data model, authorization design, why each server route exists |
 | [`docs/STATUS.md`](docs/STATUS.md) | Every known bug and gap, with evidence. Start here before changing anything |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | v1.0 blockers, then v1.1 / v2.0 / v3.0 |
