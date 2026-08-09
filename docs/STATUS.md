@@ -133,7 +133,16 @@ account", while `Login.tsx` had always redirected the same state to `/signup`,
 which can finish the profile in one click. The guard now offers that instead.
 *Still open:* those nine accounts have not yet been contacted or repaired.
 
-**B3. Firestore has no automated backups.** *(mitigated)*
+**B3. Firestore backups.** *Resolved 9 August 2026.*
+`npm run backup` runs nightly via `.github/workflows/backup.yml` and the
+artifact is GPG-encrypted before upload, because these files hold names,
+emails, schools and base64 passport and resume scans of minors. The job fails
+loudly rather than quietly if credentials or the passphrase are missing.
+`npm run restore` reads them back (dry run by default, never deletes), and
+`npm run check:backup` proves the round trip including Timestamps and
+GeoPoints. **Needs one secret: `BACKUP_PASSPHRASE`.**
+
+Original entry:
 Firestore's built-in scheduled backups require the Blaze plan. `npm run backup`
 now takes a full snapshot to `backups/*.json` using ordinary reads, which are
 free on Spark, verified against the real project, 39 documents, 0.48 MB.
@@ -141,8 +150,10 @@ free on Spark, verified against the real project, 39 documents, 0.48 MB.
 snapshot rather than point-in-time recovery. Schedule it, or move to Blaze,
 before real students depend on the data.
 
-**B4. No CI.** Every check in `scripts/` is run by hand, so nothing prevents a
-regression reaching `main`. *Fix:* run `lint`, `check:security` and
+**B4. No CI.** *Resolved.* `.github/workflows/ci.yml` runs types, the ESM
+guard, the build and the credential-free checks on every push, plus the 56
+adversarial security checks and the flow suite on `main`. A push to `main` with
+missing secrets fails rather than reporting a green tick over zero tests. *Fix:* run `lint`, `check:security` and
 `check:flows` on push.
 
 **B5. `hoursRequests.hours` had no upper bound.** *Resolved 9 August 2026.*
@@ -184,6 +195,27 @@ the leaderboard and browse pages have nothing real to show. Ten of those users
 have no profile document (see B15); they are all real sign-ups, none left by
 testing. *Not a code defect, recorded because "the app works" and "the app has
 users" are different claims, and only the first is currently true.*
+
+**B16. Nothing reported errors anywhere.** *Resolved 9 August 2026.*
+Every caught error reached `console.error` and stopped. With one developer and
+no log drain, the only way to learn a student's hours submission had failed was
+for that student to write in. The crash screen meanwhile said "our team has been
+notified", which was true of nobody. `reportError()` now forwards to
+`POST /api/log/client-error`, the React error boundary calls it, and the copy
+says what actually happens.
+
+**B17. Demo data leaked into real hours reads.** *Resolved 9 August 2026.*
+Both dashboards fell back to the `demo_hours_requests` fixture whenever the
+Firestore query failed, so a student could be shown hour claims that were not in
+the database, and an organization could see an empty approval queue that was
+really a failed read. Both now report the failure and show nothing.
+
+**B18. TypeScript `strict` was off.** *Resolved 9 August 2026.*
+Enabling it cost nine fixes, three of them real bugs: a dead unauthenticated
+debug endpoint at `api/test.ts` shipping to production, a null dereference in
+the hours-approval path, and `formatDate(undefined)` rendering "Invalid Date" on
+any single-date opportunity whose shift had no date. ~167 `any`s remain in
+`src/`, so strict is on but only as strong as the types beneath it.
 
 ### P2, should fix
 
