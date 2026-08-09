@@ -2,7 +2,7 @@
 
 How this system actually works, derived from the code rather than from
 intentions. If something here disagrees with the code, the code is right and
-this file is stale — fix it.
+this file is stale, fix it.
 
 - [Shape of the system](#shape-of-the-system)
 - [Roles and identity](#roles-and-identity)
@@ -35,8 +35,7 @@ Two things are worth understanding before changing anything:
 
 **1. The client talks to the database directly.** Most reads and writes go
 browser → Firestore. There is no API layer in front of them. This means
-`firestore.rules` *is* the authorization layer for the majority of the app —
-not an extra safety net behind server checks.
+`firestore.rules` *is* the authorization layer for the majority of the app, not an extra safety net behind server checks.
 
 **2. The API exists only for what rules cannot express.** Every `/api` route is
 there because the operation needs either a privileged cross-user read, a secret,
@@ -53,7 +52,7 @@ three-line Vercel wrapper around it.
 
 Role lives on `users/{uid}.role` and is one of `student`, `organization`,
 `developer`. It is set once at signup and **cannot be changed by the account
-holder** — `firestore.rules` requires `incoming().role == existing().role` on
+holder**, `firestore.rules` requires `incoming().role == existing().role` on
 update, and `isValidUser()` only accepts `student` or `organization` at create
 time, so nobody can self-assign `developer`.
 
@@ -68,7 +67,7 @@ minors), optional for students.
 The important property: **verification is a signed Firebase custom claim**
 (`mfaVerified`), set by the server after checking an emailed one-time code. It
 is never a client-side flag. If the server cannot write the claim it fails the
-verification rather than letting the client mark itself verified — see
+verification rather than letting the client mark itself verified, see
 `/api/auth/verify-otp`.
 
 The code itself: 6 digits, `crypto.randomInt`, 5 attempts, expires, cleared on
@@ -96,7 +95,7 @@ query fails with `5 NOT_FOUND`.
 | `orgRatings` | auto | student's rating of an organization | student, once per opportunity |
 | `feedbacks` | auto | support tickets | owner; developer replies |
 | `reports` | auto | safety reports | reporter; developer resolves |
-| `leaderboards` | `global_top` | materialised top-100 | **server only** — no client can write |
+| `leaderboards` | `global_top` | materialised top-100 | **server only**, no client can write |
 
 ### Declared but unused
 
@@ -118,7 +117,7 @@ so a retry cannot double-count and the two can never drift. Both are written in
 a single transaction by the server.
 
 This is also why `orderBy('hours')` silently excludes students who have never
-had hours approved — Firestore omits documents missing the field.
+had hours approved. Firestore omits documents missing the field.
 `npm run backfill:hours` fixes existing records.
 
 ---
@@ -129,15 +128,15 @@ had hours approved — Firestore omits documents missing the field.
 
 - **Default deny.** Everything is closed, then specific paths open.
 - **`get` and `list` are separated.** A student may read their own document but
-  may not enumerate the collection. Getting this wrong leaks every record.
+ may not enumerate the collection. Getting this wrong leaks every record.
 - **Optional fields use `data.get(field, null)`, never `data.field == null`.**
-  Reading an absent key is an *evaluation error* in the rules language, and an
-  erroring condition denies the request. This once denied every real browser
-  signup while Admin-SDK test fixtures passed, because the Admin SDK bypasses
-  rules entirely.
+ Reading an absent key is an *evaluation error* in the rules language, and an
+ erroring condition denies the request. This once denied every real browser
+ signup while Admin-SDK test fixtures passed, because the Admin SDK bypasses
+ rules entirely.
 - **Trust signals are not self-settable.** An organization cannot write its own
-  `craVerified` or `verificationStatus`; a student cannot write their own
-  `hours` or `loggedHours`; nobody can write `leaderboards`.
+ `craVerified` or `verificationStatus`; a student cannot write their own
+ `hours` or `loggedHours`; nobody can write `leaderboards`.
 
 ### The limit that shaped the design
 
@@ -147,7 +146,7 @@ had hours approved — Firestore omits documents missing the field.
 So a rule saying "an organization may write `loggedHours`" permits *any*
 organization to write *any* student's hours. Creating an organization account is
 free and instant, and Ontario requires 40 community-involvement hours to
-graduate — that combination is a forged or destroyed graduation record.
+graduate. That combination is a forged or destroyed graduation record.
 
 The missing check is "does this organization have a relationship with this
 student", which requires a query across `applications` and `opportunities`.
@@ -170,7 +169,7 @@ belongs on the server.**
 | `POST /api/leaderboard/refresh` | Cross-user aggregation over all students. Throttled, plus a 15-minute timer. |
 | `POST /api/auth/send-otp` / `verify-otp` | Only the server may set the `mfaVerified` custom claim. |
 | `POST /api/email/send` | Holds the Resend key. Templates are fixed and `actionUrl` is constrained to our own origin, so the endpoint cannot be used to send phishing from a verified domain. |
-| `GET /api/email/history` | Recipient addresses are personal data — developer allowlist only. |
+| `GET /api/email/history` | Recipient addresses are personal data, developer allowlist only. |
 | `POST /api/feedback/analyze` | Holds the Gemini key. |
 
 Every route calls `verifyAuth()`, which validates a real Firebase ID token.
@@ -224,21 +223,21 @@ is a deliberate current limitation, not a bug.
 Ordered by how much pain it will cause.
 
 1. **Oversized page components.** `StudentDashboard.tsx` ~2,400 lines,
-   `DeveloperDashboard.tsx` ~1,800, `OrgDashboard.tsx` ~1,550. Data fetching,
-   business logic and presentation are interleaved, which is why bugs in them
-   were hard to find and are easy to reintroduce.
+ `DeveloperDashboard.tsx` ~1,800, `OrgDashboard.tsx` ~1,550. Data fetching,
+ business logic and presentation are interleaved, which is why bugs in them
+ were hard to find and are easy to reintroduce.
 2. **Routing and guards live inside `App.tsx`.** Route definitions, role guards
-   and the MFA gate should be separated so authorization is reviewable in one
-   place.
+ and the MFA gate should be separated so authorization is reviewable in one
+ place.
 3. **No CI.** Every check in `scripts/` is run by hand, so nothing stops a
-   regression reaching `main`.
+ regression reaching `main`.
 4. **Uploads are base64 in Firestore documents.** Bounded by the 1 MiB document
-   limit and expensive to read; belongs in Cloud Storage with signed URLs.
+ limit and expensive to read; belongs in Cloud Storage with signed URLs.
 6. **Developer identity is split** between a Firestore role and an email
-   allowlist, so adding a developer means changing an environment variable.
+ allowlist, so adding a developer means changing an environment variable.
 7. **Rules tests cannot run** in the current environment (need Java and the
-   Firebase emulator), so rules are verified by live adversarial tests
-   (`check:security`) instead of unit tests.
+ Firebase emulator), so rules are verified by live adversarial tests
+ (`check:security`) instead of unit tests.
 
 ---
 
@@ -269,16 +268,16 @@ the developer keeps the detail. `npm run check:errors` pins the behaviour.
 Why it matters here specifically:
 
 - **Silent failure.** A `catch` that only calls `console.error` is a button that
-  does nothing. Around twenty of these were found and fixed — saving an
-  opportunity, submitting a rating, toggling two-factor, resolving a safety
-  report. Each looked like a working feature.
+ does nothing. Around twenty of these were found and fixed, saving an
+ opportunity, submitting a rating, toggling two-factor, resolving a safety
+ report. Each looked like a working feature.
 - **Leaking.** Firebase messages name internal collections; provider messages
-  cite their own documentation. Three server routes were returning those
-  verbatim to end users, including on the two-factor screen.
+ cite their own documentation. Three server routes were returning those
+ verbatim to end users, including on the two-factor screen.
 - **`alert()`.** Blocking, unstyled, unannounced to screen readers. All twelve
-  are gone. Do not reintroduce one: `npm run check:errors` does not catch it,
-  but a browser dialog on a form means whatever the person typed is hidden
-  behind it while they read the message.
+ are gone. Do not reintroduce one: `npm run check:errors` does not catch it,
+ but a browser dialog on a form means whatever the person typed is hidden
+ behind it while they read the message.
 
 Both duplicated auth-error maps (Login and Signup, overlapping on three codes
 and disagreeing on the wording) now delegate here.

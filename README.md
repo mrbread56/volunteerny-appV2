@@ -2,7 +2,7 @@
 
 A web platform connecting Ontario high-school students with volunteer
 opportunities at community organizations, and tracking the community-involvement
-hours students need in order to graduate.
+hours students need to graduate.
 
 **The problem.** Ontario high school students must complete 40 hours of
 community involvement to graduate. Doing the hours is achievable; *finding*
@@ -13,7 +13,7 @@ volunteer was one of the biggest challenges of volunteering.
 **Who it is for.** High school students across Toronto, and the nonprofit
 organizations that need volunteers. Started in North York, not limited to it.
 
-**Who builds it.** One person — the founder, a high school student, is the sole
+**Who builds it.** One person, the founder, a high school student, is the sole
 developer. There is no fixed deadline; the project is being stabilised before
 new features are added.
 
@@ -27,7 +27,7 @@ Full background, the survey, and reviews from three university professors:
 | File | What it holds |
 |---|---|
 | [`docs/PROJECT.md`](docs/PROJECT.md) | Why the project exists: the problem, the student survey, academic reviews |
-| [`docs/ARCHITECTURE-PRINCIPLES.md`](docs/ARCHITECTURE-PRINCIPLES.md) | **What good looks like here** — the standard changes are held to, and the incident behind each rule |
+| [`docs/ARCHITECTURE-PRINCIPLES.md`](docs/ARCHITECTURE-PRINCIPLES.md) | **What good looks like here**, the standard changes are held to, and the incident behind each rule |
 | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) | How the system works: data model, authorization design, why each server route exists |
 | [`docs/STATUS.md`](docs/STATUS.md) | Every known bug and gap, with evidence. Start here before changing anything |
 | [`docs/ROADMAP.md`](docs/ROADMAP.md) | v1.0 blockers, then v1.1 / v2.0 / v3.0 |
@@ -58,7 +58,7 @@ Full background, the survey, and reviews from three university professors:
 | Database & auth | Firebase (Firestore + Firebase Auth), named database |
 | Server | Express, run by `tsx` in development, bundled by esbuild for production |
 | Email | Resend |
-| AI triage | Google Gemini (`@google/genai`) — optional |
+| AI triage | Google Gemini (`@google/genai`), optional |
 | Maps | Leaflet + OpenStreetMap Nominatim |
 | Tests | Playwright, plus Node check scripts in `scripts/` |
 | Hosting | Vercel (`api/index.ts` wraps the Express app as a serverless function) |
@@ -78,7 +78,7 @@ re-export it.
 npm install
 ```
 
-Copy the example environment file and fill it in — the app will not start
+Copy the example environment file and fill it in, the app will not start
 without Firebase credentials:
 
 ```bash
@@ -107,7 +107,7 @@ npm run check:firebase
 `VITE_`-prefixed variables are **compiled into the browser bundle and are
 public**. Everything else is server-only and must never gain a `VITE_` prefix.
 
-### Client (public — safe to expose)
+### Client (public, safe to expose)
 
 | Variable | Purpose |
 |---|---|
@@ -121,7 +121,7 @@ public**. Everything else is server-only and must never gain a `VITE_` prefix.
 | `VITE_API_URL` | Base URL for API calls. Empty means same-origin. |
 | `VITE_DEVELOPER_EMAILS` | Comma-separated allowlist for the developer console. |
 
-### Server (secret — never expose)
+### Server (secret, never expose)
 
 | Variable | Purpose |
 |---|---|
@@ -129,7 +129,7 @@ public**. Everything else is server-only and must never gain a `VITE_` prefix.
 | `FIREBASE_DATABASE_ID` | Same named database, for the Admin SDK. |
 | `RESEND_API_KEY` | Transactional email. Without it the API answers 503 and no mail is sent. |
 | `MAIL_FROM` | Sender, e.g. `Volunteer North York <vny@yourdomain>`. Must be a domain verified in Resend. |
-| `APP_URL` | **The origin the app is served from.** Used for links inside emails and the production CORS origin. This is *not* the `MAIL_FROM` domain — see [`server/appUrl.ts`](server/appUrl.ts). |
+| `APP_URL` | **The origin the app is served from.** Used for links inside emails and the production CORS origin. This is *not* the `MAIL_FROM` domain, see [`server/appUrl.ts`](server/appUrl.ts). |
 | `GEMINI_API_KEY` | Optional. Powers AI triage of feedback and safety reports; the app degrades gracefully without it. |
 | `GOOGLE_CLOUD_PROJECT` | Optional, for Gemini. |
 
@@ -164,7 +164,7 @@ clean up after themselves.
 | `check:certificate` | The printable hours transcript is well-formed and escapes student-controlled text |
 | `check:hours` | The hour-summing helper is correct, including non-numeric input |
 | `check:email` | Resend key and sender are valid, and every link in every email template points at a real route on the real origin |
-| `check:esm` | Server imports resolve under real ESM. **Do not remove from `lint`** — `moduleResolution: "bundler"` hides missing `.js` extensions that crash the whole API in production. |
+| `check:esm` | Server imports resolve under real ESM. **Do not remove from `lint`**, `moduleResolution: "bundler"` hides missing `.js` extensions that crash the whole API in production. |
 | `sweep:console` | Visits every route as every role and reports any console error |
 | `test` | Playwright end-to-end |
 | `test:rules` | Firestore rules unit tests (needs the Firebase emulator and Java) |
@@ -174,7 +174,7 @@ clean up after themselves.
 | Command | What it does |
 |---|---|
 | `deploy:rules` | Deploys `firestore.rules` |
-| `backup` | Full database snapshot to `backups/*.json`. Free — no Blaze plan needed. Contains student personal data, so `backups/` is gitignored |
+| `backup` | Full database snapshot to `backups/*.json`. Free, no Blaze plan needed. Contains student personal data, so `backups/` is gitignored |
 | `backfill:hours` | One-off: recomputes `students/{uid}.hours` from `loggedHours` |
 
 ---
@@ -185,7 +185,7 @@ clean up after themselves.
 src/
   pages/          One file per route
   components/     Shared UI; ui/ holds the primitives
-  contexts/       AuthContext — session, profile, role, MFA state
+  contexts/       AuthContext: session, profile, role, MFA state
   lib/            Firebase config and service helpers
   hooks/          Reusable behaviour
   utils/          Pure functions
@@ -193,7 +193,7 @@ server.ts         Express app: all /api routes
 server/           Server-only modules (email templates, app origin)
 api/index.ts      Vercel entry point
 scripts/          The check scripts above
-firestore.rules   Authorization — read this before changing any data access
+firestore.rules   Authorization. Read this before changing any data access
 ```
 
 See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) for the data model, the role and
@@ -209,7 +209,7 @@ the `VITE_DEVELOPER_EMAILS` allowlist.
 ### Two-factor
 
 Required for organizations, optional for students. Verification is a **signed
-custom claim** set by the server after an emailed one-time code — never a
+custom claim** set by the server after an emailed one-time code, never a
 client-side flag.
 
 ---
@@ -227,7 +227,7 @@ npx firebase-tools deploy --only firestore:indexes --project <project-id>
 ```
 
 Rules and application code have to move together. Deploying tighter rules
-before the matching code — or the reverse — breaks writes in production.
+before the matching code, or the reverse, breaks writes in production.
 
 ---
 
@@ -247,7 +247,7 @@ npm run check:flows
 ```
 
 Read [`AGENTS.md`](AGENTS.md) if present, and prefer adding a check script over
-manual verification — every check in `scripts/` exists because something broke
+manual verification. Every check in `scripts/` exists because something broke
 silently once.
 
 ---
@@ -257,10 +257,10 @@ silently once.
 Honest list; see [`docs/STATUS.md`](docs/STATUS.md) for the full audit.
 
 - **Large page components.** `StudentDashboard.tsx` is ~2,400 lines,
-  `DeveloperDashboard.tsx` ~1,800, `OrgDashboard.tsx` ~1,550. Routing and route
-  guards are not separated from `App.tsx`.
+ `DeveloperDashboard.tsx` ~1,800, `OrgDashboard.tsx` ~1,550. Routing and route
+ guards are not separated from `App.tsx`.
 - **No automated CI.** The check scripts are run by hand.
 - **Uploads are base64 inside Firestore documents**, not Cloud Storage, and are
-  bounded by the 1 MiB document limit.
+ bounded by the 1 MiB document limit.
 - **Rules tests** (`test:rules`) need Java and the Firebase emulator, which are
-  not installed in the current environment.
+ not installed in the current environment.

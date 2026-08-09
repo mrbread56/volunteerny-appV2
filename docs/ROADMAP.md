@@ -13,7 +13,7 @@ Issue references (`B1`, `F5`) point at [`STATUS.md`](STATUS.md).
 ## Where we are
 
 The foundation is sound and does not need rewriting. Auth, role separation and
-security rules were built deliberately and now survive 51 adversarial tests. The
+security rules were built intentionally and now survive 51 adversarial tests. The
 full student↔organization journey works against real data. Documentation and
 repository hygiene were the weakest areas and are now addressed.
 
@@ -23,7 +23,7 @@ CI. Those are the gap between "the code is right" and "the service is ready".
 
 ---
 
-## v1.0 — Production ready
+## v1.0. Production ready
 
 **Goal:** real students and real organizations can use this without losing data,
 being locked out, or seeing something untrue.
@@ -36,8 +36,8 @@ being locked out, or seeing something untrue.
 | B2 | A recovery path for a locked-out organization | Otherwise one bounced email permanently removes an organization from the platform |
 | B3 | Confirm Firestore backups are enabled | Hour records are graduation evidence. Unrecoverable if lost |
 | B6 | Hand-test the organization dashboard and developer console | 3,388 lines of UI that no human has walked through |
-| — | Hand-test MFA code entry end to end | Blocked by B1 |
-| — | Set `APP_URL` in Vercel | Currently relying on a hardcoded fallback |
+|, | Hand-test MFA code entry end to end | Blocked by B1 |
+|, | Set `APP_URL` in Vercel | Currently relying on a hardcoded fallback |
 
 ### Should also land
 
@@ -46,14 +46,14 @@ being locked out, or seeing something untrue.
 | B4 | CI running `lint`, `check:security`, `check:flows` on every push |
 | B5 | Bound `hoursRequests.hours` in the security rules |
 | B7 | Delete the `chats`/`messages` rules, or build the feature |
-| — | Seed real opportunities before launch — an empty platform is a bad first impression, and F5 showed the temptation to fake them |
+|, | Seed real opportunities before launch, an empty platform is a bad first impression, and F5 showed the temptation to fake them |
 
 **Definition of done:** every check script green, both roles hand-tested end to
 end, `STATUS.md` shows no open P0 or P1.
 
 ---
 
-## v1.1 — Maintainability
+## v1.1. Maintainability
 
 **Goal:** a second developer can work on this without breaking it. Nothing here
 is user-visible; all of it is what the review meant by *technical depth*.
@@ -71,7 +71,7 @@ reason bugs hid; adding to them compounds it.
 
 ---
 
-## v2.0 — Product depth
+## v2.0. Product depth
 
 Only on a stable foundation. Priority is a judgement call for the owner; this is
 a suggested order.
@@ -87,7 +87,7 @@ a suggested order.
 
 ---
 
-## v3.0 — Scale
+## v3.0. Scale
 
 Relevant at thousands of students, not before.
 
@@ -104,7 +104,7 @@ Relevant at thousands of students, not before.
 ## Explicitly out of scope
 
 - **Rewriting from scratch.** The review was clear: the foundation is good and
-  continuable.
+ continuable.
 - **Redesign.** Owner's instruction. The UI is rated medium-to-high and is not
-  the problem.
+ the problem.
 - **New features before v1.1.** The whole point of this ordering.

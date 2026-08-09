@@ -4,9 +4,8 @@
 looks like** here, and why.
 
 Every principle below is derived from a real defect found in this codebase, not
-from a textbook. Each one names the incident that produced it. That is
-deliberate: a rule with a scar attached survives contact with a deadline; a rule
-copied from a blog post does not.
+from a textbook. Each one names the incident that produced it. That is on purpose. A rule with a scar attached survives contact with a
+deadline; a rule copied from a blog post does not.
 
 If you are new here, read this before changing anything. If you are reviewing a
 change, these are the questions to ask.
@@ -16,8 +15,7 @@ change, these are the questions to ask.
 ## 1. Put the check where the check can actually be made
 
 **The principle.** Authorization belongs at the layer that can see enough to
-decide. If a rule needs information it cannot reach, moving the rule is the fix
-— not weakening it.
+decide. If a rule needs information it cannot reach, moving the rule is the fix, not weakening it.
 
 **The incident.** `firestore.rules` allowed any account with
 `role == 'organization'` to write `loggedHours` on any student. `hasOnly()`
@@ -36,9 +34,8 @@ query, that operation belongs on the server.* The organization branch was
 deleted from the rules and `POST /api/hours/approve` now performs the
 relationship check with the Admin SDK.
 
-**How to apply it.** Before adding a rule, ask what it needs to know. If the
-answer involves the word "any" or "other" — any application, another
-collection — stop and write an endpoint.
+**How to apply it.** Before adding a rule, ask what it needs to know. If the answer involves the word "any" or "other" (any application, another
+collection), stop and write an endpoint.
 
 ---
 
@@ -56,7 +53,7 @@ hole*, one layer down.
 
 **The rule.** *Trace every authorising value back to who wrote it.* If the actor
 wrote it, it authorises nothing. A coordinator email match is now only a
-tie-break for which request to settle — never the reason a write is allowed.
+tie-break for which request to settle, never the reason a write is allowed.
 
 ---
 
@@ -65,8 +62,7 @@ tie-break for which request to settle — never the reason a write is allowed.
 **The principle.** If a user action can fail, the user must be told. A `catch`
 that only reaches `console.error` is a button that does nothing.
 
-**The incident.** This was the single most repeated defect in the codebase —
-around twenty instances. Saving an opportunity showed the bookmark filled while
+**The incident.** This was the single most repeated defect in the codebase, with around twenty instances. Saving an opportunity showed the bookmark filled while
 the write had failed. A student's rating of an organization was silently
 discarded. Toggling two-factor appeared to do nothing. A safety report involving
 a minor could be marked resolved while still open in the database.
@@ -74,7 +70,7 @@ a minor could be marked resolved while still open in the database.
 None of these looked broken. They looked like working features.
 
 **The rule.** *Every catch either recovers or reports.* Use
-`reportError(context, err, fallback)` from `lib/errors.ts` — it logs the
+`reportError(context, err, fallback)` from `lib/errors.ts`. It logs the
 original and returns a sentence safe to display, which makes the reporting path
 the easy one. `check:errors` pins the behaviour, including that it never returns
 an empty string, because an empty error banner is indistinguishable from a
@@ -87,7 +83,7 @@ button that did nothing.
 **The principle.** Internal error text is for the people who can act on it.
 
 **The incident.** Three server routes returned provider messages verbatim,
-including on the two-factor screen — an organization saw Resend's internal
+including on the two-factor screen. An organization saw Resend's internal
 guidance about test domains and a reference to Resend's documentation. Firebase
 messages name internal collections; provider messages cite their own docs.
 Neither means anything to a student, and both leak structure.
@@ -119,8 +115,7 @@ written in one transaction.
 
 **The principle.** Before trusting a test, see it fail for the right reason.
 
-**The incident, twice.** The self-approval test first "passed" with HTTP 400 —
-blocked by the per-entry 24-hour cap, not by authorization. Using a value under
+**The incident, twice.** The self-approval test first "passed" with HTTP 400, blocked by the per-entry 24-hour cap, not by authorization. Using a value under
 the cap revealed the real hole: HTTP 200 and 20 hours credited. Separately,
 `check:email` verified every email link against the route table by reading
 `App.tsx`; when routing moved to `AppRoutes.tsx`, it silently saw **zero routes**
@@ -139,13 +134,13 @@ documents. A file that looks like protection and isn't is worse than none.
 cannot see it.
 
 **The incident.** Splitting the oversized dashboards surfaced **eight**
-dependencies that were invisible while the code sat inside its parent — `cn`,
+dependencies that were invisible while the code sat inside its parent. `cn`,
 `evaluateBadges`, `handleToggle2FA`, `studentsList`, `isSubmittingLog` and
 others. I had also guessed one entry shape wrong; TypeScript rejected it the
 moment an interface was required.
 
 **The rule.** *Prefer boundaries that force declaration.* The value of extracting
-a component is not fewer lines — it is that the props must be named, and named
+a component is not fewer lines. It is that the props must be named, and named
 things can be checked.
 
 ---
@@ -157,7 +152,7 @@ public/secret split impossible to get wrong by accident.
 
 **The incidents.** `VITE_`-prefixed variables are compiled into the browser
 bundle and are public; anything else is server-only. Separately, CI failed five
-consecutive times because a pasted secret contained a line break — gRPC forbids
+consecutive times because a pasted secret contained a line break. gRPC forbids
 control characters in metadata, the value is masked in logs, and the failure
 looked nothing like a configuration problem. And `APP_URL` defaulted to the
 `MAIL_FROM` domain, which sends mail and serves no website, so every button in
@@ -175,14 +170,13 @@ public or secret.
 only thing deciding what is *allowed*.
 
 **The incident.** MFA verification once fell back to a client-side
-`sessionStorage` flag when the server could not write the custom claim — an
+`sessionStorage` flag when the server could not write the custom claim, an
 authentication pass with nothing recorded server-side. Separately, an
 organization could self-issue a verified badge, because the client wrote
 `craVerified: true` purely because the applicant typed a number.
 
 **The rule.** *Fail closed.* If the server cannot record the fact, the operation
-failed. Trust signals shown to students — verification status, hours, rankings —
-are never self-settable.
+failed. Trust signals shown to students, verification status, hours, rankings, are never self-settable.
 
 ---
 
@@ -214,6 +208,6 @@ so that a future tidy-up does not delete the guard and reintroduce it.
 ## What these principles do not claim
 
 They describe the standard this codebase is being held to, not a standard it
-fully meets yet. `docs/STATUS.md` lists where it still falls short — including
-work that is deliberately deferred. Naming the gap is part of the discipline;
+fully meets yet. `docs/STATUS.md` lists where it still falls short, including
+work that is intentionally deferred. Naming the gap is part of the discipline;
 pretending it is closed is the failure mode these principles exist to prevent.
