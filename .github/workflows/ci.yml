@@ -92,14 +92,27 @@ jobs:
           cache: npm
       - run: npm ci
 
+      # On main, missing secrets is a FAILURE, not a skip.
+      #
+      # This job previously warned and skipped either way, so a push to main
+      # could report a green tick having run zero security tests — the same
+      # "looks like protection but isn't" trap the backup script refuses. A
+      # green CI badge has to mean the adversarial suite actually ran.
+      #
+      # Forks and other branches still skip: a contributor without access
+      # should get useful feedback, not a red X they cannot fix.
       - name: Are credentials configured?
         id: creds
         run: |
           if [ -n "${FIREBASE_SERVICE_ACCOUNT_KEY}" ]; then
             echo "present=true" >> "$GITHUB_OUTPUT"
+            echo "Firebase credentials present — running the live checks."
+          elif [ "${{ github.ref }}" = "refs/heads/main" ]; then
+            echo "::error::Firebase secrets are missing on main, so the 51 adversarial security checks did not run. A green tick here would be misleading. Add them under Settings > Secrets and variables > Actions."
+            exit 1
           else
             echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::warning::Firebase secrets are not set, so the live checks were skipped. Add them under Settings > Secrets and variables > Actions."
+            echo "::warning::Firebase secrets are not set, so the live checks were skipped."
           fi
 
       # check:security boots the production bundle, so the build must exist.
