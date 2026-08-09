@@ -160,6 +160,7 @@ clean up after themselves.
 | `check:flows` | The full journey: apply → accept → hours → approve → leaderboard → rate |
 | `check:security` | **Adversarial.** Cross-tenant reads/writes, privilege escalation and API authorization are all refused |
 | `check:queries` | Every query the app runs has the index it needs |
+| `check:certificate` | The printable hours transcript is well-formed and escapes student-controlled text |
 | `check:hours` | The hour-summing helper is correct, including non-numeric input |
 | `check:email` | Resend key and sender are valid, and every link in every email template points at a real route on the real origin |
 | `check:esm` | Server imports resolve under real ESM. **Do not remove from `lint`** — `moduleResolution: "bundler"` hides missing `.js` extensions that crash the whole API in production. |

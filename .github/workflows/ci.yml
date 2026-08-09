@@ -58,6 +58,11 @@ jobs:
       - name: Email template links
         run: npx tsx scripts/check-email.ts --links-only
 
+      # The printed hours transcript is evidence a student hands to a school.
+      # Needs no credentials, so it runs in the always-on tier.
+      - name: Printable transcript
+        run: npx tsx scripts/check-certificate.ts
+
   live:
     name: Security and flows (real project)
     runs-on: ubuntu-latest
