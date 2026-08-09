@@ -718,7 +718,7 @@ export default function OrgDashboard() {
   const handleOrgLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedStudentId || !logDate || !logHours || !logActivity) {
-      alert("Please fill in all credit logging fields.");
+      setErrorMessage("Please fill in all four fields before logging hours.");
       return;
     }
 

@@ -234,7 +234,7 @@ export default function ApplicationReviewDialog({
                               console.warn("Could not download inline resume attachment:", err);
                             }
                           } else {
-                            alert("No attached resume files found on this volunteer profile.");
+                            setErrorDetails("This applicant has not attached a resume.");
                           }
                         }}
                       >

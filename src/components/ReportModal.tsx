@@ -39,6 +39,8 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
   const { user, userProfile, studentProfile, orgProfile, isDemoMode } = useAuth();
   
   const [reason, setReason] = useState('');
+  // Validation lives in the form, not in a browser dialog. See handleSubmit.
+  const [formError, setFormError] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
@@ -93,12 +95,16 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // In-page, not alert(). This is a safety report — often about a minor —
+    // and a blocking browser dialog is unstyled, unannounced to screen readers,
+    // and loses whatever the person had typed from view while it is open.
+    setFormError(null);
     if (!reason) {
-      alert('Please select a report reason option.');
+      setFormError('Please choose a reason for this report.');
       return;
     }
     if (!description.trim()) {
-      alert('Please write a detailed description first.');
+      setFormError('Please describe what happened, so we can act on it.');
       return;
     }
 

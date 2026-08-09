@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { reportError } from '../lib/errors';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
@@ -19,6 +20,9 @@ export default function StudentOpportunityDetail() {
   const { user, isDemoMode, studentProfile } = useAuth();
   const navigate = useNavigate();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
+  // One in-page banner for bookmark and share feedback. These were alert()s,
+  // which block the page and are silent to screen readers.
+  const [notice, setNotice] = useState<{ kind: 'success' | 'error'; text: string } | null>(null);
   const [organization, setOrganization] = useState<OrganizationProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isApplying, setIsApplying] = useState(false);
@@ -164,18 +168,21 @@ export default function StudentOpportunityDetail() {
         setIsSaved(true);
       }
     } catch (err: any) {
-      console.error('Error toggling opportunity bookmark:', err);
-      alert('Could not update bookmark. Please check your connection and try again.');
+      setNotice({ kind: 'error', text: reportError('toggle bookmark', err, 'Could not update your bookmark. Please check your connection and try again.') });
     }
   };
 
+  useEffect(() => {
+    if (!notice) return;
+    const t = setTimeout(() => setNotice(null), 5000);
+    return () => clearTimeout(t);
+  }, [notice]);
+
   const handleShare = async () => {
     const ok = await copyToClipboard(window.location.href);
-    if (ok) {
-      alert('Link copied to clipboard successfully!');
-    } else {
-      alert('Failed to copy link.');
-    }
+    setNotice(ok
+      ? { kind: 'success', text: 'Link copied to your clipboard.' }
+      : { kind: 'error', text: "Couldn't copy the link. You can copy it from the address bar instead." });
   };
 
   const handleApply = async (e: React.FormEvent) => {
@@ -278,6 +285,12 @@ export default function StudentOpportunityDetail() {
   if (!opportunity)
     return (
       <div className="max-w-3xl mx-auto px-4 py-20">
+
+      {notice && (
+        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-105 text-blue-dark'}`}>
+          {notice.text}
+        </div>
+      )}
         <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 text-center">
           We couldn't load this opportunity. It may have been removed, or your connection dropped.
         </div>

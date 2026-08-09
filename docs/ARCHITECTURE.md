@@ -273,8 +273,10 @@ Why it matters here specifically:
 - **Leaking.** Firebase messages name internal collections; provider messages
   cite their own documentation. Three server routes were returning those
   verbatim to end users, including on the two-factor screen.
-- **`alert()`.** Blocking, unstyled, unannounced to screen readers. Twelve
-  remain; convert them when you touch the surrounding code.
+- **`alert()`.** Blocking, unstyled, unannounced to screen readers. All twelve
+  are gone. Do not reintroduce one: `npm run check:errors` does not catch it,
+  but a browser dialog on a form means whatever the person typed is hidden
+  behind it while they read the message.
 
 Both duplicated auth-error maps (Login and Signup, overlapping on three codes
 and disagreeing on the wording) now delegate here.

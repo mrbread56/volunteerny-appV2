@@ -34,9 +34,19 @@ export default function DeveloperDashboard() {
 
   // Test Email Client States
   const [testEmailTo, setTestEmailTo] = useState(user?.email || 'developer@example.com');
+  // Console-wide banner. These messages were browser alert()s: blocking,
+  // unstyled, and silent to screen readers. They are refusals a developer
+  // needs to read, not dismiss reflexively.
+  const [consoleNotice, setConsoleNotice] = useState<string | null>(null);
   const [testEmailTemplate, setTestEmailTemplate] = useState('welcome_student');
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailStatus, setTestEmailStatus] = useState<{ success: boolean; message: string } | null>(null);
+
+  useEffect(() => {
+    if (!consoleNotice) return;
+    const t = setTimeout(() => setConsoleNotice(null), 6000);
+    return () => clearTimeout(t);
+  }, [consoleNotice]);
 
   const handleSendTestEmail = async () => {
     setIsSendingTestEmail(true);
@@ -397,7 +407,7 @@ export default function DeveloperDashboard() {
   // BAN & UNBAN Control
   const handleToggleBan = async (userId: string, isCurrentlyBanned: boolean) => {
     if (!isDeveloperUser(user?.email, userProfile?.role) && !isDemoMode) {
-      alert('Access Denied: You do not have permission to perform this action.');
+      setConsoleNotice('Access denied: your account does not have permission to perform that action.');
       return;
     }
 
@@ -408,7 +418,7 @@ export default function DeveloperDashboard() {
         const targetOrgEmail = orgs.find(o => o.uid === userId)?.contactEmail || '';
         const isTargetDev = isDeveloperEmail(targetStudentEmail) || isDeveloperEmail(targetOrgEmail);
         if (isTargetDev && !isCurrentlyBanned) {
-          alert('Security Restriction: System developers cannot be suspended.');
+          setConsoleNotice('System developers cannot be suspended.');
           return;
         }
         setStudents(prev => prev.map(s => s.uid === userId ? { ...s, isBanned: !isCurrentlyBanned } : s));
@@ -419,7 +429,7 @@ export default function DeveloperDashboard() {
         if (userDoc.exists()) {
           const uData = userDoc.data();
           if (isDeveloperUser(uData.email, uData.role)) {
-            alert('Security Restriction: System developers cannot be suspended.');
+            setConsoleNotice('System developers cannot be suspended.');
             return;
           }
           // Both documents in ONE batch. They were two sequential updateDocs,
@@ -621,6 +631,12 @@ export default function DeveloperDashboard() {
   if (!isDemoMode && user && !isDeveloperUser(user.email, userProfile?.role)) {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-paper-2 p-6 text-center">
+
+      {consoleNotice && (
+        <div role="alert" aria-live="assertive" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-[90vw] px-4 py-2.5 text-[13px] font-semibold bg-red-50 border border-red-200 text-red-700">
+          {consoleNotice}
+        </div>
+      )}
         <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">
           <ShieldAlert className="text-red-500 w-12 h-12 mx-auto" />
           <h2 className="text-xl font-bold text-ink tracking-tight">Access Denied</h2>
