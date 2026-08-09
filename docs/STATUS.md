@@ -39,7 +39,7 @@ npm run sweep:console   # every route as every role, console must be silent
 | Leaderboard | **Working** | `check:flows` |
 | Email delivery | **Blocked** | invalid `RESEND_API_KEY` locally — see B1 |
 | Organization dashboard (hand-test) | **Not yet tested** | — |
-| Developer console (hand-test) | **Not yet tested** | — |
+| Developer console (hand-test) | **Working** | all six tabs walked as a real promoted developer |
 | MFA code entry (hand-test) | **Not yet tested** | blocked by B1 |
 
 ---
@@ -95,9 +95,22 @@ A student can submit a request for any number. The server caps a single
 approval at 24, so this cannot be credited — but the queue can be filled with
 absurd values. *Fix:* bound it in `isValidHoursRequest`.
 
-**B6. Organization dashboard and developer console have never been hand-tested.**
-Both are large (1,552 and 1,836 lines). Automated checks cover their data paths;
-nothing covers their UI. *This is the largest remaining gap in this audit.*
+**B6. Organization dashboard and developer console hand-test.** *(done)*
+Both walked through the real UI with real accounts. The developer console's six
+tabs — feedback, safety reports, user audit, suspended list, settings,
+verification — all render with no blank panels, no horizontal overflow and no
+console errors. Confirmed at the same time that an account promoted to
+`developer` in Firestore but absent from `VITE_DEVELOPER_EMAILS` now reaches the
+console; that combination previously showed "Access Denied" while the navbar
+called them a Developer.
+
+**B16. The platform has no organizations and nine orphaned accounts.**
+An 9 August backup, after removing every throwaway test account, shows 19 users,
+9 students and **0 organizations**. So nothing can currently be applied to, and
+the leaderboard and browse pages have nothing real to show. Ten of those users
+have no profile document (see B15); they are all real sign-ups, none left by
+testing. *Not a code defect — recorded because "the app works" and "the app has
+users" are different claims, and only the first is currently true.*
 
 ### P2 — should fix
 

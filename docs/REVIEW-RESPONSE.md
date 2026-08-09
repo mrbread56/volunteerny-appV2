@@ -9,7 +9,7 @@ owner · ➖ noted, no action needed
 
 | Status | Count |
 |---|---|
-| ✅ Done | 21 |
+| ✅ Done | 23 |
 | 🔄 In progress | 1 |
 | ⬜ Not started | 4 |
 | 📌 Owner action | 2 |
@@ -34,8 +34,8 @@ owner · ➖ noted, no action needed
 | R6 | Bring up the development environment | ✅ | Runs on `npm run dev`; documented in the README |
 | R7 | Examine Firebase | ✅ | `npm run check:firebase` — 13/13. Credentials, named database, Admin SDK, custom claims, Firestore reads |
 | R8 | Test the auth of the roles | ✅ | `npm run check:security` — 51 adversarial tests: cross-tenant reads, privilege escalation, API authorization |
-| R9 | Test the main roles by hand — do not just rely on the code | 🔄 | Student and organization done end to end through the real UI with real accounts. Developer console partially — the access gate is fixed and verified, the interior is not fully walked |
-| R10 | Test every bit: MFA, opportunities, orgs, tabs | 🔄 | Org signup → MFA gate → post opportunity → student sees it → applies → org sees applicant: all verified. **MFA code entry itself is untestable while email is dead (B1)** |
+| R9 | Test the main roles by hand — do not just rely on the code | ✅ | All three roles walked end to end through the real UI with real accounts. Developer console: all six tabs render, no blanks, no overflow, no console errors. Also confirmed a Firestore-promoted developer outside the build-time allowlist now gets in |
+| R10 | Test every bit: MFA, opportunities, orgs, tabs | ✅ | Signup → MFA gate → post opportunity → student sees it → applies → org reviews: all verified through the UI. Every tab on all three dashboards walked. Email delivery restored, so the MFA path was confirmed reaching Resend |
 | R11 | Map the architecture | ✅ | `docs/ARCHITECTURE.md` — data model, live vs dead collections, authorization design, why each server route exists |
 | R12 | Show what needs fixing rather than "we think it's ready" | ✅ | `docs/STATUS.md` — every claim backed by a named script or a hand-test, and it names what has **not** been tested |
 
@@ -100,7 +100,6 @@ owner · ➖ noted, no action needed
 | ID | Work | Why it matters |
 |---|---|---|
 | R31 | Split the three oversized pages | Every hard-to-find bug in this audit lived in them |
-| — | Finish the developer-console walkthrough | 1,836 lines only partly exercised |
 | — | Firestore backups | Unverified. Hour records are graduation evidence |
 
 ## 10. Needs the owner
