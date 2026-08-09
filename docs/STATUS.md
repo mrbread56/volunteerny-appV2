@@ -68,9 +68,23 @@ or a documented support process.
 
 ### P1 — fix before real students use it
 
-**B3. Firestore has no backups configured.**
-Not verified either way — needs checking in the Firebase console. Student hour
-records are graduation evidence; losing them is unrecoverable.
+**B15. Nine accounts exist with no profile, and the screen they saw was a dead
+end.** *(fixed)*
+The 8 August backup found nine `users` documents with no matching `students` or
+`organizations` record — signups that died between the auth account being
+created and the profile being written. One is a `@tdsb.ca` school-board
+student. They were shown "contact support so we can clear the incomplete
+account", while `Login.tsx` had always redirected the same state to `/signup`,
+which can finish the profile in one click. The guard now offers that instead.
+*Still open:* those nine accounts have not yet been contacted or repaired.
+
+**B3. Firestore has no automated backups.** *(mitigated)*
+Firestore's built-in scheduled backups require the Blaze plan. `npm run backup`
+now takes a full snapshot to `backups/*.json` using ordinary reads, which are
+free on Spark — verified against the real project, 39 documents, 0.48 MB.
+*Remaining risk:* it is manual. Nobody is reminded to run it, and it is a
+snapshot rather than point-in-time recovery. Schedule it, or move to Blaze,
+before real students depend on the data.
 
 **B4. No CI.** Every check in `scripts/` is run by hand, so nothing prevents a
 regression reaching `main`. *Fix:* run `lint`, `check:security` and

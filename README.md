@@ -172,6 +172,7 @@ clean up after themselves.
 | Command | What it does |
 |---|---|
 | `deploy:rules` | Deploys `firestore.rules` |
+| `backup` | Full database snapshot to `backups/*.json`. Free — no Blaze plan needed. Contains student personal data, so `backups/` is gitignored |
 | `backfill:hours` | One-off: recomputes `students/{uid}.hours` from `loggedHours` |
 
 ---
