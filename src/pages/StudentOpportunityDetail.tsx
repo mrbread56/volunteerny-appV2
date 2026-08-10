@@ -161,9 +161,10 @@ export default function StudentOpportunityDetail() {
           const q = query(collection(db, 'savedOpportunities'), where('studentId', '==', user.uid), where('opportunityId', '==', id));
           const snap = await getDocs(q);
           await Promise.all(snap.docs.map(d => deleteDoc(d.ref)));
-          
-          const updated = localSaves.filter((sid: string) => sid !== id);
-          localStorage.setItem('demo_saved_ids', JSON.stringify(updated));
+          // No demo_saved_ids write here. A real student's bookmarks were being
+          // mirrored into the demo fixture key, so their genuine saved list
+          // leaked into any later demo session on the same browser — and demo
+          // ids leaked back the other way while the dashboard still merged them.
         }
         setIsSaved(false);
         setNotice({ kind: 'success', text: 'Removed from your saved opportunities.' });
@@ -178,10 +179,8 @@ export default function StudentOpportunityDetail() {
             opportunityId: id,
             savedAt: serverTimestamp()
           });
-          if (!localSaves.includes(id)) {
-            localSaves.push(id);
-            localStorage.setItem('demo_saved_ids', JSON.stringify(localSaves));
-          }
+          // Same as the unsave branch above: demo_saved_ids is a demo fixture
+          // and a real save does not belong in it.
         }
         setIsSaved(true);
         setNotice({ kind: 'success', text: 'Saved! Find it under Saved on your dashboard.' });
