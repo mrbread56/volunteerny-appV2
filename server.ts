@@ -1268,6 +1268,29 @@ app.use(express.json());
     });
   }
 
+  /**
+   * Templates a signed-in client may ask for by name.
+   *
+   * `auth_verification` and `admin_alert` are deliberately absent. Escaping
+   * their fields stopped the injected-link version of the attack, but not the
+   * attack: any account that can sign up (anyone, instantly, free) could still
+   * ask this endpoint for a pixel-identical "Account Verification Code" or
+   * "System Security Alert" email, SPF- and DKIM-signed by the real domain,
+   * addressed to any student on the platform, with the subject line under their
+   * control. A convincing 2FA notice we did not initiate is a phishing kit
+   * whether or not the code itself is clickable. Neither template is sent by
+   * any real flow — the only caller was the developer console's test-send
+   * dropdown — so they are server-internal only: reachable by calling
+   * emailTemplates directly, never by naming them in a request body.
+   */
+  const CLIENT_TEMPLATES = new Set([
+    'welcome_student',
+    'application_status',
+    'hours_confirmation',
+    'new_applicant',
+    'notification',
+  ]);
+
   /** Maps the client's templateName + templateData onto the positional
    *  template functions in server/emailTemplates.ts. */
   function renderTemplate(templateName: string, d: any): string | null {
@@ -1348,6 +1371,18 @@ app.use(express.json());
         return res.status(400).json({
           error: 'The action link must point at Volunteer North York.',
           details: 'Off-site links are not permitted in outbound email.',
+        });
+      }
+
+      if (!CLIENT_TEMPLATES.has(templateName)) {
+        // 403, not 400: for the two server-internal templates the name is
+        // recognised and refused, and saying so is the point — a 400 "unknown
+        // template" would read as a typo to the honest caller and as an
+        // encouragement to keep guessing to the other one.
+        console.warn(`[email/send] Blocked template '${templateName}' requested by ${authContext.uid}`);
+        return res.status(403).json({
+          error: 'That email template cannot be requested by a client.',
+          details: 'Only transactional templates sent by the app are available.',
         });
       }
 

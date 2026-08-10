@@ -187,7 +187,12 @@ service cloud.firestore {
              (absent(data, 'attachmentName') || data.attachmentName is string) &&
              (absent(data, 'attachmentSize') || data.attachmentSize is string) &&
              (absent(data, 'attachmentDescription') || data.attachmentDescription is string) &&
-             (absent(data, 'attachmentData') || data.attachmentData is string) &&
+             // Capped like resumeUrl/passportUrl above: this is a base64 file
+             // upload from the client and it had no size limit at all, so one
+             // feedback ticket or safety report could be inflated to the 1 MiB
+             // document ceiling.
+             (absent(data, 'attachmentData') ||
+               (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
              (absent(data, 'developerReply') || data.developerReply is string) &&
              (absent(data, 'repliedAt') || data.repliedAt is string || data.repliedAt is timestamp) &&
@@ -208,9 +213,35 @@ service cloud.firestore {
              (absent(data, 'attachmentName') || data.attachmentName is string) &&
              (absent(data, 'attachmentSize') || data.attachmentSize is string) &&
              (absent(data, 'attachmentDescription') || data.attachmentDescription is string) &&
-             (absent(data, 'attachmentData') || data.attachmentData is string) &&
+             // Capped like resumeUrl/passportUrl above: this is a base64 file
+             // upload from the client and it had no size limit at all, so one
+             // feedback ticket or safety report could be inflated to the 1 MiB
+             // document ceiling.
+             (absent(data, 'attachmentData') ||
+               (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
+    }
+
+    // These two exist so `update` can enforce exactly what `create` enforces.
+    // Both bodies used to live inline in their `create` rule only, and the
+    // matching `update` checked nothing but which keys changed — so the owner
+    // could create a valid 1-to-5 rating and then PATCH it to 999999, push the
+    // text past its cap, or bolt on arbitrary new fields up to the 1 MiB
+    // document limit. Every other collection in this file already re-validates
+    // on update; these were the two newest and the two that did not.
+    function isValidRecommendation(data) {
+      return data.studentId is string &&
+             data.opportunityId is string &&
+             data.text is string && data.text.size() <= 1000 &&
+             data.rating is number && data.rating >= 1 && data.rating <= 5;
+    }
+
+    function isValidOrgRating(data) {
+      return data.orgId is string &&
+             data.opportunityId is string &&
+             data.stars is number && data.stars >= 1 && data.stars <= 5 &&
+             data.comment is string && data.comment.size() <= 500;
     }
 
     function isValidHoursRequest(data) {
@@ -510,21 +541,41 @@ service cloud.firestore {
     // An org writes a reference for a student after working with them.
     // ID format: {orgUid}_{studentUid}_{opportunityId}
     match /recommendations/{recId} {
-      // Students can read their own recommendations; orgs and devs can read all.
+      // The student it is about, and the org that wrote it. Nobody else.
+      //
+      // There used to be a bare `isVerifiedOrg()` here as well. That only
+      // checks that the caller's own users doc says role == 'organization' —
+      // which anyone gets, free and instantly, by signing up — so every
+      // organization could read every reference written about every student on
+      // the platform, including ones from organizations it has nothing to do
+      // with. The authorising fact has to be ownership of this document, never
+      // the caller's self-declared role.
       allow read: if isSignedIn() && (
         resource.data.studentId == request.auth.uid ||
         resource.data.orgId == request.auth.uid ||
-        isVerifiedOrg() ||
         isDeveloper()
       );
       // Only the org that worked with the student can write. One per opportunity.
+      // `orgId == request.auth.uid` proves you are the org. It never proved you
+      // had anything to do with the opportunity you are writing a reference
+      // about — anyone can register as an organization instantly and free, so
+      // a throwaway account could author references for any student on any
+      // opportunity. The opportunity is an exact document path, so rules CAN
+      // check it: you may only write a reference against an opportunity you own.
+      //
+      // This is a partial proof and deliberately labelled as one. The full
+      // test — did this student actually volunteer with us — is a QUERY across
+      // applications, which rules cannot run. That belongs behind a server
+      // endpoint alongside POST /api/hours/approve. Until it exists, an org can
+      // still write a reference for a student who never applied to its own
+      // opportunity; it can no longer touch anyone else's.
       allow create: if isVerifiedOrg() && isValidId(recId) &&
                        incoming().orgId == request.auth.uid &&
-                       incoming().studentId is string &&
-                       incoming().opportunityId is string &&
-                       incoming().text is string && incoming().text.size() <= 1000 &&
-                       incoming().rating is number && incoming().rating >= 1 && incoming().rating <= 5;
+                       isValidRecommendation(incoming()) &&
+                       exists(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)) &&
+                       get(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)).data.orgId == request.auth.uid;
       allow update: if isVerifiedOrg() && existing().orgId == request.auth.uid &&
+                       isValidRecommendation(incoming()) &&
                        !incoming().diff(existing()).affectedKeys().hasAny(['orgId', 'studentId', 'opportunityId']);
       allow delete: if isDeveloper() || (isVerifiedOrg() && existing().orgId == request.auth.uid);
     }
@@ -536,14 +587,24 @@ service cloud.firestore {
       // Anyone signed in can read ratings (they're shown on org profiles).
       allow read: if isSignedIn();
       // Only the student who volunteered can rate. One per opportunity.
+      // Same shape as recommendations above, mirrored. A student could rate any
+      // organization for any opportunity, including ones that organization
+      // never posted — so ratings could be manufactured against a competitor
+      // or a stranger. The opportunity is an exact path, so require that it
+      // exists and actually belongs to the org being rated.
+      //
+      // Also partial: proving the student COMPLETED work there is a query, and
+      // belongs on the server. Nothing displays ratings anywhere yet, so this
+      // closes the forgery surface before the feature has an audience.
       allow create: if isSignedIn() && isValidId(ratingId) &&
                        incoming().studentId == request.auth.uid &&
-                       incoming().orgId is string &&
-                       incoming().opportunityId is string &&
-                       incoming().stars is number && incoming().stars >= 1 && incoming().stars <= 5 &&
-                       incoming().comment is string && incoming().comment.size() <= 500;
-      // Students can edit their own rating within a window (enforced client-side).
+                       isValidOrgRating(incoming()) &&
+                       exists(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)) &&
+                       get(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)).data.orgId == incoming().orgId;
+      // Students can edit their own rating within a window (enforced
+      // client-side — which is why the bounds have to be re-checked here).
       allow update: if isSignedIn() && existing().studentId == request.auth.uid &&
+                       isValidOrgRating(incoming()) &&
                        !incoming().diff(existing()).affectedKeys().hasAny(['studentId', 'orgId', 'opportunityId']);
       allow delete: if isDeveloper();
     }

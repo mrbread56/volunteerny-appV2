@@ -267,6 +267,28 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
   if (legit.status === 400) fail('same-origin actionUrl was REJECTED — the fix breaks genuine mail');
   else pass(`same-origin actionUrl still accepted → ${legit.status}`);
 
+  // (e2) THE OTHER HALF OF THE PHISHING VECTOR.
+  //
+  // Constraining actionUrl only covered the `notification` template. Any
+  // account could still name `auth_verification` or `admin_alert` and get a
+  // pixel-identical two-factor code notice or security bulletin, SPF- and
+  // DKIM-signed by the real domain, sent to any address, with the subject line
+  // under its control. Both are server-internal now; the endpoint must refuse
+  // them by name.
+  for (const templateName of ['auth_verification', 'admin_alert']) {
+    const res = await fetch(`${BASE}/api/email/send`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+      body: JSON.stringify({
+        to: 'security-probe@example.com',
+        subject: 'Your verification code',
+        templateName,
+        templateData: { userName: 'Student', code: '184920', subject: 'Alert', details: 'Act now.' },
+      }),
+    });
+    expectStatus(`student requesting server-internal template '${templateName}'`, res.status, [403]);
+  }
+
   // (f) HOURS APPROVAL — the authority that moved off the client.
   //
   // Rules can no longer be the check here, so these are the check. Before the

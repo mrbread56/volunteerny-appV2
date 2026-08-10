@@ -180,20 +180,25 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
         status: 'pending', // pending, resolved, dismissed
       };
 
-      // 2. Write to local database and firestore fallback list
-      const existingReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
-      existingReports.unshift(reportObj);
-      localStorage.setItem('demo_reports', JSON.stringify(existingReports));
-
-      if (!isDemoMode) {
-        try {
-          await setDoc(doc(db, 'reports', reportId), {
-            ...reportObj,
-            createdAt: serverTimestamp(),
-          });
-        } catch (dbErr) {
-          console.warn('Real Firestore report registry failed, recorded local copy seamlessly:', dbErr);
-        }
+      // 2. File the report.
+      //
+      // This used to write EVERY report, real or demo, into localStorage, and
+      // then swallow a failed Firestore write and still show "Report Logged
+      // Safely". A student reporting harassment saw a success screen while
+      // nothing had been filed anywhere but their own browser — and the
+      // developer console read that same localStorage array back into its real
+      // report list, so the unfiled copies looked filed. This is the one screen
+      // on the site where silence is most dangerous: let the write throw, and
+      // the outer catch shows the error state.
+      if (isDemoMode) {
+        const existingReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
+        existingReports.unshift(reportObj);
+        localStorage.setItem('demo_reports', JSON.stringify(existingReports));
+      } else {
+        await setDoc(doc(db, 'reports', reportId), {
+          ...reportObj,
+          createdAt: serverTimestamp(),
+        });
       }
 
       setStatus('success');

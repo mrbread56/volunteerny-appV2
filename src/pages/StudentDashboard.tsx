@@ -481,14 +481,18 @@ export default function StudentDashboard() {
     let unsubscribe: (() => void) | undefined;
 
     const fetchLeaderboard = () => {
-      let basePeers = [
-        { id: "peer-1", name: "Maya S.", hours: 32.5, isSelf: false },
-        { id: "peer-2", name: "Devon K.", hours: 26.0, isSelf: false },
-        { id: "peer-3", name: "Ethan L.", hours: 18.0, isSelf: false },
-        { id: "peer-4", name: "Zara P.", hours: 12.5, isSelf: false },
-      ];
-
       if (isDemoMode) {
+        // Demo-mode fixtures only. These four invented students were declared
+        // outside this branch and merged into the real subscription result —
+        // and were the whole board when the real query failed — so a real
+        // student was ranked against classmates who do not exist.
+        const basePeers = [
+          { id: "peer-1", name: "Maya S.", hours: 32.5, isSelf: false },
+          { id: "peer-2", name: "Devon K.", hours: 26.0, isSelf: false },
+          { id: "peer-3", name: "Ethan L.", hours: 18.0, isSelf: false },
+          { id: "peer-4", name: "Zara P.", hours: 12.5, isSelf: false },
+        ];
+
         if (studentProfile?.trackerEnabled ?? true) {
           const selfItem = {
             id: user?.uid || "self",
@@ -530,23 +534,33 @@ export default function StudentDashboard() {
               });
             }
 
-            basePeers.forEach((peer) => {
-              if (!mapped.some((c) => c.id === peer.id)) {
-                mapped.push(peer);
-              }
-            });
-
+            // No demo peers padded in here any more — real entries only.
             mapped.sort((a, b) => b.hours - a.hours);
             setLeaderboard(mapped.slice(0, 5));
           },
           (err) => {
-            console.error("Scalable leaderboard aggregation fallback:", err);
-            setLeaderboard(basePeers);
+            // Used to show the demo peers as if they were the standings.
+            // An empty board and a sentence beats four invented classmates.
+            setLeaderboard([]);
+            setErrorMessage(
+              reportError(
+                'leaderboard subscription',
+                err,
+                "We couldn't load the rankings just now. Please refresh to try again.",
+              ),
+            );
           }
         );
       } catch (err) {
-        console.error("Error subscribing to scalable leaderboard:", err);
-        setLeaderboard(basePeers);
+        // Same here: the demo peers were the fallback for a failed subscribe.
+        setLeaderboard([]);
+        setErrorMessage(
+          reportError(
+            'subscribe to leaderboard',
+            err,
+            "We couldn't load the rankings just now. Please refresh to try again.",
+          ),
+        );
       }
     };
 

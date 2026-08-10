@@ -465,8 +465,18 @@ export default function OrgDashboard() {
         try {
           const oppIds = uniqueOpps.map((o) => o.id);
           if (oppIds.length > 0) {
-            // Firestore 'in' support up to 30 elements maximum. Chunk query to load all applications for major organizations.
-            const chunkSize = 30;
+            // The bound here is the rules document-access budget, NOT the
+            // Firestore 'in' limit of 30. The applications `list` rule
+            // (firestore.rules) proves ownership with exists() + get() on
+            // opportunities/{opportunityId}, and Firestore allows 10 document
+            // accesses per query — two per distinct opportunity in the `in`
+            // list, so 5 opportunities is the whole budget. At 30 an
+            // organization's applicant list died with permission-denied the
+            // moment they posted a 6th opportunity, and every applicant
+            // vanished. Do not raise this back towards 30: the 'in' limit
+            // permits it and the rules do not. If the ownership check in the
+            // rules ever costs more or fewer accesses, this number moves with it.
+            const chunkSize = 5;
             const chunks: string[][] = [];
             for (let i = 0; i < oppIds.length; i += chunkSize) {
               chunks.push(oppIds.slice(i, i + chunkSize));
@@ -492,27 +502,24 @@ export default function OrgDashboard() {
             });
           }
         } catch (appsErr) {
-          console.warn(
-            "Firestore fetch for applications failed, using local fallback:",
-            appsErr,
+          // Deliberately no demo-fixture fallback and no silent console.warn.
+          // This catch used to swallow the permission-denied above and then
+          // merge localStorage demo_applications in, so a failed read looked
+          // identical to "nobody has applied" — real applicants went
+          // uncontacted while invented ones showed up in a live organization's
+          // list. demo_applications belongs to the isDemoMode branch, which
+          // returns well before here.
+          setErrorMessage(
+            reportError(
+              'load organization applications',
+              appsErr,
+              "We couldn't load the applications to your opportunities. Please refresh to try again.",
+            ),
           );
+          appsData = [];
         }
 
-        const localApps = JSON.parse(
-          localStorage.getItem("demo_applications") || "[]",
-        );
-        // Filter local applications matching any of the active opportunities
-        const activeOppIds = uniqueOpps.map((o) => o.id);
-        const orgLocalApps = localApps.filter((app: any) =>
-          activeOppIds.includes(app.opportunityId),
-        );
-
-        const combinedApps = [...orgLocalApps, ...appsData];
-        const uniqueApps = combinedApps.filter(
-          (app, idx, self) => self.findIndex((a) => a.id === app.id) === idx,
-        );
-
-        setRecentApplications(uniqueApps);
+        setRecentApplications(appsData);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
       } finally {

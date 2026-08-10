@@ -1,6 +1,10 @@
 ﻿import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
+// Without this import `reportError` silently resolved to the DOM's global
+// window.reportError — which takes one argument and returns void, so the
+// error never reached the shared handler and never reached the console notice.
+import { reportError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch, limit } from 'firebase/firestore';
@@ -62,10 +66,8 @@ export default function DeveloperDashboard() {
         hours: 15,
         status: 'accepted',
         note: 'Welcome aboard! We are super excited to see you join our OSSD development team this week.',
-        code: '184920',
-        purpose: 'identity verification',
-        subject: 'Brute-force Threat Prevented',
-        details: 'IP rate limiter triggered 12 concurrent authentication blocks from outside York region within 1 second.'
+        heading: 'A test notification',
+        details: 'Sent from the developer console to check that mail delivery works.'
       };
 
       const token = isDemoMode ? 'demo-mode-token-developer' : await user?.getIdToken();
@@ -81,8 +83,7 @@ export default function DeveloperDashboard() {
                    testEmailTemplate === 'application_status' ? 'Volunteer Application Accepted!' :
                    testEmailTemplate === 'hours_confirmation' ? 'Community Involvement Hours Signed & Confirmed' :
                    testEmailTemplate === 'new_applicant' ? 'New Applicant Submitted to Your Opportunity' :
-                   testEmailTemplate === 'auth_verification' ? 'Secure OSSD Account Verification Code' :
-                   'System Operations Alert - High Priority',
+                   'A Volunteer North York Notification',
           templateName: testEmailTemplate,
           templateData
         })
@@ -303,24 +304,31 @@ export default function DeveloperDashboard() {
           const fbSnap = await getDocs(query(collection(db, 'feedbacks'), limit(200)));
           fbList = fbSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (dbErr) {
-          console.warn('Real Firestore feedbacks fetch failed, using local fallback:', dbErr);
+          setConsoleNotice(
+            reportError('load feedback tickets', dbErr, "Couldn't load feedback tickets from the database."),
+          );
         }
 
-        // Merge with local feedback storage to ensure everything actually works even if DB rules/indices are slow or fail
-        const localFeedbacks = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
-        const combined = [...fbList, ...localFeedbacks];
-        const uniqueFeedbacks = combined.filter((item, index, self) =>
-          self.findIndex(t => t.id === item.id) === index
-        );
-
-        uniqueFeedbacks.sort((a: any, b: any) => {
+        // No localStorage merge here.
+        //
+        // This is the REAL data branch, and it used to append demo_feedbacks
+        // and demo_reports to whatever Firestore returned. Two separate
+        // failures came out of that. Invented tickets and invented safety
+        // reports appeared in a live developer's queue, indistinguishable from
+        // real ones. And because the catches here only console.warn'd, a failed
+        // read left the localStorage copies as the ENTIRE list — so the console
+        // looked healthy and populated while every real report was invisible.
+        // A safety report nobody sees is the worst failure this app has, so
+        // both reads now say so out loud and show only what the database
+        // actually holds.
+        fbList.sort((a: any, b: any) => {
           const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
           const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
           return tB - tA;
         });
 
-        setFeedbacks(uniqueFeedbacks);
-        setRealFeedbackCount(uniqueFeedbacks.length);
+        setFeedbacks(fbList);
+        setRealFeedbackCount(fbList.length);
 
         // Fetch safety reports
         let repList: any[] = [];
@@ -328,20 +336,17 @@ export default function DeveloperDashboard() {
           const repSnap = await getDocs(query(collection(db, 'reports'), limit(200)));
           repList = repSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (dbErr) {
-          console.warn('Real Firestore reports fetch failed:', dbErr);
+          setConsoleNotice(
+            reportError('load safety reports', dbErr, "Couldn't load safety reports from the database."),
+          );
         }
-        const localReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
-        const combinedReps = [...repList, ...localReports];
-        const uniqueReports = combinedReps.filter((item, index, self) =>
-          self.findIndex(t => t.id === item.id) === index
-        );
-        uniqueReports.sort((a: any, b: any) => {
+        repList.sort((a: any, b: any) => {
           const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
           const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
           return tB - tA;
         });
-        setReports(uniqueReports);
-        setRealReportCount(uniqueReports.length);
+        setReports(repList);
+        setRealReportCount(repList.length);
 
         const studentSnap = await getDocs(query(collection(db, 'students'), limit(200)));
         const studentList = studentSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
@@ -1494,8 +1499,10 @@ export default function DeveloperDashboard() {
                     <option value="application_status">Application Accepted Alert</option>
                     <option value="hours_confirmation">Logged & Signed Hours Receipt</option>
                     <option value="new_applicant">New Posting Applicant File</option>
-                    <option value="auth_verification">Account 2FA / Recovery Verification</option>
-                    <option value="admin_alert">System Security Bulletin</option>
+                    {/* No 2FA or security-bulletin option: the server refuses
+                        both by name (403), so offering them here would only
+                        produce a button that always fails. */}
+                    <option value="notification">General Notification</option>
                   </select>
                 </div>
               </div>

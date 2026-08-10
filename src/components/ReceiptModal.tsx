@@ -49,10 +49,15 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
     const printWindow = window.open('', '', 'height=600,width=800');
     
     if (printWindow) {
+      // The title is set via document.title AFTER the write, not interpolated
+      // into the markup. studentName comes from the application document and
+      // the student writes their own name, so `</title><script>…` in a name
+      // field executed in the ORGANIZATION's browser every time they printed
+      // that student's receipt. Assigning to .title treats the value as text.
       printWindow.document.write(`
         <html>
           <head>
-            <title>Enrollment Receipt - ${application.studentName || 'Volunteer'}</title>
+            <title>Enrollment Receipt</title>
             <script src="https://cdn.tailwindcss.com"></script>
             <style>
               @media print {
@@ -72,6 +77,8 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
           </body>
         </html>
       `);
+      // Text, not markup — this is the escaping.
+      printWindow.document.title = `Enrollment Receipt - ${application.studentName || 'Volunteer'}`;
       printWindow.document.close();
     }
   };

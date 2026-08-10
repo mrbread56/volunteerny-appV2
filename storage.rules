@@ -39,8 +39,18 @@ service firebase.storage {
     // carry minors' names, addresses and phone numbers. Every other student on
     // the platform had access. Restricted to the owner plus the organizations
     // that actually review applications.
+    // …and `isOrgOrDeveloper()` was still far too wide. Anyone can register as
+    // an organization instantly and for free, so that clause let ANY such
+    // account read ANY student's resume, given only the path — no application,
+    // no relationship, no connection to that student at all. Whether an
+    // organization may see a given student's file depends on whether that
+    // student applied to one of its opportunities, and that is a QUERY, which
+    // Storage rules cannot run — the same limit that moved the equivalent
+    // Firestore read to GET /api/students/:id/review-profile. So the owner
+    // reads their own files and nobody else does. Do not widen this back to a
+    // role check: the role is self-declared and proves nothing.
     match /students/{userId}/{fileName} {
-      allow read: if isSignedIn() && (request.auth.uid == userId || isOrgOrDeveloper());
+      allow read: if isSignedIn() && request.auth.uid == userId;
       allow write: if isSignedIn() && request.auth.uid == userId
                    && (isValidImage() || isValidPdf())
                    && isSafeSize(5);

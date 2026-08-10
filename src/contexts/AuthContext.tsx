@@ -2,7 +2,6 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
-import { isDeveloperEmail, isDevAllowlistMissing } from '../lib/devAccess';
 import { UserProfile, StudentProfile, OrganizationProfile } from '../types';
 
 interface AuthContextType {
@@ -203,7 +202,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfilesLoaded(false);
     try {
       const userEmail = (currentUser as any).email || '';
-      const isDevEmail = isDeveloperEmail(userEmail);
 
       const userDoc = await getDocWithRetry(doc(db, 'users', currentUser.uid));
       if (userDoc.exists()) {
@@ -213,52 +211,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           // Older accounts predate this field. Default to the same policy as
           // signup: required for organizations and developers, optional for students (who can
           // still turn it on from their settings).
-          data.twoFactorEnabled = data.role === 'organization' || data.role === 'developer' || isDevEmail;
-        }
-        
-        // Auto-resolve developer session safely
-        if (isDevEmail) {
-          const wasAlreadyDeveloper = data.role === 'developer';
-          data.role = 'developer';
-          data.twoFactorEnabled = true;
-
-          // This override was memory-only. firestore.rules decides on the
-          // stored role (plus the bootstrap allowlist), so an allowlisted
-          // account whose document still said 'student' got the entire Control
-          // Room and permission-denied on everything inside it — the UI and the
-          // database disagreed about who this person was.
-          //
-          // Persist it so they agree. The write is authorised by the bootstrap
-          // clause in isDeveloper(), which is why it can succeed at all; a
-          // non-allowlisted user cannot reach this branch, and isValidUser
-          // still refuses 'developer' on the self-service create/update paths,
-          // so this is not a self-promotion route.
-          if (!wasAlreadyDeveloper) {
-            try {
-              const { updateDoc } = await import('firebase/firestore');
-              await updateDoc(doc(db, 'users', currentUser.uid), { role: 'developer', twoFactorEnabled: true });
-            } catch (promoteErr) {
-              console.error(
-                'Account %s is in VITE_DEVELOPER_EMAILS but its stored role could not be updated. ' +
-                'The developer UI will render and privileged operations will be denied. ' +
-                'Add this address to developerEmails() in firestore.rules and redeploy (npm run deploy:rules).',
-                userEmail,
-                promoteErr
-              );
-            }
-          }
-
-          if (data.isBanned) {
-            data.isBanned = false;
-            try {
-              const { updateDoc } = await import('firebase/firestore');
-              await updateDoc(doc(db, 'users', currentUser.uid), { isBanned: false });
-              await updateDoc(doc(db, 'students', currentUser.uid), { isBanned: false });
-              await updateDoc(doc(db, 'organizations', currentUser.uid), { isBanned: false });
-            } catch (unbanErr) {
-              console.warn('Auto-unbanning dev in DB failed but bypassed locally:', unbanErr);
-            }
-          }
+          data.twoFactorEnabled = data.role === 'organization' || data.role === 'developer';
         }
         
         setUserProfile(data);
@@ -273,29 +226,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (orgDoc.exists()) {
             setOrgProfile(orgDoc.data() as OrganizationProfile);
           }
-        }
-      } else if (isDevEmail) {
-        setProfileMissing(false);
-        // Fallback profile creation for developer accounts
-        const devProfile: UserProfile = {
-          uid: currentUser.uid,
-          email: userEmail,
-          role: 'developer',
-          twoFactorEnabled: true,
-          createdAt: new Date(),
-        };
-        setUserProfile(devProfile);
-        
-        try {
-          await setDoc(doc(db, 'users', currentUser.uid), {
-            uid: currentUser.uid,
-            email: userEmail,
-            role: 'developer',
-            twoFactorEnabled: true,
-            createdAt: serverTimestamp(),
-          });
-        } catch (dbErr) {
-          console.warn('Silent fallback for developer documents syncing: ', dbErr);
         }
       } else {
         // No users/{uid} document exists for this authenticated account.
@@ -318,47 +248,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       if (error?.message?.includes('offline') || error?.message?.includes('Failed to fetch') || error?.message?.includes('network') || error?.message?.includes('timeout')) {
-        // Suppressed console.warn('Offline mode: Could not fetch profiles from Firestore.');
-
-        // A blocked websocket (ad blocker / privacy shield targeting
-        // firestore.googleapis.com) looks identical to a real network outage
-        // from here: we simply never got a response. For everyone else that's
-        // a genuine "can't reach the database" error. But for an authorized
-        // developer email, refusing to render the Control Room because a
-        // browser extension blocked the DB round trip is worse than just
-        // trusting the email/allowlist match we already have client-side.
-        const userEmail = (currentUser as any).email || '';
-
-        if (isDevAllowlistMissing()) {
-          // Loud, specific diagnostic: VITE_* values are inlined at BUILD time.
-          // If the deploy was built without VITE_DEVELOPER_EMAILS, the developer
-          // fallback below silently cannot fire, which looks like "my account
-          // lost its role" rather than a configuration problem.
-          console.error(
-            'VITE_DEVELOPER_EMAILS is empty in this build. Developer access cannot be granted. ' +
-            'Set it in the deployment environment (e.g. Vercel > Settings > Environment Variables) and REBUILD - ' +
-            'VITE_ variables are baked in at build time, not read at runtime.'
-          );
-        }
-
-        if (isDeveloperEmail(userEmail)) {
-          console.warn('Firestore unreachable but email matches VITE_DEVELOPER_EMAILS: forcing developer role locally.');
-          setProfileMissing(false);
-          setUserProfile({
-            uid: currentUser.uid,
-            email: userEmail,
-            role: 'developer',
-            twoFactorEnabled: true,
-            createdAt: new Date(),
-          });
-          setAuthError(null);
-          return;
-        }
-
-        setAuthError(
-          "We couldn't reach the database. This is usually caused by an ad blocker or privacy extension " +
-          'blocking firestore.googleapis.com. Try disabling it for this site, or open the site in a private window, then retry.'
-        );
+        setAuthError('Cannot reach the database. Please check your connection or disable ad blockers and refresh.');
       } else {
         console.error('Error fetching profiles:', error);
         setAuthError('An unexpected error occurred while loading your profile. Please try again.');

@@ -238,23 +238,11 @@ async function checkOrgCreditsHours(studentUid: string) {
   }
   assert.ok(denied, 'an organization was able to write student hours directly from the client');
   console.log('[PASS] organization: cannot write student hours directly from the client');
-  return;
-
-  // Read back with the Admin SDK, not the client. This one process has been
-  // three different users in turn, and the client's cached listen on
-  // students/{studentUid} is still the student's — reading it back as the org
-  // fails here for that reason alone, which says nothing about the app (where
-  // an org session is never also a student session). What we need to confirm
-  // is what was persisted.
-  const adb = adminFirestore();
-  if (!adb) {
-    console.log('[WARN] no service account key — skipping the credited-total read-back');
-    return;
-  }
-  const credited = await adb.collection('students').doc(studentUid).get();
-  assert.equal(credited.data()!.hours, 2.5, 'the org wrote loggedHours but not the ranked total');
-  assert.equal(credited.data()!.loggedHours.length, 1, 'the org write did not land');
-  console.log('[PASS] organization: approving hours writes loggedHours and the ranked total together');
+  // Everything that used to follow was an Admin-SDK read-back asserting the
+  // org's write LANDED. It sat after a `return` — unreachable since the org
+  // branch was removed from the rules, and it now asserts the opposite of what
+  // this function checks. The endpoint's own credit is covered by
+  // scripts/check-flows.ts.
 }
 
 (async () => {
