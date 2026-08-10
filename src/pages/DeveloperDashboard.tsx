@@ -372,7 +372,17 @@ export default function DeveloperDashboard() {
         setRealOrgCount(orgList.length);
       }
     } catch (err) {
-      console.error('Failed to load developer admin dashboard lists:', err);
+      // Was a bare console.error. This catch wraps the WHOLE admin load —
+      // students, organizations, the lot — so when it fired the developer got a
+      // dashboard of empty tables and no indication anything had gone wrong.
+      // An empty list and a failed list looked identical.
+      setConsoleNotice(
+        reportError(
+          'load developer admin lists',
+          err,
+          "Couldn't load the admin lists. They may be incomplete — refresh to try again.",
+        ),
+      );
     } finally {
       setIsLoading(false);
     }
