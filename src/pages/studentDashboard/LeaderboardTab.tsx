@@ -29,10 +29,29 @@ export interface LeaderboardEntry {
 export default function LeaderboardTab({
   leaderboard,
   studentProfile,
+  loadError = false,
 }: {
   leaderboard: LeaderboardEntry[];
   studentProfile: Partial<StudentProfile> | null | undefined;
+  /** The materialised leaderboard document could not be read. */
+  loadError?: boolean;
 }) {
+  // A failed read renders as a failure. The previous behaviour substituted four
+  // fabricated students, so a broken read was indistinguishable from a healthy
+  // board — and students were ranked against people who do not exist.
+  if (loadError) {
+    return (
+      <div className="py-12 text-center bg-white rounded-lg border border-line space-y-3 p-8" role="alert">
+        <Trophy className="w-8 h-8 text-ink-soft mx-auto" />
+        <h3 className="text-lg font-bold text-ink">The leaderboard could not be loaded</h3>
+        <p className="text-xs text-ink-soft font-semibold max-w-sm mx-auto leading-relaxed">
+          We couldn't read the current rankings. Please refresh the page in a
+          moment — if this keeps happening, let us know through Feedback.
+        </p>
+      </div>
+    );
+  }
+
   return (
       <motion.div
         key="leaderboard"
@@ -160,6 +179,12 @@ export default function LeaderboardTab({
               <h3 className="text-xs font-semibold tracking-wide text-ink-soft ">
                 Complete Standings
               </h3>
+              {leaderboard.length === 0 && (
+                <p className="text-xs text-ink-soft font-semibold text-center py-6">
+                  No verified hours have been ranked yet. When an organization
+                  approves logged hours, those students appear here.
+                </p>
+              )}
               <div className="space-y-2">
                 {leaderboard.map((student, idx) => (
                   <div

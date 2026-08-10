@@ -14,7 +14,6 @@ import {
   CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
-import { sendGmailNotification } from "../lib/gmail";
 import { Building2, Info, Globe, ShieldCheck, Mail, Phone } from "lucide-react";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";
@@ -45,7 +44,7 @@ const ORGANIZATION_TYPES = [
 ];
 
 export default function OrgProfile() {
-  const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout, accessToken, connectGmail, disconnectGmail } = useAuth();
+  const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -54,70 +53,10 @@ export default function OrgProfile() {
   const [deleteConfirmEmail, setDeleteConfirmEmail] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
-  // Google Gmail Integration helper states & hooks
-  const [testEmailAddress, setTestEmailAddress] = useState("");
-  const [isSendingTest, setIsSendingTest] = useState(false);
-  const [testFeedback, setTestFeedback] = useState<string | null>(null);
-  const [isGmailStateEnabled, setIsGmailStateEnabled] = useState(
-    localStorage.getItem("gmail_connected_state") !== "false",
-  );
-
-  const handleToggleGmail = async () => {
-    setTestFeedback(null);
-    if (isGmailStateEnabled) {
-      disconnectGmail();
-      setIsGmailStateEnabled(false);
-      localStorage.setItem("gmail_connected_state", "false");
-      setTestFeedback("Gmail broadcasts disabled successfully.");
-    } else {
-      const token = await connectGmail();
-      if (token) {
-        setIsGmailStateEnabled(true);
-        localStorage.setItem("gmail_connected_state", "true");
-        setTestFeedback("Gmail alerts connected and active!");
-      } else {
-        setIsGmailStateEnabled(true);
-        localStorage.setItem("gmail_connected_state", "true");
-        setTestFeedback(
-          "Gmail alerts fallback activated in simulation sandbox mode.",
-        );
-      }
-    }
-  };
-
-  const handleSendTestEmail = async () => {
-    if (!testEmailAddress) {
-      setTestFeedback("Please type an email address first.");
-      return;
-    }
-
-    setIsSendingTest(true);
-    setTestFeedback(null);
-
-    if (!accessToken) {
-      setTestFeedback("Please connect Gmail first before sending a test.");
-      setIsSendingTest(false);
-      return;
-    }
-
-    const res = await sendGmailNotification(
-      accessToken,
-      testEmailAddress,
-      "Volunteer North York Email Integration Test! 🚀",
-      `<div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #0f172a;">Integration Test Succeeded</h2>
-        <p style="color: #475569; line-height: 1.6;">This is a real transactional notification confirming that your Volunteer North York backend email delivery is fully active and functional!</p>
-      </div>`
-    );
-
-    setIsSendingTest(false);
-    if (res.success) {
-      setTestFeedback(`Test email sent successfully to ${testEmailAddress}!`);
-      setTestEmailAddress("");
-    } else {
-      setTestFeedback(`Test failed: ${res.error || "Please check your configuration"}`);
-    }
-  };
+  // A Gmail "broadcasts" toggle and a "send test email" handler used to live
+  // here, but no button ever rendered either — dead scaffolding from the
+  // demo-oriented Gmail surface. Removed rather than left as unreachable code;
+  // the real email test lives in the developer console.
 
   const handleDeleteAccountInput = async () => {
     if (deleteConfirmEmail.toLowerCase() !== user?.email?.toLowerCase()) {

@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { Application, StudentProfile } from '../types';
 import { formatDate } from '../lib/utils';
 import { Badge } from './ui/Badge';
+import EmailDeliveryNote from './ui/EmailDeliveryNote';
 import { decompressFile } from '../utils/compress';
 
 interface ApplicationReviewDialogProps {
@@ -188,6 +189,11 @@ export default function ApplicationReviewDialog({
                       <p className="text-sm text-ink-soft font-medium">
                         Student is now officially enrolled. High school coordination logs have been locked for verification.
                       </p>
+                      {emailDispatched && (
+                        <div className="text-left max-w-sm mx-auto pt-1">
+                          <EmailDeliveryNote who="the student's" />
+                        </div>
+                      )}
                     </div>
 
                     <div className="bg-paper-2 border border-line rounded-lg p-6 space-y-4 text-left">
@@ -362,7 +368,11 @@ export default function ApplicationReviewDialog({
                     const resumeUrl = application?.resumeUrl || student?.resumeUrl;
                     if (!resumeUrl) return <p className="text-ink-soft font-bold font-mono">No resume payload stored.</p>;
                     const rawDataUrl = decompressFile(resumeUrl);
-                    if (rawDataUrl.startsWith('data:image/')) {
+                    // Storage URLs (current uploads) render through the same
+                    // branch as inline PDF data URIs: browsers display a PDF at
+                    // an https URL in an iframe just like a data URI. Legacy
+                    // resumes stored as base64 keep working unchanged.
+                    if (rawDataUrl.startsWith('data:image/') || /\.(png|jpe?g|gif|webp)([?#].*)?$/i.test(rawDataUrl)) {
                       return (
                         <img 
                           src={rawDataUrl} 
@@ -371,7 +381,7 @@ export default function ApplicationReviewDialog({
                           className="w-full aspect-[8.5/11] max-h-[50vh] object-contain rounded-lg  border border-line bg-white" 
                         />
                       );
-                    } else if (rawDataUrl.startsWith('data:application/pdf')) {
+                    } else if (rawDataUrl.startsWith('data:application/pdf') || rawDataUrl.startsWith('https://') || rawDataUrl.startsWith('http://')) {
                       return (
                         <div className="w-full h-full flex flex-col gap-2">
                           <div className="flex items-center justify-between p-3 bg-blue-dark/5 border border-blue-dark/10 rounded-lg">

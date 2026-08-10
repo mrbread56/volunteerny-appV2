@@ -54,20 +54,23 @@ service firebase.storage {
                    && isSafeSize(2);
     }
     
-    // Chat attachments (max 10MB, images/PDFs) - restricted to the chat's
-    // actual participants, verified against the Firestore chat document.
-    function isChatParticipant(chatId) {
-      return isSignedIn() &&
-        request.auth.uid in firestore.get(/databases/ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755/documents/chats/$(chatId)).data.participants;
+    // chat_attachments had rules but the chat feature has zero application
+    // code; its Firestore-side rules were already deleted for the same reason
+    // (see firestore.rules, "chats/ and messages/ deliberately have NO rules").
+    // Dead rules that reference a collection that does not exist only ever
+    // evaluate to deny, so they are removed here too.
+
+    // Safety-report evidence (max 5MB, images/PDFs). The bytes live here and
+    // the reports/{id} Firestore document carries only the URL — screenshots
+    // describing incidents with minors' accounts used to sit inline in the
+    // document itself. Owner plus staff, mirroring the Firestore reports rules.
+    match /reports/{userId}/{fileName} {
+      allow read: if isSignedIn() && (request.auth.uid == userId || callerRole() == 'developer');
+      allow write: if isSignedIn() && request.auth.uid == userId
+                   && (isValidImage() || isValidPdf())
+                   && isSafeSize(5);
     }
 
-    match /chat_attachments/{chatId}/{fileName} {
-      allow read: if isChatParticipant(chatId);
-      allow write: if isChatParticipant(chatId)
-                   && (isValidImage() || isValidPdf()) 
-                   && isSafeSize(10);
-    }
-    
     // Feedback attachments (max 5MB, images/PDFs). Feedback often contains
     // screenshots of the reporter's own account, so it is owner + staff only —
     // this was also readable by every signed-in user.

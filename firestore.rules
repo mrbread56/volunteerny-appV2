@@ -209,6 +209,9 @@ service cloud.firestore {
              (absent(data, 'attachmentSize') || data.attachmentSize is string) &&
              (absent(data, 'attachmentDescription') || data.attachmentDescription is string) &&
              (absent(data, 'attachmentData') || data.attachmentData is string) &&
+             // Current reports store the attachment in Firebase Storage
+             // (reports/{uid}/... per storage.rules) and carry only the URL.
+             (absent(data, 'attachmentUrl') || data.attachmentUrl is string) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }

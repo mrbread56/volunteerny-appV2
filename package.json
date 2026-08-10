@@ -25,6 +25,7 @@
     "restore": "tsx scripts/restore.ts",
     "check:backup": "tsx scripts/check-backup.ts",
     "backfill:hours": "tsx scripts/backfill-hours.ts",
+    "repair:orphans": "tsx scripts/repair-orphaned-accounts.ts",
     "test": "playwright test",
     "test:rules": "echo \"Rules unit tests need the Firebase emulator (Java) and a test runner, neither of which is installed. See docs/STATUS.md B11.\" && exit 1"
   },

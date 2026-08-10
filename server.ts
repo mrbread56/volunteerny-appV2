@@ -1318,12 +1318,33 @@ app.use(express.json());
   }
 
   app.post('/api/email/send', async (req, res) => {
-    if (mailUnavailable(res)) return;
     try {
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Demo sessions simulate mail, and this must run BEFORE the mail-config
+      // gate: demo mode is precisely how the app is exercised without
+      // secrets, so refusing these calls made every demo flow (hours logging,
+      // applications, signup) report an email failure that nothing actually
+      // needed.
+      if (authContext.isDemo) {
+        const body = req.body || {};
+        emailHistory.unshift({
+          id: 'em_' + crypto.randomBytes(6).toString('hex'),
+          to: Array.isArray(body.to) ? body.to.join(', ') : String(body.to ?? ''),
+          subject: String(body.subject ?? '(demo)'),
+          templateName: String(body.templateName ?? 'notification'),
+          status: 'demo',
+          sentBy: authContext.email || authContext.uid,
+          at: new Date().toISOString(),
+        });
+        if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
+        return res.json({ success: true, mode: 'demo', warning: 'Demo mode: email was simulated, not sent.' });
+      }
+
+      if (mailUnavailable(res)) return;
 
       if (isEmailRateLimited(authContext.uid)) {
         return res.status(429).json({ error: 'Too many emails requested. Please wait a few minutes.' });
@@ -1370,11 +1391,8 @@ app.use(express.json());
         if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
       };
 
-      // Demo sessions must never trigger real mail.
-      if (authContext.isDemo) {
-        record('demo');
-        return res.json({ success: true, mode: 'demo', warning: 'Demo mode: email was simulated, not sent.' });
-      }
+      // (Demo sessions are already short-circuited above, before the
+      // mail-config gate — see the top of this handler.)
 
       if (!resend) {
         record('failed', 'RESEND_API_KEY not configured');
@@ -1632,7 +1650,15 @@ async function startServer() {
     const viteMod = 'vite';
     const { createServer: createViteServer } = await import(viteMod);
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        // The app is routinely served through proxies and tunnels (preview
+        // hosts, ngrok-style relays). Vite's default Host-header allowlist
+        // answers those with 403 "Blocked request", which reads as the whole
+        // app being down. Allow every host in dev; the real origin guard is
+        // CORS on the API, not this header check.
+        allowedHosts: true,
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

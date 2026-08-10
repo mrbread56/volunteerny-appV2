@@ -1,6 +1,6 @@
 # Project status, evidence-based audit
 
-**Last updated:** 9 August 2026
+**Last updated:** 10 August 2026
 **Method:** every claim below is backed by a named script that can be re-run, or
 a hand-test performed against the real Firebase project through the real UI.
 Nothing here is "we think it works".
@@ -87,7 +87,89 @@ separated from `App.tsx`; both had been done, and understating progress is the
 same failure as the `TODO.md` problem, in the other direction.
 
 
-## Open issues
+## Closed 10 August 2026 (post-review hardening)
+
+Fixes from the second independent review (criticals C2–C4) plus a live
+no-dead-buttons pass. Every item was verified with `npm run lint`,
+`npm run build`, and a running server (`npm run dev`, routes and demo API
+exercised over HTTP).
+
+**C2 closed. The upload migration to Firebase Storage is now complete.**
+`FileUpload` already went to Storage; the remaining base64-in-Firestore write
+paths did not. Now fixed:
+- Safety-report attachments (`ReportModal.tsx`) upload to
+  `reports/{uid}/…` in Storage; the Firestore document carries only the URL.
+  `storage.rules` gained the matching `reports/{userId}` path
+  (owner + developer read). The dead `chat_attachments` block was removed with
+  the same sweep that deleted the `chats`/`messages` Firestore rules (B7).
+- Feedback attachments (`FeedbackPage.tsx`) upload to `feedbacks/{uid}/…` with
+  sanitised, collision-proof names; demo mode keeps the inline path because it
+  never leaves the browser.
+- `firestore.rules` validators for reports and feedbacks now accept
+  `attachmentUrl`.
+- The developer console's report and feedback panels render both generations
+  through one shared `AttachmentPreview` component (legacy `lzs::` base64 and
+  Storage URLs), and `ApplicationReviewDialog` previews Storage-URL resumes.
+  Legacy documents already in Firestore still read correctly.
+
+**A silent write-failure in reports and feedback was fixed along the way.**
+Both documents were written with their optional fields set to `null`, and the
+rules validate those as `absent(x) || x is string` — a present null is not a
+string, so any report/feedback without an attachment was rejected by the rules
+while the catch block said nothing. Absent fields are now omitted, and a
+Firestore failure on a safety report is surfaced to the reporter instead of
+being swallowed into a localStorage copy staff would never see.
+
+**C3 verified closed.** `package.json` is `volunteerny-app` v0.9.0; no
+`react-example` / `0.0.0` reference remains anywhere in the tree.
+
+**C4 is now actionable.** `npm run repair:orphans`
+(`scripts/repair-orphaned-accounts.ts`) lists every auth account with no
+student/organization profile, can email each one a finish-signup link
+(`--notify`), and deletes only data-less orphans with `--delete
+--confirm-delete`. Documented in `RUNBOOK.md`. The nine known orphans still
+need an operator run with real credentials — the script is the tool, the run is
+the remaining manual step.
+
+**The leaderboard no longer contains invented students.** `basePeers`
+("Maya S.", "Devon K.", …) used to be merged into the REAL board on every load
+and was also the error fallback, so a failed read was indistinguishable from a
+healthy ranking of real students. Fabricated peers now exist only in demo
+mode; real mode shows an honest error state or an honest empty board.
+
+**Save and Share on the opportunity page no longer appear dead.** Their
+feedback banner was rendered only inside the "opportunity not found" branch —
+the one state where the buttons cannot be clicked — so every save, unsave,
+copy and error produced zero visible response. The banner renders on the page,
+Save reports success too (not just failure), Share uses the native share sheet
+with clipboard fallback, and a permission-denied gets wording that points at
+incomplete-profile accounts instead of "check your connection".
+
+**The hours-approval email said the opposite of what happened.** The subject
+switched between approved/declined but the body was hardcoded to the declined
+wording, so a student whose hours were approved received "…was not able to
+approve them". The copy now branches correctly. The student dashboard also
+states, on submission and under Submitted Claims, that logged hours only count
+once the coordinator approves them, and every "an email was sent" surface now
+carries the shared spam-folder note (`EmailDeliveryNote`): the 2FA screen,
+hours submission, submitted-claims panel, the developer console's email test,
+and the applicant-acceptance receipt.
+
+**Demo mode stopped reporting fake email failures.** `/api/email/send` refused
+demo sessions with a 503 when mail was unconfigured — but demo mode is exactly
+how the app runs without secrets, so every demo hours/application/signup flow
+logged a spurious delivery failure. Demo sessions are now short-circuited to a
+simulated send before the mail gate (and still never send real mail).
+
+**Dead surface removed.** `OrgProfile.tsx` carried a Gmail toggle and a
+send-test-email handler that no button ever rendered; both are gone (the real
+email test lives in the developer console).
+
+**Dev server works behind proxies.** Vite's Host-header allowlist answered
+preview/tunnel hosts with 403 "Blocked request"; `allowedHosts: true` is now
+set for the embedded dev middleware.
+
+
 
 Severity: **P0** blocks launch · **P1** fix before real students · **P2** should
 fix · **P3** cosmetic or long-term.
@@ -124,7 +206,11 @@ details needs its own security review before it exists.
 ### P1, fix before real students use it
 
 **B15. Nine accounts exist with no profile, and the screen they saw was a dead
-end.** *(fixed)*
+end.** *(fixed; cleanup tool ready)*
+The guard offers the finish-signup path, and `npm run repair:orphans` now
+finds, notifies (`--notify`) and safely deletes (`--delete --confirm-delete`)
+orphaned accounts. Running it against the real project still needs an operator
+with credentials.
 The 8 August backup found nine `users` documents with no matching `students` or
 `organizations` record, signups that died between the auth account being
 created and the profile being written. One is a `@tdsb.ca` school-board
@@ -221,6 +307,10 @@ any single-date opportunity whose shift had no date. ~167 `any`s remain in
 
 **B7. `chats` and `messages` have complete security rules and zero code.**
 Unreachable permissions nobody tests. *Fix:* build them or delete the rules.
+*Partially closed:* the Firestore rules were already deleted; the matching
+`chat_attachments` block in `storage.rules` (which read a `chats` collection
+that does not exist) was removed on 10 August 2026. What remains is the
+decision to build the feature or leave it out.
 
 **B8. `CalendarView.tsx` is 827 lines and is never rendered.**
 
@@ -230,6 +320,10 @@ change and a redeploy.
 
 **B10. Uploads are base64 inside Firestore documents**, capped at 400 KB each by
 the rules and bounded by the 1 MiB document limit. Belongs in Cloud Storage.
+*Mostly closed 10 August 2026:* every NEW upload (resumes, report and feedback
+attachments) now goes to Firebase Storage; documents carry only URLs. Legacy
+documents still hold their base64 and read through the same components; they
+shrink naturally as students re-upload.
 
 **B11. Rules unit tests cannot run here**, `test:rules` needs Java and the
 Firebase emulator. Rules are currently proven by live adversarial tests instead.

@@ -149,6 +149,7 @@ export default function StudentOpportunityDetail() {
           localStorage.setItem('demo_saved_ids', JSON.stringify(updated));
         }
         setIsSaved(false);
+        setNotice({ kind: 'success', text: 'Removed from your saved opportunities.' });
       } else {
         // Save
         if (isDemoMode) {
@@ -166,9 +167,17 @@ export default function StudentOpportunityDetail() {
           }
         }
         setIsSaved(true);
+        setNotice({ kind: 'success', text: 'Saved! Find it under Saved on your dashboard.' });
       }
     } catch (err: any) {
-      setNotice({ kind: 'error', text: reportError('toggle bookmark', err, 'Could not update your bookmark. Please check your connection and try again.') });
+      // permission-denied here usually means the account's profile/role record
+      // is incomplete (rules require a completed student profile to bookmark),
+      // which "check your connection" would misdescribe entirely.
+      const message =
+        err?.code === 'permission-denied'
+          ? "Your account can't save opportunities yet. Make sure your student profile is complete — sign out and back in to finish setup if you're prompted."
+          : 'Could not update your bookmark. Please check your connection and try again.';
+      setNotice({ kind: 'error', text: reportError('toggle bookmark', err, message) });
     }
   };
 
@@ -179,6 +188,24 @@ export default function StudentOpportunityDetail() {
   }, [notice]);
 
   const handleShare = async () => {
+    // Native share sheet first (mobile), clipboard fallback (desktop). The old
+    // version only attempted the clipboard, which needs a secure context and a
+    // user gesture; where it was unavailable the button simply did nothing.
+    const nav = navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
+    if (typeof nav.share === 'function') {
+      try {
+        await nav.share({
+          title: opportunity?.title || 'Volunteer opportunity',
+          text: `Check out this volunteer opportunity on Volunteer North York: ${opportunity?.title || ''}`,
+          url: window.location.href,
+        });
+        return; // The sheet reports its own outcome; no extra banner needed.
+      } catch (err: any) {
+        // AbortError = the student dismissed the sheet. That is a cancel, not
+        // a failure — fall through silently rather than showing an error.
+        if (err?.name === 'AbortError') return;
+      }
+    }
     const ok = await copyToClipboard(window.location.href);
     setNotice(ok
       ? { kind: 'success', text: 'Link copied to your clipboard.' }
@@ -290,12 +317,6 @@ export default function StudentOpportunityDetail() {
   if (!opportunity)
     return (
       <div className="max-w-3xl mx-auto px-4 py-20">
-
-      {notice && (
-        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-105 text-blue-dark'}`}>
-          {notice.text}
-        </div>
-      )}
         <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 text-center">
           We couldn't load this opportunity. It may have been removed, or your connection dropped.
         </div>
@@ -304,6 +325,15 @@ export default function StudentOpportunityDetail() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
+      {/* Bookmark/share feedback banner. This was previously rendered only inside
+          the "opportunity not found" branch above — i.e. the one state where
+          Save and Share cannot be clicked — so on the real page both buttons
+          gave zero feedback and appeared completely dead. */}
+      {notice && (
+        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-105 text-blue-dark'}`}>
+          {notice.text}
+        </div>
+      )}
       <button 
         onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-medium transition-colors mb-6"
