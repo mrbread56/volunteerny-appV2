@@ -35,21 +35,21 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">4. Third-Party Services</h2>
             <p>
-              We use the following third-party services to operate the Platform: <strong>Google Firebase</strong> for authentication, database, and file storage; <strong>Resend</strong> for transactional email delivery; <strong>Google Gemini AI</strong> for automated feedback analysis (feedback text only, not personal data); and <strong>Google reCAPTCHA</strong> for bot protection. Each of these services has its own privacy policy governing their use of data.
+              We use the following third-party services to operate the Platform: <strong>Google Firebase</strong> for authentication, database, and file storage; <strong>Resend</strong> for transactional email delivery; and <strong>Google Gemini AI</strong> for automated feedback analysis (feedback text only, not personal data). Each of these services has its own privacy policy governing their use of data.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">5. Data Sharing</h2>
             <p>
-              We do not sell your personal information. We share your data only as follows: your student profile information is visible to organizations you apply to; your organization profile is visible to students browsing opportunities; messages are visible to chat participants; leaderboard rankings (name and hours) are visible to other logged-in users. We may disclose data if required by law or to protect the rights and safety of our users.
+              We do not sell your personal information. We share your data only as follows: your student profile information is visible to organizations you apply to; your organization profile is visible to students browsing opportunities; leaderboard rankings (name and hours) are visible to other logged-in users. We may disclose data if required by law or to protect the rights and safety of our users.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">6. Cookies and Local Storage</h2>
             <p>
-              We use browser local storage to maintain your login session, store UI preferences, and support offline functionality. We use Google reCAPTCHA which may set cookies for bot detection. We do not use advertising cookies or third-party tracking cookies.
+              We use browser local storage to maintain your login session and store UI preferences. We do not use advertising cookies or third-party tracking cookies, and we do not use any analytics or tracking service.
             </p>
           </section>
 
