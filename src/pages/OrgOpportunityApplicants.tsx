@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { API_BASE_URL } from '../lib/config';
 import { useDialog } from "../hooks/useDialog";
 import { fetchReviewProfile } from "../lib/reviewProfile";
 import { useParams, useNavigate } from "react-router-dom";
@@ -408,17 +409,29 @@ export default function OrgOpportunityApplicants() {
         existing.push({ id: recId, text: recText, rating: recRating, studentName: recApp.studentName, opportunityTitle: recApp.opportunityTitle || opportunity?.title });
         localStorage.setItem('demo_recommendations', JSON.stringify(existing));
       } else {
-        await setDoc(doc(db, 'recommendations', recId), {
-          orgId: user.uid,
-          orgName: orgProfile?.organizationName || 'Organization',
-          studentId: recApp.studentId,
-          studentName: recApp.studentName || 'Student',
-          opportunityId: recApp.opportunityId,
-          opportunityTitle: recApp.opportunityTitle || opportunity?.title || 'Opportunity',
-          text: recText.trim(),
-          rating: recRating,
-          createdAt: serverTimestamp(),
+        // Via the server: the rules cannot prove this student actually
+        // volunteered here (that is a query across applications), so a direct
+        // client write let any organization author a reference about any
+        // student. The endpoint runs that query, and rules now refuse client
+        // creates outright.
+        const token = await user.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/recommendations/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            studentId: recApp.studentId,
+            opportunityId: recApp.opportunityId,
+            text: recText.trim(),
+            rating: recRating,
+          }),
         });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `Could not save the reference (${res.status}).`);
+        }
       }
       setSuccessMessage(`Reference submitted for ${recApp.studentName || 'student'}`);
       setRecApp(null);

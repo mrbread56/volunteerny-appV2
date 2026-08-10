@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
 import { DEMO_OPPORTUNITIES } from './studentDashboard/demoOpportunities';
 import { buildCertificateHtml } from './studentDashboard/certificate';
@@ -438,19 +439,28 @@ export default function StudentDashboard() {
         existing.push({ id: ratingId, stars: ratingStars, comment: ratingComment, orgName: ratingApp.orgName || ratingApp.organizationName, opportunityTitle: ratingApp.opportunityTitle });
         localStorage.setItem('demo_ratings', JSON.stringify(existing));
       } else {
-        await setDoc(doc(db, 'orgRatings', ratingId), {
-          studentId: user.uid,
-          studentName: studentProfile?.fullName || user.displayName || 'Student',
-          orgId,
-          orgName: ratingApp.orgName || ratingApp.organizationName || 'Organization',
-          opportunityId: ratingApp.opportunityId,
-          opportunityTitle: ratingApp.opportunityTitle || 'Opportunity',
-          stars: ratingStars,
-          // The rules cap this at 500 chars; the textarea does too, but a
-          // rejected write here used to be invisible.
-          comment: ratingComment,
-          createdAt: serverTimestamp(),
+        // Via the server: proving this student actually volunteered with the
+        // organization is a query across applications, which rules cannot run,
+        // so a direct client write let anyone rate anyone. The endpoint also
+        // reads the organization from the opportunity rather than trusting the
+        // request, so a rater cannot aim their stars at a different org.
+        const token = await user.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/ratings/create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            opportunityId: ratingApp.opportunityId,
+            stars: ratingStars,
+            comment: ratingComment,
+          }),
         });
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || `Could not save the rating (${res.status}).`);
+        }
       }
       setExistingRatings(prev => ({ ...prev, [`${orgId}_${ratingApp.opportunityId}`]: true }));
       setRatingApp(null);

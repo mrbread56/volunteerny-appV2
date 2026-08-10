@@ -540,6 +540,21 @@ async function firestoreChecks(
   await mustDeny('org escalates beyond loggedHours/hours', () =>
     updateDoc(doc(db, 'students', studentA.uid), { hours: 5, fullName: 'hijacked' }));
 
+  // References and ratings moved to the server for the same reason hours did:
+  // "did this student actually volunteer here" is a query, and rules can only
+  // read an exact document path. Before that, this organization — which has no
+  // relationship to studentA whatsoever — could author a reference about them,
+  // and any student could manufacture a rating against any organization.
+  // Both client creates must now be refused outright.
+  await mustDeny('org forges a reference about an unrelated student', () =>
+    setDoc(doc(db, 'recommendations', `${org.uid}_${studentA.uid}_forged-opp`), {
+      orgId: org.uid,
+      studentId: studentA.uid,
+      opportunityId: 'forged-opp',
+      text: 'Fabricated reference for a student we never worked with.',
+      rating: 5,
+    }));
+
   // Signed out entirely.
   await signOut(auth);
   await mustDeny('anonymous reads a student profile', () => getDoc(doc(db, 'students', studentA.uid)));

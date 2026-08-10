@@ -736,6 +736,163 @@ app.use(express.json());
     }
   });
 
+  /**
+   * References and ratings — written here because the fact that authorises
+   * them is a QUERY, and firestore.rules can only read an exact document path.
+   *
+   * The rules could prove "you are this org" and, once tightened, "you own this
+   * opportunity". Neither is the real test. The real test is "did this student
+   * actually volunteer with this organization", which lives across the
+   * applications collection. Without it, a throwaway organization could author
+   * a reference about any student it liked, and any student could manufacture
+   * ratings against an organization they had never worked with — and ratings
+   * are a trust signal other students use to choose who to volunteer with.
+   *
+   * Same shape and same reason as POST /api/hours/approve. Client creates are
+   * refused by the rules; this is the only door.
+   */
+
+  /** The shared test: an accepted application from this student to this
+   *  opportunity. Returns false rather than throwing on a missing index. */
+  async function hasAcceptedApplication(adb: any, studentId: string, opportunityId: string): Promise<boolean> {
+    const snap = await adb.collection('applications')
+      .where('studentId', '==', studentId)
+      .where('opportunityId', '==', opportunityId)
+      .limit(5)
+      .get();
+    return snap.docs.some((d: any) => d.data()?.status === 'accepted');
+  }
+
+  app.post('/api/recommendations/create', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.status(403).json({ error: 'Demo mode cannot write references.' });
+      }
+
+      const { studentId, opportunityId, text, rating } = req.body || {};
+      if (typeof studentId !== 'string' || !studentId.trim()) {
+        return res.status(400).json({ error: 'studentId is required.' });
+      }
+      if (typeof opportunityId !== 'string' || !opportunityId.trim()) {
+        return res.status(400).json({ error: 'opportunityId is required.' });
+      }
+      const body = String(text ?? '').trim();
+      if (!body) return res.status(400).json({ error: 'The reference text is required.' });
+      if (body.length > 1000) return res.status(400).json({ error: 'The reference is too long (max 1000 characters).' });
+      const stars = Number(rating);
+      if (!Number.isFinite(stars) || stars < 1 || stars > 5) {
+        return res.status(400).json({ error: 'rating must be between 1 and 5.' });
+      }
+
+      const adb = adminFirestore();
+
+      // 1. The caller owns the opportunity.
+      const oppSnap = await adb.collection('opportunities').doc(opportunityId).get();
+      if (!oppSnap.exists || oppSnap.data()?.orgId !== authContext.uid) {
+        console.warn(`[recommendations] ${authContext.uid} tried to reference on opportunity ${opportunityId} it does not own`);
+        return res.status(403).json({ error: 'You can only write a reference for your own opportunity.' });
+      }
+
+      // 2. The student actually volunteered on it. This is the check rules
+      //    could not make, and the reason this endpoint exists.
+      if (!(await hasAcceptedApplication(adb, studentId, opportunityId))) {
+        return res.status(403).json({
+          error: 'You can only write a reference for a student whose application you accepted.',
+        });
+      }
+
+      const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+      const studentSnap = await adb.collection('students').doc(studentId).get();
+
+      // Deterministic id: one reference per org per student per opportunity, so
+      // a double-click overwrites rather than duplicating.
+      const recId = `${authContext.uid}_${studentId}_${opportunityId}`;
+      await adb.collection('recommendations').doc(recId).set({
+        orgId: authContext.uid,
+        orgName: orgSnap.data()?.organizationName || 'Organization',
+        studentId,
+        studentName: studentSnap.data()?.fullName || 'Student',
+        opportunityId,
+        opportunityTitle: oppSnap.data()?.title || 'Opportunity',
+        text: body,
+        rating: stars,
+        createdAt: new Date().toISOString(),
+      });
+
+      return res.json({ success: true, id: recId });
+    } catch (err: any) {
+      console.error('[recommendations/create] failed:', err);
+      return res.status(500).json({ error: 'Could not save that reference. Please try again.' });
+    }
+  });
+
+  app.post('/api/ratings/create', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.status(403).json({ error: 'Demo mode cannot write ratings.' });
+      }
+
+      const { opportunityId, stars, comment } = req.body || {};
+      if (typeof opportunityId !== 'string' || !opportunityId.trim()) {
+        return res.status(400).json({ error: 'opportunityId is required.' });
+      }
+      const score = Number(stars);
+      if (!Number.isFinite(score) || score < 1 || score > 5) {
+        return res.status(400).json({ error: 'stars must be between 1 and 5.' });
+      }
+      const note = String(comment ?? '').trim();
+      if (note.length > 500) return res.status(400).json({ error: 'The comment is too long (max 500 characters).' });
+
+      const adb = adminFirestore();
+
+      // The org is read from the opportunity, never taken from the request —
+      // otherwise the caller picks which organization their rating lands on.
+      const oppSnap = await adb.collection('opportunities').doc(opportunityId).get();
+      if (!oppSnap.exists) {
+        return res.status(404).json({ error: 'That opportunity no longer exists.' });
+      }
+      const orgId = oppSnap.data()?.orgId;
+      if (typeof orgId !== 'string' || !orgId) {
+        return res.status(409).json({ error: 'That opportunity has no organization on record, so it cannot be rated.' });
+      }
+
+      if (!(await hasAcceptedApplication(adb, authContext.uid, opportunityId))) {
+        return res.status(403).json({
+          error: 'You can only rate an organization you actually volunteered with.',
+        });
+      }
+
+      const orgSnap = await adb.collection('organizations').doc(orgId).get();
+      const studentSnap = await adb.collection('students').doc(authContext.uid).get();
+
+      const ratingId = `${authContext.uid}_${orgId}_${opportunityId}`;
+      await adb.collection('orgRatings').doc(ratingId).set({
+        studentId: authContext.uid,
+        studentName: studentSnap.data()?.fullName || 'Student',
+        orgId,
+        orgName: orgSnap.data()?.organizationName || 'Organization',
+        opportunityId,
+        opportunityTitle: oppSnap.data()?.title || 'Opportunity',
+        stars: score,
+        comment: note,
+        createdAt: new Date().toISOString(),
+      });
+
+      return res.json({ success: true, id: ratingId, orgId });
+    } catch (err: any) {
+      console.error('[ratings/create] failed:', err);
+      return res.status(500).json({ error: 'Could not save that rating. Please try again.' });
+    }
+  });
+
   app.post('/api/hours/approve', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);

@@ -575,11 +575,17 @@ service cloud.firestore {
       // endpoint alongside POST /api/hours/approve. Until it exists, an org can
       // still write a reference for a student who never applied to its own
       // opportunity; it can no longer touch anyone else's.
-      allow create: if isVerifiedOrg() && isValidId(recId) &&
-                       incoming().orgId == request.auth.uid &&
-                       isValidRecommendation(incoming()) &&
-                       exists(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)) &&
-                       get(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)).data.orgId == request.auth.uid;
+      // No client create. The authorising fact is "did this student actually
+      // volunteer with this organization", which is a QUERY across
+      // applications, and rules can only read an exact document path — so no
+      // amount of tightening here could ever express it. Ownership of the
+      // opportunity was the closest this could get, and it still let an org
+      // write a reference about a student who never applied.
+      //
+      // POST /api/recommendations/create runs the query with the Admin SDK
+      // (bypassing these rules by design) and is now the only door. Same
+      // reasoning, and same shape, as hours: see the students/ block above.
+      allow create: if false;
       allow update: if isVerifiedOrg() && existing().orgId == request.auth.uid &&
                        isValidRecommendation(incoming()) &&
                        !incoming().diff(existing()).affectedKeys().hasAny(['orgId', 'studentId', 'opportunityId']);
@@ -602,11 +608,13 @@ service cloud.firestore {
       // Also partial: proving the student COMPLETED work there is a query, and
       // belongs on the server. Nothing displays ratings anywhere yet, so this
       // closes the forgery surface before the feature has an audience.
-      allow create: if isSignedIn() && isValidId(ratingId) &&
-                       incoming().studentId == request.auth.uid &&
-                       isValidOrgRating(incoming()) &&
-                       exists(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)) &&
-                       get(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)).data.orgId == incoming().orgId;
+      // No client create, mirroring recommendations above. Ratings are a trust
+      // signal students use to choose who to volunteer with, so "I actually
+      // volunteered here" has to be proven, and that proof is a query.
+      // POST /api/ratings/create is the only door, and it reads the org from
+      // the opportunity rather than the request, so the rater cannot choose
+      // which organization their stars land on.
+      allow create: if false;
       // Students can edit their own rating within a window (enforced
       // client-side — which is why the bounds have to be re-checked here).
       allow update: if isSignedIn() && existing().studentId == request.auth.uid &&
