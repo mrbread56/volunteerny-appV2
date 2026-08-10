@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 // Without this import `reportError` silently resolved to the DOM's global
@@ -30,7 +30,8 @@ import {
   Mail
 } from 'lucide-react';
 import { cn } from '../lib/utils';
-import { decompressFile } from '../utils/compress';
+import AttachmentPreview from '../components/AttachmentPreview';
+import EmailDeliveryNote from '../components/ui/EmailDeliveryNote';
 import ReportsTab from './developerDashboard/ReportsTab';
 
 export default function DeveloperDashboard() {
@@ -944,51 +945,11 @@ export default function DeveloperDashboard() {
                             "File Context/Description: {fb.attachmentDescription}"
                           </div>
                         )}
-                        {fb.attachmentData && (
-                          <div className="mt-2 p-3 bg-white border border-line-light rounded-lg overflow-hidden max-w-md">
-                            <p className="text-xs font-bold uppercase text-ink-muted font-mono tracking-wider mb-2">Screenshot Preview (Click to download):</p>
-                            {decompressFile(fb.attachmentData).startsWith('data:image/') ? (
-                              <img 
-                                src={decompressFile(fb.attachmentData)} 
-                                alt={fb.attachmentName} 
-                                loading="lazy" width="800" height="600"
-                                className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
-                                onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = decompressFile(fb.attachmentData!);
-                                  link.download = fb.attachmentName || 'screenshot';
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                              />
-                            ) : decompressFile(fb.attachmentData).startsWith('data:application/pdf') ? (
-                              <div className="space-y-2">
-                                <iframe 
-                                  src={decompressFile(fb.attachmentData)} 
-                                  className="w-full h-64 rounded-lg border border-line bg-paper-2"
-                                />
-                                <a aria-label="Download attachment" 
-                                  href={decompressFile(fb.attachmentData)}
-                                  download={fb.attachmentName}
-                                  className="text-xs font-bold text-blue-dark hover:text-[#153343] hover:underline block"
-                                >
-                                  Download PDF Attachment
-                                </a>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-2">
-                                <span className="text-ink-muted font-medium">Binary document format attachment.</span>
-                                <a aria-label="Download attachment" 
-                                  href={decompressFile(fb.attachmentData)} 
-                                  download={fb.attachmentName}
-                                  className="px-3.5 py-2 bg-paper-3 hover:bg-slate-200 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
-                                >
-                                  Download File ({fb.attachmentName})
-                                </a>
-                              </div>
-                            )}
-                          </div>
+                        {(fb.attachmentUrl || fb.attachmentData) && (
+                          <AttachmentPreview
+                            value={fb.attachmentUrl || fb.attachmentData}
+                            name={fb.attachmentName}
+                          />
                         )}
                       </div>
                     )}
@@ -1519,13 +1480,16 @@ export default function DeveloperDashboard() {
               </div>
 
               {testEmailStatus && (
-                <div className={cn(
-                  "p-3 rounded-lg text-xs font-semibold leading-relaxed animate-fadeIn border",
-                  testEmailStatus.success
-                    ? "bg-blue-dark/5 border-blue-dark/10 text-blue-800"
-                    : "bg-amber/10 border-orange-100 text-orange-800"
-                )}>
-                  {testEmailStatus.message}
+                <div className="space-y-2">
+                  <div className={cn(
+                    "p-3 rounded-lg text-xs font-semibold leading-relaxed animate-fadeIn border",
+                    testEmailStatus.success
+                      ? "bg-blue-dark/5 border-blue-dark/10 text-blue-800"
+                      : "bg-amber/10 border-orange-100 text-orange-800"
+                  )}>
+                    {testEmailStatus.message}
+                  </div>
+                  {testEmailStatus.success && <EmailDeliveryNote />}
                 </div>
               )}
 

@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { auth } from "../firebase/config";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import EmailDeliveryNote from "../components/ui/EmailDeliveryNote";
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/Card";
 import { ShieldAlert, AlertCircle, KeyRound, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
@@ -189,6 +190,9 @@ export default function MfaChallenge() {
             <p className="text-ink-muted font-medium mt-3 px-4">
               We just sent a 6-digit security code to <strong>{user?.email}</strong>.
             </p>
+            <div className="px-4 mt-2 text-left max-w-sm mx-auto">
+              <EmailDeliveryNote />
+            </div>
           </CardHeader>
           <CardContent className="space-y-6 pt-6 pb-10">
             {error && (

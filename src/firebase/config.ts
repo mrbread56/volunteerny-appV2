@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
+import { getStorage } from 'firebase/storage';
 
 // Read Firebase config from environment variables (VITE_ prefixed = exposed to client)
 // Fall back to imported JSON for backward compatibility during migration
@@ -44,6 +45,7 @@ if (!firestoreDatabaseId && import.meta.env.DEV) {
 
 export const auth = getAuth(app);
 export const googleProvider = new GoogleAuthProvider();
+export const storage = getStorage(app);
 
 // NOTE: a startup "connection test" used to read test/connection here. The
 // security rules deny that path via the default catch-all, so it failed with

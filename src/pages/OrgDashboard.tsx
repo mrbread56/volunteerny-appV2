@@ -304,17 +304,32 @@ export default function OrgDashboard() {
           ? `${req.hours} volunteer hours approved`
           : `Update on your volunteer hours submission`,
         templateName: approved ? "hours_confirmation" : "notification",
-        templateData: {
-          heading: "Your volunteer hours were not approved",
-          details: `${orgProfile?.organizationName || "The organization"} reviewed the ${req.hours} hours you submitted for "${req.activity}" and was not able to approve them. If you think this is a mistake, contact your supervisor at the organization directly — they can re-submit the confirmation from their dashboard.`,
-          studentName: req.studentName,
-          oppTitle: req.activity,
-          hours: req.hours,
-          activity: req.activity,
-          orgName: orgProfile?.organizationName || "Verified Organization",
-          supervisorName: req.coordinatorName || "Site Supervisor",
-          subject: "Volunteer Hours Update",
-        }
+        // The template body used to be hardcoded to the DECLINED wording, so
+        // the subject said "hours approved" while the email itself told the
+        // student their hours were not approved. Branch the copy properly.
+        templateData: approved
+          ? {
+              heading: "Your volunteer hours were approved",
+              details: `${orgProfile?.organizationName || "The organization"} approved the ${req.hours} hours you submitted for "${req.activity}". They now count toward your graduation total — check your dashboard for the updated number and your official transcript.`,
+              studentName: req.studentName,
+              oppTitle: req.activity,
+              hours: req.hours,
+              activity: req.activity,
+              orgName: orgProfile?.organizationName || "Verified Organization",
+              supervisorName: req.coordinatorName || "Site Supervisor",
+              subject: "Volunteer Hours Approved",
+            }
+          : {
+              heading: "Your volunteer hours were not approved",
+              details: `${orgProfile?.organizationName || "The organization"} reviewed the ${req.hours} hours you submitted for "${req.activity}" and was not able to approve them. If you think this is a mistake, contact your supervisor at the organization directly — they can re-submit the confirmation from their dashboard.`,
+              studentName: req.studentName,
+              oppTitle: req.activity,
+              hours: req.hours,
+              activity: req.activity,
+              orgName: orgProfile?.organizationName || "Verified Organization",
+              supervisorName: req.coordinatorName || "Site Supervisor",
+              subject: "Volunteer Hours Update",
+            }
       }).catch(err => console.error("Could not send validation email:", err));
 
     } catch (err: any) {

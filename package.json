@@ -1,9 +1,9 @@
 {
-  "name": "volunteer-north-york",
+  "name": "volunteerny-app",
   "private": true,
-  "version": "1.0.0",
+  "version": "0.9.0",
   "type": "module",
-  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down â€” a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
+  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down — a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -25,6 +25,7 @@
     "restore": "tsx scripts/restore.ts",
     "check:backup": "tsx scripts/check-backup.ts",
     "backfill:hours": "tsx scripts/backfill-hours.ts",
+    "repair:orphans": "tsx scripts/repair-orphaned-accounts.ts",
     "test": "playwright test",
     "test:rules": "echo \"Rules unit tests need the Firebase emulator (Java) and a test runner, neither of which is installed. See docs/STATUS.md B11.\" && exit 1"
   },

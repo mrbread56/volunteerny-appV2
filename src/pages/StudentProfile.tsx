@@ -726,37 +726,22 @@ export default function StudentProfile() {
               <div className="bg-paper-2 p-6 rounded-lg border border-line text-center">
                 <p className="text-xs text-ink-soft mb-6 font-medium italic">
                   Upload your resume to share it automatically with
-                  organizations when you apply. PDF files under 500KB are
-                  required to keep the database fast and responsive.
+                  organizations when you apply. PDF files up to 5MB are
+                  supported; files are stored securely in cloud storage, not in
+                  your profile record.
                 </p>
                 <div className="max-w-sm mx-auto">
                   <FileUpload
                     label="Upload Resume (PDF)"
-                    onFileSelect={(base64) => {
+                    storagePath={`students/${user?.uid}`}
+                    onFileSelect={(url) => {
                       setFileUploadError("");
                       setFileUploadSuccess("");
-                      if (base64 && base64.length > 700000) {
-                        try {
-                          const compressed = compressFile(base64);
-                          if (compressed.length > 700000) {
-                            setFileUploadError("Even compressed, this file is too large. Please shrink the PDF first!");
-                            return;
-                          }
-                          const savedKb = Math.round(
-                            (base64.length - compressed.length) / 1024,
-                          );
-                          setFileUploadSuccess(
-                            `Successfully compressed and attached! Saved approximately ${savedKb}KB of space.`
-                          );
-                          setResumeUrl(compressed);
-                        } catch (err) {
-                          setFileUploadError("Failed to compress file automatically.");
-                        }
-                        return;
-                      }
-                      setResumeUrl(base64 || "");
+                      setResumeUrl(url || "");
                     }}
                     currentFileName={resumeUrl ? "Current Resume.pdf" : null}
+                    accept=".pdf"
+                    maxSizeMB={5}
                   />
                   {fileUploadError && (
                     <p className="mt-2 text-xs font-bold text-red-600 uppercase tracking-wide">

@@ -216,9 +216,15 @@ service cloud.firestore {
              // Capped like resumeUrl/passportUrl above: this is a base64 file
              // upload from the client and it had no size limit at all, so one
              // feedback ticket or safety report could be inflated to the 1 MiB
-             // document ceiling.
+             // document ceiling. The cap stays even though new reports carry
+             // only a Storage URL: documents written before that migration
+             // still hold inline base64, and every update to one of them is
+             // re-validated through here.
              (absent(data, 'attachmentData') ||
                (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
+             // Current reports store the attachment in Firebase Storage
+             // (reports/{uid}/... per storage.rules) and carry only the URL.
+             (absent(data, 'attachmentUrl') || data.attachmentUrl is string) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }

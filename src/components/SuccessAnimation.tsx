@@ -3,10 +3,12 @@ import { motion } from 'motion/react';
 
 interface SuccessAnimationProps {
   message: string;
+  /** Optional secondary line for caveats (e.g. "email may be in spam"). */
+  note?: React.ReactNode;
   onClose?: () => void;
 }
 
-export default function SuccessAnimation({ message, onClose }: SuccessAnimationProps) {
+export default function SuccessAnimation({ message, note, onClose }: SuccessAnimationProps) {
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -82,6 +84,17 @@ export default function SuccessAnimation({ message, onClose }: SuccessAnimationP
         >
           {message}
         </motion.p>
+
+        {note && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45 }}
+            className="mt-3 text-left"
+          >
+            {note}
+          </motion.div>
+        )}
 
         {onClose && (
           <motion.button

@@ -140,14 +140,20 @@ They can fix it themselves: signing in shows a screen with **"Finish setting up
 my account"**, which completes the profile without needing a new email address.
 Point them at that.
 
-To find everyone in this state:
+To find everyone in this state, and optionally notify or remove them, use the
+repair script rather than comparing backups by hand:
 
 ```bash
-npm run backup
+npm run repair:orphans                       # dry run: list every orphan
+npm run repair:orphans -- --notify           # email each orphan a finish-signup link
+npm run repair:orphans -- --delete --confirm-delete
+                                             # remove orphans that hold no platform data
 ```
 
-Then compare the `users` collection against `students` and `organizations`. A
-`users` document with no matching profile is a stuck account.
+An orphan is an auth account with no matching `students` or `organizations`
+profile. `--notify` needs `RESEND_API_KEY` and `MAIL_FROM`; `--delete` refuses
+any account that owns applications, hours, reports or feedback so it cannot
+destroy data another user depends on. See `scripts/repair-orphaned-accounts.ts`.
 
 ---
 
