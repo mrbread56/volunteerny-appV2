@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Shield, X, ArrowRight } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Link } from 'react-router-dom';
@@ -25,13 +25,26 @@ export default function CookieBanner() {
     setIsVisible(false);
   };
 
+  // Deliberately NOT wrapped in <AnimatePresence>.
+  //
+  // It used to be, with an exit animation. Under `prefers-reduced-motion:
+  // reduce` that exit applied its styles but never completed, so AnimatePresence
+  // kept the node mounted forever at opacity 0 — and opacity does not stop
+  // pointer events. The result was an invisible 448x264 click trap pinned to
+  // the bottom-right corner of EVERY page, right where the opportunity page
+  // puts Save, Share and Report Safety Concern. Those buttons were simply dead.
+  //
+  // Passing `style={{pointerEvents: ...}}` does not fix it either: AnimatePresence
+  // renders the exiting child from a snapshot of its last props, so a prop that
+  // depends on isVisible never reaches the stuck node. The only reliable fix is
+  // to not defer unmounting to an animation. Dismissing now unmounts instantly;
+  // the entrance animation is kept because nothing depends on it finishing.
   return (
-    <AnimatePresence>
+    <>
       {isVisible && (
-        <motion.div 
+        <motion.div
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 100, opacity: 0 }}
           role="region"
           aria-label="Cookie consent"
           className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md z-[100]"
@@ -82,6 +95,6 @@ export default function CookieBanner() {
           </div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </>
   );
 }

@@ -489,12 +489,15 @@ export default function OrgOpportunityApplicants() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10 space-y-8 relative">
-      <AnimatePresence>
-          {successMessage && (
+      {/* No <AnimatePresence>, no exit — see src/components/CookieBanner.tsx.
+          An exit that never completes leaves an invisible fixed overlay mounted,
+          and it still swallows clicks. This toast carries the Undo button and
+          sits over the header, so a stale copy would both eat nav clicks and
+          leave a dead Undo on screen. */}
+      {successMessage && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
               className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
             >
               <CheckCircle className="w-4 h-4" />
@@ -513,7 +516,6 @@ export default function OrgOpportunityApplicants() {
               )}
             </motion.div>
           )}
-      </AnimatePresence>
 
       <button
         onClick={() => navigate(-1)}

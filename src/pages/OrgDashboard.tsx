@@ -898,30 +898,32 @@ export default function OrgDashboard() {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-10 relative"
     >
-      <AnimatePresence>
-        {successMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
-          >
-            <CheckCircle className="w-4 h-4" />
-            {successMessage}
-          </motion.div>
-        )}
-        {errorMessage && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-rose-200 flex items-center gap-2"
-          >
-            <XCircle className="w-4 h-4" />
-            {errorMessage}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* No <AnimatePresence> and no exit animation — same reason as
+          src/components/CookieBanner.tsx. An exit that never completes (which is
+          what happens under `prefers-reduced-motion: reduce`) leaves the node
+          mounted at opacity 0, and an invisible position:fixed overlay still
+          swallows clicks. These toasts sit at top-centre over the header, so a
+          stale one would eat clicks on the nav. Unmount immediately instead. */}
+      {successMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-blue-dark text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-blue-dark/20 flex items-center gap-2"
+        >
+          <CheckCircle className="w-4 h-4" />
+          {successMessage}
+        </motion.div>
+      )}
+      {errorMessage && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-rose-200 flex items-center gap-2"
+        >
+          <XCircle className="w-4 h-4" />
+          {errorMessage}
+        </motion.div>
+      )}
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-line">
         <div>
@@ -960,7 +962,7 @@ export default function OrgDashboard() {
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("pending")}
-          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-yellow-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-yellow-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -976,7 +978,7 @@ export default function OrgDashboard() {
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("accepted")}
-          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-blue-dark cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-blue-dark cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -992,7 +994,7 @@ export default function OrgDashboard() {
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("rejected")}
-          className="p-8 bg-white border-none rounded-lg border-b-2 border-b-red-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-red-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
