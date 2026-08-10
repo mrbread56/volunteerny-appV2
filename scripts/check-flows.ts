@@ -188,20 +188,29 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
     }
 
     // ── student rates the org ───────────────────────────────────────────────
-    // This is the write that was silently discarded: orgId came back undefined,
-    // which both the SDK and `incoming().orgId is string` reject.
+    // Through the server, because the rules can no longer allow this from a
+    // client. Anyone could previously rate any organization for any
+    // opportunity, including ones that organization never posted, and ratings
+    // are a trust signal other students use to choose where to volunteer.
+    // Proving "this student actually volunteered here" is a query across
+    // applications, which rules cannot run — so orgRatings create is closed and
+    // POST /api/ratings/create is the only door. This step used to be an
+    // addDoc; it is now the check that the endpoint works for a student who
+    // really does hold an accepted application.
     await as(student.email);
-    const ratingRef = await addDoc(collection(db, 'orgRatings'), {
-      orgId: org.uid,
-      opportunityId: oppRef.id,
-      studentId: student.uid,
-      studentName: 'Flow Student',
-      stars: 5,
-      comment: 'Flow check rating.',
-      createdAt: serverTimestamp(),
-    });
-    docs.push({ col: 'orgRatings', id: ratingRef.id });
-    console.log('[PASS] student: rated the organization');
+    {
+      const studentToken = await auth.currentUser!.getIdToken();
+      const r = await fetch(`${apiBase}/api/ratings/create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+        body: JSON.stringify({ opportunityId: oppRef.id, stars: 5, comment: 'Flow check rating.' }),
+      });
+      const body: any = await r.json().catch(() => ({}));
+      assert.ok(r.ok, `the student could not rate the organization: ${r.status} ${body?.error || ''}`);
+      assert.equal(body.orgId, org.uid, 'the rating was filed against the wrong organization');
+      docs.push({ col: 'orgRatings', id: body.id });
+      console.log('[PASS] student: rated the organization through the server');
+    }
 
     // ── student requests hours ──────────────────────────────────────────────
     const reqId = `req-${student.uid}-${stamp}`;
