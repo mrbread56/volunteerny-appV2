@@ -13,6 +13,7 @@
     "check:firebase": "tsx scripts/check-firebase.ts",
     "check:signup": "tsx scripts/check-signup.ts",
     "check:storage": "tsx scripts/check-storage.ts",
+    "cleanup:test-data": "tsx scripts/cleanup-test-data.ts",
     "check:security": "npm run build && tsx scripts/check-security.ts",
     "check:flows": "tsx scripts/check-flows.ts",
     "check:email": "tsx scripts/check-email.ts",
