@@ -1,5 +1,11 @@
 import {StrictMode} from 'react';
 import {createRoot} from 'react-dom/client';
+// MUST stay the first import. A browser with site data blocked throws on every
+// localStorage access, and this app reads it in 135 unguarded places — one of
+// them during auth startup, which meant a blank white page and no error. This
+// module installs an in-memory stand-in as an import side effect, and import
+// declarations evaluate in source order, so it has to precede App.
+import './lib/storageFallback';
 import App from './App.tsx';
 import './index.css';
 
