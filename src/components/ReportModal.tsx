@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { compressFile } from '../utils/compress';
+import { uploadFileToStorage } from '../lib/storageUpload';
 import { Button } from './ui/Button';
 import { Input } from './ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
@@ -110,19 +111,44 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
 
     setIsSubmitting(true);
     try {
-      // Convert file to Base64 and compress it
+      // Attachments go to Firebase Storage, not into the Firestore document.
+      //
+      // This used to read the file into a base64 data URI, LZ-compress it and
+      // store it in reports/{id}.attachmentData — which put screenshots of
+      // minors' accounts inside a document every developer-console listing
+      // reads, and blew the 1 MiB document limit on larger screenshots.
+      // Storage holds the bytes; the document only carries the URL.
+      //
+      // Demo mode keeps the old inline path because there is no real Firebase
+      // project to upload to — and the demo copy never leaves localStorage.
+      let attachmentUrl: string | null = null;
       let compressedData: string | null = null;
       if (file) {
-        try {
-          const base64 = await new Promise<string>((resolve, reject) => {
-            const reader = new FileReader();
-            reader.readAsDataURL(file);
-            reader.onload = () => resolve(reader.result as string);
-            reader.onerror = (err) => reject(err);
-          });
-          compressedData = compressFile(base64);
-        } catch (fileErr) {
-          console.error("Failed to read report attachment", fileErr);
+        if (isDemoMode) {
+          try {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = (err) => reject(err);
+            });
+            compressedData = compressFile(base64);
+          } catch (fileErr) {
+            console.error("Failed to read report attachment", fileErr);
+          }
+        } else {
+          try {
+            const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-60);
+            attachmentUrl = await uploadFileToStorage(
+              file,
+              `reports/${user?.uid || 'anonymous'}/${Date.now()}-${safeName}`,
+            );
+          } catch (fileErr) {
+            console.error("Failed to upload report attachment", fileErr);
+            setFormError('Your screenshot could not be uploaded. Please try again, or submit the report without it.');
+            setIsSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -172,27 +198,52 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
         description,
         createdAt: new Date().toISOString(),
         aiOverview,
-        // Attachment:
+        // Attachment. Real reports carry only the Storage URL; the bytes live
+        // in Firebase Storage under reports/{uid}/... (see storage.rules).
+        // Demo reports keep the inline compressed data because they never
+        // leave this browser.
         attachmentName: file ? file.name : null,
         attachmentSize: file ? formatBytes(file.size) : null,
         attachmentDescription: file ? fileDescription : null,
+        attachmentUrl: attachmentUrl || null,
         attachmentData: compressedData,
         status: 'pending', // pending, resolved, dismissed
       };
 
-      // 2. Write to local database and firestore fallback list
-      const existingReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
-      existingReports.unshift(reportObj);
-      localStorage.setItem('demo_reports', JSON.stringify(existingReports));
-
-      if (!isDemoMode) {
+      if (isDemoMode) {
+        // Demo-only mirror. Real reports are NOT duplicated into localStorage:
+        // they describe safety incidents involving real accounts, and a shared
+        // or resold device has no business carrying them.
+        const existingReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
+        existingReports.unshift(reportObj);
+        localStorage.setItem('demo_reports', JSON.stringify(existingReports));
+      } else {
         try {
-          await setDoc(doc(db, 'reports', reportId), {
-            ...reportObj,
-            createdAt: serverTimestamp(),
-          });
-        } catch (dbErr) {
-          console.warn('Real Firestore report registry failed, recorded local copy seamlessly:', dbErr);
+          // The rules validate attachment fields as `absent(x) || x is string`,
+          // and a field set to null is PRESENT but not a string — so every
+          // attachment-less report used to fail validation (and the old catch
+          // swallowed it). Omit absent fields instead of nulling them.
+          const docData: Record<string, unknown> = { ...reportObj, createdAt: serverTimestamp() };
+          delete docData.attachmentData;
+          if (!attachmentUrl) {
+            delete docData.attachmentUrl;
+            delete docData.attachmentName;
+            delete docData.attachmentSize;
+            delete docData.attachmentDescription;
+          }
+          await setDoc(doc(db, 'reports', reportId), docData);
+        } catch (dbErr: any) {
+          // Previously this was swallowed ("recorded local copy seamlessly"),
+          // which meant a permission-denied looked exactly like a filed report
+          // — and then the local copy was the only record, invisible to staff.
+          console.error('Failed to file safety report in Firestore:', dbErr);
+          setFormError(
+            dbErr?.code === 'permission-denied'
+              ? 'Your report could not be filed: you need to be signed in with a completed profile. Please sign in again and retry.'
+              : 'Your report could not be filed. Please check your connection and try again.'
+          );
+          setIsSubmitting(false);
+          return;
         }
       }
 

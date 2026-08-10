@@ -726,8 +726,9 @@ export default function StudentProfile() {
               <div className="bg-paper-2 p-6 rounded-lg border border-line text-center">
                 <p className="text-xs text-ink-soft mb-6 font-medium italic">
                   Upload your resume to share it automatically with
-                  organizations when you apply. PDF files under 500KB are
-                  required to keep the database fast and responsive.
+                  organizations when you apply. PDF files up to 5MB are
+                  supported; files are stored securely in cloud storage, not in
+                  your profile record.
                 </p>
                 <div className="max-w-sm mx-auto">
                   <FileUpload

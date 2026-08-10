@@ -130,19 +130,37 @@ export default function FeedbackPage() {
     setError('');
 
     try {
-      // Upload file to Storage
+      // Attachments go to Firebase Storage; the Firestore document only carries
+      // the URL (in `attachmentData`, the legacy field name the reader panels
+      // still look for). Demo mode has no real project to upload to, so it
+      // keeps the old inline base64 path — that copy never leaves this browser.
       let compressedData: string | null = null;
       if (file) {
-        try {
-          compressedData = await uploadFileToStorage(
-            file,
-            `feedbacks/${user?.uid || 'anonymous'}/${file.name}`
-          );
-        } catch (fileErr: any) {
-          console.error("Failed to upload feedback attachment", fileErr);
-          setError("Failed to upload feedback attachment");
-          setIsSubmitting(false);
-          return;
+        if (isDemoMode) {
+          try {
+            const base64 = await new Promise<string>((resolve, reject) => {
+              const reader = new FileReader();
+              reader.readAsDataURL(file);
+              reader.onload = () => resolve(reader.result as string);
+              reader.onerror = (err) => reject(err);
+            });
+            compressedData = compressFile(base64);
+          } catch (fileErr) {
+            console.error("Failed to read feedback attachment", fileErr);
+          }
+        } else {
+          try {
+            const safeName = file.name.replace(/[^\w.\-]+/g, '_').slice(-60);
+            compressedData = await uploadFileToStorage(
+              file,
+              `feedbacks/${user?.uid || 'anonymous'}/${Date.now()}-${safeName}`
+            );
+          } catch (fileErr: any) {
+            console.error("Failed to upload feedback attachment", fileErr);
+            setError("Your attachment could not be uploaded. Please try again, or submit the feedback without it.");
+            setIsSubmitting(false);
+            return;
+          }
         }
       }
 
@@ -198,10 +216,14 @@ export default function FeedbackPage() {
         demoFeedbacks.unshift(feedbackObj);
         localStorage.setItem('demo_feedbacks', JSON.stringify(demoFeedbacks));
       } else {
-        await setDoc(doc(db, 'feedbacks', feedbackId), {
-          ...feedbackObj,
-          createdAt: serverTimestamp(),
-        });
+        // The rules validate optional fields as `absent(x) || x is string`, and
+        // a field set to null is PRESENT but not a string. Strip null optionals
+        // so an attachment-less ticket is not rejected by the rules.
+        const docData: Record<string, unknown> = { ...feedbackObj, createdAt: serverTimestamp() };
+        for (const key of ['attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'developerReply', 'repliedAt']) {
+          if (docData[key] == null) delete docData[key];
+        }
+        await setDoc(doc(db, 'feedbacks', feedbackId), docData);
       }
 
       // Clear input values safely

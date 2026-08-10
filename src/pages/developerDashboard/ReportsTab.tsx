@@ -2,7 +2,7 @@ import React from 'react';
 import { ShieldAlert, ShieldCheck, Sparkles, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { decompressFile } from '../../utils/compress';
+import AttachmentPreview from '../../components/AttachmentPreview';
 
 /**
  * The safety-reports tab of the developer console.
@@ -135,51 +135,11 @@ export default function ReportsTab({
                             "Attachment Description: {report.attachmentDescription}"
                           </div>
                         )}
-                        {report.attachmentData && (
-                          <div className="mt-2 p-3 bg-white border border-line rounded-lg overflow-hidden max-w-md">
-                            <p className="text-xs font-bold uppercase text-ink-muted font-mono tracking-wider mb-2">Screenshot Preview (Click to download):</p>
-                            {decompressFile(report.attachmentData).startsWith('data:image/') ? (
-                              <img 
-                                src={decompressFile(report.attachmentData)} 
-                                alt={report.attachmentName} 
-                                loading="lazy" width="800" height="600"
-                                className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-slate-300 cursor-pointer mx-auto"
-                                onClick={() => {
-                                  const link = document.createElement('a');
-                                  link.href = decompressFile(report.attachmentData!);
-                                  link.download = report.attachmentName || 'report_attachment';
-                                  document.body.appendChild(link);
-                                  link.click();
-                                  document.body.removeChild(link);
-                                }}
-                              />
-                            ) : decompressFile(report.attachmentData).startsWith('data:application/pdf') ? (
-                              <div className="space-y-2">
-                                <iframe 
-                                  src={decompressFile(report.attachmentData)} 
-                                  className="w-full h-64 rounded-lg border border-line bg-paper-2"
-                                />
-                                <a aria-label="Download attachment" 
-                                  href={decompressFile(report.attachmentData)}
-                                  download={report.attachmentName}
-                                  className="text-xs font-bold text-rose-600 hover:text-rose-700 hover:underline block"
-                                >
-                                  Download Proof PDF Attachment
-                                </a>
-                              </div>
-                            ) : (
-                              <div className="flex flex-col gap-2">
-                                <span className="text-ink-muted font-medium">Binary document format attachment.</span>
-                                <a aria-label="Download attachment" 
-                                  href={decompressFile(report.attachmentData)} 
-                                  download={report.attachmentName}
-                                  className="px-3.5 py-2 bg-paper-3 hover:bg-slate-300 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
-                                >
-                                  Download File ({report.attachmentName})
-                                </a>
-                              </div>
-                            )}
-                          </div>
+                        {(report.attachmentUrl || report.attachmentData) && (
+                          <AttachmentPreview
+                            value={report.attachmentUrl || report.attachmentData}
+                            name={report.attachmentName}
+                          />
                         )}
                       </div>
                     )}

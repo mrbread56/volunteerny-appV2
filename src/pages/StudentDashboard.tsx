@@ -6,6 +6,7 @@ import LeaderboardTab from './studentDashboard/LeaderboardTab';
 import SettingsTab from './studentDashboard/SettingsTab';
 import { useAuth } from "../contexts/AuthContext";
 import SuccessAnimation from "../components/SuccessAnimation";
+import EmailDeliveryNote from "../components/ui/EmailDeliveryNote";
 import { db } from "../firebase/config";
 import { subscribeToScalableLeaderboard } from "../lib/scalableLeaderboard";
 import { reportError } from "../lib/errors";
@@ -216,6 +217,9 @@ export default function StudentDashboard() {
   const [leaderboard, setLeaderboard] = useState<
     Array<{ id: string; name: string; hours: number; isSelf: boolean }>
   >([]);
+  // True when the leaderboard document could not be read. Rendered as an
+  // honest error instead of fabricated peers.
+  const [leaderboardError, setLeaderboardError] = useState(false);
 
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -481,7 +485,11 @@ export default function StudentDashboard() {
     let unsubscribe: (() => void) | undefined;
 
     const fetchLeaderboard = () => {
-      let basePeers = [
+      // Fabricated peers ("Maya S.", "Devon K.", …) used to live here and were
+      // merged into the REAL leaderboard on every load — students were ranked
+      // against people who do not exist. They now exist only inside demo mode,
+      // where the whole session is explicitly simulated.
+      const demoPeers = [
         { id: "peer-1", name: "Maya S.", hours: 32.5, isSelf: false },
         { id: "peer-2", name: "Devon K.", hours: 26.0, isSelf: false },
         { id: "peer-3", name: "Ethan L.", hours: 18.0, isSelf: false },
@@ -498,13 +506,14 @@ export default function StudentDashboard() {
             hours: totalCompletedHours,
             isSelf: true,
           };
-          const combined = [...basePeers, selfItem].sort(
+          const combined = [...demoPeers, selfItem].sort(
             (a, b) => b.hours - a.hours,
           );
           setLeaderboard(combined);
         } else {
-          setLeaderboard(basePeers);
+          setLeaderboard(demoPeers);
         }
+        setLeaderboardError(false);
         return;
       }
 
@@ -530,23 +539,23 @@ export default function StudentDashboard() {
               });
             }
 
-            basePeers.forEach((peer) => {
-              if (!mapped.some((c) => c.id === peer.id)) {
-                mapped.push(peer);
-              }
-            });
-
             mapped.sort((a, b) => b.hours - a.hours);
             setLeaderboard(mapped.slice(0, 5));
+            setLeaderboardError(false);
           },
           (err) => {
-            console.error("Scalable leaderboard aggregation fallback:", err);
-            setLeaderboard(basePeers);
+            // A failed read must render as a failure, not as four invented
+            // students. Same principle as the demo-hours fixtures removed in
+            // B17: these are graduation records and a public ranking.
+            console.error("Scalable leaderboard read failed:", err);
+            setLeaderboard([]);
+            setLeaderboardError(true);
           }
         );
       } catch (err) {
         console.error("Error subscribing to scalable leaderboard:", err);
-        setLeaderboard(basePeers);
+        setLeaderboard([]);
+        setLeaderboardError(true);
       }
     };
 
@@ -1276,6 +1285,15 @@ export default function StudentDashboard() {
                     <p className="text-xs font-semibold uppercase text-ink-soft tracking-wider ml-1">
                       Submitted Claims ({hoursRequests.length})
                     </p>
+                    <div className="flex items-start gap-2 p-3 bg-amber/10 border border-amber/40 rounded-lg">
+                      <span aria-hidden="true" className="text-sm leading-none mt-px">⚠️</span>
+                      <p className="text-[11px] text-amber-900 font-semibold leading-relaxed">
+                        Pending claims do not count toward your hour total until
+                        the coordinator approves them. If your coordinator says
+                        they never received the verification email, ask them to
+                        check their spam or junk folder, then use Remind.
+                      </p>
+                    </div>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                       {hoursRequests.map((req) => (
                         <div
@@ -1438,9 +1456,9 @@ export default function StudentDashboard() {
             </div>
           </motion.div>
           )} 
-          {activeTab === "leaderboard" && (
-            <LeaderboardTab leaderboard={leaderboard} studentProfile={studentProfile} />
-          )}
+                {activeTab === "leaderboard" && (
+                  <LeaderboardTab leaderboard={leaderboard} studentProfile={studentProfile} loadError={leaderboardError} />
+                )}
           {activeTab === "settings" && (
             <SettingsTab
               studentProfile={studentProfile}
@@ -1754,7 +1772,17 @@ export default function StudentDashboard() {
       )}
       {logSuccess && (
         <SuccessAnimation
-          message="Your volunteer hours request has been logged and dispatched to your coordinator successfully!"
+          message="Your hours request was submitted and we emailed your coordinator for verification."
+          note={
+            <div className="space-y-2">
+              <p className="text-[11px] leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
+                ⚠️ These hours do NOT count toward your total yet. They are
+                added only after your coordinator approves the request — track
+                the status under Submitted Claims.
+              </p>
+              <EmailDeliveryNote who="your coordinator's" />
+            </div>
+          }
           onClose={() => setLogSuccess(false)}
         />
       )}
