@@ -652,6 +652,90 @@ app.use(express.json());
    *   - it is named on the pending hoursRequest being approved, or
    *   - the student holds an accepted application to an opportunity it owns.
    */
+  /**
+   * Delete an account for real — Auth identity included.
+   *
+   * The developer console used to do this from the browser, deleting
+   * users/{id} and then students/{id} or organizations/{id}. The client cannot
+   * touch Firebase Auth, so the identity always survived: the "deleted" person
+   * could still sign in, and firestore.rules lets a signed-in account create
+   * its own users doc, so they came back — with whichever role they chose on
+   * the way in. It also manufactured exactly the orphaned-account state the
+   * incomplete-profile recovery screen exists to apologise for.
+   *
+   * Only the Admin SDK can remove the identity, so the operation belongs here.
+   * Auth is deleted FIRST: if that fails the documents are left alone and the
+   * caller is told, which is recoverable. The reverse order would leave a
+   * signed-in identity with no profile — the exact orphan we are removing.
+   */
+  app.post('/api/admin/delete-user', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Demo sessions must never reach a real deletion.
+      if (authContext.isDemo) {
+        return res.status(403).json({ error: 'Demo mode cannot delete real accounts.' });
+      }
+
+      const { userId, role } = req.body || {};
+      if (typeof userId !== 'string' || !userId.trim()) {
+        return res.status(400).json({ error: 'userId is required.' });
+      }
+      if (role !== 'student' && role !== 'organization') {
+        return res.status(400).json({ error: "role must be 'student' or 'organization'." });
+      }
+
+      const adb = adminFirestore();
+      // The role is read from the database, never from the request body — the
+      // same rule the hours endpoint follows.
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      const isDeveloperCaller =
+        caller?.role === 'developer' ||
+        (process.env.VITE_DEVELOPER_EMAILS || '')
+          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+          .includes((authContext.email || '').toLowerCase());
+      if (!isDeveloperCaller) {
+        console.warn(`[admin/delete-user] ${authContext.uid} attempted to delete ${userId}`);
+        return res.status(403).json({ error: 'Only a developer can delete accounts.' });
+      }
+      if (userId === authContext.uid) {
+        return res.status(400).json({ error: 'You cannot delete your own account from here.' });
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) throw new Error('Firebase Admin is not initialized');
+
+      let authDeleted = false;
+      try {
+        await adminObj.auth().deleteUser(userId);
+        authDeleted = true;
+      } catch (authErr: any) {
+        // Already gone is a success for our purposes — it means a previous
+        // half-finished delete left documents behind, and clearing them is
+        // precisely what this call should now do.
+        if (authErr?.code !== 'auth/user-not-found') {
+          console.error('[admin/delete-user] auth delete failed:', authErr);
+          return res.status(502).json({
+            error: 'Could not delete the sign-in account, so nothing was removed.',
+            details: 'The profile documents were left intact. Please try again.',
+          });
+        }
+      }
+
+      await adb.collection('users').doc(userId).delete();
+      await adb.collection(role === 'student' ? 'students' : 'organizations').doc(userId).delete();
+
+      console.warn(`[admin/delete-user] ${authContext.email || authContext.uid} deleted ${role} ${userId}`);
+      return res.json({ success: true, authDeleted });
+    } catch (err: any) {
+      console.error('[admin/delete-user] failed:', err);
+      return res.status(500).json({ error: 'Could not delete that account. Please try again.' });
+    }
+  });
+
   app.post('/api/hours/approve', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);

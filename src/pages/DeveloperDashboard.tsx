@@ -472,11 +472,22 @@ export default function DeveloperDashboard() {
         setStudents(prev => prev.filter(s => s.uid !== userId));
         setOrgs(prev => prev.filter(o => o.uid !== userId));
       } else {
-        await deleteDoc(doc(db, 'users', userId));
-        if (role === 'student') {
-          await deleteDoc(doc(db, 'students', userId));
-        } else if (role === 'organization') {
-          await deleteDoc(doc(db, 'organizations', userId));
+        // Via the server, because only the Admin SDK can remove the Firebase
+        // Auth identity. Deleting the documents from here left the account able
+        // to sign in and re-create its own users doc with a role of its
+        // choosing — so "delete" removed the profile and none of the access.
+        const token = await user?.getIdToken();
+        const res = await fetch(`${API_BASE_URL}/api/admin/delete-user`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ userId, role }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          throw new Error(body.details || body.error || `Delete failed (${res.status}).`);
         }
       }
       setDeleteTargetId(null);
