@@ -668,6 +668,66 @@ app.use(express.json());
    * caller is told, which is recoverable. The reverse order would leave a
    * signed-in identity with no profile — the exact orphan we are removing.
    */
+  /**
+   * The developer console's student list, as an allow-listed projection.
+   *
+   * The console used to read up to 200 whole student documents straight from
+   * the browser. `resumeUrl` and `passportUrl` on those documents are not URLs
+   * — they hold entire files as base64, capped at 400 KB EACH by the rules — so
+   * a list that renders a name, an email and a school was pulling as much as
+   * 160 MB of minors' identity documents into a browser tab, over and over, on
+   * every load. The Firestore web SDK has no field projection, so the only
+   * place this can be narrowed is here.
+   *
+   * Same shape as GET /api/students/:id/review-profile, which already does
+   * exactly this for organizations. loggedHours collapses to a count because
+   * the console only ever renders its length, and 200 students x up to 500
+   * entries is its own payload problem.
+   */
+  app.get('/api/admin/students', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const adb = adminFirestore();
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      const isDeveloperCaller =
+        caller?.role === 'developer' ||
+        (process.env.VITE_DEVELOPER_EMAILS || '')
+          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+          .includes((authContext.email || '').toLowerCase());
+      if (!isDeveloperCaller) {
+        return res.status(403).json({ error: 'Only a developer can list students.' });
+      }
+
+      const snap = await adb.collection('students').limit(200).get();
+      const students = snap.docs.map((d: any) => {
+        const s = d.data() || {};
+        // Allow-list, not a deny-list: a field added to the student document
+        // later must be opted IN here, so the next base64 blob somebody stores
+        // does not silently start shipping to the browser again.
+        return {
+          uid: d.id,
+          fullName: s.fullName || '',
+          email: s.email || '',
+          school: s.school || '',
+          grade: s.grade ?? '',
+          isBanned: s.isBanned === true,
+          hours: Number(s.hours) || 0,
+          loggedHoursCount: Array.isArray(s.loggedHours) ? s.loggedHours.length : 0,
+        };
+      });
+
+      return res.json({ students });
+    } catch (err: any) {
+      console.error('[admin/students] failed:', err);
+      return res.status(500).json({ error: 'Could not load the student list.' });
+    }
+  });
+
   app.post('/api/admin/delete-user', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);

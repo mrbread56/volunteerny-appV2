@@ -349,8 +349,20 @@ export default function DeveloperDashboard() {
         setReports(repList);
         setRealReportCount(repList.length);
 
-        const studentSnap = await getDocs(query(collection(db, 'students'), limit(200)));
-        const studentList = studentSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+        // Via the server, which returns an allow-listed projection. Reading
+        // these documents directly pulled resumeUrl and passportUrl with them —
+        // base64 files, up to 400 KB each by the rules — so listing 200
+        // students streamed as much as 160 MB of minors' identity documents
+        // into this tab to render names and emails.
+        const studentToken = await user?.getIdToken();
+        const studentRes = await fetch(`${API_BASE_URL}/api/admin/students`, {
+          headers: studentToken ? { Authorization: `Bearer ${studentToken}` } : {},
+        });
+        if (!studentRes.ok) {
+          const body = await studentRes.json().catch(() => ({}));
+          throw new Error(body.error || `Could not load students (${studentRes.status}).`);
+        }
+        const { students: studentList } = await studentRes.json();
         setStudents(studentList);
         setRealStudentCount(studentList.length);
 
@@ -1190,7 +1202,10 @@ export default function DeveloperDashboard() {
                           {st.school} • Grade {st.grade}
                         </p>
                         <p className="text-xs font-bold text-blue-dark font-mono">
-                          LOGGED: {st.loggedHours?.length || 0} activity sessions
+                          {/* loggedHoursCount comes from the projection; the
+                              array itself is no longer sent. Demo fixtures
+                              still carry the array, hence both. */}
+                          LOGGED: {st.loggedHoursCount ?? st.loggedHours?.length ?? 0} activity sessions
                         </p>
                       </div>
 

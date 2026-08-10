@@ -380,7 +380,17 @@ export default function StudentOpportunityDetail() {
                   </div>
                   <div>
                     <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-0.5">Organization</p>
-                    <p className="font-bold text-ink">{organization?.organizationName || 'Loading...'}</p>
+                    {/* Was `organization?.organizationName || 'Loading...'`.
+                        By the time this renders, loading is already finished —
+                        isLoading gates the whole page above. So when the
+                        organization document was missing or unreadable this
+                        said "Loading..." forever, and the page looked hung when
+                        it was simply done and empty. Fall back to the name the
+                        opportunity itself carries, and say so plainly if there
+                        is none. */}
+                    <p className="font-bold text-ink">
+                      {organization?.organizationName || opportunity?.orgName || 'Organization details unavailable'}
+                    </p>
                   </div>
                </div>
                {organization?.contactEmail && (

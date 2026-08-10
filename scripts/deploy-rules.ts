@@ -100,4 +100,74 @@ const rollbackTo = process.argv.includes('--rollback')
 
   console.log(`deployed to  : ${DB}`);
   console.log(`roll back with: npm run deploy:rules -- --rollback ${previous}`);
+
+  // ── Storage rules ──
+  //
+  // These were never published by anything. `firebase deploy` is not available
+  // (the CLI is not a dependency, see the header), so storage.rules sat in the
+  // repo being edited and reviewed while the bucket enforced whatever was set
+  // when the project was created. That went unnoticed until uploads moved from
+  // base64-in-Firestore to real Storage: the app started writing to
+  // reports/{uid}/ and students/{uid}/ against rules that had never heard of
+  // those paths, and every upload hung.
+  //
+  // Same two-step as above: create a ruleset, point the release at it. The
+  // release name for Storage is the bucket, not the database.
+  if (rollbackTo) {
+    console.log('\n(storage rules skipped during a rollback — roll them back explicitly if needed)');
+    return;
+  }
+
+  const bucket = process.env.VITE_FIREBASE_STORAGE_BUCKET || process.env.FIREBASE_STORAGE_BUCKET;
+  if (!bucket) {
+    console.error('\nVITE_FIREBASE_STORAGE_BUCKET is not set — storage.rules NOT deployed.');
+    process.exit(1);
+  }
+  if (!fs.existsSync('storage.rules')) {
+    console.error('\nstorage.rules is missing — nothing to deploy.');
+    process.exit(1);
+  }
+
+  console.log('\n── storage rules ──');
+  const storageRelease = `projects/${PROJECT}/releases/firebase.storage/${bucket}`;
+  const sBefore = await fetch(`https://firebaserules.googleapis.com/v1/${storageRelease}`, { headers });
+  const sPrevious = sBefore.ok ? (await sBefore.json()).rulesetName : '(none)';
+  console.log('current ruleset:', sPrevious);
+
+  const sCreated = await fetch(`https://firebaserules.googleapis.com/v1/projects/${PROJECT}/rulesets`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      source: { files: [{ name: 'storage.rules', content: fs.readFileSync('storage.rules', 'utf8') }] },
+    }),
+  });
+  const sBody = await sCreated.json();
+  if (!sCreated.ok) {
+    console.error('storage ruleset rejected:\n' + JSON.stringify(sBody, null, 2));
+    process.exit(1);
+  }
+  console.log('new ruleset  :', sBody.name);
+
+  // PATCH updates an existing release; it 404s when there has never been one,
+  // which is exactly the state a bucket is in if its rules were never
+  // published. The first deploy has to CREATE the release instead.
+  const firstPublish = sPrevious === '(none)';
+  const sUpdated = firstPublish
+    ? await fetch(`https://firebaserules.googleapis.com/v1/projects/${PROJECT}/releases`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ name: storageRelease, rulesetName: sBody.name }),
+      })
+    : await fetch(`https://firebaserules.googleapis.com/v1/${storageRelease}?updateMask=rulesetName`, {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({ release: { name: storageRelease, rulesetName: sBody.name } }),
+      });
+  const sOut = await sUpdated.json();
+  if (!sUpdated.ok) {
+    console.error('storage release update failed:\n' + JSON.stringify(sOut, null, 2));
+    process.exit(1);
+  }
+  console.log(`deployed to  : ${bucket}`);
+  console.log(`roll back with: (storage) previous ruleset was ${sPrevious}`);
 })();

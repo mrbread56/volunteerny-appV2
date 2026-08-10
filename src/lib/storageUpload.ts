@@ -91,6 +91,36 @@ export async function uploadFileToStorage(
   });
 
   return new Promise<string>((resolve, reject) => {
+    // An upload that cannot succeed must not spin forever.
+    //
+    // Firebase Storage retries transport failures internally with a long
+    // backoff, so when the bucket does not exist — which is the state this
+    // project shipped in, because Storage was never enabled — the SDK neither
+    // resolves nor rejects for a very long time. Every caller shows a spinner
+    // while it waits, and the user sees a form that hangs with no error: the
+    // safety-report dialog sat on "loading" forever for exactly this reason.
+    // A bounded wait turns a hang into a sentence somebody can act on.
+    const TIMEOUT_MS = 30_000;
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) return;
+      settled = true;
+      task.cancel();
+      reject(
+        new Error(
+          'The upload did not complete. File storage may not be set up for this site — ' +
+            'you can submit without an attachment, and please report this.',
+        ),
+      );
+    }, TIMEOUT_MS);
+
+    const finish = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      fn();
+    };
+
     task.on(
       'state_changed',
       (snapshot) => {
@@ -102,10 +132,14 @@ export async function uploadFileToStorage(
           totalBytes: snapshot.totalBytes,
         });
       },
-      (error) => reject(error),
+      (error) => finish(() => reject(error)),
       async () => {
-        const url = await getDownloadURL(task.snapshot.ref);
-        resolve(url);
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          finish(() => resolve(url));
+        } catch (err) {
+          finish(() => reject(err));
+        }
       },
     );
   });
