@@ -87,10 +87,27 @@ export default function StudentOpportunityDetail() {
           const data = { id: snap.id, ...snap.data() } as Opportunity;
           setOpportunity(data);
           
-          // Fetch organization
-          const orgSnap = await getDoc(doc(db, 'organizations', data.orgId));
-          if (orgSnap.exists()) {
-            setOrganization({ uid: orgSnap.id, ...orgSnap.data() } as OrganizationProfile);
+          // Fetch organization.
+          //
+          // Deliberately non-fatal: the opportunity is already rendered by this
+          // point and the page is useful without the organization record. But
+          // it must not be SILENT — a missing or unreadable org document used
+          // to leave `organization` null with no trace, and the safety-report
+          // modal was gated on that state, so the only symptom was a button
+          // that did nothing. The modal no longer depends on it; this says so
+          // when it happens.
+          try {
+            const orgSnap = await getDoc(doc(db, 'organizations', data.orgId));
+            if (orgSnap.exists()) {
+              setOrganization({ uid: orgSnap.id, ...orgSnap.data() } as OrganizationProfile);
+            } else {
+              reportError(
+                'load organization for opportunity',
+                new Error(`organizations/${data.orgId} does not exist (opportunity ${snap.id})`),
+              );
+            }
+          } catch (orgErr) {
+            reportError('load organization for opportunity', orgErr);
           }
 
           // Check if already applied
@@ -516,13 +533,22 @@ export default function StudentOpportunityDetail() {
         </div>
       </div>
 
-      {/* Safety Reporting Modal Option */}
-      {opportunity && organization && (
-        <ReportModal 
+      {/* Safety Reporting Modal.
+          NOT gated on `organization`. It used to be `opportunity && organization`,
+          and the organization document is a separate fetch that silently leaves
+          the state null whenever the doc is missing or unreadable (see the
+          `orgSnap.exists()` check above, which has no else). When that happened
+          the button rendered, the click set showReportModal, and no modal ever
+          mounted — a dead "Report Safety Concern" button, on the one screen
+          where a student is trying to tell us something is wrong.
+          Everything the modal needs comes from the opportunity itself; the
+          organization record only supplies a nicer display name. */}
+      {opportunity && (
+        <ReportModal
           isOpen={showReportModal}
           onClose={() => setShowReportModal(false)}
           reportedUserId={opportunity.orgId}
-          reportedUserName={organization.organizationName || 'York Region Organization'}
+          reportedUserName={organization?.organizationName || opportunity.orgName || 'This organization'}
           reportedUserRole="organization"
         />
       )}
