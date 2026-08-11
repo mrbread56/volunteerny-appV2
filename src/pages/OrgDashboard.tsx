@@ -653,34 +653,7 @@ export default function OrgDashboard() {
       try {
         await updateDoc(doc(db, "applications", appId), updates);
       } catch (dbErr) {
-        if (isDemoMode) {
-          console.warn(
-            "Firestore update application status failed, using local fallback:",
-            dbErr,
-          );
-          // Fallback: update in localStorage demo_applications
-          const storedApps = localStorage.getItem("demo_applications");
-          if (storedApps) {
-            const appsList = JSON.parse(storedApps);
-            const updatedList = appsList.map((a: any) =>
-              a.id === appId
-                ? {
-                    ...a,
-                    status: newStatus,
-                    rejectionReason: rejectionData?.reason,
-                    rejectionNote: rejectionData?.note,
-                  }
-                : a,
-            );
-            localStorage.setItem(
-              "demo_applications",
-              JSON.stringify(updatedList),
-            );
-          }
-        } else {
-          // If we are not in demo mode, avoid silent swallow. Raise error for correction.
-          throw dbErr;
-        }
+        throw dbErr;
       }
 
       setSuccessMessage(`Application ${newStatus} successfully!`);

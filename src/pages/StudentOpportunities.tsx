@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { db } from '../firebase/config';
@@ -239,11 +240,15 @@ export default function StudentOpportunities() {
             const savedQuery = query(collection(db, 'savedOpportunities'), where('studentId', '==', user.uid));
             const savedSnap = await getDocs(savedQuery);
             const remoteIds = savedSnap.docs.map(doc => (doc.data() as SavedOpportunity).opportunityId);
-            const merged = Array.from(new Set([...remoteIds, ...localSaves]));
+            const merged = Array.from(new Set([...remoteIds, ...(isDemoMode ? localSaves : [])]));
             setSavedIds(merged);
           } catch (dbErr) {
-            console.warn('Real Firestore saved opportunities fetch failed, using local storage cache:', dbErr);
-            setSavedIds(localSaves);
+            // Falling back to an empty list is correct — demo ids must never
+            // stand in for a real student's bookmarks — but it used to do that
+            // behind a console.error, so every saved opportunity silently
+            // appeared unsaved and the student had no idea the read had failed.
+            setSavedIds(isDemoMode ? localSaves : []);
+            reportError('load saved opportunity ids', dbErr);
           }
         }
       } catch (err) {

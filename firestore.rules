@@ -385,7 +385,7 @@ service cloud.firestore {
       // Deliberately no organization branch below. Adding one back re-opens the
       // hole; scripts/check-security.ts asserts it stays shut.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (isOwner(uid) && isValidStudent(incoming()) && !incoming().diff(existing()).affectedKeys().hasAny(['loggedHours', 'hours'])) ||
+        (isOwner(uid) && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -403,10 +403,11 @@ service cloud.firestore {
       // because the org typed a number, and these rules allowed it, so any org
       // could self-issue a verified badge with a single request.
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidOrganization(incoming()) &&
-                      incoming().get('craVerified', false) == false;
+                      incoming().get('craVerified', false) == false &&
+                      incoming().keys().hasOnly(['uid', 'organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'craVerified', 'verificationStatus']);
       allow update: if isSignedIn() && isValidId(uid) && (
         (request.auth.uid == uid && isValidOrganization(incoming()) &&
-         !incoming().diff(existing()).affectedKeys().hasAny(['craVerified', 'verificationStatus'])) ||
+         incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks'])) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -414,10 +415,12 @@ service cloud.firestore {
 
     match /opportunities/{opportunityId} {
       allow read: if true; // Public access to browse
-      allow create: if isVerifiedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId);
+      allow create: if isVerifiedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
+                      incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
       allow update: if isVerifiedOrg() && isValidId(opportunityId) &&
                       existing().orgId == request.auth.uid && 
-                      isValidOpportunity(incoming());
+                      isValidOpportunity(incoming()) &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'coordinates', 'scheduleType', 'shifts']);
       allow delete: if isVerifiedOrg() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 
@@ -458,7 +461,7 @@ service cloud.firestore {
 
     match /savedOpportunities/{savedId} {
       allow read: if isOwner(resource.data.studentId) || isDeveloper();
-      allow create: if isVerifiedStudent() && isValidSavedOpportunity(incoming()) && isValidId(savedId);
+      allow create: if isVerifiedStudent() && isValidSavedOpportunity(incoming()) && isValidId(savedId) && incoming().diff({}).affectedKeys().hasOnly(['studentId', 'opportunityId', 'savedAt']);
       allow delete: if isOwner(resource.data.studentId) || isDeveloper();
     }
 
@@ -466,7 +469,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper()) && isValidId(feedbackId);
       // The feedback page lists the tickets you filed; developers list them all.
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming());
+      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'developerReply', 'repliedAt', 'createdAt']);
       allow update: if isSignedIn() && isValidId(feedbackId) && (
         isDeveloper() || 
         (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))
@@ -475,9 +478,9 @@ service cloud.firestore {
     }
 
     match /reports/{reportId} {
-      allow get: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || resource.data.reportedUserId == request.auth.uid || isDeveloper()) && isValidId(reportId);
-      allow list: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || resource.data.reportedUserId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming());
+      allow get: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper()) && isValidId(reportId);
+      allow list: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper());
+      allow create: if isSignedIn() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['reportingUserId', 'reportingUserEmail', 'reportingUserName', 'reportedUserId', 'reportedUserName', 'reportedUserRole', 'reason', 'description', 'status', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'attachmentUrl', 'aiOverview', 'createdAt']);
       allow update, delete: if isDeveloper();
     }
 
@@ -548,11 +551,11 @@ service cloud.firestore {
       allow get: if isSignedIn() && (resource.data.studentId == request.auth.uid || isDeveloper()) && isValidId(reqId);
       allow list: if isSignedIn() && (resource.data.studentId == request.auth.uid || isDeveloper());
       allow create: if isSignedIn() && isValidId(reqId) && (
-        (incoming().studentId == request.auth.uid && isValidInterestRequest(incoming())) || 
+        (incoming().studentId == request.auth.uid && isValidInterestRequest(incoming()) && incoming().keys().hasOnly(['studentId', 'studentName', 'email', 'categories', 'description', 'createdAt', 'status'])) || 
         isDeveloper()
       );
       allow update: if isSignedIn() && isValidId(reqId) && (
-        (existing().studentId == request.auth.uid && isValidInterestRequest(incoming())) || 
+        (existing().studentId == request.auth.uid && isValidInterestRequest(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['categories', 'description'])) || 
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -616,7 +619,7 @@ service cloud.firestore {
       allow create: if false;
       allow update: if isVerifiedOrg() && existing().orgId == request.auth.uid &&
                        isValidRecommendation(incoming()) &&
-                       !incoming().diff(existing()).affectedKeys().hasAny(['orgId', 'studentId', 'opportunityId']);
+                       incoming().diff(existing()).affectedKeys().hasOnly(['text', 'rating']);
       allow delete: if isDeveloper() || (isVerifiedOrg() && existing().orgId == request.auth.uid);
     }
 
@@ -647,7 +650,7 @@ service cloud.firestore {
       // client-side — which is why the bounds have to be re-checked here).
       allow update: if isSignedIn() && existing().studentId == request.auth.uid &&
                        isValidOrgRating(incoming()) &&
-                       !incoming().diff(existing()).affectedKeys().hasAny(['studentId', 'orgId', 'opportunityId']);
+                       incoming().diff(existing()).affectedKeys().hasOnly(['stars', 'comment']);
       allow delete: if isDeveloper();
     }
   }

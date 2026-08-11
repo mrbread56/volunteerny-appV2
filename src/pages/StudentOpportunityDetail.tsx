@@ -130,9 +130,12 @@ export default function StudentOpportunityDetail() {
               const savedSnap = await getDocs(savedQuery);
               setIsSaved(!savedSnap.empty);
             } catch (savedErr) {
-              console.warn('Error checking saved state from Firestore:', savedErr);
-              const localSaves = JSON.parse(localStorage.getItem('demo_saved_ids') || '[]');
-              setIsSaved(localSaves.includes(id || ''));
+              // Non-fatal: the page works without knowing the bookmark state.
+              // But it must not be silent — showing an unbookmarked star for a
+              // read that FAILED means the student re-saves something already
+              // saved, and console.error alone told nobody.
+              setIsSaved(false);
+              reportError('check saved state', savedErr);
             }
           }
         } else {

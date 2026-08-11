@@ -1030,17 +1030,14 @@ app.use(express.json());
       }
 
       if (!authorised) {
-        // Does this student hold an accepted application to one of our
-        // opportunities? `in` takes at most 30 values, so cap the scan.
         const oppSnap = await adb.collection('opportunities')
-          .where('orgId', '==', authContext.uid).limit(30).get();
-        const oppIds = oppSnap.docs.map((d: any) => d.id);
-        if (oppIds.length) {
+          .where('orgId', '==', authContext.uid).get();
+        const oppIds = new Set(oppSnap.docs.map((d: any) => d.id));
+        if (oppIds.size > 0) {
           const appSnap = await adb.collection('applications')
             .where('studentId', '==', studentId)
-            .where('opportunityId', 'in', oppIds)
-            .limit(10).get();
-          authorised = appSnap.docs.some((d: any) => d.data().status === 'accepted');
+            .get();
+          authorised = appSnap.docs.some((d: any) => d.data().status === 'accepted' && oppIds.has(d.data().opportunityId));
         }
       }
 
@@ -1191,14 +1188,13 @@ app.use(express.json());
       let authorised = isDeveloperCaller;
       if (!authorised) {
         const oppSnap = await adb.collection('opportunities')
-          .where('orgId', '==', authContext.uid).limit(30).get();
-        const oppIds = oppSnap.docs.map((d: any) => d.id);
-        if (oppIds.length) {
+          .where('orgId', '==', authContext.uid).get();
+        const oppIds = new Set(oppSnap.docs.map((d: any) => d.id));
+        if (oppIds.size > 0) {
           const appSnap = await adb.collection('applications')
             .where('studentId', '==', studentId)
-            .where('opportunityId', 'in', oppIds)
-            .limit(1).get();
-          authorised = !appSnap.empty;
+            .get();
+          authorised = appSnap.docs.some((d: any) => oppIds.has(d.data().opportunityId));
         }
       }
       if (!authorised) {

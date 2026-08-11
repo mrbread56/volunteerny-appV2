@@ -37,7 +37,7 @@ import { Spinner } from '../components/ui/Spinner';
  * but "this is taking longer than it should" plus a reload beats a word that
  * stops being true after the first few seconds.
  */
-export const LoadingFallback = ({ timeoutMs = 15000 }: { timeoutMs?: number }) => {
+export const LoadingFallback = ({ timeoutMs = 10000 }: { timeoutMs?: number }) => {
   const [stalled, setStalled] = React.useState(false);
 
   React.useEffect(() => {
