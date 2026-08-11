@@ -23,11 +23,49 @@ import { isDeveloperUser } from '../lib/devAccess';
 import { Spinner } from '../components/ui/Spinner';
 
 
-export const LoadingFallback = () => (
-  <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-    <Spinner size="lg" className="text-ink" />
-  </div>
-);
+/**
+ * A spinner that admits when it has given up.
+ *
+ * Every guard below returns something while `loading` is true, and `loading`
+ * only clears when AuthContext finishes. If that never happens — a hung network
+ * request, an auth init that throws somewhere without settling, an ad blocker
+ * eating the Firebase connection — the user sits on this screen forever. Three
+ * guards used to render a bare `<div>Loading...</div>`, so the failure looked
+ * identical to a slow connection, offered nothing to do, and told us nothing.
+ *
+ * After the threshold it says so and offers a way out. It cannot fix the cause,
+ * but "this is taking longer than it should" plus a reload beats a word that
+ * stops being true after the first few seconds.
+ */
+export const LoadingFallback = ({ timeoutMs = 15000 }: { timeoutMs?: number }) => {
+  const [stalled, setStalled] = React.useState(false);
+
+  React.useEffect(() => {
+    const t = setTimeout(() => setStalled(true), timeoutMs);
+    return () => clearTimeout(t);
+  }, [timeoutMs]);
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4 p-6 text-center">
+      <Spinner size="lg" className="text-ink" />
+      {stalled && (
+        <div className="space-y-3 max-w-sm" role="status">
+          <p className="text-[14px] text-ink-soft leading-relaxed">
+            This is taking longer than it should. Your connection may have dropped, or an
+            ad blocker may be blocking the sign-in service.
+          </p>
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="text-[14px] font-semibold text-blue-dark underline underline-offset-4"
+          >
+            Reload the page
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 
 // Shown when a user is authenticated but has no profile document — their signup
@@ -88,7 +126,7 @@ const MfaClaimMiddleware: React.FC<{ children: React.ReactNode }> = ({ children 
   const { user, userProfile, mfaVerified, loading } = useAuth();
 
   if (loading) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <LoadingFallback />;
   }
 
   // Developer status must NOT bypass MFA. It used to (`isDev || verify...`),
@@ -113,7 +151,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
   const { user, userProfile, loading, mfaVerified, profileMissing, authError } = useAuth();
   const location = useLocation();
 
-  if (loading) return <div className="flex items-center justify-center h-screen">Loading...</div>;
+  if (loading) return <LoadingFallback />;
   if (authError) return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">
       <div className="w-full max-w-md bg-white border border-red-200 p-8 rounded-sm text-center space-y-6 shadow-sm">
@@ -150,7 +188,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
   // required 'organization', mismatched again, and redirected to itself
   // forever. That self-redirect loop is what rendered as a blank screen.
   if (!userProfile) {
-    return <div className="flex items-center justify-center h-screen">Loading...</div>;
+    return <LoadingFallback />;
   }
 
   // Perform strict checking using the dedicated verifyMfaClaim middleware function.

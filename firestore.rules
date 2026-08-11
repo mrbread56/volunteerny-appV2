@@ -291,7 +291,20 @@ service cloud.firestore {
       // own user doc to { twoFactorEnabled: false } and permanently opt out of
       // 2FA. Students may still toggle it (it is optional for them); everyone
       // else may only leave it alone or turn it on.
+      // hasOnly is the outer bound, and it matters even though role, uid,
+      // createdAt and email are each pinned to their existing value below.
+      // Pinning stops those four being CHANGED; it does nothing about fields
+      // that were never named. Without hasOnly, the owner could append
+      // arbitrary new keys to their own account document up to the 1 MiB
+      // ceiling — not a privilege escalation, since nothing reads those keys,
+      // but free unbounded storage attached to every account, billed to us and
+      // dragged along by every read of the document.
+      //
+      // twoFactorEnabled is the only field any client screen writes here
+      // (src/pages/OrgProfile.tsx and src/pages/StudentDashboard.tsx, both the
+      // 2FA toggle). Developers write through the isDeveloper() branch below.
       allow update: if isSignedIn() && request.auth.uid == uid && isValidId(uid) &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['twoFactorEnabled']) &&
                       incoming().role == existing().role &&
                       incoming().uid == existing().uid &&
                       incoming().createdAt == existing().createdAt &&

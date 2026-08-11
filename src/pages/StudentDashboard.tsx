@@ -854,20 +854,21 @@ export default function StudentDashboard() {
             (doc) => (doc.data() as SavedOpportunity).opportunityId,
           );
         } catch (savedErr) {
-          console.warn(
-            "Real Firestore saved query failed, reading local storage index:",
-            savedErr,
+          setErrorMessage(
+            reportError(
+              'load saved opportunities',
+              savedErr,
+              "We couldn't load your saved opportunities. Please refresh to try again.",
+            ),
           );
         }
 
-        // Merge with local storage IDs
-        const localSaves = JSON.parse(
-          localStorage.getItem("demo_saved_ids") || "[]",
-        );
-        savedIds = Array.from(new Set([...savedIds, ...localSaves])).slice(
-          0,
-          10,
-        );
+        // NO demo_saved_ids merge here. This is the real, signed-in path, and
+        // that key is a demo fixture: merging it meant ids from any earlier
+        // demo session on this browser appeared in a real student's saved list,
+        // and a failed Firestore read looked like a successful one with
+        // invented contents. Firestore is the record.
+        savedIds = savedIds.slice(0, 10);
 
         if (savedIds.length > 0) {
           try {
@@ -882,17 +883,18 @@ export default function StudentDashboard() {
               ),
             );
           } catch (oppsErr) {
-            console.warn(
-              "Could not query saved opportunities from Firestore, local fallback applied:",
-              oppsErr,
+            // No demo_opportunities fallback. Substituting invented listings
+            // for a failed read showed a real student opportunities that do not
+            // exist, at organizations that do not exist, and looked identical
+            // to a working page.
+            setSavedOpportunities([]);
+            setErrorMessage(
+              reportError(
+                'load saved opportunity details',
+                oppsErr,
+                "We couldn't load the details of your saved opportunities. Please refresh to try again.",
+              ),
             );
-            const stored = JSON.parse(
-              localStorage.getItem("demo_opportunities") || "[]",
-            );
-            const locallyFound = stored.filter((o: any) =>
-              savedIds.includes(o.id),
-            );
-            setSavedOpportunities(locallyFound);
           }
         }
 
@@ -909,8 +911,17 @@ export default function StudentDashboard() {
             (doc) => ({ id: doc.id, ...doc.data() }) as Opportunity,
           );
         } catch (dbErr) {
-          console.warn("Could not query opportunities from Firestore, doing local storage resolution:", dbErr);
-          fetchedOpps = JSON.parse(localStorage.getItem("demo_opportunities") || "[]");
+          // Same as above: an empty list plus an honest message, never invented
+          // listings. This is the recommendations feed — the most prominent
+          // thing on the dashboard, and the worst place to show fiction.
+          fetchedOpps = [];
+          setErrorMessage(
+            reportError(
+              'load recommended opportunities',
+              dbErr,
+              "We couldn't load opportunities right now. Please refresh to try again.",
+            ),
+          );
         }
 
         // NO fallback to `pool` here. This is the real, signed-in path, and
