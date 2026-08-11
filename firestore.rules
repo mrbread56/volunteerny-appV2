@@ -160,10 +160,25 @@ service cloud.firestore {
              // click was rejected with permission-denied. It passed in demo mode
              // because demo mode never reaches Firestore.
              data.status in ['pending', 'reviewed', 'accepted', 'rejected', 'terminated', 'waitlist'] &&
-              (absent(data, 'opportunityTitle') || data.opportunityTitle is string) &&
-              (absent(data, 'studentName') || data.studentName is string) &&
-              (absent(data, 'previousExperience') || data.previousExperience is string) &&
-              (absent(data, 'message') || data.message is string) &&
+              // Every free-text field is size-capped, not just type-checked.
+              //
+              // rejectionReason and rejectionNote were not mentioned here AT
+              // ALL, while the organization branch of `allow update` below
+              // permits writing exactly those two keys — so an org could put
+              // any type and any size into a student's application, up to the
+              // 1 MiB document ceiling. The others were type-checked but
+              // unbounded, which is the same hole with an extra step: `is
+              // string` says nothing about length, so a single application
+              // could still carry most of a megabyte.
+              //
+              // Caps are deliberately generous — well past anything the forms
+              // accept — so they bound abuse without rejecting real writes.
+              (absent(data, 'opportunityTitle') || (data.opportunityTitle is string && data.opportunityTitle.size() <= 300)) &&
+              (absent(data, 'studentName') || (data.studentName is string && data.studentName.size() <= 300)) &&
+              (absent(data, 'previousExperience') || (data.previousExperience is string && data.previousExperience.size() <= 5000)) &&
+              (absent(data, 'message') || (data.message is string && data.message.size() <= 5000)) &&
+              (absent(data, 'rejectionReason') || (data.rejectionReason is string && data.rejectionReason.size() <= 300)) &&
+              (absent(data, 'rejectionNote') || (data.rejectionNote is string && data.rejectionNote.size() <= 2000)) &&
               data.appliedAt == (resource == null ? request.time : resource.data.appliedAt) &&
               // Same 400 KB cap the student document already enforces. Without it an
              // application could carry most of the 1 MiB document limit.

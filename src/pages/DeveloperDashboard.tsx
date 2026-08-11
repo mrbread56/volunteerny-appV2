@@ -545,36 +545,37 @@ export default function DeveloperDashboard() {
 
     setIsReplying(fbId);
     try {
-      // Always cache developer reply locally to ensure seamless responsiveness
-      const demoFeedbacks = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
-      const updated = demoFeedbacks.map((item: any) => {
-        if (item.id === fbId) {
-          return {
-            ...item,
-            developerReply: textReply,
-            repliedAt: new Date().toISOString()
-          };
-        }
-        return item;
-      });
-      localStorage.setItem('demo_feedbacks', JSON.stringify(updated));
-
       if (isDemoMode) {
+        // localStorage is the store in demo mode, and ONLY in demo mode. This
+        // write used to run unconditionally — a real reply was mirrored into
+        // the demo fixture key, where the console then read it back as though
+        // it were a filed reply.
+        const demoFeedbacks = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
+        const updated = demoFeedbacks.map((item: any) =>
+          item.id === fbId
+            ? { ...item, developerReply: textReply, repliedAt: new Date().toISOString() }
+            : item
+        );
+        localStorage.setItem('demo_feedbacks', JSON.stringify(updated));
         setFeedbacks(updated);
       } else {
-        try {
-          await updateDoc(doc(db, 'feedbacks', fbId), {
-            developerReply: textReply,
-            repliedAt: new Date().toISOString()
-          });
-        } catch (dbErr) {
-          console.warn('Real Firestore reply write failed, updated local fallback storage:', dbErr);
-        }
+        // Not wrapped in its own catch any more. It used to console.warn and
+        // fall through to clear the input and reload, so a reply that never
+        // reached Firestore looked exactly like one that did — the developer
+        // watched their text disappear and assumed it had sent. Let it throw to
+        // the handler below, which keeps the text where it is and says so.
+        await updateDoc(doc(db, 'feedbacks', fbId), {
+          developerReply: textReply,
+          repliedAt: new Date().toISOString()
+        });
       }
       setReplyInput(prev => ({ ...prev, [fbId]: '' }));
       loadData();
     } catch (err) {
-      console.error('Developer reply failed to record:', err);
+      // The reply stays in the box so it is not lost and can be retried.
+      setConsoleNotice(
+        reportError('send feedback reply', err, "That reply wasn't saved. Your text is still here — try again."),
+      );
     } finally {
       setIsReplying(null);
     }
