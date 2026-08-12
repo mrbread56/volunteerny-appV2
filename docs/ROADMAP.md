@@ -43,7 +43,7 @@ being locked out, or seeing something untrue.
 
 | # | Work |
 |---|---|
-| B4 | CI running `lint`, `check:security`, `check:flows` on every push |
+| B4 | CI running `lint`, `check:security`, `check:flows`, and `visual-sweep` on every push |
 | B5 | Bound `hoursRequests.hours` in the security rules |
 | B7 | Delete the `chats`/`messages` rules, or build the feature |
 |, | Seed real opportunities before launch, an empty platform is a bad first impression, and F5 showed the temptation to fake them |

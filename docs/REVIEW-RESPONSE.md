@@ -26,7 +26,7 @@ over". They are recorded so it is clear they were read and considered.
 | ID | His point | Status | Evidence |
 |---|---|---|---|
 | R1 | Repo needs cleanup. `revert`, `script-grep`, temp scripts left everywhere | ✅ | `633855d`, 49 files, 6,695 lines removed. `.gitignore` patterns added so they cannot return |
-| R2 | Committed build artifacts and stray files | ✅ | 1.1 MB `index.js` bundle, `Home_Overwritten.tsx`, scratch HTML, a `.patch`, a server log, all removed in `633855d` |
+| R2 | Committed build artifacts, dead dependencies, and stray files | ✅ | 1.1 MB `index.js` bundle, `Home_Overwritten.tsx`, scratch HTML, a `.patch`, a server log removed. Unused ~300MB `puppeteer` dependency uninstalled |
 | R3 | Documentation not organised | ✅ | `docs/` created; `ARCHITECTURE.md`, `STATUS.md`, `ROADMAP.md`, `security_spec.md` moved out of the root. Only `README.md` stays at top level |
 | R4 | No README, so a new team cannot onboard | ✅ | The old one was a 1-line UTF-16 stub reading "OpenHands Initializing". Replaced in `7b1ae6d`: stack, setup, every env var marked public or secret, all 17 scripts, deploy, pre-ship checklist |
 | R5 | `TODO.md` and `AUDIT_REPORT.md` suggest unfinished work | ✅ | Deleted in `76eb047`. Every item in `TODO.md` was in fact already ticked, but a file headed "🔴 CRITICAL" tells a reviewer the project is unfinished regardless. Replaced by `STATUS.md` |
@@ -66,8 +66,8 @@ over". They are recorded so it is clear they were read and considered.
 |---|---|---|---|
 | R20 | Detailed tests for permissions | ✅ | `check:security`, 51 tests |
 | R21 | Detailed tests for auth | ✅ | `check:signup`, `check:security` |
-| R22 | Detailed tests for the application flow | ✅ | `check:flows`, apply → accept → hours → approve → leaderboard → rate, 13/13 |
-| R23 | Detailed tests for the org flow | ✅ | `check:flows` + hand-tested through the UI |
+| R22 | Detailed tests for the application flow | ✅ | `check:flows`, apply → accept → hours → approve → leaderboard → rate, 13/13. Plus `visual-sweep.spec.ts` (Playwright) rendering asserts |
+| R23 | Detailed tests for the org flow | ✅ | `check:flows` + hand-tested through the UI + automated visual sweep across breakpoints |
 | R24 | Cheaper long-term maintenance through tests | ✅ | 9 check scripts, now run automatically by CI on every push. It caught a regression within minutes of existing |
 
 ## 6. Security review before production

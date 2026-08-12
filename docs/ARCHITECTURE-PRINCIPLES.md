@@ -196,14 +196,35 @@ so that a future tidy-up does not delete the guard and reintroduce it.
 
 ---
 
+## 11. A fallback must never hide a production failure
+
+**The principle.** A graceful degradation (like reading from cache when offline) must not disguise a system outage as a successful state.
+
+**The incident.** In four different dashboard components, `catch` blocks for failed Firestore queries immediately wrote a fixture to `localStorage` (e.g. `demo_reports`) and displayed it to the user. When the database failed, real organizations and students were shown completely fabricated "demo" hour requests and applications, with no indication an error occurred. The application looked perfectly healthy while silently dropping production data.
+
+**The rule.** *Report failures honestly.* If a read or write fails, the UI must show an error state. Fallbacks and fixtures belong strictly in demo mode, never in the production error-handling path.
+
+---
+
+## 12. Serverless memory is ephemeral and frozen
+
+**The principle.** In a serverless environment (like Vercel), instances are frozen between requests and destroyed on cold starts. In-memory state and background timers do not work.
+
+**The incidents.** The email rate limiter (`isEmailRateLimited`) was backed by an in-memory `Map`. On Vercel, every cold start created a fresh Map, allowing a patient attacker to bypass the "20 per 10 minutes" limit by fanning requests across instances. Separately, the leaderboard rebuild relied on a `setInterval(..., 15 * 60 * 1000)` which never fired reliably because the instance was frozen between HTTP requests.
+
+**The rule.** *Use distributed state and external triggers.* Rate limiters must use Firestore transactions (`email_rate_limits`). Periodic background tasks must be triggered by external Cron jobs (`vercel.json`), not `setInterval`.
+
+---
+
 ## Reviewing a change against these
 
 1. Does any new authorization depend on a value the actor wrote? (§2)
-2. Can any new `catch` leave the user with no feedback? (§3)
+2. Can any new `catch` leave the user with no feedback or fake data? (§3, §11)
 3. Does this duplicate a fact that already exists somewhere? (§5)
 4. Have I seen the new test fail for the right reason? (§6)
 5. Does this rule need information rules cannot reach? (§1)
 6. Would a new contributor understand *why* from the code alone? (§10)
+7. Does this rely on in-memory state or timers across requests? (§12)
 
 ## What these principles do not claim
 

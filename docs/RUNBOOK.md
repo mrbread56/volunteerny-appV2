@@ -191,3 +191,15 @@ npm run check:flows      # expect 13/13
 
 If the rules are wrong, redeploy the previous version from git history
 immediately. Firestore has no staged rollout.
+
+---
+
+## Before merging a layout change
+
+Always run the visual sweep to verify that UI changes haven't introduced horizontal scrolling (like the iOS sidebar bug) or broken imagery across breakpoints.
+
+```bash
+npx playwright test tests/e2e/visual-sweep.spec.ts --reporter=line
+```
+
+Check the generated `playwright-report/` or `test-results/` screenshots for desktop, tablet, and mobile layouts.

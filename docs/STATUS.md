@@ -26,12 +26,14 @@ Every gate below was run on this commit and passed.
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
+| `visual-sweep` (Playwright layout checks) | 9 passed (desktop/tablet/mobile) |
 | **GitHub Actions CI** | **green, live tier executing** |
 
 The application was also driven by hand at `localhost:3000`: all five public
 routes, all eight student routes, all six organization routes, and all six
 developer console tabs render with content, no horizontal overflow and no
-console errors.
+console errors. Automated Playwright visual sweeps assert no horizontal overflow
+across breakpoints (375px, 768px, 1440px).
 
 ---
 
@@ -366,6 +368,13 @@ Each was reproduced first, then fixed, then re-verified.
 | F17 | Dashboard scrolled sideways on every phone (`flex` item without `min-w-0`). | Medium | measured 382.7px in a 375.3px parent |
 | F18 | Onboarding validation errors were invisible to screen readers. | Medium | fixed |
 | F19 | 40 leftover scripts and a 1.1 MB build artifact committed to the repo root. | Low | 6,695 lines removed |
+| F20 | **Any user could inject up to 1MB of arbitrary data into 6 core collections.** The `!hasAny` trick left an outer hole allowing arbitrary unvalidated fields in `students, organizations, opportunities, interestRequests, recommendations, orgRatings`. | Critical | `hasOnly` bounds applied |
+| F21 | **Silent failure disguised as success.** Dashboard components caught production Firestore errors and silently wrote to `localStorage` (`demo_reports`, `demo_hours_requests`), showing real users fake data instead of errors. | High | fallbacks removed |
+| F22 | **Email rate limiter bypassed by serverless cold starts.** The 20-per-10-min limit was an in-memory Map, meaning attackers got 20 new sends every time Vercel spun up a new instance. | Medium | ported to Firestore transaction |
+| F23 | **Leaderboard timer was hanging serverless.** `rebuildGlobalLeaderboard` ran a `setInterval` that never fired reliably on Vercel because instances freeze between requests. | Medium | gated on `!process.env.VERCEL`, replaced with Vercel Cron |
+| F24 | `puppeteer` bloated CI and serverless deploys by downloading a ~300MB Chromium binary on every install despite being dead code. | Low | uninstalled |
+| F25 | `ReceiptModal` used an external Tailwind CDN script at runtime, breaking offline receipts and violating production best practices. | Low | inlined styles |
+| F26 | Hero headline was white text on a missing background if the image failed to load, rendering it invisible. | Low | `bg-blue-dark` fallback added |
 
 ---
 

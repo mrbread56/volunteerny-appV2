@@ -215,6 +215,7 @@ is a deliberate current limitation, not a bug.
 | Resend | Transactional email | API answers 503; the app continues and reports the failure honestly rather than claiming success |
 | Gemini | AI triage of feedback and safety reports | Degrades to a generic summary; the ticket is still filed |
 | OpenStreetMap Nominatim | Address geocoding | Requests are aborted on unmount; failure leaves the map at its default |
+| Vercel Cron | Leaderboard rebuild trigger | Leaderboard caches become stale (does not crash the app) |
 
 ---
 

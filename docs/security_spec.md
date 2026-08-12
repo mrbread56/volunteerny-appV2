@@ -23,6 +23,8 @@
 10. **Application Overwrite**: Student A trying to delete or modify Student B's application message.
 11. **Terminal State Break**: Trying to change an application status after it's been 'accepted' (if terminal logic applies).
 12. **PII Leak**: An unauthorized user reading a student's private contact info without being a recruiter/org for an applied job.
+13. **Arbitrary Data Injection**: Injecting up to 1MB of arbitrary, unvalidated data into a collection because rules used `!hasAny` (which leaves an open outer bound) instead of `hasOnly` (which seals the document).
+14. **Rate Limiter Evasion**: A patient attacker fanning requests across serverless cold starts to bypass in-memory (`Map`) rate limiters. (Must use distributed transactions).
 
 ## 3. Test Runner (Mock Tests Logic)
 - `test('student cannot create opportunity')` -> expect failure
