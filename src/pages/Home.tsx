@@ -50,8 +50,11 @@ const TESTIMONIALS = [
   },
   {
     quote: 'It is an awesome platform! The design is great, the workflow seems smooth, and the functions are comprehensive.',
-    name: 'Dr. Edith Law',
-    role: 'Associate Professor, Cheriton School of Computer Science\nUniversity of Waterloo',
+    // Anonymised at the reviewer's request. He gave permission to use the quote
+    // but asked not to be named, so this is attributed by role and institution
+    // only. Do not restore the name without asking him again.
+    name: 'Professor at Waterloo',
+    role: 'University of Waterloo',
   },
   {
     quote: 'Finding a place to volunteer for is one of the biggest challenges and this website solves that issue.',
