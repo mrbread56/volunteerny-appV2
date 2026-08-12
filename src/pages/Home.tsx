@@ -140,8 +140,11 @@ export default function Home() {
 
       {/* ── HERO ── */}
       <section ref={heroRef} className="relative pt-20 lg:pt-28 overflow-hidden">
-        {/* Background image - full natural coverage */}
-        <div className="absolute inset-0 bg-[url('/hero-bg.png')] bg-cover bg-center bg-no-repeat" />
+        {/* Background image - full natural coverage. bg-blue-dark is the
+            fallback: the headline above it is white, so if hero-bg.png ever
+            fails to load (bad deploy, blocked asset, flaky network) the text
+            would render white-on-white and the hero would read as empty. */}
+        <div className="absolute inset-0 bg-blue-dark bg-[url('/hero-bg.png')] bg-cover bg-center bg-no-repeat" />
         
         <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[56vw] sm:pb-[45vw] lg:pb-[38vw]">
           <motion.div variants={stagger} initial="hidden" animate="visible" className="flex flex-col items-center text-center">
