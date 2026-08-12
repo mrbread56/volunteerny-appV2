@@ -1,5 +1,11 @@
 {
   "framework": "vite",
+  "crons": [
+    {
+      "path": "/api/leaderboard/refresh",
+      "schedule": "0,15,30,45 * * * *"
+    }
+  ],
   "rewrites": [
     {
       "source": "/api/(.*)",

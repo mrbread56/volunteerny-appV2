@@ -500,6 +500,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Email request counters, written only by the server's Admin SDK.
+    match /email_rate_limits/{uid} {
+      allow read, write: if false;
+    }
+
     match /hoursRequests/{reqId} {
       allow get: if isSignedIn() && isValidId(reqId) && (
         resource.data.studentId == request.auth.uid ||

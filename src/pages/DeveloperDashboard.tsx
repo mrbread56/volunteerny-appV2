@@ -1472,6 +1472,8 @@ export default function DeveloperDashboard() {
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
                   Test the transactional system live! If your third-party credentials (Resend or SMTP) are invalid or unconfigured, the system will gracefully drop into the **Sandbox Fallback Mode** and generate a fully styled HTML email preview inside the dev log response below.
+                  <br />
+                  <em>Note: The <code>/api/email/history</code> API returns recent sends on this server instance only due to the serverless architecture.</em>
                 </p>
               </div>
 

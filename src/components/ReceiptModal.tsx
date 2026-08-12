@@ -45,7 +45,6 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
     const printContent = receiptRef.current?.innerHTML;
     if (!printContent) return;
 
-    const originalContent = document.body.innerHTML;
     const printWindow = window.open('', '', 'height=600,width=800');
     
     if (printWindow) {
@@ -58,8 +57,28 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
         <html>
           <head>
             <title>Enrollment Receipt</title>
-            <script src="https://cdn.tailwindcss.com"></script>
             <style>
+              body { 
+                font-family: system-ui, -apple-system, sans-serif;
+                line-height: 1.5;
+                color: #000;
+                max-width: 800px;
+                margin: 0 auto;
+                padding: 20px;
+              }
+              .text-center { text-align: center; }
+              .text-xs { font-size: 0.75rem; }
+              .text-xl { font-size: 1.25rem; }
+              .font-semibold, .font-bold { font-weight: 600; }
+              .uppercase { text-transform: uppercase; }
+              .grid { display: grid; }
+              .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+              .gap-4 { gap: 1rem; }
+              .pb-3 { padding-bottom: 0.75rem; }
+              .border-b { border-bottom: 1px solid #e5e7eb; }
+              .text-ink-soft { color: #4b5563; }
+              .font-mono { font-family: monospace; }
+              .pt-4 { padding-top: 1rem; }
               @media print {
                 body { padding: 40px; background: white; color: black; }
                 .no-print { display: none !important; }

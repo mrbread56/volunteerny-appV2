@@ -87,11 +87,15 @@ students and community organizations that could potentially use it. Her feedback
 also pushed us to think more carefully about scalability, security, privacy, and
 how student and organization data should be structured.
 
-**Professor Jian Zhao**, University of Waterloo, reviewed the platform and
-described it as an "awesome platform", specifically noting the design, workflow,
-and breadth of functionality. His feedback focused on areas including
-organization verification, student safety, recommendations, community features,
-and understanding users' core needs.
+**A computer science professor at the University of Waterloo** reviewed the
+platform and described it as an "awesome platform", specifically noting the
+design, workflow, and breadth of functionality. Their feedback focused on areas
+including organization verification, student safety, recommendations, community
+features, and understanding users' core needs.
+
+(This reviewer gave permission to quote the review but asked not to be named, so
+they are credited by role and institution only — on the homepage as well. Please
+do not restore the name anywhere without asking them again.)
 
 **Professor Jeff Avery**, University of Waterloo, also conducted a detailed
 review and described it as "a very interesting project, and potentially very

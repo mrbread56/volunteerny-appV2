@@ -616,7 +616,7 @@ app.use(express.json());
   // A safety net so the board cannot go permanently stale if no approvals
   // happen to fire the endpoint above. Cheap: one indexed query every 15 min.
   const LEADERBOARD_INTERVAL_MS = 15 * 60 * 1000;
-  if (getAdminObj()) {
+  if (getAdminObj() && !process.env.VERCEL) {
     // Build once at boot so a fresh deploy never serves an empty board, then
     // keep it warm on a timer.
     rebuildGlobalLeaderboard()
@@ -1501,16 +1501,58 @@ app.use(express.json());
   /** Max 20 send requests per 10 minutes per account, so an authenticated
    *  session can't turn this into an open relay for our sending domain. */
   const emailRateLimit = new Map<string, { count: number; windowStart: number }>();
-  function isEmailRateLimited(uid: string): boolean {
+  async function isEmailRateLimited(uid: string): Promise<boolean> {
     const now = Date.now();
     const windowMs = 10 * 60 * 1000;
-    const entry = emailRateLimit.get(uid);
-    if (!entry || now - entry.windowStart > windowMs) {
-      emailRateLimit.set(uid, { count: 1, windowStart: now });
-      return false;
+    const local = emailRateLimit.get(uid);
+    const localFresh = local && now - local.windowStart <= windowMs;
+
+    let ref: any = null;
+    try {
+      const adminObj = getAdminObj();
+      if (adminObj) ref = adminFirestore().collection('email_rate_limits').doc(uid);
+    } catch {
+      ref = null;
     }
-    entry.count += 1;
-    return entry.count > 20;
+
+    if (!ref) {
+      if (!localFresh) {
+        emailRateLimit.set(uid, { count: 1, windowStart: now });
+        return false;
+      }
+      local!.count++;
+      return local!.count > 20;
+    }
+
+    try {
+      const overLimit = await adminFirestore().runTransaction(async (tx: any) => {
+        const snap = await tx.get(ref);
+        const data = snap.exists ? snap.data() : null;
+        const windowStart = typeof data?.windowStart === 'number' ? data.windowStart : 0;
+
+        if (!data || now - windowStart > windowMs) {
+          tx.set(ref, { count: 1, windowStart: now });
+          return false;
+        }
+        const count = (typeof data.count === 'number' ? data.count : 0) + 1;
+        tx.set(ref, { count, windowStart }, { merge: true });
+        return count > 20;
+      });
+
+      emailRateLimit.set(uid, {
+        count: overLimit ? 21 : (localFresh ? local!.count + 1 : 1),
+        windowStart: localFresh ? local!.windowStart : now,
+      });
+      return overLimit;
+    } catch (err: any) {
+      console.warn('[email] rate-limit transaction failed, using in-process counter:', err.message);
+      if (!localFresh) {
+        emailRateLimit.set(uid, { count: 1, windowStart: now });
+        return false;
+      }
+      local!.count++;
+      return local!.count > 20;
+    }
   }
 
   const isEmailAddress = (v: unknown): v is string =>
@@ -1666,7 +1708,7 @@ app.use(express.json());
 
       if (mailUnavailable(res)) return;
 
-      if (isEmailRateLimited(authContext.uid)) {
+      if (await isEmailRateLimited(authContext.uid)) {
         return res.status(429).json({ error: 'Too many emails requested. Please wait a few minutes.' });
       }
 
