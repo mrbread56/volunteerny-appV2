@@ -50,7 +50,7 @@ const TESTIMONIALS = [
   },
   {
     quote: 'It is an awesome platform! The design is great, the workflow seems smooth, and the functions are comprehensive.',
-    name: 'Dr. Jian Zhao',
+    name: 'Dr. Edith Law',
     role: 'Associate Professor, Cheriton School of Computer Science\nUniversity of Waterloo',
   },
   {
