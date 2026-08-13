@@ -135,7 +135,11 @@ export default function OpportunityCard({
                   Multi-day <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[8px] px-1 rounded">{opportunity.shifts?.length || 0} dates</span>
                 </span>
               ) : (
+                // formatDate returns '' when there is no usable date (it used
+                // to throw and blank the page). Say so rather than showing a
+                // gap where a date should be.
                 formatDate(opportunity.dateTime?.toDate ? opportunity.dateTime.toDate() : opportunity.dateTime)
+                  || 'Date to be announced'
               )}
             </span>
           </div>

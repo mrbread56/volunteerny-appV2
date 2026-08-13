@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { cn } from '../../lib/utils';
+import NotificationBell from '../NotificationBell';
 import {
   LayoutDashboard, Search, MessageCircle, UserCircle, Trophy,
   Calendar, Settings, PlusCircle, ClipboardList, Clock, LogOut,
@@ -184,14 +185,27 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           <img src="/logo.png" alt="" className="w-6 h-6" />
           <span className="text-[13px] font-semibold text-ink">VNY</span>
         </Link>
-        <button
-          onClick={() => setMobileOpen(!mobileOpen)}
-          aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
-          aria-expanded={mobileOpen}
-          className="p-2 text-ink-muted hover:text-ink rounded-lg"
-        >
-          {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
+        {/* Outside the collapsed menu on purpose: an unread badge that only
+            appears after you open a menu defeats the point of a badge. */}
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <button
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={mobileOpen}
+            className="p-2 text-ink-muted hover:text-ink rounded-lg"
+          >
+            {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop notification bell.
+          The desktop layout is a fixed sidebar with no top bar, so there is no
+          header to sit in — this floats at the top right of the content area,
+          which is where a bell is expected and where nothing else competes. */}
+      <div className="hidden lg:block fixed top-4 right-6 z-40">
+        <NotificationBell />
       </div>
 
       {/* Mobile sidebar overlay */}

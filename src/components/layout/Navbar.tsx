@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { verifyMfaClaim } from '../../lib/mfa';
 import { Spinner } from '../ui/Spinner';
+import NotificationBell from '../NotificationBell';
 import { LogOut, LayoutDashboard, Search, UserCircle, PlusCircle, Trophy, Menu, X, MessageCircle } from 'lucide-react';
 
 /**
@@ -135,6 +136,9 @@ export default function Navbar() {
                   </>
                 )}
                 <div className="w-px h-5 bg-line mx-2" />
+                {/* Renders nothing for developers — it derives from a student's
+                    or an organization's own documents. See lib/notifications.ts */}
+                <NotificationBell />
                 <button
                   onClick={handleLogout}
                   className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-[13px] font-medium px-3 py-2 transition-colors rounded-full"
@@ -173,14 +177,19 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Mobile toggle */}
-          <button
-            onClick={() => setOpen(!open)}
-            className="lg:hidden p-2 text-ink-soft hover:text-ink transition-colors rounded-full"
-            aria-label="Toggle menu"
-          >
-            {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-          </button>
+          {/* Mobile toggle. The bell sits OUTSIDE the collapsed menu on
+              purpose: the whole point of an unread badge is being visible
+              without opening anything, and most students are on a phone. */}
+          <div className="lg:hidden flex items-center gap-1">
+            {authed && <NotificationBell />}
+            <button
+              onClick={() => setOpen(!open)}
+              className="p-2 text-ink-soft hover:text-ink transition-colors rounded-full"
+              aria-label="Toggle menu"
+            >
+              {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+          </div>
         </div>
       </div>
 
