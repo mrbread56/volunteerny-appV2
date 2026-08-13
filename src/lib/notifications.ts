@@ -22,10 +22,28 @@
  * The only stored thing is a "last opened" timestamp, per account, in
  * localStorage — losing it just means the bell looks unread once.
  */
-import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
-export type NotificationKind = 'accepted' | 'rejected' | 'waitlist' | 'reviewed' | 'hours' | 'applicant';
+export type NotificationKind =
+  | 'accepted'
+  | 'rejected'
+  | 'waitlist'
+  | 'reviewed'
+  | 'hours'
+  | 'applicant'
+  /** A developer answered a feedback ticket you filed. */
+  | 'feedbackReply'
+  /** A safety report you filed was actioned. */
+  | 'reportResolved'
+  /** An organization wrote you a reference. */
+  | 'recommendation'
+  /** A student rated your organization. */
+  | 'rating'
+  /** Your organization's verification was decided. */
+  | 'verified'
+  /** A student is waiting for you to confirm their hours. */
+  | 'hoursPending';
 
 export interface AppNotification {
   id: string;
@@ -155,16 +173,139 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
     });
   }
 
+  // A reference an organization wrote about them. Students can read their own
+  // recommendations; nobody else's are visible.
+  const recs = await getDocs(
+    query(collection(db, 'recommendations'), where('studentId', '==', uid), limit(30)),
+  );
+  for (const d of recs.docs) {
+    const r: any = d.data();
+    out.push({
+      id: `rec-${d.id}`, kind: 'recommendation',
+      title: 'You received a reference',
+      body: `${r.orgName || 'An organization'} wrote a reference for your work on ${r.opportunityTitle || 'a placement'}.`,
+      at: toDate(r.createdAt), href: '/student/profile',
+    });
+  }
+
+  out.push(...(await sharedNotifications(uid, '/feedback')));
+  return out;
+}
+
+/**
+ * Events that mean the same thing to a student and an organization: somebody
+ * answered something you sent us. Both read only their OWN documents here.
+ */
+async function sharedNotifications(uid: string, feedbackHref: string): Promise<AppNotification[]> {
+  const out: AppNotification[] = [];
+
+  // The example this was built for: you file feedback, a developer replies, and
+  // until now nothing told you to go back and look.
+  const feedbacks = await getDocs(
+    query(collection(db, 'feedbacks'), where('userId', '==', uid), limit(30)),
+  );
+  for (const d of feedbacks.docs) {
+    const f: any = d.data();
+    if (!f.developerReply) continue;
+    out.push({
+      id: `feedback-${d.id}`, kind: 'feedbackReply',
+      title: 'Reply to your feedback',
+      body: `We answered your message${f.subject ? ` about "${f.subject}"` : ''}. Open it to read the reply.`,
+      at: toDate(f.repliedAt || f.createdAt), href: feedbackHref,
+    });
+  }
+
+  // A safety report is the most serious thing anyone sends through this site,
+  // so the person who filed it should be told it was actually looked at.
+  const reports = await getDocs(
+    query(collection(db, 'reports'), where('reportingUserId', '==', uid), limit(30)),
+  );
+  for (const d of reports.docs) {
+    const r: any = d.data();
+    if (r.status !== 'resolved' && r.status !== 'dismissed') continue;
+    out.push({
+      id: `report-${d.id}`, kind: 'reportResolved',
+      title: r.status === 'resolved' ? 'Your safety report was actioned' : 'Your safety report was reviewed',
+      body:
+        r.status === 'resolved'
+          ? 'A moderator reviewed your report and took action. Thank you for telling us.'
+          : 'A moderator reviewed your report and did not find a policy breach. Thank you for telling us.',
+      // Reports carry no resolvedAt, so this anchors on when it was filed —
+      // stable, which matters: a timestamp of "now" would make the item count
+      // as unread on every single load.
+      at: toDate(r.createdAt), href: feedbackHref,
+    });
+  }
+
   return out;
 }
 
 /** What an organization is told: who is waiting on them. */
-async function organizationNotifications(uid: string): Promise<AppNotification[]> {
+async function organizationNotifications(uid: string, email?: string): Promise<AppNotification[]> {
+  const extra: AppNotification[] = [];
+
+  // Verification decision on their own organization document. verifiedAt is
+  // written by the developer console alongside the decision, so this has a real
+  // timestamp rather than re-alerting forever.
+  const orgDoc = await getDoc(doc(db, 'organizations', uid));
+  if (orgDoc.exists()) {
+    const o: any = orgDoc.data();
+    if (o.verificationStatus === 'verified' || o.verificationStatus === 'rejected') {
+      extra.push({
+        id: `verify-${uid}-${o.verificationStatus}`, kind: 'verified',
+        title: o.verificationStatus === 'verified' ? 'Your organization is verified' : 'Verification not approved',
+        body:
+          o.verificationStatus === 'verified'
+            ? 'Students can now see the verified badge on your listings.'
+            : 'We could not verify your organization from the details provided. Get in touch and we will help.',
+        at: toDate(o.verifiedAt), href: '/org/profile',
+      });
+    }
+  }
+
+  // Students waiting on this coordinator to confirm hours. The rules let a
+  // coordinator list requests addressed to their email, which is exactly this.
+  // Filtered in JS rather than a second `where` so no composite index is needed.
+  if (email) {
+    const reqs = await getDocs(
+      query(collection(db, 'hoursRequests'), where('coordinatorContact', '==', email), limit(50)),
+    );
+    for (const d of reqs.docs) {
+      const h: any = d.data();
+      if (h.status !== 'pending') continue;
+      extra.push({
+        id: `hoursreq-${d.id}`, kind: 'hoursPending',
+        title: 'Hours waiting for your confirmation',
+        body: `${h.studentName || 'A student'} logged ${h.hours} hour${h.hours === 1 ? '' : 's'} for ${h.activity} and needs you to confirm.`,
+        at: toDate(h.requestedAt), href: '/org/dashboard?tab=hours',
+      });
+    }
+  }
+
+  // Ratings students left for them. Readable by any signed-in user by design —
+  // they are meant to be shown on org profiles.
+  const ratings = await getDocs(
+    query(collection(db, 'orgRatings'), where('orgId', '==', uid), limit(30)),
+  );
+  for (const d of ratings.docs) {
+    const r: any = d.data();
+    extra.push({
+      id: `rating-${d.id}`, kind: 'rating',
+      title: 'A student rated your organization',
+      body: `${r.stars}/5 for ${r.opportunityTitle || 'a placement'}${r.comment ? ` — "${String(r.comment).slice(0, 80)}"` : ''}.`,
+      at: toDate(r.createdAt), href: '/org/profile',
+    });
+  }
+
+  extra.push(...(await sharedNotifications(uid, '/feedback')));
+
   const opps = await getDocs(
     query(collection(db, 'opportunities'), where('orgId', '==', uid), limit(30)),
   );
   const ids = opps.docs.map((d) => d.id);
-  if (!ids.length) return [];
+  // No opportunities does not mean no notifications — verification, ratings,
+  // hours to confirm and feedback replies are all independent of them.
+  if (!ids.length) return extra;
 
   // Chunked by 5, NOT by the Firestore `in` limit of 30.
   //
@@ -190,7 +331,7 @@ async function organizationNotifications(uid: string): Promise<AppNotification[]
       });
     }
   }
-  return out;
+  return [...extra, ...out];
 }
 
 /**
@@ -198,10 +339,14 @@ async function organizationNotifications(uid: string): Promise<AppNotification[]
  * that silently shows nothing when the read failed is the same lie this
  * codebase has been fixing all along.
  */
-export async function fetchNotifications(uid: string, role: string | undefined): Promise<AppNotification[]> {
+export async function fetchNotifications(
+  uid: string,
+  role: string | undefined,
+  email?: string,
+): Promise<AppNotification[]> {
   let items: AppNotification[] = [];
   if (role === 'student') items = await studentNotifications(uid);
-  else if (role === 'organization') items = await organizationNotifications(uid);
+  else if (role === 'organization') items = await organizationNotifications(uid, email);
   else return [];
 
   return items.sort((a, b) => b.at.getTime() - a.at.getTime()).slice(0, 30);

@@ -12,7 +12,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, CheckCircle2, XCircle, Clock, Eye, UserPlus, AlertCircle } from 'lucide-react';
+import { Bell, CheckCircle2, XCircle, Clock, Eye, UserPlus, AlertCircle, MessageSquare, ShieldCheck, Award, Star, BadgeCheck } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { reportError } from '../lib/errors';
 import {
@@ -31,6 +31,12 @@ const ICONS: Record<NotificationKind, typeof Bell> = {
   reviewed: Eye,
   hours: CheckCircle2,
   applicant: UserPlus,
+  feedbackReply: MessageSquare,
+  reportResolved: ShieldCheck,
+  recommendation: Award,
+  rating: Star,
+  verified: BadgeCheck,
+  hoursPending: Clock,
 };
 
 const TONE: Record<NotificationKind, string> = {
@@ -40,6 +46,12 @@ const TONE: Record<NotificationKind, string> = {
   reviewed: 'text-blue-600 bg-blue-50',
   hours: 'text-emerald-600 bg-emerald-50',
   applicant: 'text-blue-600 bg-blue-50',
+  feedbackReply: 'text-blue-600 bg-blue-50',
+  reportResolved: 'text-emerald-600 bg-emerald-50',
+  recommendation: 'text-violet-600 bg-violet-50',
+  rating: 'text-amber-600 bg-amber-50',
+  verified: 'text-emerald-600 bg-emerald-50',
+  hoursPending: 'text-amber-600 bg-amber-50',
 };
 
 function relativeTime(d: Date): string {
@@ -82,7 +94,7 @@ export default function NotificationBell() {
     setLoading(true);
     setError(null);
     try {
-      const next = await fetchNotifications(uid, role);
+      const next = await fetchNotifications(uid, role, user?.email || undefined);
       setItems(next);
       if (openRef.current) {
         markAllSeen(uid, next);
@@ -97,7 +109,7 @@ export default function NotificationBell() {
     } finally {
       setLoading(false);
     }
-  }, [uid, role]);
+  }, [uid, role, user?.email]);
 
   // Once per session per account, for the badge. Opening refetches.
   useEffect(() => {

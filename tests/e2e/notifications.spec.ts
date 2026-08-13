@@ -90,6 +90,23 @@ test.beforeAll(async () => {
   });
   created.push({ col: 'applications', id: acceptedRef.id });
 
+  // The case this was asked for: you send feedback, a developer answers, and
+  // nothing tells you to go back and read it.
+  const fbRef = await db.collection('feedbacks').add({
+    userId: STUDENT.uid, userEmail: STUDENT.email, subject: 'Cannot upload my resume',
+    message: 'The upload spins forever.', type: 'bug', status: 'resolved',
+    developerReply: 'Fixed — Storage was not enabled. Please try again.',
+    repliedAt: new Date().toISOString(),
+    createdAt: a.firestore.FieldValue.serverTimestamp(),
+  });
+  created.push({ col: 'feedbacks', id: fbRef.id });
+
+  // Verification decision on the organization's own document.
+  await db.collection('organizations').doc(ORG.uid).set(
+    { verificationStatus: 'verified', craVerified: true, verifiedAt: a.firestore.FieldValue.serverTimestamp() },
+    { merge: true },
+  );
+
   const hoursRef = await db.collection('hoursRequests').add({
     studentId: STUDENT.uid, studentName: 'Notif Student', studentEmail: STUDENT.email,
     activity: 'Park Cleanup Crew', organization: 'Notif Org', hours: 4, date: '2026-08-01',
@@ -133,6 +150,8 @@ test('a student sees their accepted application and approved hours in the bell',
 
   await expect(panel.getByText('Application accepted')).toBeVisible();
   await expect(panel.getByText('Hours approved')).toBeVisible();
+  // A developer answered their feedback ticket.
+  await expect(panel.getByText('Reply to your feedback')).toBeVisible();
   // Both notifications name the opportunity — the accepted application and the
   // approved hours for it — so this deliberately asserts "at least one", not
   // "exactly one". Two matches is correct here, not a duplicate.
@@ -163,5 +182,6 @@ test('an organization sees a pending applicant, and not another org\'s', async (
 
   const panel = page.getByRole('region', { name: 'Notifications' });
   await expect(panel.getByText('New applicant')).toBeVisible();
-  await expect(panel.getByText(/Notif Student/)).toBeVisible();
+  await expect(panel.getByText(/Notif Student/).first()).toBeVisible();
+  await expect(panel.getByText('Your organization is verified')).toBeVisible();
 });
