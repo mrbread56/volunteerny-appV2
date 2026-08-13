@@ -88,6 +88,18 @@ async function signUpAs(role: 'student' | 'organization', tag = '') {
   const email = `check_flows_${role}${tag ? '_' + tag : ''}_${stamp}@example.com`;
   const { user } = await createUserWithEmailAndPassword(auth, email, PASSWORD);
   uids.push(user.uid);
+
+  // Mark the address verified, exactly as clicking the link in the signup email
+  // does. Signup.tsx calls sendEmailVerification, so a real organization
+  // reaches this state; a script account created through the client SDK does
+  // not, and the hoursRequests coordinator rule now requires
+  // email_verified — without this the check fails for a reason that says
+  // nothing about the app. The token must be reissued for the claim to appear.
+  const adb0 = adminFirestore();
+  if (adb0?.__app) {
+    await adb0.__app.auth().updateUser(user.uid, { emailVerified: true });
+    await user.getIdToken(true);
+  }
   await setDoc(doc(db, 'users', user.uid), {
     uid: user.uid, email, role,
     twoFactorEnabled: role === 'organization',

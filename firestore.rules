@@ -149,6 +149,12 @@ service cloud.firestore {
              (absent(data, 'scheduleType') || data.scheduleType is string) &&
              (absent(data, 'shifts') || data.shifts is list) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number)) &&
+             // OrgOpportunityEdit writes this on every save. It was in neither
+             // this validator nor the update hasOnly below, so hasOnly saw an
+             // affected key it did not permit and EVERY organization edit was
+             // rejected with permission-denied. Nothing tested editing an
+             // opportunity, so it failed silently in production.
+             (absent(data, 'updatedAt') || data.updatedAt is timestamp) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }
 
@@ -420,7 +426,7 @@ service cloud.firestore {
       allow update: if isVerifiedOrg() && isValidId(opportunityId) &&
                       existing().orgId == request.auth.uid && 
                       isValidOpportunity(incoming()) &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'coordinates', 'scheduleType', 'shifts']);
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
       allow delete: if isVerifiedOrg() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 
@@ -508,14 +514,30 @@ service cloud.firestore {
     match /hoursRequests/{reqId} {
       allow get: if isSignedIn() && isValidId(reqId) && (
         resource.data.studentId == request.auth.uid ||
-        resource.data.coordinatorContact == request.auth.token.email ||
+        // email_verified is required, for the same reason isDeveloper() above
+        // requires it: Firebase does not make you prove you own an address to
+        // register with it. Without this, anyone could sign up using a
+        // coordinator's address and list every hours request sent to it —
+        // studentName, studentEmail, activity, hours and date for every student
+        // who volunteered with that organization. Organization contactEmail is
+        // listable by any signed-in account, so the addresses are harvestable.
+        (resource.data.coordinatorContact == request.auth.token.email &&
+         request.auth.token.email_verified == true) ||
         isDeveloper()
       );
       // Students list their own logged hours; coordinators list the requests
       // addressed to them.
       allow list: if isSignedIn() && (
         resource.data.studentId == request.auth.uid ||
-        resource.data.coordinatorContact == request.auth.token.email ||
+        // email_verified is required, for the same reason isDeveloper() above
+        // requires it: Firebase does not make you prove you own an address to
+        // register with it. Without this, anyone could sign up using a
+        // coordinator's address and list every hours request sent to it —
+        // studentName, studentEmail, activity, hours and date for every student
+        // who volunteered with that organization. Organization contactEmail is
+        // listable by any signed-in account, so the addresses are harvestable.
+        (resource.data.coordinatorContact == request.auth.token.email &&
+         request.auth.token.email_verified == true) ||
         isDeveloper()
       );
       allow create: if isSignedIn() && isValidId(reqId) && (
@@ -632,8 +654,25 @@ service cloud.firestore {
     // A student rates an org after completing volunteer work with them.
     // ID format: {studentUid}_{orgUid}_{opportunityId}
     match /orgRatings/{ratingId} {
-      // Anyone signed in can read ratings (they're shown on org profiles).
-      allow read: if isSignedIn();
+      // Scoped to the two parties and developers — NOT every signed-in account.
+      //
+      // This was `allow read: if isSignedIn()` on the grounds that ratings are
+      // shown on organization profiles. But the document carries `studentId`,
+      // and the id itself is {studentUid}_{orgUid}_{opportunityId}, so a public
+      // read told any organization exactly which volunteer left it one star —
+      // and let any org read every other org's ratings. The raters here are
+      // minors, and a review system that de-anonymises them is worse than no
+      // review system.
+      //
+      // Nothing renders ratings anywhere yet, so nothing breaks by closing this
+      // now. When a public average is actually displayed, it should come from an
+      // aggregate the server maintains (like leaderboards/) rather than by
+      // opening the raw documents back up.
+      allow read: if isSignedIn() && (
+        resource.data.orgId == request.auth.uid ||
+        resource.data.studentId == request.auth.uid ||
+        isDeveloper()
+      );
       // Only the student who volunteered can rate. One per opportunity.
       // Same shape as recommendations above, mirrored. A student could rate any
       // organization for any opportunity, including ones that organization
