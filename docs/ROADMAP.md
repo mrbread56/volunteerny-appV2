@@ -13,13 +13,21 @@ Issue references (`B1`, `F5`) point at [`STATUS.md`](STATUS.md).
 ## Where we are
 
 The foundation is sound and does not need rewriting. Auth, role separation and
-security rules were built intentionally and now survive 51 adversarial tests. The
+security rules were built intentionally and now survive 59 adversarial tests. The
 full student↔organization journey works against real data. Documentation and
 repository hygiene were the weakest areas and are now addressed.
 
-What is *not* yet true: the product has not been driven end to end by hand for
-the organization or developer roles, email delivery is broken, and there is no
-CI. Those are the gap between "the code is right" and "the service is ready".
+Three things listed here as missing have since shipped: CI runs on every push
+(`.github/workflows/ci.yml`), email delivery works (`check:email` 4/4), and every
+route is exercised for every role by the Playwright suite (44/44) rather than by
+hand. Firebase Storage was enabled on 12 August 2026 and `storage.rules` was
+published to the bucket for the first time; uploads are verified end to end by
+`check:storage` (5/5).
+
+What is *not* yet true: the site has almost no content — one organization and a
+handful of students — and no photography. That is now the gap between "the code
+is right" and "the service is worth arriving at". No amount of engineering
+closes it.
 
 ---
 
@@ -61,9 +69,10 @@ is user-visible; all of it is what the review meant by *technical depth*.
 | # | Work | Why |
 |---|---|---|
 | B13 | Extract routing and route guards out of `App.tsx` into their own module | Authorization should be reviewable in one place, not read out of JSX |
-| B12 | Split the three oversized pages (2,428 / 1,836 / 1,552 lines) into data hooks + presentational components | These are where every hard-to-find bug in this audit lived |
+| B12 | Split the three oversized pages (1,904 / 1,585 / 1,399 lines, measured 13 Aug 2026) into data hooks + presentational components | These are where every hard-to-find bug in this audit lived |
 | B14 | One shared error-presentation pattern | Wording and behaviour currently differ per page; silent failures kept appearing because there was no standard |
-| B11 | Get `test:rules` running (Java + emulator) | Rules are proven live today; unit tests make them provable in CI |
+| B11 | Get `test:rules` running (Java + emulator) | Rules are proven live today by 59 adversarial tests; unit tests make them provable in CI without touching the real project. `tests/firestore.rules.test.js` exists with 6 tests but cannot run: it requires `vitest`, which is not a dependency |
+| B15 | A second Firebase project for tests | `.firebaserc` names one project, so `check:security`, `check:flows`, `check:signup`, `check:storage` and the Playwright suites all create real accounts in the database real students use. They clean up in a `finally`, which a cancelled run or a crash skips — nine stranded accounts were found and removed on 13 Aug 2026. `npm run cleanup:test-data` is the stopgap, not the fix |
 | B9 | Single source of truth for developer identity | Adding a developer should not require an environment change and redeploy |
 
 **Do not start v2 features before this is done.** These files are already the
@@ -79,7 +88,7 @@ a suggested order.
 | Work | Notes |
 |---|---|
 | Live updates between student and organization | Currently each side sees the other's changes on next load. `onSnapshot` on applications and hours would make acceptance appear instantly |
-| Move uploads to Cloud Storage (B10) | Removes the 1 MiB document ceiling and makes resumes cheaper to serve |
+| ~~Move uploads to Cloud Storage (B10)~~ **done, 12 Aug 2026** | Storage enabled, `storage.rules` deployed, uploads verified by `check:storage`. Before this the bucket did not exist and every upload hung silently |
 | Messaging (B7) | Rules already exist; the UI does not |
 | Calendar (B8) | `CalendarView.tsx` is written and unrendered |
 | Bulk actions for organizations | Accept/reject many applicants at once |

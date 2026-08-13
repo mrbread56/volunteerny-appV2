@@ -122,7 +122,7 @@ hours, and `POST /api/hours/approve` enforces that. If hours appear that nobody
 approved, treat it as a security incident:
 
 ```bash
-npm run check:security  # expect 51/51
+npm run check:security  # expect 59/59
 npm run backup          # snapshot before touching anything
 ```
 
@@ -185,7 +185,7 @@ the matching code, or the reverse, breaks writes in production.
 ```bash
 npm run backup
 npx firebase-tools deploy --only firestore:rules --project volunteer-ny
-npm run check:security   # expect 51/51
+npm run check:security   # expect 59/59
 npm run check:flows      # expect 13/13
 ```
 

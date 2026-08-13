@@ -152,8 +152,15 @@ dashboard for deployed environments.
 
 ### Checks
 
-These run against the **real** Firebase project, create throwaway accounts, and
-clean up after themselves.
+These run against the **real** Firebase project and create throwaway accounts.
+
+They clean up in a `finally`, which is not the same as always cleaning up: a
+cancelled run, a crashed process, or CI's `cancel-in-progress` skips it, and
+the accounts stay in the live database. Nine were found stranded this way on
+13 August 2026. `npm run cleanup:test-data` lists what is left over (add
+`--confirm` to delete it, `--force` to include accounts younger than 30
+minutes). The real fix is a second Firebase project for tests; `.firebaserc`
+names only one today.
 
 | Command | What it proves |
 |---|---|

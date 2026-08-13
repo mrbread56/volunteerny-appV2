@@ -1,6 +1,6 @@
 # Project status, evidence-based audit
 
-**Last updated:** 10 August 2026
+**Last updated:** 13 August 2026
 **Method:** every claim below is backed by a named script that can be re-run, or
 a hand-test performed against the real Firebase project through the real UI.
 Nothing here is "we think it works".
@@ -10,7 +10,7 @@ already been fixed and gave the impression the project was unfinished.
 
 ---
 
-## Full verification, 9 August 2026
+## Full verification, 13 August 2026
 
 Every gate below was run on this commit and passed.
 
@@ -19,14 +19,16 @@ Every gate below was run on this commit and passed.
 | `lint` (types + ESM guard) | 0 errors |
 | `build` (SPA + server bundle) | succeeds |
 | `check:firebase` | 13/13 |
-| `check:security` (adversarial) | **51/51** |
+| `check:security` (adversarial) | **59/59** |
 | `check:flows` (full journey) | 13/13 |
 | `check:signup` | 6/6 |
 | `check:queries` | 0 failures |
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
-| `visual-sweep` (Playwright layout checks) | 9 passed (desktop/tablet/mobile) |
+| `test` (full Playwright suite) | **44/44** |
+| `check:storage` (uploads + Storage rules) | **5/5** |
+| click reachability (every control, every role) | 211 controls, **0 blocked** |
 | **GitHub Actions CI** | **green, live tier executing** |
 
 The application was also driven by hand at `localhost:3000`: all five public
@@ -41,7 +43,7 @@ across breakpoints (375px, 768px, 1440px).
 
 | Area | State |
 |---|---|
-| Auth & roles | Working. 51 adversarial tests |
+| Auth & roles | Working. 59 adversarial tests |
 | Permissions / rules | Working, audited with the official Firebase auditor |
 | Student journey | Working, hand-tested end to end |
 | Organization journey | Working, hand-tested end to end |
