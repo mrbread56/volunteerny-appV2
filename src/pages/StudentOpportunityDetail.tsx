@@ -374,7 +374,7 @@ export default function StudentOpportunityDetail() {
                   </Badge>
                ))}
             </div>
-            <h1 className="text-4xl font-semibold text-ink tracking-tight leading-[1.1]">{opportunity.title}</h1>
+            <h1 className="text-4xl font-bold text-ink tracking-tight leading-[1.1]">{opportunity.title}</h1>
             <div className="flex flex-wrap items-center gap-6 pt-4 border-y border-line-light py-6">
                <div className="flex items-center gap-3">
                   <div className="w-12 h-12 bg-blue-dark/5 rounded-lg flex items-center justify-center">

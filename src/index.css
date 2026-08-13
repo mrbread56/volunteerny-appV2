@@ -1,4 +1,17 @@
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,400;1,9..144,500;1,9..144,600;1,9..144,700&display=swap');
+/* Two faces, each with a job it actually does.
+ *
+ * Outfit is the voice of the product: every heading, every control, all body
+ * copy. Fraunces appears only on the accent phrase that closes a headline —
+ * "Find where you belong.", "matters", "saying" — where the italic serif is
+ * doing real work as emphasis rather than decoration.
+ *
+ * That distinction is the whole point. An audit flagged Fraunces as dead
+ * weight because it was downloading four weights to style six elements with no
+ * discernible rule behind which six. Same font, same six elements, but now
+ * there is a rule: Outfit states, Fraunces inflects.
+ *
+ * Only the weights and the optical range actually used are requested. */
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,500;1,9..144,600&display=swap');
 @import "tailwindcss";
 
 @theme {
@@ -66,14 +79,17 @@
   --color-slate-50: #fafafb;
 
   /* ── Typography ──
-   * Two fonts: Outfit (everything) + Fraunces (hero display only)
-   * Video 10: "you'll never need more than one font"
-   * Video 10: "tighten letter-spacing -2% to -3% on headers"
+   * Outfit states. Fraunces inflects.
+   *
+   * --font-sans is the product: headings, controls, body, everything.
+   * --font-display is reserved for the accent phrase inside a headline, which
+   * is the only place Fraunces appears. Keeping that boundary strict is what
+   * stops two faces reading as indecision rather than as a pairing.
    */
   --font-sans: "Outfit", system-ui, -apple-system, sans-serif;
-  --font-display: "Fraunces", Georgia, serif;
-  --font-serif: "Fraunces", Georgia, serif;
-  --font-mono: "Outfit", system-ui, sans-serif;
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* ── Radius: one system (video 6: "set corner radius of all components") ── */
   --radius-sm: 6px;
@@ -82,11 +98,22 @@
   --radius-xl: 16px;
   --radius-full: 9999px;
 
-  /* ── Shadows: subtle (video 10: "change shadow color, increase blur") ── */
-  --shadow-subtle: 0 1px 3px rgba(26,43,54,0.04);
-  --shadow-card: 0 1px 3px rgba(26,43,54,0.04), 0 1px 2px rgba(26,43,54,0.02);
-  --shadow-elevated: 0 4px 12px rgba(26,43,54,0.08), 0 1px 3px rgba(26,43,54,0.04);
-  --shadow-modal: 0 8px 30px rgba(26,43,54,0.12), 0 2px 8px rgba(26,43,54,0.06);
+  /* ── Shadows ──
+   * Two changes from the flat greys these were.
+   *
+   * A real object casts a tight contact shadow AND a wide ambient one; a single
+   * blur reads as a sticker. Each level below pairs them.
+   *
+   * And the hue is the site's ink rather than neutral grey, so a card sitting on
+   * cream doesn't cast a cold shadow onto a warm ground — the mismatch is
+   * subtle and is a large part of why flat UI looks synthetic. */
+  --shadow-subtle: 0 1px 2px rgba(26,43,54,0.05);
+  --shadow-card: 0 1px 2px rgba(26,43,54,0.05), 0 4px 16px -6px rgba(26,43,54,0.10);
+  --shadow-elevated: 0 2px 4px rgba(26,43,54,0.06), 0 12px 28px -10px rgba(26,43,54,0.16);
+  --shadow-modal: 0 4px 8px rgba(26,43,54,0.08), 0 24px 56px -16px rgba(26,43,54,0.24);
+  /* The inset is what makes a tinted surface look lit from within instead of
+     painted on. Pair with any of the above on cards that sit on a tint. */
+  --shadow-lit: inset 0 1px 0 rgba(255,255,255,0.6), inset 0 0 20px rgba(26,43,54,0.035);
 
   /* ── Motion: snappy (video 5: "snappy, fast dashboard") ── */
   --animate-fadeIn: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
@@ -122,6 +149,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* Kerning and standard ligatures on by default. Browsers disable kerning at
+     small sizes unless asked, which is why default-styled text looks subtly
+     loose next to anything typeset with care. */
+  font-kerning: normal;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1;
 }
 
 /*
@@ -131,14 +163,69 @@ body {
  * Applied globally to all headings so every page benefits without
  * touching individual files.
  */
+/* Weight and tracking carry a headline, not size.
+ *
+ * Every heading on the site rendered at 600 with -0.025em. That combination is
+ * what a default looks like: soft enough that the eye reads it as body text
+ * that happens to be large. 700 at -0.04em is the same size and hits
+ * considerably harder, because the letterforms close up and the stroke gains
+ * weight. Measured against a reference whose 54px/700/-0.04em headline felt
+ * stronger than this site's 56px/600.
+ */
 h1, h2, h3 {
-  letter-spacing: -0.025em;
-  line-height: 1.15;
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 1.12;
+  /* Rebalances the line breaks so a heading never drops one orphaned word onto
+     its own line. Costs nothing, and ragged headings are the single most
+     common thing separating a careful page from a templated one. */
+  text-wrap: balance;
 }
+
+/* Tracking is optical, not fixed: it has to loosen as the type gets smaller or
+   the letters collide. -0.04em suits a 56px headline and strangles a 20px one. */
+h2 { letter-spacing: -0.032em; }
+h3 { letter-spacing: -0.022em; }
 
 h4, h5, h6 {
   letter-spacing: -0.01em;
   line-height: 1.3;
+  text-wrap: balance;
+}
+
+/* Same idea for running text: prevents a paragraph ending on a single word. */
+p, blockquote, li {
+  text-wrap: pretty;
+}
+
+/* ── The Fraunces accent ──
+ *
+ * Fraunces carries a variable optical-size axis, which exists precisely so a
+ * face can be drawn differently at display size than at caption size. Left on
+ * `auto` the browser guesses from the font-size; pinning it high on the accent
+ * phrase gives the sharper, higher-contrast cut the design is asking for.
+ *
+ * Italic serif also sets loose next to Outfit's tight geometry, so it needs a
+ * touch of negative tracking to sit on the same line without drifting apart. */
+.font-display {
+  font-optical-sizing: auto;
+  font-variation-settings: "opsz" 110;
+  letter-spacing: -0.015em;
+  /* Discretionary ligatures and contextual alternates are what the italic was
+     drawn for; off by default in most browsers. */
+  font-feature-settings: "liga" 1, "clig" 1, "calt" 1;
+}
+
+/* Numbers that sit in columns or update in place must not jitter as the digits
+   change — a stat counter reflowing on every tick reads as cheap. */
+.tabular, [data-numeric], .font-display + span {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Punctuation hangs into the margin so the text edge stays optically straight
+   rather than being pushed in by a quote mark. */
+blockquote {
+  hanging-punctuation: first last;
 }
 
 /*
@@ -194,10 +281,14 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
   color: white;
 }
 
-/* ── Focus ring (video 10: "inputs need a focus state") ── */
+/* ── Focus ring (video 10: "inputs need a focus state") ──
+ * Follows the element's own corner radius instead of drawing a hard rectangle
+ * around a rounded control — a small thing, but a square ring on a pill button
+ * is the detail that gives an interface away. */
 :focus-visible {
   outline: 2px solid var(--color-blue-dark);
-  outline-offset: 2px;
+  outline-offset: 3px;
+  border-radius: inherit;
 }
 
 /* ── SVG rendering ── */

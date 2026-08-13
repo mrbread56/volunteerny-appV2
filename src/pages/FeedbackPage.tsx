@@ -247,7 +247,7 @@ export default function FeedbackPage() {
   return (
     <div className="max-w-6xl mx-auto py-12 px-6 space-y-8 bg-white">
       <div className="max-w-xl space-y-2">
-        <h1 className="text-[1.5rem] font-semibold text-ink tracking-[-0.02em]">Feedback & Support</h1>
+        <h1 className="text-[1.5rem] font-bold text-ink tracking-[-0.02em]">Feedback & Support</h1>
         <p className="text-ink-soft text-[13px] leading-relaxed">
           Found a bug or have a feature suggestion? Submit a ticket and track responses below.
         </p>
@@ -431,7 +431,7 @@ export default function FeedbackPage() {
       <div className="pt-4 border-t border-line space-y-6">
         <div className="flex items-center justify-between">
           <div className="space-y-1">
-            <h2 className="text-[1.25rem] font-semibold text-ink tracking-[-0.02em]">My Tickets</h2>
+            <h2 className="text-[1.25rem] font-bold text-ink tracking-[-0.02em]">My Tickets</h2>
             <p className="text-[12px] text-ink-muted">
               Track progress and view replies from administrators.
             </p>

@@ -207,7 +207,7 @@ export default function Login() {
       >
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-[1.75rem] font-semibold text-ink tracking-[-0.03em]">Sign in</h1>
+          <h1 className="text-[1.75rem] font-bold text-ink tracking-[-0.03em]">Sign in</h1>
           <p className="text-[14px] text-ink-soft mt-1.5">Welcome back to Volunteer North York.</p>
         </div>
 

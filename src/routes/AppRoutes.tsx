@@ -22,8 +22,24 @@ import {
 
 /** Public pages get the traditional navbar + footer. */
 function PublicLayout({ children }: { children: React.ReactNode }) {
+  // No overflow-x-hidden on this wrapper.
+  //
+  // `overflow-x: hidden` forces the other axis to compute as `auto`
+  // (overflow: hidden auto), which makes this element a scroll container — and
+  // a scroll container silently disables `position: sticky` for every
+  // descendant, app-wide.
+  //
+  // That had broken four real features without anyone noticing: the site navbar
+  // (Navbar.tsx, `sticky top-0`) never actually stuck, and neither did the
+  // sidebar cards on OrgProfile, StudentProfile and StudentOpportunityDetail.
+  // Measured: a sticky element sat at -800px with the rule and pins at 135px
+  // without it.
+  //
+  // Horizontal overflow is handled where it originates instead — the hero and
+  // the facts carousel each carry their own `overflow-hidden`. Verified: no
+  // horizontal overflow at 375, 768 or 1440.
   return (
-    <div className="min-h-screen bg-white font-sans text-ink overflow-x-hidden">
+    <div className="min-h-screen bg-white font-sans text-ink">
       <Navbar />
       <main>{children}</main>
       <Footer />

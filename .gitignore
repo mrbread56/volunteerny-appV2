@@ -41,3 +41,7 @@ revert_*.cjs
 # — names, emails, schools, and base64 resume/passport uploads for people who
 # are mostly minors. Never commit one.
 backups/
+
+# Design review screenshots — regenerated on demand, not worth versioning.
+# The HTML mockups in design-archive/ are kept deliberately as references.
+design-archive/*.png

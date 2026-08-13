@@ -284,7 +284,7 @@ export default function OrgProfile() {
           <Building2 className="text-white w-10 h-10" />
         </div>
         <div>
-          <h1 className="text-3xl font-semibold text-ink tracking-tight leading-none">
+          <h1 className="text-3xl font-bold text-ink tracking-tight leading-none">
             Organization Profile
           </h1>
           <p className="text-ink-soft mt-2">

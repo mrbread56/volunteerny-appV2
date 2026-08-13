@@ -140,8 +140,18 @@ async function hitTest(page: any, route: string) {
       if ((e as HTMLButtonElement).disabled) continue;
       if (e.getAttribute('aria-disabled') === 'true') continue;
 
-      const x = Math.round(r.left + r.width / 2);
-      const y = Math.round(r.top + r.height / 2);
+      // Probe the centre of the element's VISIBLE part, not its geometric
+      // centre. A tall control whose top edge is on screen can have its middle
+      // below the fold, and elementFromPoint returns null for a point outside
+      // the viewport — which this test then read as "something is covering it".
+      // That produced two false positives on the opportunity form the moment
+      // section padding grew. Clamping to the intersection keeps the probe
+      // honest without weakening what it asserts.
+      const vx0 = Math.max(r.left, 0), vx1 = Math.min(r.right, window.innerWidth);
+      const vy0 = Math.max(r.top, 0), vy1 = Math.min(r.bottom, window.innerHeight);
+      if (vx1 - vx0 < 2 || vy1 - vy0 < 2) continue;   // nothing meaningful on screen
+      const x = Math.round((vx0 + vx1) / 2);
+      const y = Math.round((vy0 + vy1) / 2);
       const hit = document.elementFromPoint(x, y);
       seen++;
 

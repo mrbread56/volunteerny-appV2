@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altruist vs Volunteer-NY — ruthless design teardown</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Fragment+Mono&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#FFFFFC; --ink:#000; --ink-60:rgba(0,0,0,.6); --ink-40:rgba(0,0,0,.4);
+    --blue:#16526e; --blue-lt:#116e99; --tint-blue:#deeff8; --tint-blue-2:#ebf8ff;
+    --tint-peach:#fff2e3; --ink-peach:#6e4616;
+    --tint-yellow:#f9fae3; --ink-yellow:#6e5f16;
+    --tint-pink:#fadbff; --ink-pink:#6e166a;
+    --line:rgba(0,0,0,.08);
+    --sans:"Instrument Sans","Segoe UI Variable Text","Segoe UI",system-ui,sans-serif;
+    --mono:"Fragment Mono",ui-monospace,Consolas,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+       font-size:17px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:0 32px}
+  header{padding:96px 0 56px}
+  .eyebrow{font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--blue-lt);margin:0 0 20px}
+  h1{font-size:clamp(38px,6vw,58px);font-weight:700;letter-spacing:-.04em;line-height:1.08;margin:0 0 24px}
+  h1 em{font-style:normal;color:var(--blue-lt)}
+  .lede{font-size:21px;font-weight:500;letter-spacing:-.02em;color:var(--ink-60);max-width:64ch;margin:0}
+  h2{font-size:clamp(28px,4vw,40px);font-weight:700;letter-spacing:-.02em;line-height:1.2;margin:0 0 8px}
+  h3{font-size:20px;font-weight:700;letter-spacing:-.01em;margin:0 0 6px}
+  section{padding:64px 0;border-top:1px solid var(--line)}
+  .sub{color:var(--ink-60);font-size:19px;font-weight:500;letter-spacing:-.02em;margin:0 0 40px;max-width:62ch}
+  p{margin:0 0 14px}
+
+  /* verdict cards */
+  .verdict{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-top:40px}
+  .vc{border-radius:17px;padding:22px 24px}
+  .vc b{display:block;font-family:var(--mono);font-size:30px;letter-spacing:-.03em;margin-bottom:2px}
+  .vc span{font-size:15px;font-weight:600;line-height:1.35;display:block}
+  .vc.a{background:var(--tint-blue);color:var(--blue)}
+  .vc.b{background:var(--tint-peach);color:var(--ink-peach)}
+  .vc.c{background:var(--tint-yellow);color:var(--ink-yellow)}
+  .vc.d{background:var(--tint-pink);color:var(--ink-pink)}
+
+  /* comparison table */
+  table{width:100%;border-collapse:collapse;font-size:15px}
+  th{text-align:left;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+     color:var(--ink-40);font-weight:700;padding:0 14px 12px;border-bottom:1px solid var(--line)}
+  td{padding:15px 14px;border-bottom:1px solid var(--line);vertical-align:top}
+  td:first-child{font-weight:600;width:20%}
+  .them{background:rgba(222,239,248,.45);color:var(--blue);font-family:var(--mono);font-size:13.5px;line-height:1.5}
+  .you{font-family:var(--mono);font-size:13.5px;line-height:1.5;color:var(--ink-60)}
+  .verd{width:26%;font-size:14.5px;font-weight:500;color:var(--ink)}
+  .wrapx{overflow-x:auto;-webkit-overflow-scrolling:touch}
+
+  /* fix list */
+  .fix{display:grid;grid-template-columns:56px 1fr;gap:20px;padding:26px 0;border-bottom:1px solid var(--line)}
+  .fix:last-child{border-bottom:0}
+  .num{font-family:var(--mono);font-size:15px;color:#fff;background:var(--blue);
+       width:38px;height:38px;border-radius:99px;display:grid;place-items:center}
+  .tag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;
+       padding:4px 10px;border-radius:99px;margin-left:8px;vertical-align:3px}
+  .t-hi{background:var(--tint-peach);color:var(--ink-peach)}
+  .t-md{background:var(--tint-yellow);color:var(--ink-yellow)}
+  .t-lo{background:var(--tint-blue);color:var(--blue)}
+  .fix p{color:var(--ink-60);font-weight:500;max-width:70ch}
+  code{font-family:var(--mono);font-size:.9em;background:rgba(0,0,0,.05);padding:2px 6px;border-radius:5px}
+
+  pre{background:var(--blue);color:#e8f4fb;border-radius:17px;padding:26px 28px;overflow-x:auto;
+      font-family:var(--mono);font-size:13px;line-height:1.75;
+      box-shadow:0 1px 10px rgba(0,0,0,.06)}
+  pre .c{color:rgba(232,244,251,.45)}
+  pre .k{color:#9ee0ff}
+
+  .swatches{display:flex;flex-wrap:wrap;gap:10px;margin:24px 0 0}
+  .sw{border-radius:14px;padding:14px 16px;font-family:var(--mono);font-size:12px;min-width:132px;
+      box-shadow:0 1px 10px rgba(0,0,0,.05)}
+  .sw b{display:block;font-size:14px;font-weight:700;margin-bottom:3px;font-family:var(--sans);letter-spacing:-.01em}
+
+  .note{background:var(--tint-blue-2);border-radius:17px;padding:22px 26px;margin-top:32px;
+        font-size:16px;font-weight:500;color:var(--blue);box-shadow:inset 0 0 14px rgba(22,82,110,.08)}
+  footer{padding:56px 0 96px;color:var(--ink-40);font-size:14px;border-top:1px solid var(--line)}
+  @media(max-width:640px){
+    .wrap{padding:0 20px} header{padding:56px 0 32px}
+    .fix{grid-template-columns:1fr;gap:10px} td:first-child{width:auto}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <p class="eyebrow">Design teardown · 13 Aug 2026</p>
+  <h1>Altruist doesn't have better taste.<br>It has <em>more decisions</em>.</h1>
+  <p class="lede">Both sites use a deep teal-blue, tight headline tracking and a soft-radius card system.
+  The gap isn't style — it's that Altruist commits to 6 systems you defined and never used, and you ship
+  two typefaces the page never renders. Everything below is measured off the live DOM of both sites, not vibes.</p>
+
+  <div class="verdict">
+    <div class="vc a"><b>38 → 2</b><span>Images on their page vs yours</span></div>
+    <div class="vc b"><b>6 → 1</b><span>Section grounds vs your all-white</span></div>
+    <div class="vc c"><b>14px</b><span>Your card body copy. Theirs: 20px</span></div>
+    <div class="vc d"><b>2</b><span>Fonts you download for 6 elements</span></div>
+  </div>
+</header>
+
+<section>
+  <h2>The measured diff</h2>
+  <p class="sub">Pulled from <code>getComputedStyle</code> on both live pages at 1280px.</p>
+  <div class="wrapx">
+  <table>
+    <thead><tr><th>System</th><th>Altruist</th><th>Volunteer-NY</th><th>Verdict</th></tr></thead>
+    <tbody>
+      <tr>
+        <td>Page ground</td>
+        <td class="them">#FFFFFC<br>warm off-white</td>
+        <td class="you">#FFFFFF<br>pure white</td>
+        <td class="verd">Pure white is the cheapest background there is. 3 points of warmth costs nothing.</td>
+      </tr>
+      <tr>
+        <td>Type roles</td>
+        <td class="them">Instrument Sans (UI)<br>Libre Baskerville (serif)<br>Fragment Mono (data)</td>
+        <td class="you">Plus Jakarta Sans ×266<br>Fraunces ×5<br>Outfit ×1</td>
+        <td class="verd">They give each face a <em>job</em>. You download two families to style six elements. Dead weight and a mixed signal.</td>
+      </tr>
+      <tr>
+        <td>H1</td>
+        <td class="them">54px / 700 / -2.16px<br>(-0.040em)</td>
+        <td class="you">56px / 600 / -1.4px<br>(-0.025em)</td>
+        <td class="verd">Yours is bigger but softer. 600 + loose tracking reads default; 700 at -0.04em reads set by hand.</td>
+      </tr>
+      <tr>
+        <td>Section intro copy</td>
+        <td class="them">20px / 500 / -0.4px<br>rgba(0,0,0,.6)</td>
+        <td class="you">14px / 400 / normal<br>#2D4A5A</td>
+        <td class="verd"><strong>Your single loudest template tell.</strong> 14px/400 body is admin-panel typography on a marketing page.</td>
+      </tr>
+      <tr>
+        <td>Eyebrow / label</td>
+        <td class="them">18px / 700<br>#116e99</td>
+        <td class="you">12px / 600<br>uppercase grey</td>
+        <td class="verd">Theirs is a confident coloured statement. Yours is a legal disclaimer.</td>
+      </tr>
+      <tr>
+        <td>Section grounds</td>
+        <td class="them">#fffffc · #deeff8 · #ebf8ff<br>#16526e · #fff2e3 · #f9fae3</td>
+        <td class="you">transparent ×5<br>on #FFFFFF</td>
+        <td class="verd">You <em>defined</em> <code>--color-paper-2/-3</code> and then blocked with none of it. That's why the page reads flat.</td>
+      </tr>
+      <tr>
+        <td>Tint→text pairing</td>
+        <td class="them">#fff2e3 → #6e4616<br>#f9fae3 → #6e5f16<br>#deeff8 → #16526e</td>
+        <td class="you">tinted bg → same ink<br>#1A2B36 everywhere</td>
+        <td class="verd">Look at their hex: <code>6e4616</code>, <code>6e5f16</code>, <code>16526e</code> — one lightness, hue rotated. That's the whole trick.</td>
+      </tr>
+      <tr>
+        <td>Radius scale</td>
+        <td class="them">10 · 12 · 15 · 17 · 25<br>80 · 100 · 170px</td>
+        <td class="you">12 · 16 · 9999px</td>
+        <td class="verd">Radius should scale with the element. A 400px card at 16px looks like Bootstrap; at 24–28px it looks designed.</td>
+      </tr>
+      <tr>
+        <td>Buttons</td>
+        <td class="them">radius 10px<br>15px 20px pad<br>label 16px / 600</td>
+        <td class="you">radius 9999px<br>14px 32px pad<br>label 14px / 500</td>
+        <td class="verd">Full pill + 14px/500 label is the SaaS-starter default. Squarer corner, bigger heavier label = editorial.</td>
+      </tr>
+      <tr>
+        <td>Depth</td>
+        <td class="them">0 1px 10px rgba(0,0,0,.06)<br>inset 0 0 14px rgba(22,82,110,.08)<br>-1px 2px 0 #000 (sticker)</td>
+        <td class="you">5× generic grey<br>drop shadows</td>
+        <td class="verd">The <em>inset</em> glow is what makes their tinted cards look lit from inside. You have zero inset shadows.</td>
+      </tr>
+      <tr>
+        <td>Accent families</td>
+        <td class="them">1 → #16526e / #116e99<br>pastels are decoration only</td>
+        <td class="you">4 → teal, amber, gold,<br>green primary ramp<br>+ blue-50…900, orange-50…900</td>
+        <td class="verd">Four accent families is no accent. Your token file carries two full legacy ramps nobody's using.</td>
+      </tr>
+      <tr>
+        <td>Vertical rhythm</td>
+        <td class="them">140px hero · 60px bands<br>page 7920px</td>
+        <td class="you">144 · 144 · 144 · 144px<br>page 4253px</td>
+        <td class="verd">Identical padding on every section = no pulse. They give each idea nearly 2× the room to land.</td>
+      </tr>
+      <tr>
+        <td>Imagery</td>
+        <td class="them">38 images<br>hero photo 1245×664 full-bleed</td>
+        <td class="you">2 images, 10 icons<br>across 4253px</td>
+        <td class="verd"><strong>The biggest single gap.</strong> Volunteering sells on faces. You're selling it with body text.</td>
+      </tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Steal this, exactly</h2>
+  <p class="sub">Their tint/ink pairs share one lightness with the hue rotated. Drop these into <code>@theme</code> in <code>src/index.css</code> — they're already in the same blue family as your <code>#1F4C63</code>.</p>
+
+  <div class="swatches">
+    <div class="sw" style="background:#deeff8;color:#16526e"><b>Blue</b>#deeff8 → #16526e</div>
+    <div class="sw" style="background:#fff2e3;color:#6e4616"><b>Peach</b>#fff2e3 → #6e4616</div>
+    <div class="sw" style="background:#f9fae3;color:#6e5f16"><b>Citron</b>#f9fae3 → #6e5f16</div>
+    <div class="sw" style="background:#fadbff;color:#6e166a"><b>Orchid</b>#fadbff → #6e166a</div>
+    <div class="sw" style="background:#16526e;color:#deeff8"><b>Deep</b>#16526e → #deeff8</div>
+  </div>
+
+<pre><span class="c">/* src/index.css — replace the token block */</span>
+@theme {
+  <span class="c">/* ground: warm, never pure white */</span>
+  <span class="k">--color-paper</span>:      #FFFFFC;
+  <span class="k">--color-paper-tint</span>: #EBF8FF;   <span class="c">/* alternate every 2nd section */</span>
+  <span class="k">--color-paper-deep</span>: #16526E;   <span class="c">/* one dark band per page */</span>
+
+  <span class="c">/* ink: opacity ladder, not four greys */</span>
+  <span class="k">--color-ink</span>:      #0A0A0A;
+  <span class="k">--color-ink-60</span>:   rgba(0,0,0,.6);  <span class="c">/* all body copy */</span>
+  <span class="k">--color-ink-40</span>:   rgba(0,0,0,.4);  <span class="c">/* captions only */</span>
+
+  <span class="c">/* ONE accent. delete amber, gold, primary-*, blue-50..900 */</span>
+  <span class="k">--color-accent</span>:      #16526E;
+  <span class="k">--color-accent-lift</span>: #116E99;  <span class="c">/* eyebrows, highlighted words */</span>
+
+  <span class="c">/* tint → ink pairs (same L, hue rotated) */</span>
+  <span class="k">--color-tint-blue</span>:   #DEEFF8;  <span class="k">--color-on-blue</span>:   #16526E;
+  <span class="k">--color-tint-peach</span>:  #FFF2E3;  <span class="k">--color-on-peach</span>:  #6E4616;
+  <span class="k">--color-tint-citron</span>: #F9FAE3;  <span class="k">--color-on-citron</span>: #6E5F16;
+
+  <span class="c">/* radius scales with the element */</span>
+  <span class="k">--radius-btn</span>:   10px;
+  <span class="k">--radius-card</span>:  17px;
+  <span class="k">--radius-panel</span>: 26px;
+  <span class="k">--radius-pill</span>:  999px;  <span class="c">/* badges only, not CTAs */</span>
+
+  <span class="c">/* depth: the inset is what you're missing */</span>
+  <span class="k">--shadow-card</span>:  0 1px 10px rgba(0,0,0,.06);
+  <span class="k">--shadow-lit</span>:   inset 0 0 14px rgba(22,82,110,.08);
+  <span class="k">--shadow-lift</span>:  0 3px 6px rgba(0,0,0,.15);
+}
+
+h1 { font-size: 54px; font-weight: 700; letter-spacing: -.04em; }
+h2 { font-size: 46px; font-weight: 700; letter-spacing: -.01em; }
+p.lede, .section-intro { font-size: 20px; font-weight: 500;
+                         letter-spacing: -.02em; color: var(--color-ink-60); }
+.card p { font-size: 17px; }  <span class="c">/* was 14px */</span>
+</pre>
+</section>
+
+<section>
+  <h2>Do these, in this order</h2>
+  <p class="sub">Ranked by aesthetic gain per hour. The first three are the ones anyone would notice.</p>
+
+  <div class="fix">
+    <div class="num">01</div>
+    <div>
+      <h3>Put photographs on the page <span class="tag t-hi">highest impact</span></h3>
+      <p>2 images across 4253px is the reason it feels like documentation. Altruist runs 38, starting with a
+      1245×664 full-bleed hero. You need real faces: a wide photo behind the hero (you already have the dark
+      overlay), one photo per step in "Three steps", and a face beside each testimonial. Nothing else on this
+      list moves the needle as far.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">02</div>
+    <div>
+      <h3>Kill the 14px body copy <span class="tag t-hi">highest impact</span></h3>
+      <p>Your step cards, feature copy and most descriptions run 14px/400. Theirs run 20px/500 at 60% black.
+      Go 17px minimum for card copy, 20px for section intros, and switch from <code>#2D4A5A</code> to
+      <code>rgba(0,0,0,.6)</code> — an opacity ladder always harmonises with whatever ground it sits on;
+      a fixed grey doesn't.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">03</div>
+    <div>
+      <h3>Block the page in colour <span class="tag t-hi">highest impact</span></h3>
+      <p>Every one of your five sections is transparent on white with identical 144px padding. Alternate
+      <code>#FFFFFC → #EBF8FF → #FFFFFC</code>, and put "Why volunteering matters" on the full
+      <code>#16526E</code> dark band with white type. You already defined <code>--color-paper-2</code> and
+      <code>--color-paper-3</code> and never used them — the system exists, it's just unwired.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">04</div>
+    <div>
+      <h3>Commit or delete Fraunces and Outfit <span class="tag t-md">quick win</span></h3>
+      <p>The live page downloads Fraunces (4 weights, variable optical size) and Outfit (5 weights) and
+      renders them on <strong>6 elements total</strong> out of 272. Either give Fraunces a real job — every
+      H2 on the page, or every stat number — or cut both imports. Right now it's pure payload with no
+      visual return, and it contradicts your own <code>--font-sans: Outfit</code> token.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">05</div>
+    <div>
+      <h3>Headings to 700 at -0.04em <span class="tag t-md">quick win</span></h3>
+      <p>Your H1 is 56px/600/-0.025em; theirs is 54px/700/-0.04em. Smaller and it hits harder, because
+      weight and tracking do the work instead of size. One-line change, disproportionate effect.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">06</div>
+    <div>
+      <h3>Un-pill the CTAs <span class="tag t-md">quick win</span></h3>
+      <p><code>rounded-full</code> + 14px/500 labels is the default every AI-generated landing page ships.
+      Move primary buttons to <code>10px</code> radius, <code>15px 20px</code> padding, and a
+      <code>16px/600</code> label. Keep <code>9999px</code> for badges and chips only — that contrast is
+      itself a design signal.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">07</div>
+    <div>
+      <h3>Add inset light to tinted surfaces <span class="tag t-lo">polish</span></h3>
+      <p>All five of your shadows are grey drop shadows. Their tinted cards carry
+      <code>inset 0 0 14px rgba(22,82,110,.08)</code>, which makes a flat pastel look lit from within rather
+      than painted on. Add it to every card that sits on a tint.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">08</div>
+    <div>
+      <h3>Cut three of your four accent families <span class="tag t-lo">polish</span></h3>
+      <p><code>src/index.css</code> ships teal <code>#1F4C63</code>, amber <code>#E08A3C</code>, gold
+      <code>#B98A22</code>, a green <code>primary-*</code> ramp, plus full legacy <code>blue-50…900</code>
+      and <code>orange-50…900</code> scales. Altruist runs one blue and treats pastels as decoration that
+      never carries meaning. Pick the teal, delete the rest, replace their uses with the tint pairs above.</p>
+    </div>
+  </div>
+
+  <div class="fix">
+    <div class="num">09</div>
+    <div>
+      <h3>Vary the vertical rhythm <span class="tag t-lo">polish</span></h3>
+      <p>144px on every section is metronomic. Give the hero 140px top, compress the logo/proof band to
+      ~60px, and let the two heaviest sections run 160–180px. A page needs a pulse; identical spacing
+      flatlines it.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>The one-sentence version</h2>
+  <div class="note">
+    Your design system is already good — it's <em>unspent</em>. The paper layers, the radius scale and the
+    display font are all defined in <code>src/index.css</code> and almost none of it reaches the screen.
+    Altruist isn't richer, it just cashes in everything it declares, then puts photographs behind it.
+  </div>
+</section>
+
+<footer>
+  <div class="wrap" style="padding:0">
+    Measured 13 Aug 2026 from the live DOM of
+    <code>volunteerny-app-v2.vercel.app</code> and <code>altruist.framer.website</code> at 1280px.
+    Token values read via <code>getComputedStyle</code>; no values estimated.
+  </div>
+</footer>
+
+</div>
+</body>
+</html>

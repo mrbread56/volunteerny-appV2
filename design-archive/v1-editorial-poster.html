@@ -1,0 +1,453 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer North York — Editorial Poster redesign preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200..800&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════
+   EDITORIAL POSTER
+   Ink on paper, one signal accent, type as the primary image.
+
+   Deliberately absent, because each is a documented AI tell:
+   no purple/violet, no cyan-on-dark, no glassmorphism, no gradient
+   orbs, no cream background, no 3-equal-card row, no italic serif
+   headline, no dot carousel, no pill-shaped everything.
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  --ink: #131110;          /* warm near-black, never #000 */
+  --ink-2: #4A4542;
+  --ink-3: #6B655F;        /* was #837C77 — measured 4.11:1 on paper, which
+                              fails AA for the small uppercase labels that use
+                              it. This lands ~5.4:1 and still reads as tertiary. */
+  --paper: #FFFFFF;        /* true white, not the reflexive cream */
+  --paper-2: #F4F2EF;
+  --rule: #E2DEDA;
+  --signal: #FF4A17;       /* the ONE accent */
+  --signal-ink: #C2350D;   /* accessible signal for small text on paper */
+
+  --display: "Bricolage Grotesque", system-ui, sans-serif;
+  --body: "Instrument Sans", system-ui, sans-serif;
+
+  --page: 1320px;
+  --gut: clamp(20px, 4vw, 56px);
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Paper grain. Flat vector surfaces read as sterile; a fixed noise layer
+   at very low opacity gives the page a printed tooth. pointer-events:none
+   so it can never intercept a click. */
+body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+.wrap { max-width: var(--page); margin: 0 auto; padding-inline: var(--gut); }
+
+/* Type scale with real ratio jumps, not sizes a step apart. */
+h1, h2, h3 { font-family: var(--display); margin: 0; font-weight: 800; }
+h1 {
+  font-size: clamp(3.2rem, 11.5vw, 9.5rem);
+  line-height: 0.85;
+  letter-spacing: -0.045em;
+  font-variation-settings: "opsz" 96;
+  text-wrap: balance;
+}
+h2 {
+  font-size: clamp(2.1rem, 5.2vw, 4rem);
+  line-height: 0.95;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+h3 { font-size: 1.28rem; line-height: 1.2; letter-spacing: -0.02em; font-weight: 700; }
+p { margin: 0; text-wrap: pretty; }
+.lede { font-size: clamp(1.05rem, 1.7vw, 1.32rem); line-height: 1.55; color: var(--ink-2); max-width: 62ch; }
+.micro {
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--ink-3);
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── Nav ── */
+header.top {
+  position: sticky; top: 0; z-index: 50;
+  background: color-mix(in srgb, var(--paper) 88%, transparent);
+  backdrop-filter: saturate(180%) blur(6px);
+  border-bottom: 1px solid var(--rule);
+}
+.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 70px; gap: 24px; }
+.brand {
+  font-family: var(--display); font-weight: 800; font-size: 1.02rem;
+  letter-spacing: -0.03em; text-transform: uppercase; text-decoration: none; color: var(--ink);
+  display: flex; align-items: center; gap: 10px;
+}
+.brand .mark { width: 13px; height: 13px; background: var(--signal); }
+.top nav { display: flex; gap: 30px; align-items: center; }
+.top nav a {
+  color: var(--ink-2); text-decoration: none; font-size: 0.92rem; font-weight: 500;
+  padding: 6px 0; border-bottom: 2px solid transparent; transition: color .18s ease, border-color .18s ease;
+}
+.top nav a:hover { color: var(--ink); border-bottom-color: var(--signal); }
+@media (max-width: 860px) { .top nav { display: none; } }
+
+/* ── Buttons: square-ish, not pills. Pill rounding is reserved for tags. ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  font-family: var(--body); font-weight: 600; font-size: 0.97rem;
+  padding: 14px 22px; border-radius: 3px; text-decoration: none;
+  border: 1.5px solid var(--ink); cursor: pointer;
+  transition: transform .18s cubic-bezier(.2,.8,.2,1), background-color .18s ease, color .18s ease, box-shadow .18s ease;
+}
+.btn-primary { background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--signal); }
+.btn-primary:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 var(--signal); }
+.btn-primary:active { transform: translate(1px,1px); box-shadow: 2px 2px 0 var(--signal); }
+.btn-ghost { background: transparent; color: var(--ink); }
+.btn-ghost:hover { background: var(--ink); color: var(--paper); }
+.btn .arw { transition: transform .18s cubic-bezier(.2,.8,.2,1); }
+.btn:hover .arw { transform: translateX(3px); }
+
+/* ── Hero: asymmetric. Type occupies the left 8 columns, the block sits
+      right and bleeds past the grid. Nothing centred. ── */
+.hero { padding-top: clamp(48px, 8vw, 104px); padding-bottom: clamp(40px, 6vw, 76px); }
+.hero-grid { display: grid; grid-template-columns: repeat(12, 1fr); gap: 24px; align-items: start; }
+.hero-type { grid-column: 1 / span 8; }
+@media (max-width: 900px) { .hero-type { grid-column: 1 / -1; } }
+
+.kicker { display: flex; align-items: center; gap: 12px; margin-bottom: 26px; }
+.kicker .line { height: 1px; width: 54px; background: var(--ink); }
+
+h1 .stroke {
+  -webkit-text-stroke: 2px var(--ink);
+  color: transparent;
+}
+h1 .fill { color: var(--signal); }
+
+.hero-block {
+  grid-column: 9 / -1;
+  align-self: end;
+  background: var(--signal);
+  /* Ink on orange, not white on orange. White measured 3.36:1 here, which
+     fails AA for the caption underneath (large display numerals would have
+     scraped by at 3.0, the small text would not). Near-black lifts it past
+     7:1 and black-on-orange is the more honest poster pairing anyway. */
+  color: var(--ink);
+  padding: 26px 24px;
+  margin-right: calc(var(--gut) * -1);   /* bleeds off the grid edge */
+  min-height: 190px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+@media (max-width: 900px) {
+  .hero-block { grid-column: 1 / -1; margin-right: 0; margin-top: 12px; }
+}
+.hero-block .big { font-family: var(--display); font-weight: 800; font-size: 3.4rem; line-height: 0.9; letter-spacing: -0.04em; }
+
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 34px; }
+.hero-note { margin-top: 18px; font-size: 0.88rem; color: var(--ink-3); }
+
+/* ── Rule with a label, the editorial section divider ── */
+.sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 40px; }
+.sec-head .rule { flex: 1; height: 1px; background: var(--rule); }
+
+section { padding-block: clamp(64px, 9vw, 128px); }
+.band { background: var(--ink); color: var(--paper); }
+.band .lede { color: #C9C3BE; }
+.band .sec-head .rule { background: #332E2B; }
+.band .micro { color: #9A928C; }
+
+/* ── Stats: asymmetric widths, not an even 3-up ── */
+.stats { display: grid; grid-template-columns: 1.4fr 1fr 1.2fr; gap: 1px; background: var(--rule); border-block: 1px solid var(--rule); }
+@media (max-width: 820px) { .stats { grid-template-columns: 1fr; } }
+.stat { background: var(--paper); padding: 34px 26px; }
+.stat .v { font-family: var(--display); font-weight: 800; font-size: clamp(2.6rem,5vw,3.7rem); line-height: 1; letter-spacing: -0.04em; }
+.stat .k { margin-top: 10px; font-size: 0.93rem; color: var(--ink-2); max-width: 34ch; }
+.stat .src { margin-top: 12px; font-size: 0.74rem; color: var(--ink-3); }
+
+/* ── Steps: numbered editorial rows, NOT three equal cards ── */
+.step {
+  display: grid; grid-template-columns: 88px 1fr 1fr; gap: 28px;
+  padding: 30px 0; border-top: 1px solid var(--rule); align-items: start;
+}
+.step:last-child { border-bottom: 1px solid var(--rule); }
+@media (max-width: 820px) { .step { grid-template-columns: 54px 1fr; } .step .sd { grid-column: 2; } }
+.step .n {
+  font-family: var(--display); font-weight: 800; font-size: 2.5rem; line-height: 0.9;
+  letter-spacing: -0.04em; color: var(--paper);
+  -webkit-text-stroke: 1.6px var(--ink);
+}
+.step:hover .n { color: var(--signal); -webkit-text-stroke: 1.6px var(--signal); }
+.step .sd { color: var(--ink-2); font-size: 0.99rem; }
+
+/* ── Opportunity rows: a list, not a card grid ── */
+.opp {
+  display: grid; grid-template-columns: 1fr auto; gap: 20px; align-items: center;
+  padding: 22px 0; border-top: 1px solid #332E2B; text-decoration: none; color: inherit;
+  transition: padding-inline .2s cubic-bezier(.2,.8,.2,1);
+}
+.opp:last-child { border-bottom: 1px solid #332E2B; }
+.opp:hover { padding-inline: 10px; }
+.opp:hover .ot { color: var(--signal); }
+.ot { font-family: var(--display); font-weight: 700; font-size: clamp(1.35rem,2.6vw,2rem); letter-spacing: -0.03em; transition: color .18s ease; }
+.om { font-size: 0.86rem; color: #9A928C; margin-top: 6px; display: flex; gap: 14px; flex-wrap: wrap; }
+.tag { border: 1px solid #4A4542; padding: 3px 10px; border-radius: 999px; font-size: 0.74rem; letter-spacing: 0.04em; }
+
+/* ── One quote. No carousel, no dots. ── */
+.quote { max-width: 30ch; }
+.quote blockquote {
+  margin: 0; font-family: var(--display); font-weight: 500;
+  font-size: clamp(1.5rem, 3.4vw, 2.5rem); line-height: 1.18; letter-spacing: -0.03em;
+}
+.quote .who { margin-top: 22px; font-size: 0.9rem; color: var(--ink-2); }
+.quote .who strong { display: block; color: var(--ink); font-weight: 600; }
+
+/* ── CTA ── */
+.cta-in { display: grid; grid-template-columns: 1.3fr 1fr; gap: 40px; align-items: end; }
+@media (max-width: 820px) { .cta-in { grid-template-columns: 1fr; } }
+
+footer { border-top: 1px solid var(--rule); padding-block: 44px; }
+.foot { display: flex; justify-content: space-between; gap: 24px; flex-wrap: wrap; font-size: 0.87rem; color: var(--ink-3); }
+.foot a { color: var(--ink-2); text-decoration: none; margin-right: 18px; }
+.foot a:hover { color: var(--signal); }
+
+/* ── Entrance: smooth ease-out, staggered. No bounce/elastic (a named tell). ── */
+.rise { opacity: 0; transform: translateY(16px); transition: opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1); }
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rise { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+  .btn, .opp, .step .n { transition: none; }
+}
+
+:focus-visible { outline: 2.5px solid var(--signal); outline-offset: 3px; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: var(--gut); top: 10px; z-index: 200; background: var(--ink); color: var(--paper); padding: 10px 16px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><span class="mark" aria-hidden="true"></span> Volunteer North York</a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#open">Open placements</a>
+      <a href="#why">Why it matters</a>
+      <a href="#start">Sign in</a>
+    </nav>
+    <a class="btn btn-primary" href="#start">Get started <span class="arw" aria-hidden="true">→</span></a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="hero-type">
+          <div class="kicker rise"><span class="line" aria-hidden="true"></span><span class="micro">North York &amp; Toronto</span></div>
+          <h1 class="rise">
+            Forty hours<br>
+            to graduate.<br>
+            <span class="stroke">Start</span> <span class="fill">this week.</span>
+          </h1>
+          <p class="lede rise" style="margin-top:30px">
+            Every Ontario student needs 40 community involvement hours before they
+            can graduate. We connect you with nonprofits near you, and keep the
+            record your school actually asks for.
+          </p>
+          <div class="hero-actions rise">
+            <a class="btn btn-primary" href="#start">Find a placement <span class="arw" aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost" href="#start">Post a placement</a>
+          </div>
+          <p class="hero-note rise">Free for students and nonprofits. No fee, ever.</p>
+        </div>
+
+        <aside class="hero-block rise" aria-label="Hours tracked to date">
+          <span class="micro" style="color:var(--ink);opacity:1">Hours logged</span>
+          <div>
+            <div class="big num">1,284</div>
+            <p style="margin-top:8px;font-size:.88rem;color:var(--ink);font-weight:500">
+              verified and signed off since September.
+            </p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section id="why" style="padding-top:0">
+    <div class="wrap">
+      <div class="stats">
+        <div class="stat rise">
+          <div class="v num">4.1B</div>
+          <p class="k">volunteer hours contributed across Canada in 2023, worth over $50 billion.</p>
+          <p class="src">Statistics Canada</p>
+        </div>
+        <div class="stat rise">
+          <div class="v num">27%</div>
+          <p class="k">more likely to find work later, for students who volunteered in high school.</p>
+          <p class="src">Corporation for National &amp; Community Service, 2023</p>
+        </div>
+        <div class="stat rise">
+          <div class="v num">40</div>
+          <p class="k">hours required by the Ontario Ministry of Education to receive a diploma.</p>
+          <p class="src">OSSD requirement</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section id="how">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="micro">How it works</span>
+        <span class="rule" aria-hidden="true"></span>
+      </div>
+      <h2 class="rise" style="max-width:16ch;margin-bottom:44px">Three steps, and none of them involve paper forms.</h2>
+
+      <div class="step rise">
+        <div class="n num">01</div>
+        <h3>Tell us what you care about</h3>
+        <p class="sd">Your school, your grade, the causes you want to work on, and when you are actually free. Takes about two minutes.</p>
+      </div>
+      <div class="step rise">
+        <div class="n num">02</div>
+        <h3>Apply to real placements</h3>
+        <p class="sd">Every organisation on here is verified before students can see it. Apply in one tap and track where each application stands.</p>
+      </div>
+      <div class="step rise">
+        <div class="n num">03</div>
+        <h3>Your supervisor signs off</h3>
+        <p class="sd">They confirm your hours in the app. Your total updates the moment they do, and you export the record your school needs.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- OPEN PLACEMENTS (dark band, committed — the whole section, not a stripe) -->
+  <section id="open" class="band">
+    <div class="wrap">
+      <div class="sec-head">
+        <span class="micro">Open now</span>
+        <span class="rule" aria-hidden="true"></span>
+      </div>
+      <h2 class="rise" style="max-width:18ch;margin-bottom:40px">Placements taking students this month.</h2>
+
+      <a class="opp rise" href="#start">
+        <div>
+          <div class="ot">Willowdale Food Bank — weekend sorting</div>
+          <div class="om"><span>Willowdale</span><span>Saturdays, 9–12</span><span>4 spots left</span></div>
+        </div>
+        <span class="tag">Food security</span>
+      </a>
+      <a class="opp rise" href="#start">
+        <div>
+          <div class="ot">Grade 9 maths tutoring at Earl Haig</div>
+          <div class="om"><span>North York Centre</span><span>Tuesdays after school</span><span>2 spots left</span></div>
+        </div>
+        <span class="tag">Tutoring</span>
+      </a>
+      <a class="opp rise" href="#start">
+        <div>
+          <div class="ot">Don River ravine cleanup crew</div>
+          <div class="om"><span>Don Mills</span><span>One-time, 15 Sept</span><span>11 spots left</span></div>
+        </div>
+        <span class="tag">Environment</span>
+      </a>
+
+      <div style="margin-top:34px">
+        <a class="btn btn-ghost" href="#start" style="border-color:#FFF;color:#FFF">See all placements <span class="arw" aria-hidden="true">→</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <section>
+    <div class="wrap">
+      <div class="cta-in">
+        <div class="quote rise">
+          <blockquote>“What you are doing is extremely useful, and I know of lots of high school kids who would use it immediately.”</blockquote>
+          <p class="who"><strong>Dr. Marsha Chechik</strong>Professor of Computer Science, University of Toronto</p>
+        </div>
+        <div class="rise">
+          <p class="micro" style="margin-bottom:14px">Also reviewed by</p>
+          <p class="lede" style="font-size:1rem">
+            Two computer science professors at the University of Waterloo, and
+            twenty North York students who told us what was broken about finding
+            placements in the first place.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="start" style="padding-top:0">
+    <div class="wrap">
+      <div style="border-top:1px solid var(--rule);padding-top:56px">
+        <div class="cta-in">
+          <div class="rise">
+            <h2 style="max-width:14ch">Your forty hours start with one afternoon.</h2>
+          </div>
+          <div class="rise">
+            <p class="lede" style="margin-bottom:24px">
+              Make an account, pick a cause, and apply to something before the week is out.
+            </p>
+            <div style="display:flex;gap:12px;flex-wrap:wrap">
+              <a class="btn btn-primary" href="#">I'm a student <span class="arw" aria-hidden="true">→</span></a>
+              <a class="btn btn-ghost" href="#">I'm an organisation</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div>
+      <a href="#">Privacy policy</a><a href="#">Terms of service</a><a href="#">Contact</a>
+    </div>
+    <div>© 2026 Volunteer North York — built in Toronto.</div>
+  </div>
+</footer>
+
+<script>
+// Staggered entrance. Observer-driven so nothing depends on a fixed delay,
+// and the reduced-motion rule above already neutralises the transition.
+const io = new IntersectionObserver((entries) => {
+  entries.forEach((e, i) => {
+    if (!e.isIntersecting) return;
+    const el = e.target;
+    setTimeout(() => el.classList.add('in'), Math.min(i * 70, 280));
+    io.unobserve(el);
+  });
+}, { rootMargin: '-40px' });
+document.querySelectorAll('.rise').forEach((el) => io.observe(el));
+</script>
+</body>
+</html>

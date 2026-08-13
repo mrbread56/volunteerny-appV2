@@ -1096,7 +1096,7 @@ export default function StudentDashboard() {
                       {(app.status === "accepted" || app.status === "pending") &&
                         orgContacts[app.opportunityId] && (
                           <div className="mt-4 bg-paper-2 p-6 rounded-lg border border-line animate-in fade-in slide-in- duration-500">
-                            <p className="text-xs font-semibold text-ink tracking-wide mb-3">
+                            <p className="text-xs font-bold text-ink tracking-wide mb-3">
                               Organization Contact Details
                             </p>
                             <div className="flex flex-wrap gap-6">
@@ -1561,7 +1561,7 @@ export default function StudentDashboard() {
               <span className="text-xs font-semibold tracking-wide text-ink-soft bg-paper-3 px-3 py-1 rounded-lg border border-line">
                 Official Involvement Request
               </span>
-              <CardTitle className="text-2xl font-semibold text-ink tracking-tight">Request Hours Verification</CardTitle>
+              <CardTitle className="text-2xl font-bold text-ink tracking-tight">Request Hours Verification</CardTitle>
               <p className="text-xs text-ink-soft font-semibold leading-relaxed">
                 Fill in the details below. We will send an automatic email notification directly to your supervisor's email coordinates to authorize these hours.
               </p>

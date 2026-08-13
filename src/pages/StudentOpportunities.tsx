@@ -365,7 +365,7 @@ export default function StudentOpportunities() {
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h2 className="text-xl font-semibold text-ink tracking-tight">Active Programs Hub</h2>
+          <h2 className="text-xl font-bold text-ink tracking-tight">Active Programs Hub</h2>
           <p className="text-ink-muted text-xs font-semibold">Discover high school-approved community involvement opportunities in real-time.</p>
         </div>
         

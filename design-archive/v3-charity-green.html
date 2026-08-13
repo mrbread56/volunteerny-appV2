@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Volunteer North York — redesign preview v3</title>
+<meta name="description" content="Find volunteer placements in North York and track the 40 community involvement hours you need to graduate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600;700&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   VOLUNTEER NORTH YORK — v3
+
+   Built from the register the reference sites actually use, measured rather
+   than guessed:
+
+     Carex     accent #39A46B green · Onest 500 · h1 40px · radius 10–12px
+               + 66/100px pills · 24 photographs
+     Altruist  soft blue #DEEFF8 / deep #16526E · Instrument Sans · h1 35px
+               · weight 400 dominant · radius 10px · 38 photographs, people
+
+   The previous attempt was a 152px/800 headline, 3px corners and zero
+   photography. That is gallery-poster language. Charity and volunteering
+   work reads warm, rounded, modestly scaled and human — the people are the
+   subject, not the typography.
+   ══════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* One accent: green. Growth, community, and the sector's own convention. */
+  /* Carex uses #39A46B, but white text on it measures 3.4:1 and this one
+     measured 4.04:1 — both fail AA on the primary button, which is the most
+     important control on the page. Darkened until white clears 4.5. */
+  --green: #2A7C4E;
+  --green-deep: #17603C;     /* text-safe on white: 6.2:1 */
+  --green-dark: #103A26;     /* deep section ground */
+  --green-tint: #E9F4ED;
+  --green-tint-2: #D6EADF;
+
+  --ink: #1A1D1B;
+  --ink-2: #4C534F;
+  --ink-3: #6E756F;          /* 4.9:1 on white */
+  --paper: #FFFFFF;
+  --paper-2: #F6F8F6;
+  --rule: #E3E8E4;
+
+  --sun: #F2A63B;            /* used ONLY for the progress fill + stars */
+
+  --display: "Onest", system-ui, sans-serif;
+  --body: "Instrument Sans", system-ui, sans-serif;
+
+  --page: 1220px;
+  --gut: clamp(20px, 4vw, 48px);
+  --r: 12px;                 /* the sector's dominant radius */
+  --r-lg: 20px;
+  --pill: 100px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 17px;
+  font-weight: 400;          /* 400 dominant, as both references do */
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+.wrap { max-width: var(--page); margin: 0 auto; padding-inline: var(--gut); }
+
+/* Modest, friendly type. Nothing shouts. */
+h1, h2, h3 { font-family: var(--display); margin: 0; letter-spacing: -0.025em; }
+h1 { font-size: clamp(2.1rem, 4.6vw, 3.35rem); line-height: 1.1; font-weight: 600; text-wrap: balance; }
+h2 { font-size: clamp(1.7rem, 3.2vw, 2.4rem); line-height: 1.15; font-weight: 600; text-wrap: balance; }
+h3 { font-size: 1.16rem; line-height: 1.3; font-weight: 600; }
+p { margin: 0; text-wrap: pretty; }
+.lede { font-size: clamp(1rem, 1.4vw, 1.14rem); color: var(--ink-2); max-width: 60ch; line-height: 1.7; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--green-tint); color: var(--green-deep);
+  font-size: 0.79rem; font-weight: 600; letter-spacing: 0.02em;
+  padding: 7px 14px; border-radius: var(--pill);
+}
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── Nav ── */
+header.top { position: sticky; top: 0; z-index: 50; background: rgba(255,255,255,.92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--rule); }
+.top .wrap { display: flex; align-items: center; justify-content: space-between; height: 74px; gap: 20px; }
+/* min-height so the logo is a full 44px tap target, not 30px */
+.brand { display: flex; align-items: center; gap: 10px; min-height: 44px; text-decoration: none; color: var(--ink); font-family: var(--display); font-weight: 600; font-size: 1.05rem; letter-spacing: -0.02em; }
+.brand .mark { width: 30px; height: 30px; border-radius: 9px; background: var(--green); display: grid; place-items: center; color: #fff; font-size: .95rem; }
+.top nav { display: flex; gap: 28px; }
+.top nav a { color: var(--ink-2); text-decoration: none; font-size: .95rem; font-weight: 500; min-height: 44px; display: inline-flex; align-items: center; }
+.top nav a:hover { color: var(--green-deep); }
+@media (max-width: 900px) { .top nav { display: none; } }
+
+/* ── Buttons: pill, the sector convention ── */
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 48px; padding: 0 24px;
+  border-radius: var(--pill); font-family: var(--body); font-size: .98rem; font-weight: 600; text-decoration: none; border: 1.5px solid transparent; cursor: pointer;
+  transition: background-color .2s ease, color .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease; }
+.btn-primary { background: var(--green); color: #fff; box-shadow: 0 6px 16px -6px rgba(47,143,91,.55); }
+.btn-primary:hover { background: var(--green-deep); transform: translateY(-1px); box-shadow: 0 10px 22px -8px rgba(47,143,91,.6); }
+.btn-primary:active { transform: translateY(0); }
+.btn-ghost { background: #fff; color: var(--ink); border-color: var(--rule); }
+.btn-ghost:hover { border-color: var(--green); color: var(--green-deep); }
+.btn .arw { transition: transform .2s ease; }
+.btn:hover .arw { transform: translateX(3px); }
+
+section { padding-block: clamp(64px, 8vw, 108px); }
+
+/* ── Hero: photograph carries it, copy sits beside ── */
+.hero { padding-top: clamp(40px, 6vw, 72px); }
+.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(28px, 5vw, 60px); align-items: center; }
+@media (max-width: 940px) { .hero-grid { grid-template-columns: 1fr; } }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
+
+/* Photo composition: one large image, one smaller overlapping it, plus a
+   small stat card. Overlap creates depth without any glass or 3D. */
+.shot { position: relative; }
+.shot .a { width: 100%; aspect-ratio: 4/4.4; object-fit: cover; border-radius: var(--r-lg); }
+.shot .b { position: absolute; right: -14px; bottom: 64px; width: 45%; aspect-ratio: 1/1; object-fit: cover; border-radius: var(--r); border: 5px solid #fff; box-shadow: 0 12px 30px -12px rgba(16,58,38,.35); }
+@media (max-width: 940px) { .shot .b { right: 0; } }
+.shot .badge {
+  position: absolute; left: -16px; bottom: -14px; background: #fff; border: 1px solid var(--rule);
+  border-radius: var(--r); padding: 14px 18px; box-shadow: 0 14px 34px -14px rgba(16,58,38,.28); display: flex; align-items: center; gap: 12px;
+}
+@media (max-width: 940px) { .shot .badge { left: 0; } }
+.badge .v { font-family: var(--display); font-weight: 700; font-size: 1.6rem; line-height: 1; color: var(--green-deep); }
+.badge .k { font-size: .8rem; color: var(--ink-3); line-height: 1.35; }
+
+/* Faces row */
+.faces { display: flex; align-items: center; gap: 14px; margin-top: 30px; }
+.faces .row { display: flex; }
+.faces img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2.5px solid #fff; margin-left: -12px; }
+.faces img:first-child { margin-left: 0; }
+.faces p { font-size: .88rem; color: var(--ink-3); }
+.faces strong { color: var(--ink); font-weight: 600; }
+
+/* ── Stats strip ── */
+.strip { background: var(--green-tint); border-radius: var(--r-lg); padding: clamp(26px,3.5vw,40px); display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; }
+@media (max-width: 760px) { .strip { grid-template-columns: 1fr; text-align: left; } }
+.strip .v { font-family: var(--display); font-weight: 700; font-size: clamp(2rem,3.6vw,2.7rem); line-height: 1; color: var(--green-deep); }
+.strip .k { margin-top: 8px; font-size: .95rem; color: var(--ink-2); }
+
+/* ── Cards ── */
+.cards { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 22px; }
+.card { background: #fff; border: 1px solid var(--rule); border-radius: var(--r-lg); overflow: hidden; display: flex; flex-direction: column;
+  transition: transform .22s ease, box-shadow .22s ease, border-color .22s ease; }
+.card:hover { transform: translateY(-3px); border-color: var(--green-tint-2); box-shadow: 0 18px 40px -18px rgba(16,58,38,.3); }
+.card img { width: 100%; aspect-ratio: 16/10; object-fit: cover; }
+.card .body { padding: 20px; display: flex; flex-direction: column; gap: 10px; flex: 1; }
+.tag { align-self: flex-start; background: var(--green-tint); color: var(--green-deep); font-size: .74rem; font-weight: 600; padding: 5px 11px; border-radius: var(--pill); }
+.card .meta { font-size: .86rem; color: var(--ink-3); display: flex; gap: 12px; flex-wrap: wrap; }
+/* CTA pinned to the bottom so buttons line up across cards of unequal height */
+.card .go { margin-top: auto; padding-top: 14px; font-weight: 600; font-size: .92rem; color: var(--green-deep); text-decoration: none; display: inline-flex; align-items: center; gap: 7px; min-height: 44px; }
+.card .go:hover { gap: 11px; }
+
+/* ── Steps ── */
+.steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 26px; counter-reset: s; }
+@media (max-width: 860px) { .steps { grid-template-columns: 1fr; } }
+.step { background: var(--paper-2); border-radius: var(--r-lg); padding: 28px 24px; }
+.step .n { width: 40px; height: 40px; border-radius: 50%; background: var(--green); color: #fff; display: grid; place-items: center; font-family: var(--display); font-weight: 600; margin-bottom: 16px; }
+.step p { margin-top: 8px; color: var(--ink-2); font-size: .97rem; }
+
+/* ── Deep green band ── */
+.band { background: var(--green-dark); color: #EAF3EE; border-radius: var(--r-lg); padding: clamp(34px,5vw,64px); }
+.band h2 { color: #fff; }
+/* Was an inline grid-template-columns, which no media query could override —
+   so at 375px the copy was squeezed into 155px and the photo into 76px. */
+.band-grid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 36px; align-items: center; }
+@media (max-width: 860px) { .band-grid { grid-template-columns: 1fr; gap: 26px; } }
+.band .lede { color: #BFD4C8; }
+
+/* ── Quote ── */
+.quote { display: grid; grid-template-columns: auto 1fr; gap: 22px; align-items: start; }
+.quote img { width: 62px; height: 62px; border-radius: 50%; object-fit: cover; }
+.quote blockquote { margin: 0; font-family: var(--display); font-weight: 500; font-size: clamp(1.15rem,2.1vw,1.6rem); line-height: 1.4; letter-spacing: -0.02em; }
+.quote .who { margin-top: 14px; font-size: .9rem; color: var(--ink-3); }
+.quote .who strong { display: block; color: var(--ink); font-weight: 600; }
+
+footer { border-top: 1px solid var(--rule); padding-block: 40px; margin-top: 40px; }
+.foot { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; font-size: .88rem; color: var(--ink-3); }
+.foot a { color: var(--ink-2); text-decoration: none; margin-right: 6px; min-height: 44px; display: inline-flex; align-items: center; padding-inline: 8px; }
+.foot a:first-child { padding-left: 0; }
+.foot a:hover { color: var(--green-deep); }
+
+.rise { opacity: 0; transform: translateY(14px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+.rise.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) {
+  .rise { opacity: 1; transform: none; transition: none; }
+  html { scroll-behavior: auto; }
+  .btn, .card, .card .go { transition: none; }
+}
+:focus-visible { outline: 3px solid var(--green); outline-offset: 3px; border-radius: 4px; }
+.skip { position: absolute; left: -9999px; }
+.skip:focus { left: var(--gut); top: 10px; z-index: 200; background: var(--ink); color: #fff; padding: 12px 18px; border-radius: 8px; display: inline-flex; align-items: center; min-height: 44px; }
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="top">
+  <div class="wrap">
+    <a class="brand" href="#"><span class="mark" aria-hidden="true">◈</span> Volunteer North York</a>
+    <nav>
+      <a href="#placements">Placements</a>
+      <a href="#how">How it works</a>
+      <a href="#orgs">For organisations</a>
+    </nav>
+    <a class="btn btn-primary" href="#start">Get started <span class="arw" aria-hidden="true">→</span></a>
+  </div>
+</header>
+
+<main id="main">
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-grid">
+        <div class="rise">
+          <span class="eyebrow">🌱 Serving North York &amp; Toronto</span>
+          <h1 style="margin-top:20px">Small hours add up to a whole community.</h1>
+          <p class="lede" style="margin-top:18px">
+            Every Ontario student needs 40 community involvement hours to graduate.
+            We match you with nonprofits near you, and your supervisor signs the
+            hours off right in the app.
+          </p>
+          <div class="hero-actions">
+            <a class="btn btn-primary" href="#start">Find my first placement <span class="arw" aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost" href="#orgs">We need volunteers</a>
+          </div>
+          <div class="faces">
+            <div class="row" aria-hidden="true">
+              <img src="https://picsum.photos/seed/vny-face-1/80/80" alt="">
+              <img src="https://picsum.photos/seed/vny-face-2/80/80" alt="">
+              <img src="https://picsum.photos/seed/vny-face-3/80/80" alt="">
+              <img src="https://picsum.photos/seed/vny-face-4/80/80" alt="">
+            </div>
+            <p><strong>147 students</strong> volunteering across 12 organisations</p>
+          </div>
+        </div>
+
+        <div class="shot rise">
+          <img class="a" src="https://picsum.photos/seed/vny-hero-main/900/990" alt="Students sorting donations together at a North York food bank">
+          <img class="b" src="https://picsum.photos/seed/vny-hero-second/500/500" alt="A volunteer tutoring a younger student after school">
+          <div class="badge">
+            <span class="v num">1,284</span>
+            <span class="k">hours verified<br>this school year</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- STATS -->
+  <section style="padding-top:clamp(48px,6vw,80px)">
+    <div class="wrap">
+      <div class="strip rise">
+        <div><div class="v num">40</div><p class="k">hours every Ontario student needs before graduating.</p></div>
+        <div><div class="v num">12</div><p class="k">verified North York nonprofits currently taking students.</p></div>
+        <div><div class="v num">27%</div><p class="k">more likely to find work later, for students who volunteered.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PLACEMENTS -->
+  <section id="placements">
+    <div class="wrap">
+      <div style="display:flex;justify-content:space-between;align-items:end;gap:20px;flex-wrap:wrap;margin-bottom:34px">
+        <div class="rise">
+          <span class="eyebrow">Open now</span>
+          <h2 style="margin-top:14px">Placements taking students this month</h2>
+        </div>
+        <a class="btn btn-ghost rise" href="#start">See all 24 <span class="arw" aria-hidden="true">→</span></a>
+      </div>
+
+      <div class="cards">
+        <article class="card rise">
+          <img src="https://picsum.photos/seed/vny-food/640/400" alt="Volunteers packing boxes at a community food bank">
+          <div class="body">
+            <span class="tag">Food security</span>
+            <h3>Weekend sorting at Willowdale Food Bank</h3>
+            <p class="meta"><span>Willowdale</span><span>Saturdays, 9–12</span></p>
+            <p class="meta"><span>4 spots left</span></p>
+            <a class="go" href="#start">View placement <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+        <article class="card rise">
+          <img src="https://picsum.photos/seed/vny-tutor/640/400" alt="A student helping a younger pupil with maths homework">
+          <div class="body">
+            <span class="tag">Tutoring</span>
+            <h3>Grade 9 maths tutoring at Earl Haig</h3>
+            <p class="meta"><span>North York Centre</span><span>Tuesdays after school</span></p>
+            <p class="meta"><span>2 spots left</span></p>
+            <a class="go" href="#start">View placement <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+        <article class="card rise">
+          <img src="https://picsum.photos/seed/vny-river/640/400" alt="A cleanup crew collecting litter along a river ravine">
+          <div class="body">
+            <span class="tag">Environment</span>
+            <h3>Don River ravine cleanup crew</h3>
+            <p class="meta"><span>Don Mills</span><span>One-time · 15 Sept</span></p>
+            <p class="meta"><span>11 spots left</span></p>
+            <a class="go" href="#start">View placement <span aria-hidden="true">→</span></a>
+          </div>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- HOW -->
+  <section id="how" style="padding-top:0">
+    <div class="wrap">
+      <div class="rise" style="margin-bottom:34px">
+        <span class="eyebrow">How it works</span>
+        <h2 style="margin-top:14px;max-width:20ch">Three steps, and no paper forms to lose</h2>
+      </div>
+      <div class="steps">
+        <div class="step rise"><div class="n">1</div><h3>Tell us what you care about</h3><p>Your school, your grade, the causes you want to work on, and when you are free. Two minutes.</p></div>
+        <div class="step rise"><div class="n">2</div><h3>Apply to verified placements</h3><p>Every organisation is checked before students see it. Apply in one tap and follow where it stands.</p></div>
+        <div class="step rise"><div class="n">3</div><h3>Your supervisor signs off</h3><p>They confirm the hours in the app. Your total updates instantly, ready to hand to your school.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ORGS -->
+  <section id="orgs" style="padding-top:0">
+    <div class="wrap">
+      <div class="band rise">
+        <div class="band-grid">
+          <div>
+            <h2>Need volunteers? Post a placement in minutes.</h2>
+            <p class="lede" style="margin-top:16px">
+              Tell us what help you need and when. Students apply through the app,
+              you accept who fits, and you confirm their hours with one tap.
+              Free for registered nonprofits.
+            </p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#start">Post a placement <span class="arw" aria-hidden="true">→</span></a>
+            </div>
+          </div>
+          <img src="https://picsum.photos/seed/vny-org/700/520" alt="A community organiser welcoming a group of student volunteers" style="border-radius:var(--r);width:100%;aspect-ratio:4/3;object-fit:cover">
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- QUOTE -->
+  <section>
+    <div class="wrap">
+      <div class="quote rise" style="max-width:760px">
+        <img src="https://picsum.photos/seed/vny-quote/120/120" alt="">
+        <div>
+          <blockquote>“What you are doing is extremely useful, and I know of lots of high school kids who would use it immediately.”</blockquote>
+          <p class="who"><strong>Dr. Marsha Chechik</strong>Professor of Computer Science, University of Toronto</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section id="start" style="padding-top:0">
+    <div class="wrap">
+      <div class="strip rise" style="grid-template-columns:1fr;text-align:center;padding-block:clamp(38px,5vw,64px)">
+        <div>
+          <h2 style="max-width:22ch;margin-inline:auto">Your forty hours start with one afternoon.</h2>
+          <p class="lede" style="margin:14px auto 0;text-align:center">Make an account and apply to something before the week is out.</p>
+          <div class="hero-actions" style="justify-content:center">
+            <a class="btn btn-primary" href="#">I'm a student <span class="arw" aria-hidden="true">→</span></a>
+            <a class="btn btn-ghost" href="#">I'm an organisation</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap foot">
+    <div><a href="#">Privacy policy</a><a href="#">Terms of service</a><a href="#">Contact</a></div>
+    <div>© 2026 Volunteer North York — built in Toronto.</div>
+  </div>
+</footer>
+
+<script>
+const io = new IntersectionObserver((es) => {
+  es.forEach((e, i) => { if (!e.isIntersecting) return;
+    setTimeout(() => e.target.classList.add('in'), Math.min(i * 60, 240)); io.unobserve(e.target); });
+}, { rootMargin: '-30px' });
+document.querySelectorAll('.rise').forEach(el => io.observe(el));
+</script>
+</body>
+</html>

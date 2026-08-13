@@ -324,7 +324,7 @@ export default function StudentProfile() {
 
         <div className="text-center md:text-left relative z-10">
           <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-            <h1 className="text-4xl md:text-6xl font-semibold text-ink tracking-tight leading-none uppercase">
+            <h1 className="text-4xl md:text-6xl font-bold text-ink tracking-tight leading-none uppercase">
               Student Profile
             </h1>
             <ReferralBadge count={studentProfile?.referralCount || 0} className="self-center md:self-end md:mb-1" />

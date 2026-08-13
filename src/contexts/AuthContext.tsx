@@ -159,10 +159,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     document.documentElement.classList.remove('dark');
     localStorage.removeItem('theme_dark_mode');
 
-    // 1. Process font selection
-    const font = '"Plus Jakarta Sans", "Inter", sans-serif';
-    document.documentElement.style.setProperty('--font-sans', font);
-    document.documentElement.setAttribute('data-theme-font', 'jakarta');
+    // No runtime font override.
+    //
+    // This set --font-sans to '"Plus Jakarta Sans", "Inter", sans-serif' on
+    // every mount. Neither family is imported anywhere in this project, so it
+    // overwrote the Outfit declaration in src/index.css with two fonts the
+    // browser could not load, and the entire app fell through to the system
+    // sans — while still downloading Outfit and Fraunces on every page load.
+    // A measured audit caught the symptom: 266 elements rendering Plus Jakarta
+    // Sans, and the font we actually ship reaching almost nothing.
+    //
+    // Removing it is what makes the typography this project pays for render.
+    document.documentElement.setAttribute('data-theme-font', 'outfit');
 
     // 2. Process color selection
     applyThemeColor(themeColor);
