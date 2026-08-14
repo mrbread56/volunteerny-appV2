@@ -182,7 +182,19 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
   };
 
   const handleBulkReject = async () => {
-    if (!window.confirm("Are you sure you want to reject all remaining pending and reviewed applications?")) return;
+    // Count and name FIRST. This asked for confirmation and only counted on the
+    // next line, so "all remaining" could be two applicants or twenty and the
+    // coordinator had no way to tell — and every one of them is written and
+    // emailed.
+    const toReject = applicants.filter((a) => a.status === 'pending' || a.status === 'reviewed');
+    if (toReject.length === 0) {
+      setErrorMessage('There are no pending or reviewed applications left to reject.');
+      return;
+    }
+    if (!window.confirm(
+      `Reject ${toReject.length} applicant${toReject.length === 1 ? '' : 's'} for "${opportunity?.title ?? 'this opportunity'}"?\n\n` +
+      `Each of them will be emailed that they were not successful. This cannot be undone.`,
+    )) return;
     
     setIsBulkRejecting(true);
     try {
@@ -669,8 +681,26 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
           <h1 className="text-4xl font-bold text-ink tracking-tight leading-none">
             {opportunity.title}
           </h1>
+          {/* Places filled, not just applications received. maxVolunteers was in
+              scope on this page and rendered nowhere, so nothing told a
+              coordinator they had already filled all five spots — and manual
+              accepts are not capacity-checked, only auto-promotions are. */}
           <p className="text-ink-muted mt-3 font-medium">
-            Reviewing {applicants.length} volunteering applications
+            Reviewing {applicants.length} application{applicants.length === 1 ? '' : 's'}
+            {typeof opportunity?.maxVolunteers === 'number' && opportunity.maxVolunteers > 0 && (
+              <>
+                {' · '}
+                <span className={cn(
+                  'font-semibold',
+                  applicants.filter((a) => a.status === 'accepted').length >= opportunity.maxVolunteers
+                    ? 'text-amber-900'
+                    : 'text-ink',
+                )}>
+                  {applicants.filter((a) => a.status === 'accepted').length} of {opportunity.maxVolunteers} place
+                  {opportunity.maxVolunteers === 1 ? '' : 's'} filled
+                </span>
+              </>
+            )}
           </p>
         </div>
         <div className="flex flex-col gap-3 max-w-full shrink-0 items-end">
@@ -693,7 +723,16 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                         : "text-ink-muted hover:text-ink",
                     )}
                   >
+                    {/* Counts, because the tab defaults to "pending": once every
+                        applicant was decided, a posting with twelve of them showed
+                        an empty list and no clue that the other eleven were one
+                        click away. */}
                     {tab}
+                    <span className="ml-1.5 opacity-60">
+                      {tab === "all"
+                        ? applicants.length
+                        : applicants.filter((a) => a.status === tab).length}
+                    </span>
                   </button>
                 )
               )}
@@ -773,7 +812,19 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                 const isBottomB = b.status === "rejected" || b.status === "terminated";
                 if (isBottomA && !isBottomB) return 1;
                 if (!isBottomA && isBottomB) return -1;
-                return 0;
+                // Longest wait first. This used to `return 0` for everything
+                // undecided, so applicants appeared in raw Firestore document
+                // order and someone who had been waiting three weeks could sit
+                // below someone who applied this morning.
+                const at = (x: any) => {
+                  const v = x?.appliedAt;
+                  if (!v) return 0;
+                  if (typeof v?.toDate === 'function') return v.toDate().getTime();
+                  if (typeof v?.seconds === 'number') return v.seconds * 1000;
+                  const d = new Date(v).getTime();
+                  return Number.isFinite(d) ? d : 0;
+                };
+                return at(a) - at(b);
               })
               .map((app) => (
                 <Card
@@ -899,7 +950,20 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                           <Button 
                             variant="outline" 
                             className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-red-200 text-red-600 hover:bg-rose-50/50 flex items-center justify-center gap-2"
-                            onClick={() => updateStatus(app.id, "terminated")}
+                            onClick={() => {
+                              // Terminating emails the student that their
+                              // placement has ended and frees their spot to the
+                              // waitlist. It fired on one click, with only the
+                              // 5s Undo toast as a safety net — and the review
+                              // modal renders over that toast at the same
+                              // z-index. Un-terminate beside it is harmless and
+                              // stays unconfirmed.
+                              if (!window.confirm(
+                                `End ${app.studentName || 'this student'}'s placement?\n\n` +
+                                `They will be emailed that it has ended, and their place will be offered to the waitlist.`,
+                              )) return;
+                              updateStatus(app.id, "terminated");
+                            }}
                           >
                             Terminate Placement
                           </Button>

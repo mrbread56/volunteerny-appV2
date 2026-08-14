@@ -2,7 +2,7 @@
   "//": "firestore.rules, firestore.indexes.json and storage.rules all exist in this repo but were not referenced here, so `firebase deploy` never shipped any of them \u2014 the rules file was effectively documentation. The `database` key is required because this project has no \"(default)\" Firestore database, only the named one in FIREBASE_DATABASE_ID.",
   "firestore": [
     {
-      "database": "ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755",
+      "database": "volunteerny",
       "rules": "firestore.rules",
       "indexes": "firestore.indexes.json"
     }

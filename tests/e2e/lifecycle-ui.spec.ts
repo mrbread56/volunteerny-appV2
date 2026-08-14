@@ -135,7 +135,9 @@ test('an organization can see and act on a waitlisted applicant', async ({ page 
 
   // The tab existed for every other status and not for this one, so waitlisted
   // applicants were reachable only through "all".
-  const waitlistTab = page.getByRole('button', { name: /^waitlist$/i });
+  // Matched on TEXT CONTENT rather than the accessible name: the tab renders
+  // its count in a child span, so the two diverge.
+  const waitlistTab = page.getByRole('button').filter({ hasText: /waitlist/i }).first();
   await expect(waitlistTab).toBeVisible({ timeout: 20000 });
   await waitlistTab.click();
 
@@ -182,7 +184,7 @@ test('an organization can email applicants and close the posting', async ({ page
 
   await signIn(page, ORG.email);
   await page.goto(`/org/opportunities/${OPP.id}/applicants`);
-  await page.getByRole('button', { name: /^all$/i }).click();
+  await page.getByRole('button', { name: /^all/i }).click();
 
   // Per-applicant mailto. The address comes from the server, so this asserts
   // the whole chain: ownership check, Admin-SDK lookup, and a link that carries

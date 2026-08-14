@@ -27,7 +27,7 @@ import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/Badge';
 import { useGeolocation } from '../hooks/useGeolocation';
 
-import { OPPORTUNITY_CATEGORIES } from '../constants';
+import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
 import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
 
@@ -567,6 +567,35 @@ export default function OrgOpportunityEdit() {
                      {SKILLS.map(skill => (
                        <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white shadow-blue-100" : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
                          {skill}
+                       </button>
+                     ))}
+                   </div>
+                </div>
+
+                {/* The exclusives picker Create has and Edit did not.
+                    OPPORTUNITY_EXCLUSIVES was imported here, toggleExclusive was
+                    written here, and `exclusives` was read on load and written on
+                    save — every part existed except the control. So eligibility
+                    set once at creation could never be changed, and an
+                    organization that opened a role to more students had no way to
+                    say so. */}
+                <div>
+                   <label className="text-sm font-medium text-ink-soft block mb-4">Exclusive Badges / Eligibility</label>
+                   <div className="flex flex-wrap gap-2">
+                     {OPPORTUNITY_EXCLUSIVES.map(exc => (
+                       <button
+                         key={exc}
+                         type="button"
+                         onClick={() => toggleExclusive(exc)}
+                         aria-pressed={selectedExclusives.includes(exc)}
+                         className={cn(
+                           "px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all",
+                           selectedExclusives.includes(exc)
+                             ? "bg-amber-600 border-amber-600 text-white shadow-amber-100"
+                             : "bg-white border-line-light text-ink-muted hover:border-amber-300"
+                         )}
+                       >
+                         {exc}
                        </button>
                      ))}
                    </div>

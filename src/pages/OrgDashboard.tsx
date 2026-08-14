@@ -1098,10 +1098,35 @@ export default function OrgDashboard() {
         <section className="lg:col-span-3 space-y-6">
 
 
-          <div className="flex items-center justify-between">
+          {/* The search input that was never rendered. appSearchTerm, its setter
+              and the filteredApplications memo were all written; only the control
+              was missing, so the feature existed in the bundle and nowhere on
+              screen. */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <h2 className="text-xl font-semibold text-ink flex items-center gap-2">
               Recent Applications
             </h2>
+            <div className="relative flex-1 sm:max-w-xs">
+              <label htmlFor="app-search" className="sr-only">Search applications</label>
+              <input
+                id="app-search"
+                type="text"
+                placeholder="Search by name, opportunity, or status…"
+                value={appSearchTerm}
+                onChange={(e) => setAppSearchTerm(e.target.value)}
+                className="w-full text-xs font-semibold bg-paper-2 px-4 py-3 h-11 rounded-lg border border-line outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all"
+              />
+              {appSearchTerm && (
+                <button
+                  type="button"
+                  onClick={() => setAppSearchTerm("")}
+                  aria-label="Clear application search"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink text-lg leading-none"
+                >
+                  ×
+                </button>
+              )}
+            </div>
             <div className="flex bg-paper-3 p-1 rounded-lg">
               {(["all", "pending", "accepted"] as const).map((tab) => (
                 <button
@@ -1121,7 +1146,10 @@ export default function OrgDashboard() {
           </div>
           <Card className="overflow-hidden border-none rounded-lg bg-white">
             <div className="divide-y divide-slate-100">
-              {recentApplications.filter(
+              {/* filteredApplications, not recentApplications. The memo and its
+                  search state were fully written and consumed by nothing, so the
+                  search box below fed a list nobody rendered. */}
+              {filteredApplications.filter(
                 (a) => filterTab === "all" || a.status === filterTab,
               ).length > 0 ? (
                 recentApplications
@@ -1202,7 +1230,7 @@ export default function OrgDashboard() {
       {/* Hours Verification — own tab */}
       {activeTab === "hours" && (
         <HoursTab
-          hoursRequests={hoursRequests}
+          hoursRequests={filteredHoursRequests}
           isApprovingId={isApprovingId}
           onApproveHoursRequest={handleApproveHoursRequest}
           studentsList={studentsList}
