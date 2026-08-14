@@ -27,7 +27,12 @@ Every gate below was run on this commit and passed.
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
-| `test` (full Playwright suite) | **51/51** |
+| `test` (full Playwright suite, chromium + webkit) | **74/74** |
+| `test:rules` (emulator, per-field) | **49/49** |
+| `check:concurrency` (200-way parallel) | **5/5** |
+| `test:tz` (5 timezones incl. UTC+14 and a half-hour zone) | **5/5** |
+| `test:mutation` (deliberate breakages caught) | **8/8 killed** |
+| `test:offline` (pure logic, no network) | **43/43** |
 | `check:storage` (uploads + Storage rules) | **5/5** |
 | click reachability (every control, every role) | 211 controls, **0 blocked** |
 | **GitHub Actions CI** | **green, live tier executing** |
@@ -53,6 +58,40 @@ across breakpoints (375px, 768px, 1440px).
 | Application → hours → leaderboard | Working. `check:flows` |
 | Withdraw / waitlist / deletion | Working. `check:lifecycle` |
 | CI | Green, and fails loudly if the security suite cannot run |
+
+---
+
+## 14 August 2026 — an incident, and the blocker under it
+
+**Production reads were exhausted for a day, by me.** Running the live suites
+repeatedly (each three times, plus the full browser suite several times) used up
+the database's daily read quota. Real users would have seen failures until it
+reset. The honest error messages added the day before meant they would at least
+have been told something true rather than shown empty pages.
+
+The cause underneath it matters far more than the incident:
+
+```
+8 RESOURCE_EXHAUSTED: Quota exceeded for 'Free daily read units per project
+(free tier database)'. This database cannot exceed free quota limits even when
+a billing instrument is enabled.
+```
+
+`FIREBASE_DATABASE_ID` points at `ai-studio-volunteerny-abfab7a5-…`, created by
+AI Studio. It has a hard daily read ceiling and **Blaze does not raise it**. The
+project has no `(default)` database; both that exist are AI-Studio-created
+(us-west2 and us-east1, Enterprise edition).
+
+Real traffic will hit this exactly as testing did. The browse page reads up to
+200 documents and the student dashboard fires six queries per visit, so a few
+dozen active students in one day is enough to take the site down until midnight,
+with no way to pay to stay up. **This is the launch blocker.** Tracked as
+ROADMAP B19, ahead of B15.
+
+Two consequences for how this repo is worked on, now written into RUNBOOK:
+the live suites are a limited budget rather than something to run in a loop, and
+the offline suites (`lint`, `test:offline`, `test:tz`, `test:mutation`,
+`test:rules`) exist precisely so that most verification costs nothing.
 
 ---
 

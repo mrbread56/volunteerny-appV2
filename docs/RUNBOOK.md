@@ -8,6 +8,40 @@ it. Confirm before fixing. Most of these look alike from a user's description.
 
 ---
 
+## Running the test suites
+
+Grouped by what they need, because that determines when you can run them.
+
+**Offline — no network, no database, run these freely and often**
+
+    npm run lint            types, plus the ESM guard for the server entry points
+    npm run test:offline    pure logic: dates, email templates, MFA claims, fuzz
+    npm run test:tz         the date logic in 5 timezones, incl. UTC+14
+    npm run test:mutation   breaks the code on purpose to check the tests notice
+    npm run test:rules      firestore.rules on the emulator, per-field
+
+`test:rules` needs a JDK on PATH, because the Firestore emulator is a Java
+process. If `java -version` fails, install Temurin 21 and set JAVA_HOME.
+
+**Browser — needs the dev server, which Playwright starts for you**
+
+    npx playwright test                     everything, chromium + webkit
+    npx playwright test --project=webkit    Safari only; this is what iOS runs
+
+**Live — these READ AND WRITE THE PRODUCTION DATABASE**
+
+    npm run check:security check:flows check:lifecycle check:signup
+    npm run check:concurrency check:integrity
+
+Run these SPARINGLY, and never in a loop. The production database is an
+AI-Studio one with a hard daily read ceiling that billing does not lift (see
+ROADMAP B19). A day of repeated test runs on 14 Aug 2026 exhausted it and took
+production reads down until the quota reset. Until B19 is done, treat every live
+run as spending a limited budget that real students also need.
+
+If a live check fails with `RESOURCE_EXHAUSTED`, nothing is broken — the quota
+is gone for the day. Wait for the reset rather than retrying.
+
 ## An organization cannot get past the verification code screen
 
 **They will say:** "I signed up but the code never arrives", or "I keep getting
