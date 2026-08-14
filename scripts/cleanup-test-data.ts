@@ -65,7 +65,18 @@ const TEST_PATTERNS: RegExp[] = [
   /^sweep_(student|org|dev)_/i,  // tests/e2e/console-sweep.spec.ts
   /^trap_(student|org|dev)_/i,   // tests/e2e/click-trap.spec.ts
   /^testuser_\d+@/i,
+  /^check_lc_/i,         // scripts/check-lifecycle.ts
+  /^check_conc_/i,       // scripts/check-concurrency.ts
+  /^vf-[so]-/i,          // scripts/check-security.ts adversarial fixtures
   /@example\.com$/i,     // reserved by RFC 2606 — never a real address
+  // .invalid is reserved by the SAME RFC and is just as safe to sweep. Missing
+  // it is why the adversarial fixture "Forged Total" — a students document
+  // carrying hours: 999999 at vf-s-…@volunteerny-check.invalid — survived every
+  // cleanup run. The leaderboard builder reads
+  // `students.orderBy('hours','desc')` and filters only on trackerEnabled, so
+  // that row was one cron rebuild away from sitting at #1 in front of every
+  // student on the platform.
+  /\.invalid$/i,
 ];
 
 const isTestAddress = (email: string) => !!email && TEST_PATTERNS.some((p) => p.test(email));
@@ -90,26 +101,59 @@ const isTestAddress = (email: string) => !!email && TEST_PATTERNS.some((p) => p.
   } while (pageToken);
 
   // ── Firestore documents, including any whose Auth account is already gone ──
+  //
+  // A students/{uid} document has NO email field — the address lives on
+  // users/{uid}. So matching each document against its own email, as this used
+  // to, meant student profiles never matched and were never swept. Two
+  // consequences, both caught by check:integrity:
+  //
+  //   * A profile whose account was already gone stayed forever. The adversarial
+  //     fixture "Forged Total", carrying hours: 999999, outlived every run.
+  //   * Deleting the users document first ORPHANED the profile, so the janitor
+  //     manufactured exactly the drift it exists to remove.
+  //
+  // The address is therefore resolved through the sibling users document, and
+  // the sweep is computed BEFORE anything is deleted so the join still resolves.
+  const usersSnap = await db.collection('users').get();
+  const emailByUid = new Map<string, string>(
+    usersSnap.docs.map((d) => [d.id, String(d.data()?.email || '').toLowerCase()]),
+  );
+
   const docsByCollection: Record<string, string[]> = {};
   for (const c of ['users', 'students', 'organizations']) {
     const snap = await db.collection(c).get();
     docsByCollection[c] = snap.docs
-      .filter((d) => isTestAddress((d.data()?.email || d.data()?.contactEmail || '').toLowerCase()))
+      .filter((d) => {
+        const own = String(d.data()?.email || d.data()?.contactEmail || '').toLowerCase();
+        return isTestAddress(own) || isTestAddress(emailByUid.get(d.id) || '');
+      })
       .map((d) => d.id);
   }
 
-  const totalDocs = Object.values(docsByCollection).reduce((n, ids) => n + ids.length, 0);
+  // Whatever is being removed from one collection is removed from all three, so
+  // a cleanup can never leave half an identity behind.
+  const doomedUids = new Set<string>([
+    ...doomed.map((d) => d.uid),
+    ...Object.values(docsByCollection).flat(),
+  ]);
+  for (const c of ['users', 'students', 'organizations']) {
+    docsByCollection[c] = [...doomedUids];
+  }
+
+  const totalDocs = doomedUids.size;
   console.log(`test Auth accounts : ${doomed.length}`);
   doomed.forEach((d) => console.log(`   ${d.email}  (${d.uid})`));
   console.log(`test documents     : ${totalDocs}`);
-  Object.entries(docsByCollection).forEach(([c, ids]) => ids.length && console.log(`   ${c}: ${ids.length}`));
+  console.log(`   identities swept across users/students/organizations: ${doomedUids.size}`);
   if (skipped.length) {
     console.log(`\nskipped ${skipped.length} account(s) created in the last ${MIN_AGE_MINUTES} minutes —`);
     console.log('a test run may still be using them. Re-run later, or pass --force.');
     skipped.forEach((e) => console.log(`   ${e}`));
   }
 
-  if (!doomed.length && !totalDocs) {
+  // --orphans is a separate sweep with its own findings, so an empty test sweep
+  // must not exit before it has run.
+  if (!doomed.length && !totalDocs && !process.argv.includes('--orphans')) {
     console.log('\nnothing to clean up.');
     process.exit(0);
   }
@@ -136,6 +180,89 @@ const isTestAddress = (email: string) => !!email && TEST_PATTERNS.some((p) => p.
   // Documents whose Auth account had already vanished.
   for (const [c, ids] of Object.entries(docsByCollection)) {
     for (const id of ids) await db.collection(c).doc(id).delete().catch(() => {});
+  }
+
+  // ── Unreachable documents, behind --orphans ──
+  //
+  // A profile with no users document AND no Auth identity cannot be signed in
+  // to by anyone, ever. Its origin does not matter: it is not recoverable and
+  // it is not addressable. The email-matching sweep above cannot see these,
+  // because the address it would match on lived in the users document that is
+  // already gone — which is exactly how six fixtures from console-sweep,
+  // click-trap and check-security accumulated.
+  //
+  // Behind a flag rather than automatic, because "cannot be signed in to" is an
+  // inference and this deletes real documents. It prints what it will remove.
+  if (process.argv.includes('--orphans')) {
+    const liveUsers = new Set((await db.collection('users').get()).docs.map((d: any) => d.id));
+    const unreachable: { col: string; id: string; label: string }[] = [];
+
+    for (const col of ['students', 'organizations']) {
+      const snap = await db.collection(col).get();
+      for (const d of snap.docs) {
+        if (liveUsers.has(d.id)) continue;
+        const hasAuth = await app.auth().getUser(d.id).then(() => true).catch(() => false);
+        if (hasAuth) continue;
+        const x = d.data();
+        unreachable.push({
+          col, id: d.id,
+          label: `${x?.fullName || x?.organizationName || '(unnamed)'} — ${(x?.loggedHours || []).length} logged entr(ies)`,
+        });
+      }
+    }
+
+    // The reverse: an account document whose identity is gone and which has no
+    // profile. Same reasoning, same irrecoverability.
+    for (const d of (await db.collection('users').get()).docs) {
+      const hasAuth = await app.auth().getUser(d.id).then(() => true).catch(() => false);
+      if (hasAuth) continue;
+      const role = d.data()?.role;
+      const profileCol = role === 'organization' ? 'organizations' : 'students';
+      const hasProfile = (await db.collection(profileCol).doc(d.id).get()).exists;
+      if (hasProfile) continue;
+      unreachable.push({ col: 'users', id: d.id, label: `${d.data()?.email || '(no email)'} (${role})` });
+    }
+
+    if (!unreachable.length) {
+      console.log('\nno unreachable documents.');
+    } else {
+      console.log(`\nunreachable documents (no account, no sign-in identity): ${unreachable.length}`);
+      unreachable.forEach((u) => console.log(`   ${u.col}/${u.id}  ${u.label}`));
+      for (const u of unreachable) await db.collection(u.col).doc(u.id).delete().catch(() => {});
+      console.log(`deleted ${unreachable.length} unreachable document(s).`);
+    }
+
+    // Dependent rows pointing at an identity that no longer exists. Same
+    // reasoning again: an hours request belonging to a deleted student can
+    // never be approved, viewed or acted on by anybody, and it keeps
+    // check:integrity reporting an approved request that credited nothing.
+    const survivingStudents = new Set((await db.collection('students').get()).docs.map((d: any) => d.id));
+    const survivingOrgs = new Set((await db.collection('organizations').get()).docs.map((d: any) => d.id));
+    const danglers: string[] = [];
+
+    for (const [col, key, alive] of [
+      ['hoursRequests', 'studentId', survivingStudents],
+      ['applications', 'studentId', survivingStudents],
+      ['savedOpportunities', 'studentId', survivingStudents],
+      ['interestRequests', 'studentId', survivingStudents],
+      ['opportunities', 'orgId', survivingOrgs],
+    ] as [string, string, Set<string>][]) {
+      const snap = await db.collection(col).get().catch(() => null);
+      if (!snap) continue;
+      for (const d of snap.docs) {
+        const owner = d.data()?.[key];
+        if (!owner || alive.has(owner)) continue;
+        const hasAuth = await app.auth().getUser(owner).then(() => true).catch(() => false);
+        if (hasAuth) continue; // the identity survives; leave the row alone
+        danglers.push(`${col}/${d.id}`);
+        await db.collection(col).doc(d.id).delete().catch(() => {});
+      }
+    }
+    if (danglers.length) {
+      console.log(`
+dangling rows whose owner no longer exists: ${danglers.length}`);
+      danglers.forEach((x) => console.log(`   ${x}`));
+    }
   }
 
   console.log(`\ndeleted ${removed} test account(s) and their documents.`);
