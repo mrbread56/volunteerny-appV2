@@ -1,5 +1,5 @@
 {
-  "//": "firestore.rules, firestore.indexes.json and storage.rules all exist in this repo but were not referenced here, so `firebase deploy` never shipped any of them — the rules file was effectively documentation. The `database` key is required because this project has no \"(default)\" Firestore database, only the named one in FIREBASE_DATABASE_ID.",
+  "//": "firestore.rules, firestore.indexes.json and storage.rules all exist in this repo but were not referenced here, so `firebase deploy` never shipped any of them \u2014 the rules file was effectively documentation. The `database` key is required because this project has no \"(default)\" Firestore database, only the named one in FIREBASE_DATABASE_ID.",
   "firestore": [
     {
       "database": "ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755",
@@ -23,5 +23,15 @@
         "destination": "/index.html"
       }
     ]
+  },
+  "emulators": {
+    "//": "Local only. The Firestore emulator is a Java process, so a JDK must be on PATH (JAVA_HOME is set by the machine that runs this). Rules unit tests attach here instead of writing to the real project, which is what every other rules check in this repo has to do.",
+    "firestore": {
+      "port": 8080
+    },
+    "singleProjectMode": true,
+    "ui": {
+      "enabled": false
+    }
   }
 }

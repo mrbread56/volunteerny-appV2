@@ -15,15 +15,31 @@ service cloud.firestore {
       return isSignedIn() && request.auth.uid == userId;
     }
 
+    // A suspension used to be enforced ONLY by src/routes/guards.tsx — React
+    // code running on the machine of the person being suspended. The ID token
+    // stayed valid, so a student banned after a safety report could keep
+    // applying, filing hours and submitting reports straight through the SDK;
+    // the "Account Locked" screen was a suggestion.
+    //
+    // This costs no extra document access: both helpers below already get()
+    // this exact path, and Firestore deduplicates identical get() calls within
+    // one evaluation. The applications `list` rule — the one at the 10-access
+    // budget — does not call these helpers at all, so it is unaffected.
+    function isNotBanned() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) != true;
+    }
+
     function isVerifiedStudent() {
       return isSignedIn() && (
-        isDeveloper() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student'
+        isDeveloper() ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student' && isNotBanned())
       );
     }
 
     function isVerifiedOrg() {
       return isSignedIn() && (
-        isDeveloper() || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization'
+        isDeveloper() ||
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization' && isNotBanned())
       );
     }
 
@@ -92,7 +108,17 @@ service cloud.firestore {
       return data.uid == request.auth.uid &&
              data.email is string &&
              data.role in ['student', 'organization'] &&
-             (absent(data, 'twoFactorEnabled') || data.twoFactorEnabled is bool) &&
+             // Two-factor is optional for students and MANDATORY for everyone
+             // else. The update rule below spends four lines enforcing exactly
+             // that, and this line used to accept any bool from any role — so
+             // an organization could simply be created with it already off,
+             // and verifyMfaClaim (src/lib/mfa.ts) short-circuits to "verified"
+             // whenever the field is false. The account was never challenged,
+             // and the update rule then prevented anyone turning on what had
+             // never been on. Create and update have to agree.
+             (absent(data, 'twoFactorEnabled') ||
+               (data.twoFactorEnabled is bool &&
+                 (data.twoFactorEnabled == true || data.role == 'student'))) &&
              data.createdAt == request.time;
     }
 
@@ -101,7 +127,13 @@ service cloud.firestore {
               data.fullName is string && data.fullName.size() <= 100 &&
               (absent(data, 'school') || (data.school is string && data.school.size() <= 100)) &&
               (absent(data, 'grade') || data.grade in ['9', '10', '11', '12', '']) &&
-              (absent(data, 'gender') || data.gender in ['male', 'female', 'other']) &&
+              // '' is admitted for the same reason it is admitted for grade
+              // directly above: StudentProfile initialises the field to '' when
+              // the stored profile has none and sends it on EVERY save, and
+              // StudentOnboarding never writes it at all. Without '' here, every
+              // student who predates this field is permanently unable to save
+              // their profile, with a permission error that names nothing.
+              (absent(data, 'gender') || data.gender in ['male', 'female', 'other', '']) &&
               (absent(data, 'neighborhood') || (data.neighborhood is string && data.neighborhood.size() <= 100)) &&
               (absent(data, 'interests') || (data.interests is list && data.interests.size() <= 50)) &&
               (absent(data, 'skills') || (data.skills is list && data.skills.size() <= 50)) &&
@@ -117,7 +149,13 @@ service cloud.firestore {
               (absent(data, 'resumeUrl') || (data.resumeUrl is string && data.resumeUrl.size() <= 400000)) &&
               (absent(data, 'passportUrl') || (data.passportUrl is string && data.passportUrl.size() <= 400000)) &&
               (absent(data, 'loggedHours') || (data.loggedHours is list && data.loggedHours.size() <= 500)) &&
-              (absent(data, 'isBanned') || data.isBanned is bool);
+              (absent(data, 'isBanned') || data.isBanned is bool) &&
+              // Both of these are in the create AND update allowlists, and were
+              // named by no validator — so they accepted any type at any size,
+              // which walks straight around the 400 000 caps above that exist
+              // to keep this document under Firestore's 1 MiB ceiling.
+              (absent(data, 'trackerEnabled') || data.trackerEnabled is bool) &&
+              (absent(data, 'trackerAnonymous') || data.trackerAnonymous is bool);
     }
 
     function isValidOrganization(data) {
@@ -138,14 +176,19 @@ service cloud.firestore {
       return data.orgId == request.auth.uid &&
              data.title is string && data.title.size() <= 100 &&
              data.description is string && data.description.size() <= 5000 &&
-             data.location is string &&
-             data.category is string &&
-             (absent(data, 'orgName') || data.orgName is string) &&
-             (absent(data, 'requirements') || data.requirements is string) &&
-             (absent(data, 'maxVolunteers') || data.maxVolunteers is int) &&
+             // This collection is `allow read: if true`, so anything unbounded
+             // here is downloaded by every unauthenticated visitor to the browse
+             // page. title and description were capped; the rest were not.
+             data.location is string && data.location.size() <= 300 &&
+             data.category is string && data.category.size() <= 100 &&
+             (absent(data, 'orgName') || (data.orgName is string && data.orgName.size() <= 200)) &&
+             (absent(data, 'requirements') || (data.requirements is string && data.requirements.size() <= 5000)) &&
+             // Capacity drives the waitlist. A negative value was accepted and
+             // makes "places remaining" nonsense.
+             (absent(data, 'maxVolunteers') || (data.maxVolunteers is int && data.maxVolunteers >= 0 && data.maxVolunteers <= 10000)) &&
              (absent(data, 'skillsNeeded') || data.skillsNeeded is list) &&
              (absent(data, 'exclusives') || data.exclusives is list) &&
-             (absent(data, 'timeCommitment') || data.timeCommitment is string) &&
+             (absent(data, 'timeCommitment') || (data.timeCommitment is string && data.timeCommitment.size() <= 100)) &&
              (absent(data, 'isVirtual') || data.isVirtual is bool) &&
              // 'closed' stops new applications without deleting the posting.
              // Absent means open, so every opportunity created before this
@@ -299,7 +342,19 @@ service cloud.firestore {
              data.coordinatorName is string &&
              data.coordinatorContact is string &&
              data.status in ['pending', 'approved', 'declined'] &&
-             data.requestedAt is string;
+             data.requestedAt is string &&
+             (absent(data, 'id') || (data.id is string && data.id.size() <= 200)) &&
+             // Every string here was bare `is string`. `hours` was deliberately
+             // bounded and the free text beside it was not, so one request could
+             // still carry ~1 MiB into a coordinator's queue, unlimited times.
+             data.studentName.size() <= 100 &&
+             data.studentEmail.size() <= 200 &&
+             data.activity.size() <= 2000 &&
+             data.organization.size() <= 200 &&
+             data.date.size() <= 40 &&
+             data.coordinatorName.size() <= 100 &&
+             data.coordinatorContact.size() <= 200 &&
+             data.requestedAt.size() <= 40;
     }
 
     function isValidInterestRequest(data) {
@@ -325,7 +380,13 @@ service cloud.firestore {
       allow get: if isSignedIn() && (request.auth.uid == uid || isDeveloper()) && isValidId(uid);
       // Only the developer console enumerates accounts.
       allow list: if isDeveloper();
-      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidUser(incoming());
+      // hasOnly for the same reason the update rule below has one: without it
+      // the owner can append arbitrary keys to their own account document up to
+      // the 1 MiB ceiling. Not an escalation — nothing reads unknown keys — but
+      // unbounded storage attached to every account, billed to us and dragged
+      // along by every read of the document.
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidUser(incoming()) &&
+                      incoming().keys().hasOnly(['uid', 'email', 'role', 'twoFactorEnabled', 'createdAt']);
       // twoFactorEnabled is read by the client MFA gate: when it is false the
       // gate is skipped entirely. This rule previously accepted any bool from
       // the account owner, so an organization or developer could PATCH their
@@ -552,7 +613,7 @@ service cloud.firestore {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper()) && isValidId(feedbackId);
       // The feedback page lists the tickets you filed; developers list them all.
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'developerReply', 'repliedAt', 'createdAt']);
+      allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'developerReply', 'repliedAt', 'createdAt']);
       allow update: if isSignedIn() && isValidId(feedbackId) && (
         isDeveloper() || 
         (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))
@@ -563,7 +624,7 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow get: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper()) && isValidId(reportId);
       allow list: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['reportingUserId', 'reportingUserEmail', 'reportingUserName', 'reportedUserId', 'reportedUserName', 'reportedUserRole', 'reason', 'description', 'status', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'attachmentUrl', 'aiOverview', 'createdAt']);
+      allow create: if isSignedIn() && isNotBanned() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['reportingUserId', 'reportingUserEmail', 'reportingUserName', 'reportedUserId', 'reportedUserName', 'reportedUserRole', 'reason', 'description', 'status', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'attachmentUrl', 'aiOverview', 'createdAt']);
       allow update, delete: if isDeveloper();
     }
 
@@ -626,8 +687,20 @@ service cloud.firestore {
          request.auth.token.email_verified == true) ||
         isDeveloper()
       );
-      allow create: if isSignedIn() && isValidId(reqId) && (
-        (incoming().studentId == request.auth.uid && isValidHoursRequest(incoming()) && incoming().status == 'pending') ||
+      allow create: if isSignedIn() && isNotBanned() && isValidId(reqId) && (
+        (incoming().studentId == request.auth.uid && isValidHoursRequest(incoming()) &&
+          incoming().status == 'pending' &&
+          // The update rule below bounds its keys; this one did not, so a
+          // student could attach unnamed fields of any size to every request.
+          // 'id' is a real field the client writes: StudentDashboard mints a
+          // collision-resistant id and stores it IN the document as well as
+          // using it as the document name. Omitting it here made every hours
+          // submission in the app fail permission-denied — caught by
+          // check:flows, not by the emulator suite, whose fixture did not
+          // match the real write.
+          incoming().keys().hasOnly(['id', 'studentId', 'studentName', 'studentEmail', 'activity',
+                                     'hours', 'date', 'organization', 'coordinatorName',
+                                     'coordinatorContact', 'status', 'requestedAt'])) ||
         isDeveloper()
       );
       allow update: if isSignedIn() && isValidId(reqId) && (

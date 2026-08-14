@@ -597,7 +597,7 @@ app.use(express.json());
    */
   type OtpVerdict = {
     ok: boolean;
-    reason?: 'none' | 'expired' | 'locked' | 'wrong';
+    reason?: 'none' | 'expired' | 'locked' | 'wrong' | 'busy';
     remaining?: number;
   };
 
@@ -636,12 +636,34 @@ app.use(express.json());
         }
         return verdict;
       } catch (err: any) {
-        console.warn('[otp] verify transaction failed, falling back to memory:', err.message);
+        // Fail closed. This used to fall through to the memory store below,
+        // which is a bypass an attacker can trigger deliberately.
+        //
+        // Firestore aborts a transaction when several of them contend for the
+        // same document — precisely what a burst of guesses at one account
+        // produces — so an attacker can provoke this branch on demand. The
+        // fallback below is a per-instance Map, so every warm serverless
+        // instance would then enforce its own independent count of five, never
+        // seeing increments made by the others or by Firestore.
+        //
+        // This is a defensive change, not a fix for an observed breach:
+        // `npm run check:concurrency` fires 200 simultaneous wrong codes and
+        // the transaction holds at exactly 5 consumed attempts, with the rest
+        // correctly reading the tombstone. The branch is closed because it
+        // cannot be relied on to stay unreachable, not because it was reached.
+        //
+        // The memory store is still the right answer when Firestore is not
+        // configured at all — that is the `ref == null` case below, and it is
+        // reached without ever consulting Firestore. But once Firestore is the
+        // authority, a failure to reach it must deny, not fall back to a weaker
+        // authority.
+        console.warn('[otp] verify transaction failed, denying this attempt:', err.message);
+        return { ok: false, reason: 'busy' };
       }
     }
 
-    // Firestore is unavailable. Single process, so a plain check is atomic
-    // enough here — there is no second reader to race with.
+    // No Admin SDK, so there is no Firestore to be the authority. Single
+    // process, so a plain check is atomic enough — no second reader to race.
     const rec = memoryOtpStore.get(uid);
     if (!rec || rec.consumed) return { ok: false, reason: 'none' };
     if (Date.now() > rec.expires) { memoryOtpStore.set(uid, tomb(rec)); return { ok: false, reason: 'expired' }; }
@@ -2163,6 +2185,12 @@ app.use(express.json());
         }
         if (verdict.reason === 'locked') {
           return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
+        }
+        if (verdict.reason === 'busy') {
+          // Deliberately indistinguishable from ordinary load, and deliberately
+          // NOT an attempt: a denied verification must never be cheaper for an
+          // attacker than a counted one.
+          return res.status(503).json({ error: 'We could not check that code just now. Please try again in a moment.' });
         }
         const left = verdict.remaining ?? 0;
         return res.status(400).json({

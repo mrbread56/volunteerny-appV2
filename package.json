@@ -18,6 +18,7 @@
     "check:security": "npm run build && tsx scripts/check-security.ts",
     "check:flows": "tsx scripts/check-flows.ts",
     "check:lifecycle": "tsx scripts/check-lifecycle.ts",
+    "check:concurrency": "tsx scripts/check-concurrency.ts",
     "check:email": "tsx scripts/check-email.ts",
     "check:queries": "tsx scripts/check-queries.ts",
     "check:errors": "tsx scripts/check-errors.ts",
@@ -31,7 +32,7 @@
     "backfill:hours": "tsx scripts/backfill-hours.ts",
     "repair:orphans": "tsx scripts/repair-orphaned-accounts.ts",
     "test": "playwright test",
-    "test:rules": "echo \"Rules unit tests need the Firebase emulator (Java) and a test runner, neither of which is installed. See docs/STATUS.md B11.\" && exit 1"
+    "test:rules": "firebase emulators:exec --only firestore --project vny-rules-test \"playwright test --config playwright.rules.config.ts\""
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -67,6 +68,7 @@
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "firebase-tools": "^15.27.0",
     "tailwindcss": "^4.1.14",
     "ts-morph": "^28.0.0",
     "tsx": "^4.21.0",
