@@ -29,17 +29,58 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('isBanned', false) != true;
     }
 
+    // Two-factor, enforced by the database rather than by React.
+    //
+    // The MFA gate lived only in src/routes/guards.tsx. Someone holding a
+    // stolen password but not the mailbox never loads the React app: they use
+    // the Firebase SDK directly and get everything their role permits. The
+    // challenge was a suggestion made to the honest.
+    //
+    // The comparison is the same one src/lib/mfa.ts makes — the mfaVerifiedFor
+    // claim against auth_time — and both are read from the SAME signed token,
+    // so there is no clock involved and nothing to skew. A token with no claim
+    // fails, which is the point.
+    //
+    // The twoFactorEnabled escape is not a loophole: two-factor is OPTIONAL for
+    // students, and a student who has turned it off carries no claim at all.
+    // Without this clause every one of them is locked out of the database.
+    // Organizations and developers cannot reach it — the users rules refuse any
+    // non-student write of `false`, on both create and update.
+    //
+    // Scope, deliberately: this gates WRITES, through the two role helpers
+    // below. It is NOT added to the applications `list` rule, which already
+    // spends all ten of Firestore's document accesses per query (exists() +
+    // get() on the parent opportunity, times five). Adding an eleventh would
+    // break every organization's applicant list at their fifth posting — the
+    // exact failure that rule's comment records. Reads therefore remain scoped
+    // by ownership alone, which means a stolen password can still READ what
+    // that account owns. Closing that needs the read paths restructured, not
+    // one more get(); tracked as ROADMAP B16.
+    function mfaSatisfied() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('twoFactorEnabled', false) == false ||
+             // The support escape hatch, and it MUST be honoured here as well as
+             // in src/lib/mfa.ts. scripts/grant-mfa.ts opens this window to
+             // unlock an organization whose 2FA code cannot reach them —
+             // RUNBOOK step 3. Without this clause the grant let them into the
+             // UI and then refused every write they attempted, which is a
+             // recovery tool that does not recover anything. Measured against
+             // auth_time, which Firebase stamps, rather than any clock the
+             // person being let in controls.
+             request.auth.token.get('auth_time', 0) < request.auth.token.get('mfaGraceUntil', 0) ||
+             request.auth.token.get('mfaVerifiedFor', 0) == request.auth.token.get('auth_time', -1);
+    }
+
     function isVerifiedStudent() {
       return isSignedIn() && (
         isDeveloper() ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student' && isNotBanned())
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'student' && isNotBanned() && mfaSatisfied())
       );
     }
 
     function isVerifiedOrg() {
       return isSignedIn() && (
         isDeveloper() ||
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization' && isNotBanned())
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization' && isNotBanned() && mfaSatisfied())
       );
     }
 
@@ -490,7 +531,7 @@ service cloud.firestore {
       // Deliberately no organization branch below. Adding one back re-opens the
       // hole; scripts/check-security.ts asserts it stays shut.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (isOwner(uid) && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
+        (isOwner(uid) && mfaSatisfied() && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -531,8 +572,11 @@ service cloud.firestore {
       // profile into it after creation. craVerified stays pinned to its
       // existing value here, so the actual trust signal remains a decision only
       // a reviewer can make.
+      // mfaSatisfied() on UPDATE but deliberately NOT on create: signup writes
+      // this profile before any code has been sent, so gating create would make
+      // registering an organization impossible.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (request.auth.uid == uid && isValidOrganization(incoming()) &&
+        (request.auth.uid == uid && mfaSatisfied() && isValidOrganization(incoming()) &&
          incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'verificationStatus']) &&
          incoming().get('craVerified', false) == existing().get('craVerified', false) &&
          (incoming().get('verificationStatus', '') == existing().get('verificationStatus', '') ||

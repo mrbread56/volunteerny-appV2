@@ -26,6 +26,8 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { initializeFirestore, doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
+import { grantMfaClaim } from './grantMfaClaim';
+
 import { spawn, ChildProcess } from 'node:child_process';
 
 const API_PORT = 3197;
@@ -113,7 +115,11 @@ async function makeUser(role: 'student' | 'organization', tag: string) {
 
 const as = async (email: string) => {
   await signOut(auth);
-  await signInWithEmailAndPassword(auth, email, PASSWORD);
+  const cred = await signInWithEmailAndPassword(auth, email, PASSWORD);
+  // The second factor, as a real session would carry it — see grantMfaClaim.
+  // Without it every organization write is refused by mfaSatisfied().
+  const adb = adminFirestore();
+  if (adb?.__app) await grantMfaClaim(adb.__app, cred.user);
   return auth.currentUser!.getIdToken();
 };
 

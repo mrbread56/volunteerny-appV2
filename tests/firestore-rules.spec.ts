@@ -594,3 +594,98 @@ test.describe('the developer bootstrap allowlist', () => {
     await assertSucceeds(getDocs(collection(real, 'users')));
   });
 });
+
+// ─────────────── two-factor, enforced by the database ───────────────
+
+test.describe('two-factor is enforced in the rules, not only in React', () => {
+  test('the auth_time claim is visible to rules at all', async () => {
+    // Everything below depends on this. If auth_time is not exposed to the
+    // rules language, per-sign-in enforcement cannot live here and the whole
+    // approach has to change — so it is asserted first, on its own.
+    const ctx = env.authenticatedContext(STUDENT, {
+      email: `${STUDENT}@example.com`, email_verified: true,
+      auth_time: 1786700000, mfaVerifiedFor: 1786700000, mfaVerified: true,
+    });
+    await assertSucceeds(getDoc(doc(ctx.firestore() as any, 'users', STUDENT)));
+  });
+
+  test('an organization with 2FA on cannot write without a matching claim', async () => {
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'users', ORG), { twoFactorEnabled: true });
+    });
+    // A stolen password gets a valid ID token. Without the MFA claim, the React
+    // app would route them to /mfa — but the SDK does not run the React app.
+    const noClaim = env.authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true, auth_time: 1786700000,
+    }).firestore() as any;
+    await assertFails(setDoc(doc(noClaim, 'opportunities', 'stolen_pw_opp'), {
+      orgId: ORG, orgName: 'Org One', title: 'Posted with a stolen password',
+      description: 'd', location: 'l', category: 'Environment', requirements: '',
+      maxVolunteers: 5, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
+      isVirtual: false, dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
+    }));
+  });
+
+  test('a claim from a PREVIOUS sign-in does not count', async () => {
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'users', ORG), { twoFactorEnabled: true });
+    });
+    const stale = env.authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true,
+      auth_time: 1786700000,
+      mfaVerified: true, mfaVerifiedFor: 1786600000, // yesterday's session
+    }).firestore() as any;
+    await assertFails(updateDoc(doc(stale, 'organizations', ORG), { mission: 'changed' }));
+  });
+
+  test('a matching claim works normally', async () => {
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'users', ORG), { twoFactorEnabled: true });
+    });
+    const good = env.authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true,
+      auth_time: 1786700000, mfaVerified: true, mfaVerifiedFor: 1786700000,
+    }).firestore() as any;
+    await assertSucceeds(updateDoc(doc(good, 'organizations', ORG), { mission: 'changed' }));
+  });
+
+  test('a student with two-factor OFF is never asked for a claim', async () => {
+    // The reason this was not done sooner: students may switch 2FA off, and
+    // those tokens carry no claim at all. A naive rule locks every one of them
+    // out of the database.
+    const plain = env.authenticatedContext(STUDENT, {
+      email: `${STUDENT}@example.com`, email_verified: true, auth_time: 1786700000,
+    }).firestore() as any;
+    await assertSucceeds(updateDoc(doc(plain, 'students', STUDENT), { fullName: 'Still Works' }));
+  });
+});
+
+test.describe('the support grace window', () => {
+  test('a granted grace window lets an organization write, as the runbook promises', async () => {
+    // scripts/grant-mfa.ts exists so an organization whose code cannot reach
+    // them is not locked out permanently. The client honours the window; if the
+    // rules did not, the tool would let them into the UI and refuse every write
+    // — a recovery path that recovers nothing. Both gates have to agree.
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'users', ORG), { twoFactorEnabled: true });
+    });
+    const granted = env.authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true,
+      auth_time: 1786700000,
+      mfaGraceUntil: 1786700000 + 3600,
+    }).firestore() as any;
+    await assertSucceeds(updateDoc(doc(granted, 'organizations', ORG), { mission: 'recovered' }));
+  });
+
+  test('an EXPIRED grace window does not', async () => {
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'users', ORG), { twoFactorEnabled: true });
+    });
+    const expired = env.authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true,
+      auth_time: 1786700000,
+      mfaGraceUntil: 1786600000, // the window closed before this sign-in began
+    }).firestore() as any;
+    await assertFails(updateDoc(doc(expired, 'organizations', ORG), { mission: 'too late' }));
+  });
+});

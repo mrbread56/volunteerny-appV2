@@ -22,6 +22,8 @@ import {
   updateDoc, query, where, serverTimestamp,
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
+import { grantMfaClaim } from './grantMfaClaim';
+
 import assert from 'node:assert/strict';
 import { spawn, ChildProcess } from 'node:child_process';
 
@@ -122,7 +124,20 @@ async function signUpAs(role: 'student' | 'organization', tag = '') {
   return { uid: user.uid, email };
 }
 
-const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
+/**
+ * Sign in, then take the second factor the way a real session does.
+ *
+ * firestore.rules enforces two-factor on writes now, and 2FA is mandatory for
+ * organizations — so a harness that signs in with a password and starts writing
+ * is refused, correctly. Real organizations pass a code and /api/auth/verify-otp
+ * stamps the claim; this does the same thing with the Admin SDK.
+ */
+const as = async (email: string) => {
+  const cred = await signInWithEmailAndPassword(auth, email, PASSWORD);
+  const adb = adminFirestore();
+  if (adb?.__app) await grantMfaClaim(adb.__app, cred.user);
+  return cred;
+};
 
 (async () => {
   let failed = false;

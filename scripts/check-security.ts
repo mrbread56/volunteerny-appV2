@@ -29,6 +29,7 @@ import {
   collection, getDocs, query, where, limit as fsLimit, serverTimestamp, addDoc,
 } from 'firebase/firestore';
 import * as admin from 'firebase-admin';
+import { grantMfaClaim } from './grantMfaClaim';
 import { spawn, ChildProcess } from 'node:child_process';
 
 
@@ -570,9 +571,18 @@ async function firestoreChecks(
   await mustDeny('student deletes their own account document', () =>
     deleteDoc(doc(db, 'users', studentA.uid)));
 
-  // Signed in as the organization.
+  // Signed in as the organization, WITH the second factor.
+  //
+  // firestore.rules gates organization writes on mfaSatisfied(), and 2FA is
+  // mandatory for organizations — so a session that never passed a code is
+  // refused, which is the rule working. The adversarial checks below are about
+  // what a FULLY authenticated organization must still be unable to do, so the
+  // fixture has to clear that bar first or every one of them passes for the
+  // wrong reason.
   await signOut(auth);
-  await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  const orgCred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  const secAdmin = adminFirestore();
+  if (secAdmin?.__app) await grantMfaClaim(secAdmin.__app, orgCred.user);
 
   await mustDeny('org self-issues a verified badge', () =>
     updateDoc(doc(db, 'organizations', org.uid), { craVerified: true }));
@@ -640,6 +650,9 @@ function adminFirestore() {
   const app2 = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'sec-admin-' + Date.now());
   _adb = app2.firestore();
   _adb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+  // grantMfaClaim needs auth(), not firestore() — same handle the other
+  // harnesses carry as __app.
+  _adb.__app = app2;
   return _adb;
 }
 
