@@ -303,12 +303,12 @@ export const emailTemplates = {
       <div class="card">
         <h3>🚀 Get Started in 3 Steps:</h3>
         <p><strong>1. Complete Your Interests:</strong> Choose your favorite community causes on your dashboard so we can match you perfectly.</p>
-        <p><strong>2. Apply to Placements:</strong> Apply directly to verified public organizations with a single tap.</p>
+        <p><strong>2. Apply to Placements:</strong> Apply directly to organizations from your dashboard.</p>
         <p><strong>3. Dynamic Hour Logbook:</strong> Submit claims after your volunteer service. Your site supervisors sign off Digitally—no paper forms to lose!</p>
       </div>
 
       <div style="text-align: center;">
-        <a href="${BRAND_URL()}/login" class="btn">Explore Volunteer Placements</a>
+        <a href="${BRAND_URL()}/login" class="btn">Sign in to your account</a>
       </div>
 
       <p>If you have any questions or need helper tips on eligible shifts, reply directly to this email or read our guidelines at the Local High School Hub.</p>
@@ -344,7 +344,7 @@ export const emailTemplates = {
           <a href="${BRAND_URL()}/student/dashboard" class="btn">View Dashboard Details</a>
         </div>
       ` : `
-        <p>Don't worry! There are hundreds of other verified placements seeking passionate students around our community. Head back to the search dashboard to find your fit.</p>
+        <p>Other opportunities are listed on the site whenever you want to look.</p>
         <div style="text-align: center;">
           <a href="${BRAND_URL()}/student/opportunities" class="btn" style="background-color: #475569;">Find Other Opportunities</a>
         </div>

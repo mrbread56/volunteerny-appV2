@@ -59,7 +59,7 @@ const PASSWORD = 'checkQueries!123';
   });
   await adb.collection('students').doc(uid).set({
     uid, fullName: 'Check Queries', school: '', grade: '11', neighborhood: '',
-    interests: [], skills: [], availability: [], resumeUrl: '', passportUrl: '',
+    interests: [], skills: [], availability: [], resumeUrl: '',
   });
 
   await signInWithEmailAndPassword(auth, EMAIL, PASSWORD);

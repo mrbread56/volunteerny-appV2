@@ -210,7 +210,7 @@ export default function Home() {
               <Reveal delay={0.14}>
                 <p className="text-[17px] sm:text-[19px] text-ink-soft leading-[1.65]">
                   A Toronto-wide platform rooted in North York, connecting high school
-                  students with verified local nonprofits. Whether you&apos;re in our home
+                  students with local nonprofits. Whether you&apos;re in our home
                   community or anywhere across the city, join us to build skills, fulfill
                   your 40 mandatory hours, and make a real impact.
                 </p>
@@ -287,7 +287,7 @@ export default function Home() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               { num: '01', Icon: UserCircle, title: 'Create your profile', body: 'Tell us your school, interests, and availability. It takes under two minutes to get started.' },
-              { num: '02', Icon: Search, title: 'Discover opportunities', body: 'Browse verified volunteer roles near you. Filter by category, distance, or schedule to find the right fit.' },
+              { num: '02', Icon: Search, title: 'Discover opportunities', body: 'Browse volunteer roles near you. Filter by category, distance, or schedule to find the right fit.' },
               { num: '03', Icon: BadgeCheck, title: 'Make a real impact', body: 'Show up, contribute, and build skills that matter. Organisations verify your work, and your portfolio grows with every role.' },
             ].map(({ num, Icon, title, body }, i) => (
               <Reveal key={num} delay={i * 0.1}>

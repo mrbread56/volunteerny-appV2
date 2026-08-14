@@ -65,7 +65,7 @@ test.beforeAll(async () => {
   await db.collection('students').doc(STUDENT.uid).set({
     uid: STUDENT.uid, fullName: 'Lifecycle Student', school: 'Earl Haig Secondary School',
     grade: '11', neighborhood: 'Willowdale', interests: ['Environment'], skills: ['Leadership'],
-    availability: [], previousExperience: '', resumeUrl: '', passportUrl: '',
+    availability: [], previousExperience: '', resumeUrl: '',
   });
   await db.collection('organizations').doc(ORG.uid).set({
     uid: ORG.uid, organizationName: 'Lifecycle UI Org', mission: 'm', organizationType: 'Other',

@@ -59,7 +59,7 @@ test.beforeAll(async () => {
     uid, fullName: 'A11y Student', school: 'A.Y. Jackson Secondary School',
     grade: '11', gender: 'other', neighborhood: 'Bayview Village',
     interests: ['Environment'], skills: ['Communication'], availability: ['Weekends'],
-    resumeUrl: '', passportUrl: '',
+    resumeUrl: '',
   });
 });
 
@@ -99,7 +99,7 @@ function describe(violations: any[]): string {
 }
 
 /**
- * Pre-set the consent flag so the cookie banner does not render during a page
+ * Pre-set the seen flag so the storage notice does not render during a page
  * audit.
  *
  * Not a way of dodging the banner's own accessibility — it gets a dedicated
@@ -112,7 +112,7 @@ function describe(violations: any[]): string {
  */
 async function skipConsentBanner(page: any) {
   await page.addInitScript(() => {
-    try { localStorage.setItem('cookie_consent', 'essential'); } catch { /* storage blocked */ }
+    try { localStorage.setItem('storage_notice_seen', 'true'); } catch { /* storage blocked */ }
   });
 }
 
@@ -163,10 +163,10 @@ test('signed-in student pages meet WCAG 2.1 AA', async ({ page }) => {
   }
 });
 
-test('the cookie consent banner itself meets WCAG 2.1 AA', async ({ page }) => {
+test('the storage notice itself meets WCAG 2.1 AA', async ({ page }) => {
   // Audited on its own, settled, because it is the first thing every new
-  // visitor sees and it is the only route to the terms they are being asked to
-  // accept.
+  // visitor sees and it carries the only link to the privacy policy shown
+  // before sign-up.
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
   await page.locator('text=/cookie|consent/i').first().waitFor({ timeout: 15000 }).catch(() => {});
@@ -176,7 +176,7 @@ test('the cookie consent banner itself meets WCAG 2.1 AA', async ({ page }) => {
     .withTags(TAGS)
     .include('body')
     .analyze();
-  expect(violations, `cookie banner:
+  expect(violations, `storage notice:
 ${describe(violations)}`).toEqual([]);
 });
 

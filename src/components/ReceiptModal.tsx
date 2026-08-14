@@ -138,7 +138,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
           oppTitle: application.opportunityTitle || 'Community Service Participation',
           orgName: organizationName,
           status: 'accepted',
-          note: `Verification Receipt. Placement Serial: ${generatedSerial}. Verification Date: ${formattedDate}. Verified & Secured.`
+          note: `Verification Receipt. Reference number: ${generatedSerial}. Verification Date: ${formattedDate}. Verified & Secured.`
         }
       });
       if (res.success) {
@@ -158,7 +158,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-label="Volunteer hours receipt"
+      aria-label="Record of accepted application"
       className="fixed inset-0 bg-paper-3/45 backdrop-blur-sm flex items-center justify-center z-50 p-6 sm:p-8 animate-fadeIn"
     >
       <div className="bg-white rounded-lg max-w-lg w-full overflow-hidden  border border-line flex flex-col max-h-[90vh]">
@@ -175,8 +175,8 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
               <span className="text-xs font-semibold uppercase text-blue-dark tracking-widest bg-blue-dark/5 px-3 py-1 rounded-lg border border-blue-dark/20 inline-block">
                 Verification Receipt
               </span>
-              <h1 className="text-xl font-semibold text-ink tracking-tight uppercase">YORK VOLUNTEER TRUST</h1>
-              <p className="text-xs text-ink-soft font-bold tracking-widest uppercase">Safe Space Voluntary Enrollment Slip</p>
+              <h1 className="text-xl font-semibold text-ink tracking-tight uppercase">Volunteer North York</h1>
+              <p className="text-xs text-ink-soft font-bold tracking-widest uppercase">Record of accepted application</p>
             </div>
 
             {/* Official verification stamp */}
@@ -201,18 +201,18 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
                   <p className="text-ink font-semibold">{application.studentName || 'Volunteer Student'}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Contact Profile</span>
+                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Email</span>
                   <p className="text-ink-soft font-mono text-xs truncate">{application.studentEmail || 'N/A'}</p>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pb-3 border-b border-line/50">
                 <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Primary Institution</span>
+                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">School</span>
                   <p className="text-ink-soft font-bold">{application.studentSchool || 'York Region Secondary'}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Academic Cohort</span>
+                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Grade</span>
                   <p className="text-ink-soft font-bold">Grade {application.studentGrade || 'Secondary'}</p>
                 </div>
               </div>
@@ -233,7 +233,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
                   <p className="text-ink-soft font-bold">{formattedDate}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Placement Serial</span>
+                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Reference number</span>
                   <p className="text-ink-soft font-mono font-bold leading-none">{generatedSerial}</p>
                 </div>
               </div>
@@ -241,11 +241,14 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
 
             {/* Security Barcode */}
             <div className="pt-4 border-t-2 border-line/50 text-center space-y-1">
-              <div className="font-mono text-xl tracking-wide font-light text-ink-soft flex justify-center h-8 select-none overflow-hidden select-none">
+              {/* Decorative. A screen reader reads this pipe art aloud character
+                  by character, which is a full sentence of noise in the middle of
+                  a receipt. It also implies a scannable code that does not exist. */}
+              <div aria-hidden="true" className="font-mono text-xl tracking-wide font-light text-ink-soft flex justify-center h-8 select-none overflow-hidden">
                 |||||| | |||||||| |||| || | || ||||| | |||
               </div>
               <span className="font-mono text-xs tracking-widest text-ink-soft text-ink-soft">
-                SECURE-ID: {application.id.toUpperCase()}
+                Reference: {application.id.toUpperCase()}
               </span>
             </div>
           </div>
@@ -281,7 +284,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
               onClick={handlePrint}
             >
               <Printer className="w-4 h-4 text-ink-soft" />
-              <span>Print PDF</span>
+              <span>Print</span>
             </Button>
             
             <Button 

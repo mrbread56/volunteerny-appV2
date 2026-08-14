@@ -1,44 +1,61 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Shield, X, ArrowRight } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { Button } from './ui/Button';
 import { Link } from 'react-router-dom';
 
+/**
+ * A notice about what this site stores. NOT a consent choice.
+ *
+ * It used to offer "Accept All" and "Essential Only". Those two buttons wrote
+ * different strings to `cookie_consent` and **nothing anywhere read that key** —
+ * so they were behaviourally identical. A visitor who deliberately chose
+ * "Essential Only" to limit what we collect was told they had achieved
+ * something. They had not, and in fairness they lost nothing either, because
+ * there was never anything extra to decline. The harm was the false statement,
+ * made to minors, in a box headed "Cookie Consent".
+ *
+ * The fix is to remove the fake choice, not to add tracking so the choice
+ * becomes real. This site sets no advertising or analytics cookies at all, and
+ * the OPC's position on services aimed at children is that operators "should
+ * not permit the placement of any kind of tracking technologies on the site".
+ * Keeping that posture and telling the truth about it is the correct outcome.
+ *
+ * No consent banner is legally required in Canada for storage that is strictly
+ * necessary to deliver what the user asked for — there is no Canadian
+ * equivalent of the EU ePrivacy Directive, and PIPEDA requires a genuine choice
+ * only for collection that is NOT integral to the service. Everything listed
+ * below is integral. So this is a notice, and it says exactly what is stored.
+ *
+ * Deliberately NOT wrapped in <AnimatePresence>. It used to be, with an exit
+ * animation. Under `prefers-reduced-motion: reduce` that exit applied its styles
+ * but never completed, so AnimatePresence kept the node mounted forever at
+ * opacity 0 — and opacity does not stop pointer events. The result was an
+ * invisible 448x264 click trap pinned to the bottom-right of EVERY page, right
+ * where the opportunity page puts Save, Share and Report Safety Concern. Those
+ * buttons were simply dead. Dismissing now unmounts instantly.
+ */
 export default function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
-    const hasConsented = localStorage.getItem('cookie_consent');
-    if (!hasConsented) {
+    const seen = localStorage.getItem('storage_notice_seen');
+    if (!seen) {
       const timer = setTimeout(() => setIsVisible(true), 1500);
       return () => clearTimeout(timer);
     }
   }, []);
 
-  const handleAcceptAll = () => {
-    localStorage.setItem('cookie_consent', 'all');
+  const dismiss = () => {
+    try {
+      localStorage.setItem('storage_notice_seen', 'true');
+    } catch {
+      /* storage blocked — see src/lib/storageFallback.ts. The notice simply
+         reappears next visit, which is harmless. */
+    }
     setIsVisible(false);
   };
 
-  const handleAcceptEssential = () => {
-    localStorage.setItem('cookie_consent', 'essential');
-    setIsVisible(false);
-  };
-
-  // Deliberately NOT wrapped in <AnimatePresence>.
-  //
-  // It used to be, with an exit animation. Under `prefers-reduced-motion:
-  // reduce` that exit applied its styles but never completed, so AnimatePresence
-  // kept the node mounted forever at opacity 0 — and opacity does not stop
-  // pointer events. The result was an invisible 448x264 click trap pinned to
-  // the bottom-right corner of EVERY page, right where the opportunity page
-  // puts Save, Share and Report Safety Concern. Those buttons were simply dead.
-  //
-  // Passing `style={{pointerEvents: ...}}` does not fix it either: AnimatePresence
-  // renders the exiting child from a snapshot of its last props, so a prop that
-  // depends on isVisible never reaches the stuck node. The only reliable fix is
-  // to not defer unmounting to an animation. Dismissing now unmounts instantly;
-  // the entrance animation is kept because nothing depends on it finishing.
   return (
     <>
       {isVisible && (
@@ -46,54 +63,40 @@ export default function CookieBanner() {
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           role="region"
-          aria-label="Cookie consent"
+          aria-label="What this site stores"
           className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md z-[100]"
         >
           <div className="bg-slate-900/95 text-white p-6 rounded-lg shadow-card border border-slate-800 backdrop-blur-md">
-            <div className="flex items-start gap-4 mb-6">
-              <div className="w-12 h-12 bg-primary-500/20 rounded-lg flex items-center justify-center border border-primary-500/30 shrink-0">
-                <Shield className="w-6 h-6 text-primary-400" />
-              </div>
-              <div className="space-y-1">
-                <h3 className="text-lg font-bold uppercase tracking-tight">Cookie Consent</h3>
-                <p className="text-xs text-slate-200 font-medium leading-relaxed">
-                  We use cookies to provide a secure and customized experience. Choose to accept all cookies or only the essential ones required for the site to function. Read our <Link to="/privacy" className="text-primary-300 hover:underline font-bold">Privacy Policy</Link>.
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 shrink-0 mt-0.5 text-white/80" aria-hidden="true" />
+              <div className="space-y-3">
+                <h2 className="font-bold text-sm">What this site stores</h2>
+                <p className="text-xs leading-relaxed text-slate-200">
+                  We keep you signed in, remember your theme, and save a draft of
+                  an opportunity while you are writing one. That is all — there
+                  are <strong>no advertising or analytics trackers</strong> on
+                  this site, and nothing here follows you to other websites.
                 </p>
-              </div>
-              <button 
-                onClick={() => setIsVisible(false)}
-                className="p-1 hover:bg-slate-800 rounded-lg transition-colors"
-                aria-label="Close cookie consent banner"
-                id="btn-close-cookie-banner"
-              >
-                <span className="sr-only">Close cookie consent banner</span>
-                <X className="w-4 h-4 text-ink-muted" />
-              </button>
-            </div>
-            
-            <div className="flex flex-col gap-3">
-              <div className="flex flex-col sm:flex-row gap-3">
-                <Button 
-                  onClick={handleAcceptAll}
-                  className="flex-1 bg-white hover:bg-slate-100 text-primary-950 font-bold h-12 rounded-lg uppercase text-xs tracking-wide gap-2 cursor-pointer transition-all"
-                >
-                  Accept All <ArrowRight className="w-3 h-3" />
-                </Button>
-                <Button 
-                  onClick={handleAcceptEssential}
-                  className="flex-1 bg-slate-800 border border-slate-600 text-slate-100 hover:bg-slate-700 hover:text-white font-bold h-12 rounded-lg uppercase text-xs tracking-wide cursor-pointer transition-all "
-                >
-                  Essential Only
-                </Button>
-              </div>
-              <div className="text-center pt-1">
-                {/* slate-300 on the slate-900 banner, not ink-muted. ink-muted (#5C7483)
-                    is a token for muted text on the PAPER background; on this dark
-                    panel it measured 3.3:1, under the 4.5:1 floor, and it is the
-                    only route to the terms a visitor is being asked to accept. */}
-                <Link to="/terms" className="text-xs text-slate-300 hover:text-white font-bold font-mono">
-                  View Terms of Service
-                </Link>
+                <p className="text-xs leading-relaxed text-slate-300">
+                  There is nothing to turn off, so we are not going to pretend to
+                  offer you a choice about it.
+                </p>
+                <div className="flex items-center gap-4 pt-1">
+                  <Button
+                    onClick={dismiss}
+                    className="bg-white hover:bg-slate-100 text-primary-950 font-bold h-11 px-6 rounded-lg uppercase text-xs tracking-wide cursor-pointer transition-all"
+                  >
+                    Got it
+                  </Button>
+                  {/* slate-300, not ink-muted: ink-muted is a token for muted
+                      text on the PAPER background and measures 3.3:1 here. */}
+                  <Link
+                    to="/privacy"
+                    className="text-xs text-slate-300 hover:text-white font-bold underline underline-offset-2"
+                  >
+                    Read the privacy policy
+                  </Link>
+                </div>
               </div>
             </div>
           </div>

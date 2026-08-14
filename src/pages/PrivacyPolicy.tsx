@@ -62,14 +62,47 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">8. Children's Privacy</h2>
             <p>
-              The Platform is designed for use by high school students aged 13 and older. Users under 18 must have parental or guardian consent. We do not knowingly collect information from children under 13 without verifiable parental consent. If we learn that we have collected information from a child under 13 without consent, we will delete that information promptly.
+              The Platform is built for Ontario high school students, who are
+              typically 14 to 18. Most of our users are under 18.
+            </p>
+            <p className="mt-3">
+              We do not currently ask for your age, and we do not ask for a
+              parent or guardian's permission before you sign up. We are saying
+              that plainly because a privacy policy that describes checks we do
+              not perform is worse than one that admits we do not perform them.
+            </p>
+            <p className="mt-3">
+              If you are under 13, please do not create an account. If we learn
+              that an account belongs to someone under 13, we will delete it and
+              its data.
+            </p>
+            <p className="mt-3">
+              If you are a parent or guardian and you want your child's account
+              and data removed, email us and we will do it — you do not need to
+              give a reason.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">9. Data Retention</h2>
             <p>
-              We retain your account data for as long as your account is active. If you delete your account, we will remove your personal profile data within 30 days. Aggregated, anonymized data may be retained indefinitely for analytics purposes. Volunteer hour records confirmed by organizations may be retained as part of organizational records even after account deletion.
+              We keep your account data for as long as your account exists.
+            </p>
+            <p className="mt-3">
+              When you delete your account we delete it immediately, not within
+              30 days: your profile, applications, saved opportunities, logged
+              hours, feedback and reports, ratings, and your sign-in itself.
+              Your name comes off the leaderboard at the same time.
+            </p>
+            <p className="mt-3">
+              <strong>Print or save your hours record before you delete your
+              account.</strong> We do not keep a copy for you and cannot restore
+              one afterwards. Your school holds the record that counts toward
+              graduation — this site is only your own tracking copy.
+            </p>
+            <p className="mt-3">
+              An organisation keeps its own record of the hours it confirmed, in
+              its own files. That is theirs and sits outside this Platform.
             </p>
           </section>
 

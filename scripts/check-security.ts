@@ -121,7 +121,7 @@ async function makeUser(role: 'student' | 'organization') {
   if (role === 'student') {
     await setDoc(doc(db, 'students', user.uid), {
       uid: user.uid, fullName: 'Sec Check', school: '', grade: '11', neighborhood: '',
-      interests: [], skills: [], availability: [], resumeUrl: '', passportUrl: '',
+      interests: [], skills: [], availability: [], resumeUrl: '',
     });
   } else {
     await setDoc(doc(db, 'organizations', user.uid), {
@@ -173,7 +173,7 @@ async function createPathChecks() {
   await mustAllow('a normal student profile is still created', () =>
     setDoc(doc(db, 'students', s.uid), {
       uid: s.uid, fullName: 'Real Student', school: '', grade: '11', neighborhood: '',
-      interests: [], skills: [], availability: [], resumeUrl: '', passportUrl: '',
+      interests: [], skills: [], availability: [], resumeUrl: '',
     }));
 
   const o = await mk('organization');

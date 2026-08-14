@@ -21,7 +21,6 @@ export interface StudentProfile {
   availability?: string[];
   previousExperience?: string;
   resumeUrl?: string;
-  passportUrl?: string;
   trackerEnabled?: boolean;
   trackerAnonymous?: boolean;
   loggedHours?: Array<{

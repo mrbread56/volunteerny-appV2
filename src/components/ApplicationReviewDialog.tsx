@@ -129,7 +129,7 @@ export default function ApplicationReviewDialog({
                 </div>
                 <div>
                   <CardTitle className="text-2xl font-semibold text-ink uppercase tracking-tight">
-                    {submittingState !== 'idle' ? "Verification Engine" : "Review Application"}
+                    {submittingState !== 'idle' ? "Accepting applicant" : "Review Application"}
                   </CardTitle>
                   <p className="text-xs text-ink-soft font-bold mt-1 tracking-wide leading-none">
                     Status: {application.status}
@@ -154,20 +154,20 @@ export default function ApplicationReviewDialog({
                       <AlertCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-2">
-                      <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">Verification Aborted</h4>
+                      <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">We couldn't accept this student</h4>
                       <p className="text-sm text-ink-soft font-medium">
-                        The acceptance transaction failed to commit to the Firestore ledger. Please inspect your connection constraints and try again.
+                        The change didn't save. Check your internet connection and try again — nothing was sent to the student.
                       </p>
                     </div>
                     <div className="p-4 bg-paper-2 border border-line rounded-lg text-left">
-                      <p className="text-xs font-semibold font-mono text-ink-soft uppercase tracking-wider mb-1">Error Traceback</p>
+                      <p className="text-xs font-semibold font-mono text-ink-soft uppercase tracking-wider mb-1">Details (in case you need to tell us)</p>
                       <p className="text-xs font-mono font-bold text-rose-600 break-words">{errorDetails}</p>
                     </div>
                     <Button 
                       onClick={() => setSubmittingState('idle')}
                       className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest rounded-lg transition-all"
                     >
-                      Return to Profile
+                      Back to the application
                     </Button>
                   </div>
                 ) : submittingState === 'success' ? (
@@ -176,7 +176,7 @@ export default function ApplicationReviewDialog({
                       <CheckCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-2">
-                      <h4 className="text-3xl font-semibold text-ink uppercase tracking-tight">Active Enrollment Authorized!</h4>
+                      <h4 className="text-3xl font-semibold text-ink uppercase tracking-tight">Student accepted</h4>
                       <p className="text-sm text-ink-soft font-medium">
                         Student is now officially enrolled. High school coordination logs have been locked for verification.
                       </p>
@@ -189,7 +189,7 @@ export default function ApplicationReviewDialog({
 
                     <div className="bg-paper-2 border border-line rounded-lg p-6 space-y-4 text-left">
                       <div className="flex items-center justify-between text-xs pb-3 border-b border-line">
-                        <span className="font-bold text-ink-soft tracking-wide">Enrollment Ledger Receipt</span>
+                        <span className="font-bold text-ink-soft tracking-wide">Summary</span>
                         <span className="font-bold text-blue-dark uppercase tracking-wider">✓ Active Status</span>
                       </div>
                       <div className="grid grid-cols-2 gap-4 text-xs">
@@ -198,7 +198,7 @@ export default function ApplicationReviewDialog({
                           <p className="font-semibold text-ink-soft text-sm mt-0.5">{student?.fullName || application.studentName}</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight font-sans">Contact Coordinate</p>
+                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight font-sans">Email</p>
                           {/* No invented fallback. This read `|| "armin.k@yorkschool.ca"`,
                               a demo fixture — and because no student form collects
                               contactEmail and the review endpoint deliberately omits it,
@@ -206,12 +206,12 @@ export default function ApplicationReviewDialog({
                           <p className="font-semibold text-ink-soft text-sm mt-0.5 truncate">{student?.contactEmail || "Not shared"}</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">Database Mutation Ledger</p>
-                          <p className="font-bold text-ink-soft mt-0.5">Firestore Verified</p>
+                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">Saved</p>
+                          <p className="font-bold text-ink-soft mt-0.5">Saved</p>
                         </div>
                         <div>
-                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">SMTP Email Dispatch</p>
-                          <p className="font-bold text-ink-soft mt-0.5">{emailDispatched ? "Resend Despatched" : "Direct Standard Failover"}</p>
+                          <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">Email to student</p>
+                          <p className="font-bold text-ink-soft mt-0.5">{emailDispatched ? "Sent" : "Direct Standard Failover"}</p>
                         </div>
                       </div>
                     </div>
@@ -240,13 +240,13 @@ export default function ApplicationReviewDialog({
                         }}
                       >
                         <FileText className="w-4 h-4 mr-1.5 text-ink-soft" />
-                        Download PDF Slip
+                        Download résumé
                       </Button>
                       <Button 
                         onClick={onClose}
                         className="flex-[1.2] bg-blue-dark hover:bg-[#153343] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest  shadow-blue-100"
                       >
-                        Complete Flow
+                        Done
                       </Button>
                     </div>
                   </div>
@@ -254,8 +254,8 @@ export default function ApplicationReviewDialog({
                   <div className="w-full max-w-md space-yp-6 sm:p-8 text-left">
                     <div className="space-y-2 text-center">
                       <Loader2 className="w-12 h-12 text-blue-dark animate-spin mx-auto mb-4" />
-                      <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">Verifying Placement Credentials</h4>
-                      <p className="text-xs text-ink-soft font-bold tracking-wide">Locking ledger and building transaction environment</p>
+                      <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">Accepting…</h4>
+                      <p className="text-xs text-ink-soft font-bold tracking-wide">This will only take a moment</p>
                     </div>
 
                     <div className="space-y-8">

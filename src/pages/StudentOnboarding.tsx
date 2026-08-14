@@ -64,7 +64,6 @@ export default function StudentOnboarding() {
   const [interests, setInterests] = useState<string[]>([]);
   const [skills, setSkills] = useState<string[]>([]);
   const [availability, setAvailability] = useState<string[]>([]);
-  const [passportBase64, setPassportBase64] = useState('');
   const [previousExperience, setPreviousExperience] = useState('');
   const [resumeBase64, setResumeBase64] = useState('');
   const [resumeFileName, setResumeFileName] = useState('');
@@ -128,7 +127,6 @@ export default function StudentOnboarding() {
       availability,
       previousExperience: skipFields ? '' : previousExperience.trim(),
       resumeUrl: (skipFields || !resumeBase64) ? '' : resumeBase64,
-      passportUrl: passportBase64 ? compressFile(passportBase64) : '',
       trackerEnabled: leaderboardConsent,
       trackerAnonymous: false,
       // Deliberately NOT loggedHours. Verified hours are written only by the
@@ -476,7 +474,7 @@ export default function StudentOnboarding() {
                   variant="outline" 
                   className="h-12 px-6 rounded-lg font-bold uppercase text-xs tracking-widest text-ink-muted hover:bg-paper-2 border border-line cursor-pointer animate-pulse"
                 >
-                  Skip & Onboard
+                  Skip this step and finish
                 </Button>
                 <Button 
                   onClick={(e) => handleSubmit(e as any, false)}

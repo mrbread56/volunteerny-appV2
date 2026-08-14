@@ -111,7 +111,7 @@ async function signUpAs(role: 'student' | 'organization', tag = '') {
     await setDoc(doc(db, 'students', user.uid), {
       uid: user.uid, fullName: 'Flow Student', school: 'Earl Haig Secondary School',
       grade: '11', neighborhood: 'Willowdale', interests: [], skills: [],
-      availability: [], resumeUrl: '', passportUrl: '',
+      availability: [], resumeUrl: '',
     });
   } else {
     await setDoc(doc(db, 'organizations', user.uid), {
@@ -210,8 +210,12 @@ const as = async (email: string) => {
       const body: any = await r.json().catch(() => ({}));
       assert.ok(r.ok, `the organization could not review its own applicant: ${r.status} ${body?.error || ''}`);
       assert.equal(body.profile?.fullName, 'Flow Student', 'the review profile came back without the applicant name');
+      // passportUrl was removed from the product entirely — it collected an
+      // identity document from a minor that no UI could even write. The check
+      // stays as a tripwire: if the field is ever reintroduced, it must not be
+      // the review endpoint that first exposes it.
       assert.ok(!('passportUrl' in (body.profile || {})), 'passportUrl must never reach an organization');
-      console.log('[PASS] organization: can review its own applicant, and gets no passportUrl');
+      console.log('[PASS] organization: can review its own applicant, and gets no identity document');
     }
 
     // ── the organization can actually notify its applicant ──────────────────

@@ -20,7 +20,22 @@ export default function TermsOfService() {
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">2. Eligibility</h2>
             <p>
-              You must be at least 13 years old to create an account. Users under 18 must have verifiable consent from a parent or legal guardian. By registering, you represent that you meet these requirements and that all information you provide is accurate and current.
+              This platform is for Ontario high school students, so most people
+              using it are between 14 and 18. You must be at least 14 to create
+              an account.
+            </p>
+            <p className="mt-3">
+              We do not currently ask for your age and we do not collect a
+              parent or guardian's permission before you sign up. We used to say
+              on this page that we required "verifiable consent from a parent or
+              legal guardian" — we did not, and describing a check we do not
+              perform is worse than admitting we do not perform it.
+            </p>
+            <p className="mt-3">
+              If you are under 18, we strongly encourage you to tell a parent or
+              guardian before you apply to a placement and before you attend one.
+              If you are a parent or guardian and want an account and its data
+              removed, email us and we will do it, no reason needed.
             </p>
           </section>
 
@@ -56,6 +71,59 @@ export default function TermsOfService() {
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">7. Intellectual Property</h2>
             <p>
               You retain ownership of content you submit. By posting content on the Platform, you grant Volunteer North York a non-exclusive, royalty-free, worldwide license to use, display, and distribute that content solely for the purpose of operating the Platform. The Platform's design, code, branding, and original content are owned by Volunteer North York and protected by applicable intellectual property law.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">
+              7a. Child protection and our duty to report
+            </h2>
+            <p>
+              Ontario's <em>Child, Youth and Family Services Act</em> places a duty
+              on <strong>every person</strong> — not only teachers, doctors or
+              social workers — to report immediately to a children's aid society
+              if they have reasonable grounds to suspect that a child is being
+              abused, exploited or is at risk of it. The Act says this duty
+              applies "despite the provisions of any other Act", which means
+              nothing in these Terms can remove it, and it cannot be passed to
+              someone else to do on our behalf.
+            </p>
+            <p className="mt-3">
+              So, plainly: <strong>if something you tell us gives us reasonable
+              grounds to suspect a child is being harmed or is at risk, we will
+              report it to a children's aid society.</strong> We may do that
+              without telling you first, and we will do it whether or not you ask
+              us to. This applies to anything reported through the "Report a
+              safety concern" button, to messages, and to anything else we see.
+            </p>
+            <p className="mt-3">
+              If you are in immediate danger, call 911. To reach a children's aid
+              society directly in Toronto, call the Children's Aid Society of
+              Toronto at 416-924-4640, at any hour.
+            </p>
+          </section>
+
+          <section>
+            <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">
+              7b. What "verified" means here
+            </h2>
+            <p>
+              When we show that an organisation is verified, it means one narrow
+              thing: <strong>we confirmed that a Canada Revenue Agency charity
+              registration exists and that the person who signed up controls that
+              organisation.</strong>
+            </p>
+            <p className="mt-3">
+              It does <strong>not</strong> mean we have checked the people you
+              will be working with. We do not carry out police record checks or
+              vulnerable sector checks, we do not receive their results, and we
+              do not supervise placements. Screening the adults who supervise
+              volunteers is the responsibility of the organisation running the
+              placement, and any legal requirement to do so falls on them.
+            </p>
+            <p className="mt-3">
+              Ask the organisation directly what screening they do. If an answer
+              worries you, tell us and tell a parent or guardian before you go.
             </p>
           </section>
 

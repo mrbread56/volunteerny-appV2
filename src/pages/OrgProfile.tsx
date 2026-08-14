@@ -469,7 +469,7 @@ export default function OrgProfile() {
               <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Account Security</span>
               <h3 className="text-lg font-bold text-ink mt-1 font-sans flex items-center gap-1.5 flex-wrap">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
-                <span>Two-Factor Shield</span>
+                <span>Two-step sign-in</span>
                 <span className="text-xs font-semibold tracking-wide bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-lg border border-emerald-200/50">
                   Highly Recommended
                 </span>

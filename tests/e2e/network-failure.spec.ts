@@ -45,7 +45,7 @@ test.beforeAll(async () => {
     uid, fullName: 'Netfail Student', school: 'A.Y. Jackson Secondary School',
     grade: '11', gender: 'other', neighborhood: 'Bayview Village',
     interests: ['Environment'], skills: ['Communication'], availability: ['Weekends'],
-    resumeUrl: '', passportUrl: '',
+    resumeUrl: '',
   });
 });
 
@@ -58,7 +58,7 @@ test.afterAll(async () => {
 
 async function signIn(page: any) {
   await page.addInitScript(() => {
-    try { localStorage.setItem('cookie_consent', 'essential'); } catch { /* blocked */ }
+    try { localStorage.setItem('storage_notice_seen', 'true'); } catch { /* blocked */ }
   });
   await page.goto('/login');
   await page.waitForLoadState('domcontentloaded');

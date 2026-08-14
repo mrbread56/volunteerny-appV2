@@ -63,7 +63,7 @@ test.beforeAll(async () => {
   await db.collection('students').doc(STUDENT.uid).set({
     uid: STUDENT.uid, fullName: 'Journey Student', school: 'Earl Haig Secondary School',
     grade: '11', neighborhood: 'Willowdale', interests: ['Environment'], skills: ['Leadership'],
-    availability: ['Flexible'], resumeUrl: '', passportUrl: '',
+    availability: ['Flexible'], resumeUrl: '',
   });
 
   await db.collection('organizations').doc(ORG.uid).set({

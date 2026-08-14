@@ -59,10 +59,10 @@ export default function HoursTab({
     <section className="bg-white p-8 md:p-10 border border-line space-y-8">
       <div className="space-y-2">
         <h2 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
-          <span>🛡️ Authorized Student Credits Registrar</span>
+          <span>Student hours</span>
         </h2>
         <p className="text-xs font-bold text-ink-soft tracking-wide font-mono">
-          Directly record and validate volunteer hours for youth participants
+          Log hours you supervised, and approve hours students have sent you
         </p>
       </div>
 
@@ -146,7 +146,7 @@ export default function HoursTab({
                 isLoading={isSubmittingLog}
                 className="w-full h-12 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold text-xs tracking-wide hover:scale-[1.01] active:scale-[0.99] transition-all"
               >
-                ✓ Authorize & Log Credit Hours
+                Log these hours
               </Button>
             </div>
 

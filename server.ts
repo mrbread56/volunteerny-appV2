@@ -978,9 +978,19 @@ app.use(express.json());
     const role = userSnap.exists ? userSnap.data()?.role : null;
 
     const deleteWhere = async (coll: string, field: string, value: string) => {
-      const snap = await adb.collection(coll).where(field, '==', value).limit(300).get();
-      await Promise.all(snap.docs.map((d: any) => d.ref.delete()));
-      return snap.size;
+      // Paginated. This was a single `.limit(300)` with nothing after it, so an
+      // account with more than 300 rows in any one collection kept the
+      // remainder forever — a deletion that silently only half-deletes is worse
+      // than one that fails, because nobody finds out.
+      let removed = 0;
+      for (;;) {
+        const snap = await adb.collection(coll).where(field, '==', value).limit(300).get();
+        if (snap.empty) break;
+        await Promise.all(snap.docs.map((d: any) => d.ref.delete()));
+        removed += snap.size;
+        if (snap.size < 300) break;
+      }
+      return removed;
     };
 
     // Documents first, sign-in identity LAST.
@@ -1008,10 +1018,34 @@ app.use(express.json());
       await deleteWhere('interestRequests', 'studentId', userId);
     }
 
+    // Four collections carry identifiers and none of them were purged, so a
+    // deleted account left its name, email and free text behind in each:
+    //   feedbacks   userId, userEmail, and whatever they wrote
+    //   reports     reportingUserId/Email/Name AND reportedUserId/Name
+    //   orgRatings  studentId — and the document id is literally
+    //               {studentUid}_{orgUid}_{opportunityId}, so the identifier
+    //               survives even if every field is cleared
+    //   emailLog    the recipient address of everything ever sent to them
+    // A deletion request that leaves those is not a deletion.
+    await deleteWhere('feedbacks', 'userId', userId);
+    await deleteWhere('reports', 'reportingUserId', userId);
+    await deleteWhere('reports', 'reportedUserId', userId);
+    await deleteWhere('orgRatings', 'studentId', userId);
+    await deleteWhere('orgRatings', 'orgId', userId);
+    await deleteWhere('emailLog', 'toUid', userId);
+
     if (role === 'student' || role === 'organization') {
       await adb.collection(role === 'student' ? 'students' : 'organizations').doc(userId).delete();
     }
     await adb.collection('users').doc(userId).delete();
+
+    // The board is a materialised snapshot, so deleting the student's documents
+    // does NOT remove them from it. Their name and hours stayed visible to every
+    // signed-in user until the next nightly rebuild — which is a disclosure of a
+    // minor's data after they asked to be erased.
+    rebuildGlobalLeaderboard().catch((err: any) =>
+      console.error('[purgeAccount] leaderboard rebuild after deletion failed:', err?.message || err),
+    );
 
     let authDeleted = false;
     try {

@@ -154,7 +154,7 @@ export default function OpportunityCard({
         {/* Student-Friendly Skills Tags list container as requested */}
         {opportunity.skillsNeeded && opportunity.skillsNeeded.length > 0 && (
           <div className="mb-4">
-            <p className="text-xs font-semibold tracking-wide text-ink-soft mb-1.5">Acquire Credentials</p>
+            <p className="text-xs font-semibold tracking-wide text-ink-soft mb-1.5">Skills they're looking for</p>
             <div className="flex flex-wrap gap-1">
               {opportunity.skillsNeeded.slice(0, 3).map((skill, idx) => (
                 <span key={idx} className="px-2 py-0.5 bg-paper-3 rounded text-xs font-semibold text-ink-soft">
@@ -176,7 +176,7 @@ export default function OpportunityCard({
             {/* White on #E08A3C measured 2.67:1 — this is the primary CTA on
                 every card. amber-dark (#A85E22) clears AA at 4.87:1. */}
             <Button className="w-full bg-amber-dark hover:bg-amber-dark text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg cursor-pointer transition-all active:scale-[0.98] group-hover:bg-blue-dark flex items-center justify-center gap-2">
-              <span>View & Quick Apply</span>
+              <span>View details</span>
               <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">→</span>
             </Button>
           </Link>

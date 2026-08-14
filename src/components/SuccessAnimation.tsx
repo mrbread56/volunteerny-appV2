@@ -73,7 +73,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
           transition={{ delay: 0.3 }}
           className="text-xl font-bold text-ink-soft tracking-tight"
         >
-          Operation Successful
+          Done
         </motion.h3>
         
         <motion.p
@@ -104,7 +104,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
             onClick={onClose}
             className="mt-6 px-8 py-3    hover:opacity-90 text-white rounded-lg text-xs font-semibold uppercase transition-all  shadow-emerald-500/10 cursor-pointer"
           >
-            Dismiss Dialog
+            Close
           </motion.button>
         )}
       </motion.div>

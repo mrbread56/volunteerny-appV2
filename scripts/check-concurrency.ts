@@ -101,7 +101,7 @@ async function makeUser(role: 'student' | 'organization', tag: string) {
   if (role === 'student') {
     await setDoc(doc(db, 'students', user.uid), {
       uid: user.uid, fullName: `Conc ${tag}`, school: '', grade: '11', neighborhood: '',
-      interests: [], skills: [], availability: [], resumeUrl: '', passportUrl: '',
+      interests: [], skills: [], availability: [], resumeUrl: '',
     });
   } else {
     await setDoc(doc(db, 'organizations', user.uid), {

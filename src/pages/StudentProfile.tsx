@@ -159,9 +159,6 @@ export default function StudentProfile() {
   const [resumeUrl, setResumeUrl] = useState(
     decompressFile(studentProfile?.resumeUrl || ""),
   );
-  const [passportUrl, setPassportUrl] = useState(
-    decompressFile(studentProfile?.passportUrl || ""),
-  );
   const [trackerEnabled, setTrackerEnabled] = useState(true);
   const [trackerAnonymous, setTrackerAnonymous] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -178,7 +175,6 @@ export default function StudentProfile() {
       setAvailability(studentProfile.availability || []);
       setPreviousExperience(studentProfile.previousExperience || "");
       setResumeUrl(decompressFile(studentProfile.resumeUrl || ""));
-      setPassportUrl(decompressFile(studentProfile.passportUrl || ""));
       setTrackerEnabled(studentProfile.trackerEnabled ?? true);
       setTrackerAnonymous(studentProfile.trackerAnonymous ?? false);
     }
@@ -269,7 +265,6 @@ export default function StudentProfile() {
           availability,
           previousExperience,
           resumeUrl: compressFile(resumeUrl),
-          passportUrl: compressFile(passportUrl),
           trackerEnabled,
           trackerAnonymous,
         };
@@ -297,7 +292,6 @@ export default function StudentProfile() {
         availability,
         previousExperience,
         resumeUrl: compressFile(resumeUrl),
-        passportUrl: compressFile(passportUrl),
         trackerEnabled,
         trackerAnonymous,
       });

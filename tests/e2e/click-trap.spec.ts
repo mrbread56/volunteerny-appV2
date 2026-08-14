@@ -75,7 +75,7 @@ test.beforeAll(async () => {
       await db.collection('students').doc(u.uid).set({
         uid: u.uid, fullName: 'Trap Student', school: 'Earl Haig Secondary School', grade: '11',
         neighborhood: 'Willowdale', interests: ['Environment'], skills: ['Leadership'],
-        availability: ['Flexible'], resumeUrl: '', passportUrl: '',
+        availability: ['Flexible'], resumeUrl: '',
       });
     } else if (role === 'organization') {
       await db.collection('organizations').doc(u.uid).set({

@@ -69,7 +69,6 @@ async function run(role: 'student' | 'organization'): Promise<string> {
       skills: [],
       availability: [],
       resumeUrl: '',
-      passportUrl: '',
     });
   } else {
     await setDoc(doc(db, 'organizations', uid), {
@@ -122,7 +121,6 @@ async function run(role: 'student' | 'organization'): Promise<string> {
         availability: ['Flexible'],
         previousExperience: 'Some experience',
         resumeUrl: '',
-        passportUrl: '',
         trackerEnabled: true,
         trackerAnonymous: false,
       },

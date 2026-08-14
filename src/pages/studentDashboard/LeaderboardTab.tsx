@@ -304,7 +304,7 @@ export default function LeaderboardTab({
               to="/student/profile"
               className="flex items-center justify-center gap-1.5 w-full bg-paper-3 hover:bg-slate-200 text-ink-soft py-2.5 rounded-lg text-xs font-bold transition-all text-center mt-2"
             >
-              <span>View All Badges Cabinet</span>
+              <span>See all badges</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>

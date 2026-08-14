@@ -393,7 +393,7 @@ export default function StudentOpportunities() {
               automatically accessible on a tint of itself. */}
           <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-900 text-xs font-semibold tracking-wide leading-none">
             <MapPin className="w-3 h-3 text-amber-dark fill-orange-500/10 animate-pulse" />
-            North York, Toronto Sector
+            North York, Toronto
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
             Find Opportunities
@@ -408,8 +408,8 @@ export default function StudentOpportunities() {
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-ink tracking-tight">Active Programs Hub</h2>
-          <p className="text-ink-muted text-xs font-semibold">Discover high school-approved community involvement opportunities in real-time.</p>
+          <h2 className="text-xl font-bold text-ink tracking-tight">Opportunities</h2>
+          <p className="text-ink-muted text-xs font-semibold">Discover high school-approved community involvement opportunities.</p>
         </div>
         
         <div className="bg-white p-1.5 rounded-lg border border-line flex w-fit">

@@ -268,7 +268,6 @@ export default function Signup() {
             skills: selectedSkills,
             availability: selectedAvailability,
             resumeUrl: "",
-            passportUrl: "",
           });
         } else {
           await setDoc(doc(db, "organizations", account.uid), {
@@ -583,7 +582,14 @@ export default function Signup() {
                     className="w-4 h-4 rounded-full border-line text-blue-dark focus:ring-blue-dark"
                   />
                   <label htmlFor="consent" className="text-[12px] text-ink-soft">
-                    I agree to the Terms of Service and Privacy Policy
+                    I agree to the{' '}
+                    <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-blue-dark hover:no-underline">
+                      Terms of Service
+                    </a>{' '}
+                    and{' '}
+                    <a href="/privacy" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-blue-dark hover:no-underline">
+                      Privacy Policy
+                    </a>
                   </label>
                 </div>
 

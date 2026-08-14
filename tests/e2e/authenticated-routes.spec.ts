@@ -53,7 +53,7 @@ test.beforeAll(async () => {
   await db.collection('students').doc(uid).set({
     uid, fullName: 'E2E Student', school: 'Earl Haig Secondary School', grade: '11',
     neighborhood: 'Willowdale', interests: ['Environment'], skills: ['Leadership'],
-    availability: ['Flexible'], resumeUrl: '', passportUrl: '',
+    availability: ['Flexible'], resumeUrl: '',
   });
 });
 
