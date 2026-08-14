@@ -53,11 +53,15 @@ test.describe('WebKit / Safari', () => {
     expect(Number.isNaN(new Date(local).getTime())).toBe(false);
 
     const from = new Date('2026-08-14T09:00:00Z');
-    const single = resolveOpportunityDate(
-      { scheduleType: 'single', dateTime: iso } as any,
-      from,
+    const single = resolveOpportunityDate('single', local, [], from);
+    expect(Number.isNaN(single.getTime()), 'WebKit could not parse the stored date').toBe(false);
+
+    // The recurring path is the timezone-sensitive one: a weekday plus a start
+    // time, resolved against "now".
+    const recurring = resolveOpportunityDate(
+      'recurring', '', [{ day: 'Monday', startTime: '09:00', endTime: '12:00' } as any], from,
     );
-    expect(single && Number.isNaN(single.getTime())).toBe(false);
+    expect(Number.isNaN(recurring.getTime()), 'WebKit could not resolve a recurring shift').toBe(false);
   });
 
   test('a blocked localStorage does not white-screen the app', async ({ page }) => {
