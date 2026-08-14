@@ -667,7 +667,7 @@ export default function DeveloperDashboard() {
         </div>
       )}
         <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">
-          <ShieldAlert className="text-red-500 w-12 h-12 mx-auto" />
+          <ShieldAlert className="text-red-600 w-12 h-12 mx-auto" />
           <h2 className="text-xl font-bold text-ink tracking-tight">Access Denied</h2>
           <p className="text-ink-muted text-sm leading-relaxed">
             You do not have administrative permissions to view this page. Accessing this dashboard requires logging in with an authorized administrator developer account (<span className="font-mono text-xs px-1.5 py-0.5 bg-paper-2 border border-line-light rounded text-ink-muted">{user.email}</span>).
@@ -869,7 +869,7 @@ export default function DeveloperDashboard() {
               activeTab === 'reports' ? "border-red-600 text-red-600" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
-            <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" /> Safety Reports ({reports.length})
+            <ShieldAlert className="w-4 h-4 text-red-600 animate-pulse" /> Safety Reports ({reports.length})
           </button>
           <button
             onClick={() => setActiveTab('interests')}
@@ -896,7 +896,7 @@ export default function DeveloperDashboard() {
               activeTab === 'terminated' ? "border-red-500 text-red-600" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
-            <Lock className="w-4 h-4 text-red-500" /> Suspended List ({students.filter(s => s.isBanned).length + orgs.filter(o => o.isBanned).length})
+            <Lock className="w-4 h-4 text-red-600" /> Suspended List ({students.filter(s => s.isBanned).length + orgs.filter(o => o.isBanned).length})
           </button>
           <button
             onClick={() => setActiveTab('settings')}
@@ -1138,7 +1138,7 @@ export default function DeveloperDashboard() {
             <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
-                  <Users className="w-4 h-4 text-red-500" /> Suspended Students ({students.filter(s => s.isBanned).length})
+                  <Users className="w-4 h-4 text-red-600" /> Suspended Students ({students.filter(s => s.isBanned).length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 md:p-8 flex-1">
@@ -1178,7 +1178,7 @@ export default function DeveloperDashboard() {
             <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
-                  <Building2 className="w-4 h-4 text-red-500" /> Suspended Partners ({orgs.filter(o => o.isBanned).length})
+                  <Building2 className="w-4 h-4 text-red-600" /> Suspended Partners ({orgs.filter(o => o.isBanned).length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 md:p-8 flex-1">
@@ -1299,7 +1299,7 @@ export default function DeveloperDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="bg-red-50/10 border-dashed border-red-200 hover:bg-red-50 text-red-500 font-semibold text-xs uppercase tracking-wider"
+                            className="bg-red-50/10 border-dashed border-red-200 hover:bg-red-50 text-red-600 font-semibold text-xs uppercase tracking-wider"
                             onClick={() => {
                               setDeleteTargetId(st.uid);
                               setDeveloperDeleteError('');
@@ -1409,7 +1409,7 @@ export default function DeveloperDashboard() {
                           <Button
                             size="sm"
                             variant="outline"
-                            className="bg-red-50/10 border-dashed border-red-200 hover:bg-red-50 text-red-500 font-semibold text-xs uppercase tracking-wider"
+                            className="bg-red-50/10 border-dashed border-red-200 hover:bg-red-50 text-red-600 font-semibold text-xs uppercase tracking-wider"
                             onClick={() => {
                               setDeleteTargetId(org.uid);
                               setDeveloperDeleteError('');

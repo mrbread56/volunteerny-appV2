@@ -185,7 +185,7 @@ export function FileUpload({
                   <button 
                     type="button"
                     onClick={clearFile}
-                    className="mt-3 text-xs font-bold text-red-500 hover:text-red-600 tracking-wide flex items-center gap-1 mx-auto relative z-20 cursor-pointer rounded-full"
+                    className="mt-3 text-xs font-bold text-red-600 hover:text-red-600 tracking-wide flex items-center gap-1 mx-auto relative z-20 cursor-pointer rounded-full"
                   >
                     <X className="w-3 h-3" /> Clear selection
                   </button>
@@ -204,7 +204,7 @@ export function FileUpload({
                   <button 
                     type="button"
                     onClick={clearFile}
-                    className="mt-3 text-xs font-bold text-red-500 hover:text-red-600 tracking-wide flex items-center gap-1 mx-auto relative z-20 cursor-pointer rounded-full"
+                    className="mt-3 text-xs font-bold text-red-600 hover:text-red-600 tracking-wide flex items-center gap-1 mx-auto relative z-20 cursor-pointer rounded-full"
                   >
                     <X className="w-3 h-3" /> Remove File
                   </button>

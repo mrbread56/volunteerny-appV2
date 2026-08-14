@@ -419,7 +419,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                   <div className="border border-line rounded-lg p-3.5 bg-paper-2/60 flex flex-col gap-2.5">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-1.5">
-                        <Paperclip className="w-3.5 h-3.5 text-red-500 text-red-500 shrink-0" />
+                        <Paperclip className="w-3.5 h-3.5 text-red-600 text-red-600 shrink-0" />
                         <div className="text-left">
                           <p className="text-xs font-bold text-ink-soft line-clamp-1">{file.name}</p>
                           <p className="text-xs text-ink-muted font-bold font-mono">{formatBytes(file.size)}</p>
@@ -432,7 +432,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                       <button aria-label="Remove attached screenshot"
                         type="button"
                         onClick={() => { setFile(null); setFileDescription(''); }}
-                        className="p-1 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"
+                        className="p-1 rounded-lg hover:bg-red-50 text-red-600 hover:text-red-700 transition-colors"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>

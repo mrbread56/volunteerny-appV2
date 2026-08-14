@@ -815,7 +815,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                           </Button>
                           <Button
                             variant="ghost"
-                            className="w-12 h-12 rounded-lg text-red-500 hover:text-red-700 hover:bg-rose-50/50"
+                            className="w-12 h-12 rounded-lg text-red-600 hover:text-red-700 hover:bg-rose-50/50"
                             title="Report Safe Space Violation"
                             onClick={() => {
                               setReportStudentId(app.studentId);

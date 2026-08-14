@@ -383,7 +383,7 @@ export default function FeedbackPage() {
                           <button
                             type="button"
                             onClick={handleRemoveFile}
-                            className="p-1.5 rounded-full hover:bg-red-50 text-red-500 transition-colors"
+                            className="p-1.5 rounded-full hover:bg-red-50 text-red-600 transition-colors"
                             title="Remove file"
                           >
                             <Trash2 className="w-4 h-4" />

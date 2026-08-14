@@ -387,14 +387,20 @@ export default function StudentOpportunities() {
         <div className="absolute top-0 right-0 w-80 h-80 bg-blue-dark/15 rounded-lg blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-10 w-60 h-60 bg-[#FF6B35]/10 rounded-lg blur-3xl pointer-events-none" />
         <div className="relative max-w-2xl space-y-4">
-          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-dark text-xs font-semibold tracking-wide leading-none">
+          {/* amber-900, not amber-dark. amber-dark (#A85E22) clears 4.5:1 on white,
+              but this chip sits on bg-amber/10, which composites to #EEDACD and
+              drops the pair to 3.62:1. A token that is accessible on paper is not
+              automatically accessible on a tint of itself. */}
+          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-900 text-xs font-semibold tracking-wide leading-none">
             <MapPin className="w-3 h-3 text-amber-dark fill-orange-500/10 animate-pulse" />
             North York, Toronto Sector
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
             Find Opportunities
           </h1>
-          <p className="text-ink-muted text-sm sm:text-base leading-relaxed font-semibold">
+          {/* ink-soft, not ink-muted: this paragraph sits on bg-blue-dark/5, which
+              composites to #EEF0F0 and leaves ink-muted at 4.28:1. */}
+          <p className="text-ink-soft text-sm sm:text-base leading-relaxed font-semibold">
             Discover ways to share your skills, earn high-school community hours, and connect with volunteer coordinators, student organizers, and mutual aid spaces across Greater Toronto.
           </p>
         </div>

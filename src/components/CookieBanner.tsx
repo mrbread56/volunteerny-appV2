@@ -87,7 +87,11 @@ export default function CookieBanner() {
                 </Button>
               </div>
               <div className="text-center pt-1">
-                <Link to="/terms" className="text-xs text-ink-muted hover:text-white font-bold font-mono">
+                {/* slate-300 on the slate-900 banner, not ink-muted. ink-muted (#5C7483)
+                    is a token for muted text on the PAPER background; on this dark
+                    panel it measured 3.3:1, under the 4.5:1 floor, and it is the
+                    only route to the terms a visitor is being asked to accept. */}
+                <Link to="/terms" className="text-xs text-slate-300 hover:text-white font-bold font-mono">
                   View Terms of Service
                 </Link>
               </div>

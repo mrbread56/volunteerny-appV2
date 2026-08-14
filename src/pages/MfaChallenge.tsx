@@ -268,7 +268,7 @@ export default function MfaChallenge() {
               <button
                 type="button"
                 onClick={() => auth.signOut()}
-                className="text-xs font-semibold text-ink-muted hover:text-red-500 transition-colors"
+                className="text-xs font-semibold text-ink-muted hover:text-red-600 transition-colors"
               >
                 Cancel and sign out
               </button>

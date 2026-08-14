@@ -437,7 +437,7 @@ export default function OrgOpportunityEdit() {
                 <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Basic Information</h3>
                 <Input label="Opportunity Title" value={title} onChange={(e) => setTitle(e.target.value)} required />
                 <div className="flex flex-col gap-1.5">
-                   <label className="text-sm font-medium text-ink-soft">Description <span className="text-red-500">*</span></label>
+                   <label className="text-sm font-medium text-ink-soft">Description <span className="text-red-600">*</span></label>
                    <textarea aria-label="Description" className="w-full rounded-lg border border-line p-6 min-h-[150px] font-medium focus:ring-2 focus:ring-blue-dark focus:outline-none" value={description} onChange={(e) => setDescription(e.target.value)} required />
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -491,7 +491,7 @@ export default function OrgOpportunityEdit() {
                                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Ends</label>
                                   <Input type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} required />
                                </div>
-                               <button type="button" onClick={() => removeShift(index)} className="p-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors" disabled={shifts.length <= 1}>
+                               <button type="button" onClick={() => removeShift(index)} className="p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" disabled={shifts.length <= 1}>
                                   <Trash2 className="w-4 h-4" />
                                </button>
                             </div>
@@ -558,7 +558,7 @@ export default function OrgOpportunityEdit() {
              <section className="space-y-6">
                 <h3 className="text-xl font-bold flex items-center gap-2 text-ink pb-3 border-b border-line">Requirements & Skills</h3>
                 <div className="flex flex-col gap-1.5">
-                   <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-500">*</span></label>
+                   <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-600">*</span></label>
                    <textarea aria-label="Detailed requirements" className="w-full rounded-lg border border-line p-6 min-h-[100px] font-medium" value={requirements} onChange={(e) => setRequirements(e.target.value)} required />
                 </div>
                 <div>
@@ -583,7 +583,7 @@ export default function OrgOpportunityEdit() {
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div>
                         <p className="font-bold text-ink text-sm uppercase tracking-widest flex items-center gap-2">
-                          <AlertTriangle className="w-4 h-4 text-red-500" /> Delete This Opportunity
+                          <AlertTriangle className="w-4 h-4 text-red-600" /> Delete This Opportunity
                         </p>
                         <p className="text-xs text-ink-muted mt-1 font-medium max-w-lg">
                           Permanently removes this posting and every application to it. Anyone

@@ -417,7 +417,7 @@ export default function OrgOpportunityCreate() {
                </h3>
                <Input label="Opportunity Title" value={title} onChange={(e) => setTitle(e.target.value)} required placeholder="e.g., Afternoon Tutoring at Community Center" />
                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink-soft">Description <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium text-ink-soft">Description <span className="text-red-600">*</span></label>
                   <textarea 
                     className="w-full rounded-lg border border-line p-6 text-sm focus:ring-2 focus:ring-blue-dark focus:outline-none min-h-[150px] font-medium"
                     aria-label="Description"
@@ -497,7 +497,7 @@ export default function OrgOpportunityCreate() {
                               <button 
                                  type="button" 
                                  onClick={() => removeShift(index)}
-                                 className="p-3 bg-red-50 text-red-500 rounded-lg hover:bg-red-100 transition-colors"
+                                 className="p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors"
                                  disabled={shifts.length <= 1}
                               >
                                  <Trash2 className="w-4 h-4" />
@@ -581,7 +581,7 @@ export default function OrgOpportunityCreate() {
                   Requirements & Skills
                </h3>
                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-500">*</span></label>
+                  <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-600">*</span></label>
                   <textarea 
                     className="w-full rounded-lg border border-line p-6 text-sm focus:ring-2 focus:ring-blue-dark focus:outline-none min-h-[100px] font-medium"
                     aria-label="Detailed requirements"

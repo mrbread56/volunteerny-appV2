@@ -48,7 +48,7 @@ export default function ReportsTab({
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-4 border-b border-line-light">
           <div>
             <h2 className="text-xl font-bold text-ink uppercase tracking-tight flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-red-500 animate-pulse" /> Inbound Violations Queue
+              <ShieldAlert className="w-5 h-5 text-red-600 animate-pulse" /> Inbound Violations Queue
             </h2>
             <p className="text-xs text-ink-muted font-semibold mt-1">
               Review and act on reported safe space violations from our students and organizations.
@@ -104,7 +104,7 @@ export default function ReportsTab({
                           <div className="hidden md:block text-ink-muted">→</div>
                           <div>
                             <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold">Reported Target User</span>
-                            <span className="text-red-500 text-xs uppercase font-bold mr-1">[{report.reportedUserRole}]</span>
+                            <span className="text-red-600 text-xs uppercase font-bold mr-1">[{report.reportedUserRole}]</span>
                             <span className="text-ink-soft font-bold">{report.reportedUserName}</span>
                             <p className="text-xs font-mono font-medium text-ink-muted">UID: {report.reportedUserId}</p>
                           </div>
@@ -127,7 +127,7 @@ export default function ReportsTab({
                     {report.attachmentName && (
                       <div className="bg-paper-2 border border-line/80 rounded-lg p-4 text-xs space-y-3 animate-fadeIn font-semibold">
                         <div className="flex items-center gap-2 text-ink-soft">
-                          <Paperclip className="w-4 h-4 text-red-500" />
+                          <Paperclip className="w-4 h-4 text-red-600" />
                           <span>Attached Safe Space Proof/Screenshot: <strong className="font-semibold text-[#FF6B35]">{report.attachmentName}</strong> ({report.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {report.attachmentDescription && (
@@ -148,7 +148,7 @@ export default function ReportsTab({
                     {report.aiOverview && (
                       <div className="border border-red-100 bg-red-50/5 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
                         <div className="flex items-center gap-2 text-red-950 border-b border-red-100/40 pb-2">
-                          <Sparkles className="w-4 h-4 text-red-500" />
+                          <Sparkles className="w-4 h-4 text-red-600" />
                           <span className="text-xs uppercase tracking-widest font-bold text-ink-soft">AI Trust & Safety Analysis</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">

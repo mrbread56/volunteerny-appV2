@@ -396,7 +396,13 @@ export default function StudentProfile() {
                   "p-5 border flex flex-col justify-between",
                   isUnlocked
                     ? "bg-white border-line"
-                    : "bg-paper-2 border-line opacity-60"
+                    // No opacity here. Dimming the whole card multiplied into its
+                    // text: ink-muted at 60% over paper composites to #9DACB5, a
+                    // contrast ratio of 2.25:1, and ink-soft to 3.1:1. A locked badge
+                    // is the thing a student is working TOWARD, so its name and
+                    // requirement are exactly what must stay readable. The lock glyph
+                    // and the flat grey icon already say "not yet".
+                    : "bg-paper-2 border-line"
                 )}
               >
                 <div>
@@ -481,7 +487,7 @@ export default function StudentProfile() {
                   )}
                 />
                 {errors.fullName && (
-                  <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
                     ⚠️ {errors.fullName}
                   </p>
                 )}
@@ -508,7 +514,7 @@ export default function StudentProfile() {
                     )}
                   />
                   {errors.school && (
-                    <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                    <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
                       ⚠️ {errors.school}
                     </p>
                   )}
@@ -544,7 +550,7 @@ export default function StudentProfile() {
                     )}
                   />
                   {errors.grade && (
-                    <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                    <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
                       ⚠️ {errors.grade}
                     </p>
                   )}
@@ -566,7 +572,7 @@ export default function StudentProfile() {
                   )}
                 />
                 {errors.neighborhood && (
-                  <p className="text-xs text-red-500 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
                     ⚠️ {errors.neighborhood}
                   </p>
                 )}
@@ -608,7 +614,7 @@ export default function StudentProfile() {
                   Causes That Ignite You
                 </label>
                 {errors.interests && (
-                  <p className="text-xs text-red-500 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
                     ⚠️ {errors.interests}
                   </p>
                 )}
@@ -640,7 +646,7 @@ export default function StudentProfile() {
                   Skills You Bring to the table
                 </label>
                 {errors.skills && (
-                  <p className="text-xs text-red-500 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
                     ⚠️ {errors.skills}
                   </p>
                 )}
@@ -672,7 +678,7 @@ export default function StudentProfile() {
                   Availability & Time Preferences
                 </label>
                 {errors.availability && (
-                  <p className="text-xs text-red-500 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
                     ⚠️ {errors.availability}
                   </p>
                 )}
@@ -943,7 +949,7 @@ export default function StudentProfile() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmDelete(true)}
-                      className="w-full text-center text-red-500 hover:text-red-700 font-semibold text-xs py-3 hover:bg-red-50 rounded-lg border border-dashed border-red-200 transition-all cursor-pointer"
+                      className="w-full text-center text-red-600 hover:text-red-700 font-semibold text-xs py-3 hover:bg-red-50 rounded-lg border border-dashed border-red-200 transition-all cursor-pointer"
                     >
                       ⚠️ Permanently Delete Account (Start Over)
                     </button>

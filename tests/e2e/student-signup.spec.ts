@@ -19,6 +19,13 @@ dotenv.config();
  * against Firestore that both documents were written with the values entered —
  * including the new field, and including that the rules accepted them.
  */
+// Serial. The config sets fullyParallel, which splits these two tests across
+// workers — each then runs beforeAll, creating accounts and hammering the
+// Firebase Admin API at the same moment, and one of them intermittently dies
+// with `TypeError: fetch failed`. They also share `stamp`, so they are not
+// independent anyway.
+test.describe.configure({ mode: 'serial' });
+
 const a: any = (admin as any).default || admin;
 const stamp = Date.now();
 const EMAIL = `signup_ui_${stamp}@example.com`;

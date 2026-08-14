@@ -34,6 +34,22 @@ export default defineConfig({
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
+      // A project-level testIgnore REPLACES the top-level one rather than
+      // adding to it, so the emulator-only rules spec has to be repeated here
+      // or it starts running under Chromium with no emulator behind it.
+      testIgnore: ['**/webkit-safari.spec.ts', '**/firestore-rules.spec.ts'],
+    },
+    {
+      // Every browser on iOS is WebKit, including the one called Chrome, and
+      // these users are phone-first teenagers — so this is the engine most of
+      // them will actually use. It ran zero tests until now.
+      //
+      // Scoped to the Safari-specific spec rather than the whole suite: the
+      // rest is engine-agnostic product logic already covered under Chromium,
+      // and doubling a two-minute suite to re-prove it would buy nothing.
+      name: 'webkit',
+      use: { ...devices['iPhone 13'] },
+      testMatch: '**/webkit-safari.spec.ts',
     },
   ],
 });

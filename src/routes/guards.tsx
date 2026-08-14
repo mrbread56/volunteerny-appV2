@@ -155,7 +155,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
   if (authError) return (
     <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">
       <div className="w-full max-w-md bg-white border border-red-200 p-8 rounded-sm text-center space-y-6 shadow-sm">
-        <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto">
+        <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
           <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>

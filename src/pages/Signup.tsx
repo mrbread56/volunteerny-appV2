@@ -493,7 +493,7 @@ export default function Signup() {
                     />
                     
                     <div className="space-y-1.5">
-                      <label className="text-[13px] font-medium text-ink">Organization Address <span className="text-red-500">*</span></label>
+                      <label className="text-[13px] font-medium text-ink">Organization Address <span className="text-red-600">*</span></label>
                       <AddressMapsSelector
                         value={address}
                         onChange={setAddress}
@@ -510,7 +510,7 @@ export default function Signup() {
                         even though its validation and its reviewer UI both existed. */}
                     <fieldset className="space-y-2.5">
                       <legend className="text-[13px] font-medium text-ink">
-                        Are you a CRA-registered charity? <span className="text-red-500">*</span>
+                        Are you a CRA-registered charity? <span className="text-red-600">*</span>
                       </legend>
                       <p className="text-xs text-ink-soft leading-relaxed">
                         Registered charities are reviewed by our team and shown a verified badge.

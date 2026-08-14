@@ -942,7 +942,7 @@ export default function OrgDashboard() {
                 Rejected
               </p>
             </div>
-            <XCircle className="text-red-500 w-10 h-10" />
+            <XCircle className="text-red-600 w-10 h-10" />
           </div>
         </Card>
       </div>

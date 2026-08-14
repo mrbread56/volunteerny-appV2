@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.9.0",
   "type": "module",
-  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down \u2014 a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
+  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down — a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -56,6 +56,7 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@firebase/eslint-plugin-security-rules": "^0.0.2",
     "@firebase/rules-unit-testing": "^5.0.1",
     "@playwright/test": "^1.61.1",

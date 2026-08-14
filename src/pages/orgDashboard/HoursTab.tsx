@@ -156,12 +156,12 @@ export default function HoursTab({
               </p>
             )}
             {logResultStatus === "error_not_found" && (
-              <p className="text-xs font-semibold text-red-500 uppercase text-center">
+              <p className="text-xs font-semibold text-red-600 uppercase text-center">
                 ❌ Error: Student Profile was not found.
               </p>
             )}
             {logResultStatus === "error" && (
-              <p className="text-xs font-semibold text-red-500 uppercase text-center">
+              <p className="text-xs font-semibold text-red-600 uppercase text-center">
                 ❌ Failed to save hours log. Please try again.
               </p>
             )}

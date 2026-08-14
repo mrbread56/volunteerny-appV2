@@ -88,7 +88,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
             </CardHeader>
              <CardContent className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-grow min-h-0">
                <div className="bg-red-50 p-6 rounded-lg border border-red-100 flex gap-4 shrink-0">
-                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
                   <p className="text-xs text-red-700 leading-relaxed font-medium">
                      Please provide a reason for the rejection. This helps students improve their future applications.
                   </p>
