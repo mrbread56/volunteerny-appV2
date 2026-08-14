@@ -40,8 +40,8 @@ import {
   AlertCircle,
   Mail,
 } from "lucide-react";
-import { formatDate, cn } from "../lib/utils";
-import { motion, AnimatePresence } from "motion/react";
+import { cn } from "../lib/utils";
+import { motion } from "motion/react";
 import { useAuth } from "../contexts/AuthContext";
 import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
@@ -568,15 +568,23 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
       return;
     }
 
+    // Cleared before the fetch: `if (profile)` used to leave the PREVIOUS
+    // applicant's details on screen when this one failed to load.
+    setReviewStudent(null);
+
     try {
       // See src/lib/reviewProfile.ts — the rules could not check that this
       // student ever applied to us, so this read moved behind an endpoint that
       // can, and which never returns passportUrl.
       const profile = await fetchReviewProfile(app.studentId);
-      if (profile) setReviewStudent(profile);
+      setReviewStudent(profile);
     } catch (err: any) {
       console.error("Error fetching student profile:", err);
-      setErrorMessage(toUserMessage(err) || "Error fetching student profile.");
+      setReviewStudent(null);
+      setErrorMessage(
+        toUserMessage(err) ||
+        "We couldn't load this applicant's profile. Close this and try again — don't decide from a blank one.",
+      );
     }
   };
 

@@ -1,6 +1,6 @@
 import { useDialog } from '../hooks/useDialog';
-import React, { useRef, useState, useEffect } from 'react';
-import { ShieldCheck, Printer, Clipboard, Clock, CheckCircle, FileText, Download, Mail, Check, Loader2 } from 'lucide-react';
+import  { useRef, useState, useEffect } from 'react';
+import { ShieldCheck, Printer, Mail, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { sendTransactionalEmail } from '../lib/emailService';
 import { cn } from '../lib/utils';

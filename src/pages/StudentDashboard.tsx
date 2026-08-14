@@ -75,7 +75,6 @@ import { OPPORTUNITY_CATEGORIES } from "../constants";
 // the calendar tab actually ships.
 import ReceiptModal from "../components/ReceiptModal";
 import { sendTransactionalEmail } from "../lib/emailService";
-import { evaluateBadges } from "../utils/badges";
 import { Award, Zap, BookOpen, Briefcase, Heart, ShieldCheck } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
 
@@ -336,11 +335,13 @@ export default function StudentDashboard() {
     }
   };
 
-  useEffect(() => {
-    if (!errorMessage) return;
-    const timer = setTimeout(() => setErrorMessage(null), 5000);
-    return () => clearTimeout(timer);
-  }, [errorMessage]);
+  // Errors do NOT auto-dismiss. This state carries LOAD failures, not just
+  // action toasts, and a timer on a load failure recreates the exact bug this
+  // project keeps fixing: the message explaining why a list is empty deletes
+  // itself, leaving "nothing here" over a queue that is not empty. The pattern
+  // the codebase already settled on is OrgOpportunityApplicants — persist, and
+  // give the reader an explicit Dismiss. Success toasts still auto-clear;
+  // there is nothing to act on in those.
 
   const handleToggleCompetitiveness = async () => {
     if (!user) return;
@@ -1070,9 +1071,16 @@ export default function StudentDashboard() {
         <div
           role="alert"
           aria-live="assertive"
-          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide flex items-center gap-2 max-w-[90vw]"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide flex items-start gap-3 max-w-[90vw]"
         >
-          {errorMessage}
+          <span className="leading-relaxed">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            aria-label="Dismiss error"
+            className="ml-2 shrink-0 underline underline-offset-2 hover:no-underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 

@@ -17,7 +17,7 @@ import {
   CardTitle,
 } from "../components/ui/Card";
 import { useAuth } from "../contexts/AuthContext";
-import { Users, GraduationCap, Building2, ShieldCheck, Lock, AlertCircle } from "lucide-react";
+import { GraduationCap, Building2, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
 import { TORONTO_SCHOOLS, NEIGHBORHOODS } from "../constants";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";

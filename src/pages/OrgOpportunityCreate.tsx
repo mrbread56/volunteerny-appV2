@@ -8,7 +8,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { MapPin, Calendar, Clock, Users, ArrowLeft, Globe, Plus, Trash2, Info, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Globe, Plus, Trash2, Info } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';

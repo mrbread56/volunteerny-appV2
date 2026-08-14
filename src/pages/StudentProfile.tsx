@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { db, auth } from "../firebase/config";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { doc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -38,7 +38,6 @@ import { TORONTO_SCHOOLS, NEIGHBORHOODS } from "../constants";
 import { compressFile, decompressFile } from "../utils/compress";
 import { motion } from "motion/react";
 import { evaluateBadges } from "../utils/badges";
-import ReferralBadge from "../components/ReferralBadge";
 
 const GENDERS = [
   { value: "", label: "Select…" },
@@ -336,7 +335,6 @@ export default function StudentProfile() {
             <h1 className="text-4xl md:text-6xl font-bold text-ink tracking-tight leading-none uppercase">
               Student Profile
             </h1>
-            <ReferralBadge count={studentProfile?.referralCount || 0} className="self-center md:self-end md:mb-1" />
           </div>
           <div className="flex flex-wrap justify-center md:justify-start gap-4">
             <p className="text-lg text-ink-soft font-bold uppercase tracking-wide">

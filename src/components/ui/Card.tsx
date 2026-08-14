@@ -46,6 +46,3 @@ export function CardContent({ children, className }: { children: React.ReactNode
   return <div className={cn('p-6 sm:p-8', className)}>{children}</div>;
 }
 
-export function CardFooter({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <div className={cn('p-6 sm:p-8 bg-white border-t border-line flex items-center', className)}>{children}</div>;
-}

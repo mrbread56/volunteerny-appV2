@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,7 +13,7 @@ import { Card } from '../components/ui/Card';
 import OpportunityCard from '../components/OpportunityCard';
 import { Map as MapIcon, List, Search, X, MapPin, Share2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
-import { MapContainer, TileLayer, Marker, Popup, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';

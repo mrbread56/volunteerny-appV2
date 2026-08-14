@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth, GoogleAuthProvider } from 'firebase/auth';
+import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
@@ -44,7 +44,6 @@ if (!firestoreDatabaseId && import.meta.env.DEV) {
 }
 
 export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
 export const storage = getStorage(app);
 
 // NOTE: a startup "connection test" used to read test/connection here. The

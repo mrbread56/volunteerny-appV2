@@ -45,11 +45,3 @@ export function decompressFile(data: string | null | undefined): string {
     return data;
   }
 }
-
-/**
- * Helper to get the byte size of a base64/standard string.
- */
-export function getStringSizeKB(str: string): number {
-  if (!str) return 0;
-  return Math.round((str.length * 2) / 1024);
-}

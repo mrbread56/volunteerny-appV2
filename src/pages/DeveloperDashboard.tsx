@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import  { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 // Without this import `reportError` silently resolved to the DOM's global
@@ -7,7 +7,7 @@ import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { reportError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, getDocs, doc, updateDoc, getDoc, deleteDoc, query, where, serverTimestamp, setDoc, writeBatch, limit } from 'firebase/firestore';
+import { collection, getDocs, doc, updateDoc, getDoc, query, where, serverTimestamp, writeBatch, limit } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -47,11 +47,13 @@ export default function DeveloperDashboard() {
   const [isSendingTestEmail, setIsSendingTestEmail] = useState(false);
   const [testEmailStatus, setTestEmailStatus] = useState<{ success: boolean; message: string } | null>(null);
 
-  useEffect(() => {
-    if (!consoleNotice) return;
-    const t = setTimeout(() => setConsoleNotice(null), 6000);
-    return () => clearTimeout(t);
-  }, [consoleNotice]);
+  // Errors do NOT auto-dismiss. This state carries LOAD failures, not just
+  // action toasts, and a timer on a load failure recreates the exact bug this
+  // project keeps fixing: the message explaining why a list is empty deletes
+  // itself, leaving "nothing here" over a queue that is not empty. The pattern
+  // the codebase already settled on is OrgOpportunityApplicants — persist, and
+  // give the reader an explicit Dismiss. Success toasts still auto-clear;
+  // there is nothing to act on in those.
 
   const handleSendTestEmail = async () => {
     setIsSendingTestEmail(true);
@@ -758,7 +760,14 @@ export default function DeveloperDashboard() {
           aria-live="assertive"
           className="px-4 py-3 text-[13px] font-semibold bg-red-50 border border-red-200 text-red-700 rounded-lg"
         >
-          {consoleNotice}
+          <span className="leading-relaxed">{consoleNotice}</span>
+          <button
+            onClick={() => setConsoleNotice(null)}
+            aria-label="Dismiss notice"
+            className="ml-3 shrink-0 underline underline-offset-2 hover:no-underline"
+          >
+            Dismiss
+          </button>
         </div>
       )}
       {actionError && (

@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { compressFile } from '../utils/compress';
 import { uploadFileToStorage } from '../lib/storageUpload';
 import { Button } from './ui/Button';

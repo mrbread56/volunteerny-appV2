@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { reportError } from "../lib/errors";
 import { useAuth } from "../contexts/AuthContext";
-import { db, auth } from "../firebase/config";
-import { doc, updateDoc, deleteDoc } from "firebase/firestore";
+import { db } from "../firebase/config";
+import { doc, updateDoc } from "firebase/firestore";
 import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
@@ -13,7 +13,6 @@ import {
   CardHeader,
   CardTitle,
 } from "../components/ui/Card";
-import { Badge } from "../components/ui/Badge";
 import { Building2, Info, Globe, ShieldCheck, Mail, Phone } from "lucide-react";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";

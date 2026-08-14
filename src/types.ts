@@ -10,7 +10,6 @@ export interface UserProfile {
 }
 
 export interface StudentProfile {
-  referralCount?: number;
   uid: string;
   fullName: string;
   school: string;

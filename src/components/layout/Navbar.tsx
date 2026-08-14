@@ -4,7 +4,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { verifyMfaClaim } from '../../lib/mfa';
 import { Spinner } from '../ui/Spinner';
 import NotificationBell from '../NotificationBell';
-import { LogOut, LayoutDashboard, Search, UserCircle, PlusCircle, Trophy, Menu, X, MessageCircle } from 'lucide-react';
+import { LogOut, LayoutDashboard, Search, UserCircle, PlusCircle, Trophy, Menu, X } from 'lucide-react';
 
 /**
  * Placeholder for the nav links while the session is still settling.

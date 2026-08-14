@@ -35,7 +35,7 @@ import {
   Calendar,
   MessageCircle,
 } from "lucide-react";
-import { formatDate, cn } from "../lib/utils";
+import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
@@ -44,9 +44,9 @@ import { sendTransactionalEmail, notifyApplicant } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { reportError } from "../lib/errors";
-import { totalLoggedHours } from "../lib/hours";
 import { approveStudentHours } from "../lib/approveHours";
 import { fetchReviewProfile } from "../lib/reviewProfile";
+import { toUserMessage } from "../lib/errors";
 import HoursTab from './orgDashboard/HoursTab';
 
 export default function OrgDashboard() {
@@ -396,12 +396,13 @@ export default function OrgDashboard() {
     }
   }, [successMessage]);
 
-  useEffect(() => {
-    if (errorMessage) {
-      const timer = setTimeout(() => setErrorMessage(null), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [errorMessage]);
+  // Errors do NOT auto-dismiss. This state carries LOAD failures, not just
+  // action toasts, and a timer on a load failure recreates the exact bug this
+  // project keeps fixing: the message explaining why a list is empty deletes
+  // itself, leaving "nothing here" over a queue that is not empty. The pattern
+  // the codebase already settled on is OrgOpportunityApplicants — persist, and
+  // give the reader an explicit Dismiss. Success toasts still auto-clear;
+  // there is nothing to act on in those.
 
   useEffect(() => {
     const fetchData = async () => {
@@ -683,7 +684,12 @@ export default function OrgDashboard() {
       return { success: true, emailSent, receiptGenerated };
     } catch (err: any) {
       console.error("Error updating status:", err);
-      setErrorMessage(err.message || "Operation failed");
+      // toUserMessage, not err.message. The identical operation on the
+      // applicants page already does this. Raw, this surfaced as "Missing or
+      // insufficient permissions." — and ApplicationReviewDialog renders it
+      // under a monospace heading reading "Error Traceback", to a charity
+      // coordinator.
+      setErrorMessage(toUserMessage(err) || "That change didn't save. Please try again.");
       return { success: false, emailSent: false, receiptGenerated: false, error: err.message || "Operation failed" };
     }
   };
@@ -704,15 +710,29 @@ export default function OrgDashboard() {
       return;
     }
 
+    // Clear first. Without this, opening applicant B after a failed fetch left
+    // applicant A's school, neighbourhood, email and phone on screen under B's
+    // name — the most dangerous possible outcome for a screen used to decide
+    // about minors.
+    setReviewStudent(null);
+
     try {
       // Server-side: the rules could not check that this student ever applied
       // to us, so any organization could read any student's record — including
       // their passport. The endpoint proves the relationship and returns an
       // allow-listed subset without it.
       const profile = await fetchReviewProfile(app.studentId);
-      if (profile) setReviewStudent(profile);
-    } catch (err) {
+      setReviewStudent(profile);
+    } catch (err: any) {
+      // Say so. This used to console.error and leave the dialog rendering its
+      // `student?.x || fallback` defaults, so a failed read looked exactly like
+      // a student who had filled nothing in.
       console.error("Error fetching student profile:", err);
+      setReviewStudent(null);
+      setErrorMessage(
+        toUserMessage(err) ||
+        "We couldn't load this applicant's profile. Close this and try again — don't decide from a blank one.",
+      );
     }
   };
 
@@ -857,8 +877,15 @@ export default function OrgDashboard() {
           animate={{ opacity: 1, y: 0 }}
           className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-rose-200 flex items-center gap-2"
         >
-          <XCircle className="w-4 h-4" />
-          {errorMessage}
+          <XCircle className="w-4 h-4 shrink-0" />
+          <span className="leading-relaxed">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            aria-label="Dismiss error"
+            className="ml-2 shrink-0 underline underline-offset-2 hover:no-underline"
+          >
+            Dismiss
+          </button>
         </motion.div>
       )}
 

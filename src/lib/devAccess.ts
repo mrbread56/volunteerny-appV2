@@ -33,12 +33,6 @@ export function isDeveloperEmail(email: string | null | undefined): boolean {
   if (!email) return false;
   return AUTHORIZED_DEV_EMAILS.includes(email.trim().toLowerCase());
 }
-
-/** True when the developer allowlist is missing entirely (usually a deploy misconfiguration). */
-export function isDevAllowlistMissing(): boolean {
-  return AUTHORIZED_DEV_EMAILS.length === 0;
-}
-
 /**
  * The real "is this a developer?" test, and the one the UI should use.
  *

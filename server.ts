@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
 import { appOrigin, CANONICAL_APP_ORIGIN } from './server/appUrl.js';
+import { totalLoggedHours } from './src/lib/hours.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -1785,14 +1786,17 @@ app.use(express.json());
         const loggedHours = [...existing, entry];
         // Recomputed from the array, never incremented, so a retry cannot
         // double-count and the scalar can never drift from its source.
-        const total = loggedHours.reduce((sum: number, l: any) => {
-          const n = Number(l?.hours);
-          return sum + (Number.isFinite(n) ? n : 0);
-        }, 0);
-        const priorTotal = existing.reduce((sum: number, l: any) => {
-          const n = Number(l?.hours);
-          return sum + (Number.isFinite(n) ? n : 0);
-        }, 0);
+        //
+        // totalLoggedHours is imported rather than reimplemented. The copy that
+        // used to live here summed the same numbers but skipped the
+        // Math.round(total * 100) / 100 that src/lib/hours.ts applies — so a
+        // student logging 0.1 + 0.2 got 0.3 written by the client and
+        // 0.30000000000000004 written by the server, into the SAME field, with
+        // whichever wrote last winning. The leaderboard ranks on that field.
+        // Two implementations of "the single definition" is how the drift this
+        // comment denies actually happened.
+        const total = totalLoggedHours(loggedHours);
+        const priorTotal = totalLoggedHours(existing);
         tx.update(studentRef, { loggedHours, hours: total });
         // decidedAt: same reason as the decline path above.
         if (requestRef) tx.update(requestRef, { status: 'approved', decidedAt: new Date().toISOString() });

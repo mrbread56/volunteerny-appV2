@@ -144,12 +144,3 @@ export async function uploadFileToStorage(
     );
   });
 }
-
-/**
- * Returns `true` when the value is a Firebase Storage (or any HTTPS) URL
- * rather than a legacy base64 data URI or LZ-compressed string.
- */
-export function isStorageUrl(value: string | null | undefined): boolean {
-  if (!value) return false;
-  return value.startsWith('https://') || value.startsWith('http://');
-}

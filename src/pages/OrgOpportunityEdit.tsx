@@ -18,7 +18,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { MapPin, ArrowLeft, Globe, Plus, Trash2, Info, Calendar, Clock, MessageCircle, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Globe, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -27,7 +27,7 @@ import { cn } from '../lib/utils';
 import { Badge } from '../components/ui/Badge';
 import { useGeolocation } from '../hooks/useGeolocation';
 
-import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
+import { OPPORTUNITY_CATEGORIES } from '../constants';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
 import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
 

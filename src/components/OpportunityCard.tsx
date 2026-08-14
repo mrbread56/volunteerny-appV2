@@ -1,9 +1,8 @@
 import React from 'react';
 import { Opportunity } from '../types';
 import { Card } from '../components/ui/Card';
-import { Badge } from '../components/ui/Badge';
 import { Button } from '../components/ui/Button';
-import { MapPin, Calendar, Clock, Bookmark, Share2, BadgeCheck, Compass, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Clock, Bookmark, Share2, BadgeCheck, Sparkles } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Link } from 'react-router-dom';
 

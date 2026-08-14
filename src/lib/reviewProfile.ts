@@ -34,8 +34,21 @@ export async function fetchReviewProfile(studentId: string): Promise<StudentProf
     { headers: { Authorization: `Bearer ${token}` } }
   );
   if (!res.ok) {
+    // THROW, do not return null.
+    //
+    // Returning null here meant the callers' catch blocks never fired, so both
+    // review screens fell through to `if (profile) setReviewStudent(profile)`
+    // and simply kept whatever was already in state. The dialog renders through
+    // `student?.x || fallback`, so an organization decided whether to accept a
+    // 15-year-old while looking at "High School", "North York", "Not shared"
+    // and "No experience listed." — indistinguishable from a student who left
+    // their profile sparse, and impossible to tell apart from a real answer.
     console.warn(`[reviewProfile] ${studentId} → ${res.status}`);
-    return null;
+    throw new Error(
+      res.status === 403
+        ? 'You can only view the profile of a student who has applied to one of your opportunities.'
+        : `Could not load this applicant's profile (${res.status}).`,
+    );
   }
   const body = await res.json().catch(() => ({} as any));
   return (body?.profile as StudentProfile) ?? null;
