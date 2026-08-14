@@ -132,6 +132,63 @@ async function makeUser(role: 'student' | 'organization') {
   return { uid: user.uid, email };
 }
 
+/**
+ * The CREATE path, which was the blind spot.
+ *
+ * Every self-promotion check in this file used updateDoc, and the update rules
+ * were tight — so both of these read as covered. They were not. A profile
+ * document is written once, at signup, and the create rules were the ones
+ * missing their bounds: a brand-new student could set the leaderboard scalar
+ * `hours` in the same setDoc that created their profile (students delete is
+ * developer-only, so it stuck), and a brand-new organization could set
+ * verificationStatus: 'verified' and skip human review entirely. Both were
+ * confirmed against the live project before being fixed.
+ *
+ * These use fresh accounts because they must exercise create, not update.
+ */
+async function createPathChecks() {
+  const mk = async (role: 'student' | 'organization') => {
+    const email = `check_sec_create_${role}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}@example.com`;
+    const { user } = await createUserWithEmailAndPassword(auth, email, PASSWORD);
+    uids.push(user.uid);
+    await setDoc(doc(db, 'users', user.uid), {
+      uid: user.uid, email, role, twoFactorEnabled: role === 'organization', createdAt: serverTimestamp(),
+    });
+    return { uid: user.uid, email };
+  };
+
+  // Order matters: createUserWithEmailAndPassword signs in as the account it
+  // creates, so each role's checks must finish before the next account exists.
+  // Interleaving them silently ran the student's write as the organization and
+  // failed on `data.uid == request.auth.uid` rather than on what was being
+  // tested.
+  const s = await mk('student');
+  await mustDeny('student mints a leaderboard total on CREATE', () =>
+    setDoc(doc(db, 'students', s.uid), { uid: s.uid, fullName: 'Forged', hours: 999999 }));
+  await mustDeny('student pads their profile with an unlisted field on CREATE', () =>
+    setDoc(doc(db, 'students', s.uid), { uid: s.uid, fullName: 'Pad', junk: 'x'.repeat(50000) }));
+  // ...and the legitimate version must still work, or this file would be
+  // asserting that signup is broken.
+  await mustAllow('a normal student profile is still created', () =>
+    setDoc(doc(db, 'students', s.uid), {
+      uid: s.uid, fullName: 'Real Student', school: '', grade: '11', neighborhood: '',
+      interests: [], skills: [], availability: [], resumeUrl: '', passportUrl: '',
+    }));
+
+  const o = await mk('organization');
+  await mustDeny('org self-issues verificationStatus=verified on CREATE', () =>
+    setDoc(doc(db, 'organizations', o.uid), {
+      uid: o.uid, organizationName: 'Self Verified', mission: 'm', contactEmail: o.email,
+      northYorkConfirmed: true, craVerified: false, verificationStatus: 'verified',
+    }));
+  await mustAllow('a normal organization profile is still created', () =>
+    setDoc(doc(db, 'organizations', o.uid), {
+      uid: o.uid, organizationName: 'Real Org', mission: 'm', organizationType: 'Other',
+      address: 'a', coordinates: null, contactEmail: o.email, phone: '', northYorkConfirmed: true,
+      websiteUrl: '', hasCra: 'yes', craNumber: '', craVerified: false, verificationStatus: 'pending',
+    }));
+}
+
 // ── 1. HTTP API ────────────────────────────────────────────────────────────
 
 let server: ChildProcess | undefined;
@@ -510,6 +567,8 @@ async function firestoreChecks(
   await mustDeny('student self-verifies an organization', () =>
     updateDoc(doc(db, 'organizations', org.uid), { craVerified: true, verificationStatus: 'verified' }));
   await mustDeny('student deletes another account', () => deleteDoc(doc(db, 'users', studentB.uid)));
+  await mustDeny('student deletes their own account document', () =>
+    deleteDoc(doc(db, 'users', studentA.uid)));
 
   // Signed in as the organization.
   await signOut(auth);
@@ -519,6 +578,13 @@ async function firestoreChecks(
     updateDoc(doc(db, 'organizations', org.uid), { craVerified: true }));
   await mustDeny('org marks itself verificationStatus=verified', () =>
     updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'verified' }));
+  await mustDeny('org marks itself verificationStatus=rejected to dodge review', () =>
+    updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'rejected' }));
+  // ...but asking to BE reviewed is allowed, and has to be: an organization
+  // that gains charitable status after signing up could otherwise never reach
+  // the reviewer's queue, which lists 'pending' only.
+  await mustAllow('org can request review (verificationStatus=pending)', () =>
+    updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'pending' }));
   await mustDeny('org opts itself out of two-factor', () =>
     updateDoc(doc(db, 'users', org.uid), { twoFactorEnabled: false }));
   await mustDeny('org reads a student profile directly (resume + passport)', () =>
@@ -618,6 +684,8 @@ async function cleanup() {
     await selfApprovalCheck(studentB);
     console.log('STAGE: firestore rules checks');
     await firestoreChecks(studentA, studentB, org);
+    console.log('STAGE: create-path checks');
+    await createPathChecks();
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
   } finally {

@@ -307,3 +307,56 @@ svg {
     font-size: 16px;
   }
 }
+
+
+/* ══════════════════════════════════════════════════════════════════════
+ * PRINT
+ *
+ * The hours transcript is a document a student hands to a guidance counsellor
+ * for graduation credit, and there was no print stylesheet at all. Its primary
+ * path opens a clean window, but that is exactly what mobile Safari and Chrome
+ * block — and the in-page fallback then called window.print() on a modal, so
+ * the student got the whole dashboard, the dark backdrop, and a clipped sheet.
+ *
+ * When the transcript is open, print only the transcript.
+ * ══════════════════════════════════════════════════════════════════════ */
+@media print {
+  /* Hide the app behind the sheet without unmounting anything. */
+  body:has([data-print-root]) > *:not(:has([data-print-root])) {
+    display: none !important;
+  }
+
+  [data-print-root] {
+    position: static !important;
+    inset: auto !important;
+    display: block !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    background: none !important;
+    backdrop-filter: none !important;
+  }
+
+  [data-print-sheet] {
+    max-width: none !important;
+    margin: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
+  /* The close button and the Print/Close actions are not part of the record. */
+  [data-print-hide] { display: none !important; }
+
+  /* Keep a row of the hours table from splitting across a page break. */
+  [data-print-sheet] tr,
+  [data-print-sheet] li { break-inside: avoid; }
+
+  /* Ink, not screen: backgrounds cost toner and read worse on paper. */
+  [data-print-sheet] * {
+    color: #000 !important;
+    background: transparent !important;
+  }
+
+  @page { margin: 16mm; }
+}

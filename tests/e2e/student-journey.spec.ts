@@ -45,9 +45,14 @@ test.beforeAll(async () => {
   for (const [role, acct] of [['student', STUDENT], ['organization', ORG]] as const) {
     const u = await adminApp.auth().createUser({ email: acct.email, password: PASSWORD, emailVerified: true });
     acct.uid = u.uid;
-    // The MFA gate trusts only this signed claim; setting it here is the same
-    // state the server writes after a genuine code check.
-    await adminApp.auth().setCustomUserClaims(u.uid, { mfaVerified: true });
+    // Skip the OTP round trip with the same time-boxed grace scripts/grant-mfa.ts
+    // grants. A bare { mfaVerified: true } does NOT work and must not be used
+    // here: the gate pins that claim to the auth_time of the sign-in that
+    // earned it (src/lib/mfa.ts), and a seed cannot know the auth_time of a
+    // sign-in that has not happened yet. Seeding it leaves every spec stranded
+    // on /mfa, where the page auto-requests a code and the run then dies on the
+    // OTP rate limiter instead — which reads like a broken app, not a bad seed.
+    await adminApp.auth().setCustomUserClaims(u.uid, { mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600 });
     await db.collection('users').doc(u.uid).set({
       uid: u.uid, email: acct.email, role,
       twoFactorEnabled: role !== 'student',

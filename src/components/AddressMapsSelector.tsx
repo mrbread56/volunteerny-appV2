@@ -51,7 +51,11 @@ interface AddressMapsSelectorProps {
 function ChangeMapCenter({ coords }: { coords: [number, number] }) {
   const map = useMap();
   useEffect(() => {
-    map.setView(coords, 14);
+    // Keep the operator's zoom. This was `setView(coords, 14)`, so an
+      // organization who zoomed to street level to place the pin precisely had
+      // the map snap back to zoom 14 and re-centre on every single click —
+      // repeating for every attempt to place it accurately.
+      map.setView(coords, map.getZoom());
     const timer = setTimeout(() => {
       map.invalidateSize();
     }, 250);

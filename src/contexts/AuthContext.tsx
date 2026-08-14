@@ -3,6 +3,7 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { UserProfile, StudentProfile, OrganizationProfile } from '../types';
+import { isMfaClaimCurrent } from '../lib/mfa';
 
 interface AuthContextType {
   user: User | null;
@@ -30,15 +31,6 @@ interface AuthContextType {
   logout: () => Promise<void>;
   isDemoMode: boolean;
   enableDemoMode: (role: 'student' | 'organization' | 'developer') => Promise<void>;
-  accessToken: string | null;
-  connectGmail: () => Promise<string | null>;
-  disconnectGmail: () => void;
-  calendarToken: string | null;
-  connectCalendar: () => Promise<string | null>;
-  disconnectCalendar: () => void;
-  tasksToken: string | null;
-  connectTasks: () => Promise<string | null>;
-  disconnectTasks: () => void;
   darkMode?: boolean;
   toggleDarkMode?: () => void;
   themeFont?: string;
@@ -61,9 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [profilesLoaded, setProfilesLoaded] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [calendarToken, setCalendarToken] = useState<string | null>(null);
-  const [tasksToken, setTasksToken] = useState<string | null>(null);
 
   const [mfaVerified, setMfaVerifiedState] = useState<boolean>(false);
 
@@ -83,8 +72,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     try {
       const tokenResult = await user.getIdTokenResult(true);
-      // Signed claim only — see the note in the onAuthStateChanged handler.
-      setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
+      // Signed claim only, and only if it belongs to THIS sign-in.
+      setMfaVerifiedState(isMfaClaimCurrent(tokenResult));
     } catch (e) {
       console.error('Failed to refresh MFA claim:', e);
       setMfaVerifiedState(false);
@@ -350,7 +339,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             // 'mfaFallbackClaim','true')` in devtools cleared the gate for any
             // signed-in account. Storage is attacker-writable; a signed token
             // claim is not.
-            setMfaVerifiedState(tokenResult.claims.mfaVerified === true);
+            //
+            // The claim must also belong to this sign-in — see isMfaClaimCurrent.
+            setMfaVerifiedState(isMfaClaimCurrent(tokenResult));
           } catch (claimsErr) {
             console.error('Failed to read auth token claims:', claimsErr);
             setMfaVerifiedState(false);
@@ -423,16 +414,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
     sessionStorage.removeItem('mfa_verified_temp');
     localStorage.removeItem('mfa_verified_temp');
-    localStorage.removeItem('demo_mode_role');
-    localStorage.removeItem('demo_student_profile');
-    localStorage.removeItem('demo_org_profile');
-    localStorage.removeItem('gmail_connected_state');
-    localStorage.removeItem('calendar_connected_state');
+    // Every demo key, not three of them.
+    //
+    // demo_feedbacks, demo_applications, demo_hours_requests, demo_saved_ids,
+    // demo_ratings, demo_recommendations, demo_reports, demo_student_profiles
+    // and demo_2fa_enabled all survived a logout, so fixtures from a demo
+    // session stayed on the device and could still be read by fallback paths in
+    // a later real session. Enumerating the prefix means a key added later
+    // cannot be forgotten here.
+    for (const key of Object.keys(localStorage)) {
+      if (key.startsWith('demo_')) localStorage.removeItem(key);
+    }
     sessionStorage.removeItem('mfa_verified');
     localStorage.removeItem('isLoggedIn');
     setMfaVerifiedState(false);
-    setAccessToken(null);
-    setCalendarToken(null);
     setIsDemoMode(false);
     setUser(null);
     setUserProfile(null);
@@ -442,107 +437,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setProfilesLoaded(false);
   };
 
-  const connectGmail = async () => {
-    if (isDemoMode) {
-      const mockToken = "demo-gmail-token-123456";
-      setAccessToken(mockToken);
-      localStorage.setItem('gmail_connected_state', 'true');
-      return mockToken;
-    }
-
-    try {
-      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/gmail.send');
-      provider.setCustomParameters({ prompt: 'consent' });
-      
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        setAccessToken(credential.accessToken);
-        localStorage.setItem('gmail_connected_state', 'true');
-        return credential.accessToken;
-      }
-    } catch (error) {
-      console.error('Google Gmail OAuth integration failed:', error);
-      setAuthError('Failed to connect Gmail. Please try again.');
-    }
-    return null;
-  };
-
-  const disconnectGmail = () => {
-    setAccessToken(null);
-    localStorage.removeItem('gmail_connected_state');
-  };
-
-  const connectCalendar = async () => {
-    if (isDemoMode) {
-      const mockToken = "demo-calendar-token-123456";
-      setCalendarToken(mockToken);
-      localStorage.setItem('calendar_connected_state', 'true');
-      return mockToken;
-    }
-
-    try {
-      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/calendar.events');
-      provider.addScope('https://www.googleapis.com/auth/calendar');
-      provider.setCustomParameters({ prompt: 'consent' });
-      
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        setCalendarToken(credential.accessToken);
-        localStorage.setItem('calendar_connected_state', 'true');
-        return credential.accessToken;
-      }
-    } catch (error) {
-      console.error('Google Calendar OAuth integration failed:', error);
-      setAuthError('Failed to connect Calendar. Please try again.');
-    }
-    return null;
-  };
-
-  const disconnectCalendar = () => {
-    setCalendarToken(null);
-    localStorage.removeItem('calendar_connected_state');
-  };
-
-  const connectTasks = async () => {
-    if (isDemoMode) {
-      const mockToken = "demo-tasks-token-123456";
-      setTasksToken(mockToken);
-      localStorage.setItem('tasks_connected_state', 'true');
-      return mockToken;
-    }
-
-    try {
-      const { GoogleAuthProvider, signInWithPopup } = await import('firebase/auth');
-      const provider = new GoogleAuthProvider();
-      provider.addScope('https://www.googleapis.com/auth/tasks');
-      provider.addScope('https://www.googleapis.com/auth/tasks.readonly');
-      
-      const result = await signInWithPopup(auth, provider);
-      const credential = GoogleAuthProvider.credentialFromResult(result);
-      if (credential?.accessToken) {
-        setTasksToken(credential.accessToken);
-        localStorage.setItem('tasks_connected_state', 'true');
-        return credential.accessToken;
-      }
-    } catch (error) {
-      console.error('Google Tasks OAuth integration failed:', error);
-      setAuthError('Failed to connect Tasks. Please try again.');
-    }
-    return null;
-  };
-
-  const disconnectTasks = () => {
-    setTasksToken(null);
-    localStorage.removeItem('tasks_connected_state');
-  };
 
   const enableDemoMode = async (role: 'student' | 'organization' | 'developer') => {
+    // Sign the REAL session out first.
+    //
+    // This never did, and onAuthStateChanged is a no-op while demo_mode_role is
+    // set — so a real Firebase session stayed alive, fully invisible, beneath
+    // the demo UI. That is not cosmetic: emailService, approveHours,
+    // opportunityCapacity, reviewProfile and scalableLeaderboard all read
+    // auth.currentUser FIRST and only fall back to the demo token `if (!token)`.
+    // In production, where demo tokens are refused, every one of those calls was
+    // therefore authenticated as the real user — the screen showed Demo Mode and
+    // Alex Volunteer's fixtures while real mail went out and /api/hours/approve
+    // ran under the real organization's identity.
+    try {
+      if (auth.currentUser) await auth.signOut();
+    } catch (err) {
+      console.warn('[demo] could not sign the real session out:', err);
+    }
+
     localStorage.setItem('demo_mode_role', role);
     setIsDemoMode(true);
     const mockUser = { 
@@ -612,15 +525,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isDemoMode, 
       enableDemoMode, 
       logout, 
-      accessToken, 
-      connectGmail, 
-      disconnectGmail, 
-      calendarToken, 
-      connectCalendar, 
-      disconnectCalendar,
-      tasksToken,
-      connectTasks,
-      disconnectTasks,
       darkMode: false,
       toggleDarkMode: () => {},
       themeFont: 'jakarta',

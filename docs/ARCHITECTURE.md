@@ -70,6 +70,24 @@ is never a client-side flag. If the server cannot write the claim it fails the
 verification rather than letting the client mark itself verified, see
 `/api/auth/verify-otp`.
 
+**The claim is scoped to one sign-in.** Custom claims live on the Firebase Auth
+user record, not on a session, so `mfaVerified: true` on its own is permanent —
+which is what it used to be. One passed code verified an account forever, on
+every device, while the settings screen promised a code "every time you log back
+in". `/api/auth/verify-otp` therefore also writes `mfaVerifiedFor`, the
+`auth_time` of the token that passed the challenge, and `isMfaClaimCurrent()`
+(`src/lib/mfa.ts`) accepts the claim only while it equals the current token's
+`auth_time`. Both values come from the same signed token, so no clock is
+involved and there is no skew window to tune.
+
+`auth_time` moves only on a real authentication. Silent hourly token refresh
+does not disturb an active session, and Firebase's default `local` persistence
+means closing the tab and returning is not a new sign-in. Signing out and back
+in is, and it re-challenges.
+
+`npm run check:mfa` asserts all of that, including a live double sign-in proving
+`auth_time` actually advances.
+
 The code itself: 6 digits, `crypto.randomInt`, 5 attempts, expires, cleared on
 success.
 
@@ -97,9 +115,13 @@ query fails with `5 NOT_FOUND`.
 | `reports` | auto | safety reports | reporter; developer resolves |
 | `leaderboards` | `global_top` | materialised top-100 | **server only**, no client can write |
 
-### Declared but unused
+### Small collections
 
-`recommendations` and `interestRequests` are referenced once each.
+`recommendations` is read by the student notification bell. `interestRequests`
+("Join List") is read by the developer console's Interest Requests tab — until
+that tab existed the collection was written and read by nothing at all, so
+students were told they had been added to a waitlist that no human ever saw.
+`emailLog` records send attempts for the console and is server-only.
 
 `chats` and `messages` used to sit here with a complete rule set and no code at
 all. Both the rules and the unrendered calendar component were deleted rather
@@ -170,10 +192,23 @@ belongs on the server.**
 | `POST /api/auth/send-otp` / `verify-otp` | Only the server may set the `mfaVerified` custom claim. |
 | `POST /api/email/send` | Holds the Resend key. Templates are fixed and `actionUrl` is constrained to our own origin, so the endpoint cannot be used to send phishing from a verified domain. |
 | `GET /api/email/history` | Recipient addresses are personal data, developer allowlist only. |
-| `POST /api/feedback/analyze` | Holds the Gemini key. |
+| `POST /api/feedback/analyze` | Holds the Gemini key. Rate limited like the other paid call. |
+| `POST /api/applications/notify` | An org must not be able to read a student's email address — the rules allow `users/{uid}` only to its owner. The server resolves the address, proves the caller owns the opportunity the application belongs to, sends the mail, and never returns the address. |
+| `POST /api/account/delete` | The rules forbid a client deleting `users/{uid}` (`allow delete: if false`) or its own profile document. Also clears the account's applications, saved opportunities and hours requests. |
+| `POST /api/opportunities/delete` | Only the student who owns an application may delete it, and an org cannot list `savedOpportunities` — so the cascade cannot run client-side. Emails everyone whose live application it closes. |
+| `GET /api/leaderboard/refresh` | The Vercel cron entry point. Crons issue **GET** and carry no Firebase token; the POST route above is for browsers. |
 
 Every route calls `verifyAuth()`, which validates a real Firebase ID token.
 Demo-mode tokens are self-asserted and are **rejected when `NODE_ENV=production`**.
+
+**The pattern behind the last three.** `firestore.rules` can only read an exact
+document path, never run a query, so any check of the form "is this caller
+related to that record" has to live behind an endpoint. Where the client tried
+to do it anyway, the read was denied at runtime and the failure was swallowed —
+which is how organizations spent months emailing `student@example.com` instead
+of their applicants, and how "Delete my account" reported a permissions error
+while deleting nothing. If a screen needs data about someone it is not, that is
+a server endpoint, not a `getDoc`.
 
 ---
 

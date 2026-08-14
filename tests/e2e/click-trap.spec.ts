@@ -66,7 +66,7 @@ test.beforeAll(async () => {
     acct.uid = u.uid;
     // The MFA gate trusts the signed claim only — same claim the server writes
     // after a real code check. Driving an emailed OTP here would test nothing.
-    await adminApp.auth().setCustomUserClaims(u.uid, { mfaVerified: true });
+    await adminApp.auth().setCustomUserClaims(u.uid, { mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600 });
     await db.collection('users').doc(u.uid).set({
       uid: u.uid, email: acct.email, role, twoFactorEnabled: role !== 'student',
       createdAt: a.firestore.FieldValue.serverTimestamp(),

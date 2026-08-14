@@ -3,6 +3,7 @@ import { API_BASE_URL } from "../lib/config";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { auth } from "../firebase/config";
+import { isMfaClaimCurrent } from "../lib/mfa";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import EmailDeliveryNote from "../components/ui/EmailDeliveryNote";
@@ -129,7 +130,11 @@ export default function MfaChallenge() {
           for (let attempt = 0; attempt < 5; attempt++) {
             try {
               const refreshed = await user!.getIdTokenResult(true);
-              if (refreshed.claims.mfaVerified === true) return true;
+              // Must be the SAME predicate the route guards use. Checking only
+              // `mfaVerified === true` here would let this page redirect to /
+              // on a claim the guard then rejects, bouncing straight back to
+              // /mfa — a loop with a correct code in hand.
+              if (isMfaClaimCurrent(refreshed)) return true;
             } catch (refreshErr) {
               console.warn("Token refresh failed while confirming MFA claim:", refreshErr);
             }

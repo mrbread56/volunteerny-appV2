@@ -149,8 +149,12 @@ export default function DeveloperDashboard() {
   const [showReportsList, setShowReportsList] = useState(false);
 
   // General dashboard controls
-  const [activeTab, setActiveTab] = useState<'feedbacks' | 'reports' | 'users' | 'terminated' | 'settings' | 'verification'>('feedbacks');
+  const [activeTab, setActiveTab] = useState<'feedbacks' | 'reports' | 'interests' | 'users' | 'terminated' | 'settings' | 'verification'>('feedbacks');
   const [reports, setReports] = useState<any[]>([]);
+  // "Join List" requests. Students pick categories they want opportunities in
+  // and get "Added to waitlist!" — and until this tab existed, nothing in the
+  // app ever read the collection, so no human saw a single one of them.
+  const [interestRequests, setInterestRequests] = useState<any[]>([]);
   const [realReportCount, setRealReportCount] = useState(0);
 
   // Org verification queue
@@ -160,19 +164,45 @@ export default function DeveloperDashboard() {
   // System Settings state
   
   const [emailLogs, setEmailLogs] = useState<any[]>([]);
+  const [emailLogError, setEmailLogError] = useState<string | null>(null);
+  /**
+   * Poll the transactional email log.
+   *
+   * The whole body used to be wrapped in `catch (e) {}` with the response
+   * checked only as `if (res.ok)`, so a 403 or a throw left the list empty and
+   * silent — indistinguishable from "no email has been sent". That matters more
+   * now than it did: this route requires a VERIFIED developer address, and it
+   * no longer honours a demo token, so an empty list is a real possibility with
+   * a real cause worth naming.
+   *
+   * A transient blip between 15-second polls is not worth shouting about, so
+   * the message only appears once the fetch has actually failed, and clears the
+   * moment one succeeds.
+   */
   const fetchEmailLogs = async () => {
     try {
-      const authToken = isDemoMode ? 'demo-mode-token-developer' : await user?.getIdToken();
+      if (isDemoMode) {
+        setEmailLogs([]);
+        setEmailLogError('Email history is not available in demo mode.');
+        return;
+      }
+      const authToken = await user?.getIdToken();
       const res = await fetch(`${API_BASE_URL}/api/email/history`, {
-        headers: {
-          ...(authToken ? { 'Authorization': `Bearer ${authToken}` } : {})
-        }
+        headers: { ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
       });
       if (res.ok) {
-        const data = await res.json();
-        setEmailLogs(data);
+        setEmailLogs(await res.json());
+        setEmailLogError(null);
+        return;
       }
-    } catch (e) {}
+      setEmailLogError(
+        res.status === 403
+          ? 'Your account cannot read the email log. It needs a developer role and a verified email address.'
+          : `The email log could not be loaded (${res.status}).`,
+      );
+    } catch (e) {
+      setEmailLogError('The email log could not be reached. Check your connection.');
+    }
   };
   useEffect(() => {
     fetchEmailLogs();
@@ -181,30 +211,6 @@ export default function DeveloperDashboard() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [emailSystemOn, setEmailSystemOn] = useState(() => {
-    return localStorage.getItem("email_system_disabled") !== "true";
-  });
-  const [gmailOAuthOn, setGmailOAuthOn] = useState(() => {
-    return localStorage.getItem("gmail_connected_state") === "true";
-  });
-  
-  const handleToggleEmailSystem = (val: boolean) => {
-    setEmailSystemOn(val);
-    if (val) {
-      localStorage.removeItem("email_system_disabled");
-    } else {
-      localStorage.setItem("email_system_disabled", "true");
-    }
-  };
-
-  const handleToggleGmailOAuth = (val: boolean) => {
-    setGmailOAuthOn(val);
-    if (val) {
-      localStorage.setItem("gmail_connected_state", "true");
-    } else {
-      localStorage.removeItem("gmail_connected_state");
-    }
-  };
   const [isLoading, setIsLoading] = useState(true);
   const [replyInput, setReplyInput] = useState<{ [key: string]: string }>({});
   const [isReplying, setIsReplying] = useState<string | null>(null);
@@ -331,6 +337,18 @@ export default function DeveloperDashboard() {
         setFeedbacks(fbList);
         setRealFeedbackCount(fbList.length);
 
+        // Fetch category interest requests ("Join List")
+        try {
+          const irSnap = await getDocs(query(collection(db, 'interestRequests'), limit(200)));
+          const irList = irSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+          irList.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+          setInterestRequests(irList);
+        } catch (dbErr) {
+          setConsoleNotice(
+            reportError('load interest requests', dbErr, "Couldn't load category interest requests."),
+          );
+        }
+
         // Fetch safety reports
         let repList: any[] = [];
         try {
@@ -402,7 +420,17 @@ export default function DeveloperDashboard() {
       const snap = await getDocs(q);
       setPendingOrgs(snap.docs.map(d => ({ ...d.data(), uid: d.id } as any)));
     } catch (err) {
-      console.error('Failed to load pending orgs:', err);
+      // console.error only meant pendingOrgs stayed empty and the tab read "No
+      // organizations pending verification." with no count badge and no
+      // spinner — so a failed read looked exactly like an empty queue, and
+      // charities waiting on CRA verification stayed invisible and unapproved.
+      setConsoleNotice(
+        reportError(
+          'load pending organizations',
+          err,
+          "Couldn't load the verification queue. Refresh before assuming it is empty.",
+        ),
+      );
     }
   };
 
@@ -435,6 +463,20 @@ export default function DeveloperDashboard() {
       setConsoleNotice('Access denied: your account does not have permission to perform that action.');
       return;
     }
+
+    // Confirm before suspending. This fired on a single click, from buttons
+    // sitting in the same row as Purge — which has a two-step inline confirm —
+    // and from the reports tab. A suspended account hits the "Account Locked"
+    // wall immediately, so a misclick locks a real student or organization out
+    // of the site with no warning. Lifting a suspension is not destructive and
+    // is left unconfirmed.
+    const target =
+      students.find((s) => s.uid === userId)?.fullName ||
+      orgs.find((o) => o.uid === userId)?.organizationName ||
+      'this account';
+    if (!isCurrentlyBanned && !window.confirm(
+      `Suspend ${target}? They will be locked out of Volunteer North York immediately until you lift it.`
+    )) return;
 
     try {
       if (isDemoMode) {
@@ -828,6 +870,15 @@ export default function DeveloperDashboard() {
             )}
           >
             <ShieldAlert className="w-4 h-4 text-red-500 animate-pulse" /> Safety Reports ({reports.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('interests')}
+            className={cn(
+              "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
+              activeTab === 'interests' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+            )}
+          >
+            <Sparkles className="w-4 h-4" /> Interest Requests ({interestRequests.length})
           </button>
           <button
             onClick={() => setActiveTab('users')}
@@ -1408,62 +1459,15 @@ export default function DeveloperDashboard() {
             </p>
           </CardHeader>
           <CardContent className="p-8 space-y-6">
-            {/* Email system toggle */}
-            <div className="flex items-center justify-between gap-4 p-6 rounded-lg bg-paper-2 border border-line/50">
-              <div className="space-y-1">
-                <p className="font-semibold text-ink text-sm">Master Email Dispatcher Switch</p>
-                <p className="text-xs text-ink-muted leading-relaxed font-bold">
-                  Turn all transactional and verification email dispatching (sign-up, status changes, Waitlists, receipts) on or off globally.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggleEmailSystem(!emailSystemOn)}
-                aria-label="Toggle Global Email Sub-system"
-                role="switch"
-                aria-checked={emailSystemOn}
-                className={cn(
-                  "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
-                  emailSystemOn ? "bg-blue-dark" : "bg-slate-200"
-                )}
-              >
-                <div
-                  className={cn(
-                    "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
-                    emailSystemOn ? "translate-x-5" : "translate-x-0"
-                  )}
-                />
-              </button>
-            </div>
-
-            {/* Gmail integration standard defaults */}
-            <div className="flex items-center justify-between gap-4 p-6 rounded-lg bg-paper-2 border border-line/50">
-              <div className="space-y-1">
-                <p className="font-semibold text-ink text-sm">Gmail Integration Default Activation</p>
-                <p className="text-xs text-ink-muted leading-relaxed font-bold">
-                  Enable client-side Gmail OAuth integration helper and connect statuses automatically for all new hosting organizations.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleToggleGmailOAuth(!gmailOAuthOn)}
-                aria-label="Toggle Gmail Integration Default Activation"
-                role="switch"
-                aria-checked={gmailOAuthOn}
-                className={cn(
-                  "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
-                  gmailOAuthOn ? "bg-blue-dark" : "bg-slate-200"
-                )}
-              >
-                <div
-                  className={cn(
-                    "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
-                    gmailOAuthOn ? "translate-x-5" : "translate-x-0"
-                  )}
-                />
-              </button>
-            </div>
-
+            {/* Two switches used to sit here: "Master Email Dispatcher Switch"
+                and "Gmail Integration Default Activation". Neither controlled
+                anything. Each wrote a localStorage key on the developer's own
+                browser that no send path, server route or rule ever read — so
+                the email switch claimed to turn ALL transactional mail on or
+                off globally and did nothing at all. A moderator flipping it
+                during an incident would believe mail had stopped while every
+                message kept sending. A control that lies is worse than no
+                control, so both are gone; the live send test below is real. */}
             {/* Live Email Testing Form */}
             <div className="border border-orange-100 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
               <div className="space-y-1">
@@ -1473,7 +1477,7 @@ export default function DeveloperDashboard() {
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
                   Test the transactional system live! If your third-party credentials (Resend or SMTP) are invalid or unconfigured, the system will gracefully drop into the **Sandbox Fallback Mode** and generate a fully styled HTML email preview inside the dev log response below.
                   <br />
-                  <em>Note: The <code>/api/email/history</code> API returns recent sends on this server instance only due to the serverless architecture.</em>
+                  <em>Sends are recorded in Firestore, so the log below is the same on every server instance.</em>
                 </p>
               </div>
 
@@ -1530,8 +1534,113 @@ export default function DeveloperDashboard() {
                 {isSendingTestEmail ? "Dispatching Delivery..." : "Send Test Email"}
               </Button>
             </div>
+
+            {/* Recent transactional sends.
+                emailLogs was polled every 15 seconds and rendered NOWHERE — a
+                request per open console, forever, for data nobody saw. The log
+                is worth having in an admin console (knowing whether mail is
+                actually going out is the first thing you check in an incident),
+                so it is shown rather than the poll deleted. */}
+            <div className="border border-line/50 p-6 rounded-lg bg-paper-2 space-y-4">
+              <div className="flex items-center justify-between gap-4">
+                <p className="font-semibold text-ink text-sm">Recent Transactional Sends</p>
+                <span className="text-xs text-ink-muted">refreshes every 15s</span>
+              </div>
+
+              {emailLogError ? (
+                <p role="alert" className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-3 leading-relaxed">
+                  {emailLogError}
+                </p>
+              ) : emailLogs.length === 0 ? (
+                <p className="text-xs text-ink-muted">No email has been sent yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="text-left text-ink-muted border-b border-line">
+                        <th className="py-2 pr-4 font-semibold">When</th>
+                        <th className="py-2 pr-4 font-semibold">To</th>
+                        <th className="py-2 pr-4 font-semibold">Subject</th>
+                        <th className="py-2 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {emailLogs.slice(0, 25).map((log: any) => (
+                        <tr key={log.id} className="border-b border-line-light last:border-0 align-top">
+                          <td className="py-2 pr-4 whitespace-nowrap text-ink-muted">
+                            {log.at ? new Date(log.at).toLocaleString() : '—'}
+                          </td>
+                          <td className="py-2 pr-4 break-all">{log.to}</td>
+                          <td className="py-2 pr-4">{log.subject}</td>
+                          <td className="py-2">
+                            <span className={cn(
+                              "font-semibold px-2 py-0.5 rounded-lg border text-xs",
+                              log.status === 'sent'
+                                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                                : log.status === 'failed'
+                                  ? "text-red-700 bg-red-50 border-red-200"
+                                  : "text-ink-soft bg-paper-2 border-line",
+                            )}>
+                              {log.status}
+                            </span>
+                            {log.error && <p className="text-red-600 mt-1 leading-relaxed">{log.error}</p>}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </div>
+
           </CardContent>
         </Card>
+      </div>
+    ) : activeTab === 'interests' ? (
+      <div className="space-y-6">
+        <h3 className="text-lg font-semibold uppercase text-ink-soft">Category Interest Requests</h3>
+        <p className="text-sm text-ink-muted">
+          Students who used "Join List" to say what they want to volunteer in. They were told they
+          were added to a waitlist, so these are worth acting on — recruit organizations in these
+          categories, or email the students when something matches.
+        </p>
+        {interestRequests.length === 0 ? (
+          <div className="text-center py-16 text-ink-muted text-sm font-semibold">No interest requests yet.</div>
+        ) : (
+          <div className="space-y-4">
+            {interestRequests.map((r: any) => (
+              <div key={r.id} className="border border-line bg-white p-6 space-y-3">
+                <div className="flex justify-between items-start gap-4">
+                  <div className="min-w-0">
+                    <h4 className="font-bold text-ink text-base truncate">{r.studentName || 'Student'}</h4>
+                    <p className="text-xs text-ink-muted mt-1 truncate">{r.email || 'No email on file'}</p>
+                  </div>
+                  <span className="text-xs text-ink-muted shrink-0 whitespace-nowrap">
+                    {r.createdAt?.seconds ? new Date(r.createdAt.seconds * 1000).toLocaleDateString() : ''}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {(r.categories || []).map((c: string) => (
+                    <span key={c} className="text-xs font-semibold bg-blue-dark/5 text-blue-dark border border-blue-dark/10 px-2.5 py-1 rounded-lg">
+                      {c}
+                    </span>
+                  ))}
+                </div>
+                {r.description && (
+                  <p className="text-sm text-ink-soft leading-relaxed border-t border-line-light pt-3">{r.description}</p>
+                )}
+                {r.email && (
+                  <a
+                    href={`mailto:${r.email}?subject=${encodeURIComponent('Volunteer opportunities in your areas of interest')}`}
+                    className="inline-block text-xs font-semibold text-blue-dark underline underline-offset-2"
+                  >
+                    Email this student
+                  </a>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     ) : activeTab === 'verification' ? (
       <div className="space-y-6">

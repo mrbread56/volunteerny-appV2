@@ -37,6 +37,8 @@ import {
   Star,
   Edit3,
   X,
+  AlertCircle,
+  Mail,
 } from "lucide-react";
 import { formatDate, cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
@@ -45,12 +47,14 @@ import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
 import ReportModal from "../components/ReportModal";
 import ReceiptModal from "../components/ReceiptModal";
-import { sendTransactionalEmail } from "../lib/emailService";
+import { notifyApplicant, fetchApplicantContacts, type ApplicantContact } from "../lib/emailService";
+import { buildMailtoLink } from "../lib/mailto";
+import { toUserMessage } from "../lib/errors";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 
 export default function OrgOpportunityApplicants() {
   const { id } = useParams();
-  const { isDemoMode, accessToken, orgProfile, user } = useAuth();
+  const { isDemoMode, orgProfile, user } = useAuth();
   const navigate = useNavigate();
   const [opportunity, setOpportunity] = useState<Opportunity | null>(null);
   const [applicants, setApplicants] = useState<Application[]>([]);
@@ -63,11 +67,16 @@ export default function OrgOpportunityApplicants() {
     null,
   );
   const [filterTab, setFilterTab] = useState<
-    "all" | "pending" | "reviewed" | "accepted" | "rejected" | "terminated"
+    "all" | "pending" | "reviewed" | "waitlist" | "accepted" | "rejected" | "terminated"
   >("pending");
   const [expandedMsgs, setExpandedMsgs] = useState<Record<string, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isBulkRejecting, setIsBulkRejecting] = useState(false);
+  // Applicant email addresses, fetched from the server because the browser is
+  // not allowed to read users/{uid} for anyone but itself. Keyed by studentId.
+  const [contacts, setContacts] = useState<Record<string, ApplicantContact>>({});
+  const [contactsError, setContactsError] = useState<string | null>(null);
+  const [isClosing, setIsClosing] = useState(false);
   // `settle` is the resolve() of the promise updateStatus handed its caller.
   // Without it, Undo cleared the timer and the caller (ApplicationReviewDialog)
   // was left awaiting a promise that could never resolve — its spinner never
@@ -90,6 +99,88 @@ export default function OrgOpportunityApplicants() {
     }
   };
 
+  // Load the addresses once the opportunity is known.
+  useEffect(() => {
+    if (!id || isDemoMode) return;
+    let cancelled = false;
+    fetchApplicantContacts(id)
+      .then((list) => {
+        if (cancelled) return;
+        const byStudent: Record<string, ApplicantContact> = {};
+        for (const c of list) if (c.studentId) byStudent[c.studentId] = c;
+        setContacts(byStudent);
+        setContactsError(null);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        // Named, not swallowed: without addresses the Email buttons cannot
+        // work, and a disabled button with no explanation is the pattern this
+        // codebase keeps getting wrong.
+        setContactsError(err?.message || 'Could not load applicant email addresses.');
+      });
+    return () => { cancelled = true; };
+  }, [id, isDemoMode, applicants.length]);
+
+  /**
+   * Close the posting, and optionally decline whoever is still waiting.
+   *
+   * Closing is not deleting. The opportunity, its applications and its accepted
+   * volunteers all stay exactly where they are — it simply stops appearing in
+   * browse and refuses new applications, which is what "we have the people we
+   * need" actually means. Reopening is one click.
+   */
+  const handleToggleClosed = async () => {
+    if (!id || !opportunity) return;
+    const closing = opportunity.status !== 'closed';
+    const stillWaiting = applicants.filter(
+      (a) => a.status === 'pending' || a.status === 'reviewed' || a.status === 'waitlist',
+    );
+
+    if (closing) {
+      const msg = stillWaiting.length
+        ? `Close "${opportunity.title}" to new applications?
+
+The ${stillWaiting.length} applicant(s) still waiting will be declined and emailed. Anyone you have already accepted keeps their place.`
+        : `Close "${opportunity.title}" to new applications? It will stop showing in browse. You can reopen it any time.`;
+      if (!window.confirm(msg)) return;
+    }
+
+    setIsClosing(true);
+    try {
+      await updateDoc(doc(db, 'opportunities', id), {
+        status: closing ? 'closed' : 'open',
+        updatedAt: serverTimestamp(),
+      });
+      setOpportunity((prev) => (prev ? { ...prev, status: closing ? 'closed' : 'open' } : prev));
+
+      if (closing && stillWaiting.length) {
+        const results = await Promise.allSettled(stillWaiting.map(async (app) => {
+          await updateDoc(doc(db, 'applications', app.id), {
+            status: 'rejected',
+            rejectionReason: 'Position Filled',
+            rejectionNote: 'This opportunity has now been filled and closed to new applications.',
+            decidedAt: serverTimestamp(),
+          });
+          return notifyApplicant({
+            applicationId: app.id,
+            status: 'rejected',
+            reason: 'Position Filled',
+            note: 'This opportunity has now been filled and closed to new applications.',
+          });
+        }));
+        const closedIds = new Set(stillWaiting.map((a) => a.id));
+        setApplicants((prev) => prev.map((a) => (closedIds.has(a.id) ? { ...a, status: 'rejected' } : a)));
+        const failed = results.filter((r) => r.status === 'rejected').length;
+        if (failed) setErrorMessage(`${failed} applicant(s) could not be declined. Try again.`);
+      }
+      setSuccessMessage(closing ? 'Opportunity closed to new applications.' : 'Opportunity reopened.');
+    } catch (err: any) {
+      setErrorMessage(toUserMessage(err) || 'Could not change the opportunity status.');
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
   const handleBulkReject = async () => {
     if (!window.confirm("Are you sure you want to reject all remaining pending and reviewed applications?")) return;
     
@@ -100,25 +191,59 @@ export default function OrgOpportunityApplicants() {
       
       const batchPromises = pendingApps.map(async (app) => {
         if (!isDemoMode) {
-          const updates = { 
+          const updates = {
             status: 'rejected',
             rejectionReason: 'Position Filled',
-            rejectionNote
+            rejectionNote,
+            // When the decision was made. The student's bell reads this; it
+            // used to show the time they APPLIED, so a decision taken after
+            // they last checked never raised the unread badge.
+            decidedAt: serverTimestamp(),
           };
           await updateDoc(doc(db, "applications", app.id), updates);
-          return { ...app, ...updates } as Application;
-        } else {
-          return { ...app, status: 'rejected', rejectionReason: 'Position Filled', rejectionNote } as Application;
+          // Rejecting ONE applicant emails them; this path wrote straight to
+          // Firestore and skipped the notification entirely, so rejecting
+          // twenty at once told none of them — while the toast reported success
+          // either way. Failures are collected rather than thrown: a student
+          // who is not emailed must not also stay wrongly listed as pending.
+          const notified = await notifyApplicant({
+            applicationId: app.id,
+            status: 'rejected',
+            reason: 'Position Filled',
+            note: rejectionNote,
+          });
+          return { app: { ...app, ...updates } as Application, notified: notified.success };
         }
+        return {
+          app: { ...app, status: 'rejected', rejectionReason: 'Position Filled', rejectionNote } as Application,
+          notified: true,
+        };
       });
 
-      const processed = await Promise.all(batchPromises);
-      
+      // allSettled, not all: Promise.all rejects on the FIRST failure, so a
+      // single failed write discarded the results of every successful one —
+      // the list showed all twenty still pending while nineteen were in fact
+      // rejected in the database.
+      const settled = await Promise.allSettled(batchPromises);
+      const processed = settled
+        .filter((r): r is PromiseFulfilledResult<{ app: Application; notified: boolean }> => r.status === 'fulfilled')
+        .map((r) => r.value);
+      const failedWrites = settled.length - processed.length;
+      const unnotified = processed.filter((p) => !p.notified).length;
+
       setApplicants(prev => prev.map(a => {
-        const processedApp = processed.find(p => p.id === a.id);
-        return processedApp ? processedApp : a;
+        const hit = processed.find(p => p.app.id === a.id);
+        return hit ? hit.app : a;
       }));
-      setSuccessMessage(`Bulk rejected ${processed.length} applications.`);
+      setSuccessMessage(`Bulk rejected ${processed.length} application${processed.length === 1 ? '' : 's'}.`);
+      if (failedWrites || unnotified) {
+        setErrorMessage(
+          [
+            failedWrites ? `${failedWrites} application${failedWrites === 1 ? '' : 's'} could not be updated.` : '',
+            unnotified ? `${unnotified} applicant${unnotified === 1 ? ' was' : 's were'} not emailed.` : '',
+          ].filter(Boolean).join(' '),
+        );
+      }
       setTimeout(() => setSuccessMessage(null), 5000);
     } catch (err: any) {
       console.error("Error during bulk rejection:", err);
@@ -153,6 +278,25 @@ export default function OrgOpportunityApplicants() {
       return () => clearTimeout(timer);
     }
   }, [successMessage]);
+
+  // Accept/reject writes are deliberately deferred five seconds so the toast can
+  // offer Undo — but the toast says "Placement accepted." immediately and the
+  // row updates immediately, so closing the tab inside that window silently
+  // threw the decision away: nothing was written, and the applicant was never
+  // emailed, while the organization had every reason to believe otherwise.
+  //
+  // The deferral itself is worth keeping (it is what lets Undo stop the email
+  // going out), so warn instead of dropping. The ref is read inside the handler
+  // rather than captured, so this registers once and still sees current state.
+  useEffect(() => {
+    const warn = (e: BeforeUnloadEvent) => {
+      if (Object.keys(pendingUpdates.current).length === 0) return;
+      e.preventDefault();
+      e.returnValue = '';
+    };
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -205,7 +349,7 @@ export default function OrgOpportunityApplicants() {
         }
       } catch (err: any) {
         console.error("Error fetching applicants:", err);
-        setErrorMessage(err.message || "Failed to load applicants.");
+        setErrorMessage(toUserMessage(err) || "Failed to load applicants.");
       } finally {
         setIsLoading(false);
       }
@@ -231,66 +375,29 @@ export default function OrgOpportunityApplicants() {
       // decision notice here would be wrong.
       if (finalStatus === "reviewed") return;
 
+      if (isDemoMode) return;
+
       try {
-        let studentEmail: string | null = null;
-        const targetApp = currentApplicantsList.find((a) => a.id === appId);
-        const targetStudentName = targetApp?.studentName || "Student";
-        const opportunityTitle =
-          targetApp?.opportunityTitle || opportunity?.title || "Opportunity";
-
-        if (isDemoMode) {
-          studentEmail =
-            targetApp?.studentId === "demo-student-1"
-              ? "armin.k@yorkschool.ca"
-              : "student@example.com";
-        } else if (targetApp?.studentId) {
-          const studentUserDoc = await getDoc(
-            doc(db, "users", targetApp.studentId),
+        // The address is resolved server-side. This used to read
+        // users/{studentId} from the browser, which firestore.rules denies to
+        // every organization, so the address silently became the literal
+        // "student@example.com" and no real applicant was ever told the
+        // outcome. See POST /api/applications/notify.
+        const emailResult = await notifyApplicant({
+          applicationId: appId,
+          status: finalStatus as "accepted" | "rejected" | "terminated",
+          reason: rejectionArgs?.reason,
+          note: rejectionArgs?.note,
+        });
+        emailSent = emailResult.success;
+        if (!emailResult.success) {
+          console.error("Applicant status email was not delivered:", emailResult.error);
+          setErrorMessage(
+            `The status was saved, but we could not email the applicant. ${emailResult.error || ""}`.trim()
           );
-          if (studentUserDoc.exists()) {
-            studentEmail = studentUserDoc.data().email;
-          }
-        }
-
-        // Sandbox safety fallback if email is not resolved or is demo
-        if (!studentEmail || studentEmail === "student@example.com") {
-          studentEmail = "student@example.com";
-        }
-
-        if (studentEmail) {
-          const subject = status === "accepted"
-            ? `Your application for "${opportunityTitle}" was accepted! 🎉`
-            : status === "terminated"
-              ? `Placement Update for "${opportunityTitle}"`
-              : `Application Update for "${opportunityTitle}"`;
-
-          // sendTransactionalEmail never throws: it resolves with
-          // { success: false } on failure. This used to set emailSent = true
-          // unconditionally, so the UI reported "applicant notified" even when
-          // no email left the building. Trust the returned flag instead.
-          const emailResult = await sendTransactionalEmail({
-            to: studentEmail,
-            subject: subject,
-            templateName: "application_status",
-            templateData: {
-              studentName: targetStudentName,
-              oppTitle: opportunityTitle,
-              orgName: orgProfile?.organizationName || "Verified Organization",
-              status: finalStatus === "accepted" ? "accepted" : "rejected",
-              note: finalStatus === "rejected"
-                ? `${rejectionArgs?.reason || "Schedule Match Conflict"}. ${rejectionArgs?.note || ""}`
-                : finalStatus === "terminated"
-                  ? "Your placement for this shift was terminated by the site moderator."
-                  : undefined
-            }
-          });
-          emailSent = emailResult.success;
-          if (!emailResult.success) {
-            console.error("Applicant status email was not delivered:", emailResult.error);
-          }
         }
       } catch (e: any) {
-        console.error("Failed to compile or dispatch Resend notification:", e);
+        console.error("Failed to dispatch the applicant notification:", e);
         setErrorMessage(e.message || "Failed to send notification email.");
       }
     };
@@ -368,7 +475,8 @@ export default function OrgOpportunityApplicants() {
         }
 
         try {
-          const updates: any = { status };
+          // decidedAt: see the note on the bulk-reject payload above.
+          const updates: any = { status, decidedAt: serverTimestamp() };
           if (status === "rejected" && rejectionData) {
             updates.rejectionReason = rejectionData.reason;
             updates.rejectionNote = rejectionData.note;
@@ -390,7 +498,7 @@ export default function OrgOpportunityApplicants() {
           console.error("Error updating status:", err);
           // Revert optimistic update on error
           setApplicants(prev => prev.map(a => a.id === appId ? currentState : a));
-          setErrorMessage(err.message || "Database write failed");
+          setErrorMessage(toUserMessage(err) || "Database write failed");
           resolve({ success: false, emailSent: false, receiptGenerated: false, error: err.message });
         }
       }, 5000);
@@ -438,7 +546,7 @@ export default function OrgOpportunityApplicants() {
     } catch (err: any) {
       console.error('Failed to submit recommendation:', err);
       setSuccessMessage(null);
-      setErrorMessage(err.message || "Failed to submit recommendation.");
+      setErrorMessage(toUserMessage(err) || "Failed to submit recommendation.");
     } finally {
       setIsSubmittingRec(false);
     }
@@ -468,7 +576,7 @@ export default function OrgOpportunityApplicants() {
       if (profile) setReviewStudent(profile);
     } catch (err: any) {
       console.error("Error fetching student profile:", err);
-      setErrorMessage(err.message || "Error fetching student profile.");
+      setErrorMessage(toUserMessage(err) || "Error fetching student profile.");
     }
   };
 
@@ -494,6 +602,30 @@ export default function OrgOpportunityApplicants() {
           and it still swallows clicks. This toast carries the Undo button and
           sits over the header, so a stale copy would both eat nav clicks and
           leave a dead Undo on screen. */}
+      {/* errorMessage was set in six places on this page and rendered in none
+          of them. So a failed status write silently reverted the row five
+          seconds after the toast said "Placement accepted", a failed reference
+          submission just stopped spinning, and the permission error that broke
+          every applicant email was invisible. Same placement as the success
+          toast, and it does NOT auto-dismiss — a failure the organization has
+          to act on should not disappear on a timer. */}
+      {errorMessage && (
+        <div
+          role="alert"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 max-w-lg bg-red-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide flex items-start gap-3"
+        >
+          <AlertCircle className="w-4 h-4 shrink-0 mt-px" />
+          <span className="leading-relaxed">{errorMessage}</span>
+          <button
+            onClick={() => setErrorMessage(null)}
+            aria-label="Dismiss error"
+            className="ml-2 shrink-0 underline underline-offset-2 hover:no-underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {successMessage && (
             <motion.div
               initial={{ opacity: 0, y: -20 }}
@@ -536,7 +668,12 @@ export default function OrgOpportunityApplicants() {
         <div className="flex flex-col gap-3 max-w-full shrink-0 items-end">
           <div className="max-w-full overflow-x-auto scrollbar-none pb-1 shrink-0">
             <div className="flex bg-slate-100 p-1 rounded-lg w-max">
-              {(["all", "pending", "reviewed", "accepted", "rejected", "terminated"] as const).map(
+              {/* "waitlist" was missing. Applications are auto-created with that
+                  status once an opportunity is full, so a full posting collected
+                  waitlisted students who appeared under no tab but "all", with no
+                  action available on the row — the organization could see them and
+                  do nothing about them, ever. */}
+              {(["all", "pending", "reviewed", "waitlist", "accepted", "rejected", "terminated"] as const).map(
                 (tab) => (
                   <button
                     key={tab}
@@ -554,17 +691,66 @@ export default function OrgOpportunityApplicants() {
               )}
             </div>
           </div>
-          {applicants.some(a => a.status === 'pending' || a.status === 'reviewed') && (
-            <div className="flex justify-end">
-              <Button 
-                variant="outline" 
+          <div className="flex flex-wrap justify-end gap-2">
+            {/* Email everyone you accepted, in one go. Opens the organization's
+                own mail client with the addresses already filled in — no
+                subject, no body, they write it themselves. Addresses go in BCC
+                so the volunteers, who are mostly minors, are not disclosed to
+                each other. */}
+            {(() => {
+              const acceptedEmails = applicants
+                .filter((a) => a.status === 'accepted')
+                .map((a) => contacts[a.studentId]?.email)
+                .filter((e): e is string => !!e);
+              const href = buildMailtoLink(acceptedEmails);
+              if (!href) return null;
+              return (
+                <a
+                  href={href}
+                  className="inline-flex items-center gap-2 text-xs font-semibold text-blue-dark border border-blue-dark/20 bg-blue-dark/5 hover:bg-blue-dark/10 h-8 px-4 rounded-lg transition-colors"
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  Email all {acceptedEmails.length} accepted
+                </a>
+              );
+            })()}
+
+            {applicants.some(a => a.status === 'pending' || a.status === 'reviewed') && (
+              <Button
+                variant="outline"
                 className="text-xs font-semibold text-red-600 border-red-200 hover:bg-red-50 h-8 px-4 rounded-lg"
                 onClick={handleBulkReject}
                 disabled={isBulkRejecting}
               >
                 {isBulkRejecting ? "Rejecting..." : "Bulk Reject Remaining Pending"}
               </Button>
-            </div>
+            )}
+
+            {/* Close the posting once you have the volunteers you need. */}
+            <Button
+              variant="outline"
+              className="text-xs font-semibold h-8 px-4 rounded-lg"
+              onClick={handleToggleClosed}
+              disabled={isClosing}
+            >
+              {isClosing
+                ? 'Saving…'
+                : opportunity.status === 'closed'
+                  ? 'Reopen applications'
+                  : 'Close applications'}
+            </Button>
+          </div>
+
+          {opportunity.status === 'closed' && (
+            <p className="text-xs text-ink-muted text-right">
+              This opportunity is closed — it no longer appears in browse and cannot receive new applications.
+            </p>
+          )}
+
+          {contactsError && (
+            <p role="alert" className="text-xs text-red-700 text-right">
+              {contactsError} Email buttons are unavailable until this loads.
+            </p>
           )}
         </div>
       </div>
@@ -720,6 +906,46 @@ export default function OrgOpportunityApplicants() {
                         >
                           Un-terminate Placement
                         </Button>
+                      )}
+
+                      {/* Email this applicant directly.
+                          A plain mailto: with only the recipient filled in —
+                          the organization writes the message in their own
+                          inbox. Shown for EVERY status, not just accepted: an
+                          organization needs to be able to ask a pending
+                          applicant a question, or follow up with someone they
+                          turned down. Applying is the contact request. */}
+                      {contacts[app.studentId]?.email && (
+                        <a
+                          href={`mailto:${encodeURIComponent(contacts[app.studentId].email as string)}`}
+                          className="w-full inline-flex items-center justify-center gap-2 font-bold uppercase text-xs tracking-widest h-11 rounded-lg border border-line text-ink hover:bg-paper-2 transition-colors"
+                          title={contacts[app.studentId].email as string}
+                        >
+                          <Mail className="w-4 h-4" /> Email {app.studentName?.split(' ')[0] || 'applicant'}
+                        </a>
+                      )}
+
+                      {/* Waitlisted applicants had no controls at all. Promoting one
+                          by hand is the same accept the review dialog performs, and
+                          declining releases them so they are not left waiting on a
+                          place that is never coming. */}
+                      {app.status === "waitlist" && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          <Button
+                            variant="primary"
+                            className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg bg-blue-dark hover:bg-[#153343] text-white"
+                            onClick={() => updateStatus(app.id, "accepted")}
+                          >
+                            Offer a Place
+                          </Button>
+                          <Button
+                            variant="outline"
+                            className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-red-200 text-red-600 hover:bg-rose-50/50"
+                            onClick={() => setRejectionModalApp(app)}
+                          >
+                            Decline
+                          </Button>
+                        </div>
                       )}
 
                       {(app.status === "pending" || app.status === "reviewed" || app.status === "rejected") && (

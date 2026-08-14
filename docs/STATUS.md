@@ -19,20 +19,21 @@ Every gate below was run on this commit and passed.
 | `lint` (types + ESM guard) | 0 errors |
 | `build` (SPA + server bundle) | succeeds |
 | `check:firebase` | 13/13 |
-| `check:security` (adversarial) | **59/59** |
-| `check:flows` (full journey) | 13/13 |
+| `check:security` (adversarial) | **67/67** |
+| `check:flows` (full journey) | 15/15 |
+| `check:lifecycle` (withdraw, waitlist, deletes) | 13/13 |
 | `check:signup` | 6/6 |
 | `check:queries` | 0 failures |
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
-| `test` (full Playwright suite) | **44/44** |
+| `test` (full Playwright suite) | **51/51** |
 | `check:storage` (uploads + Storage rules) | **5/5** |
 | click reachability (every control, every role) | 211 controls, **0 blocked** |
 | **GitHub Actions CI** | **green, live tier executing** |
 
 The application was also driven by hand at `localhost:3000`: all five public
-routes, all eight student routes, all six organization routes, and all six
+routes, all eight student routes, all six organization routes, and all seven
 developer console tabs render with content, no horizontal overflow and no
 console errors. Automated Playwright visual sweeps assert no horizontal overflow
 across breakpoints (375px, 768px, 1440px).
@@ -43,16 +44,122 @@ across breakpoints (375px, 768px, 1440px).
 
 | Area | State |
 |---|---|
-| Auth & roles | Working. 59 adversarial tests |
+| Auth & roles | Working. 67 adversarial tests |
 | Permissions / rules | Working, audited with the official Firebase auditor |
 | Student journey | Working, hand-tested end to end |
 | Organization journey | Working, hand-tested end to end |
-| Developer console | Working, all six tabs walked |
+| Developer console | Working, all seven tabs walked |
 | Email delivery | Working, key valid, sender domain verified |
 | Application → hours → leaderboard | Working. `check:flows` |
+| Withdraw / waitlist / deletion | Working. `check:lifecycle` |
 | CI | Green, and fails loudly if the security suite cannot run |
 
 ---
+
+## Closed 13 August 2026 (seven-agent review + hardening pass)
+
+Seven independent reviewers read the codebase — one deliberately cold, six
+scoped — and every finding below was verified before being acted on. The two
+marked **confirmed live** were run as real exploits against the production
+project, before and after the fix.
+
+### The dominant root cause
+
+`firestore.rules` allows reading `users/{uid}` only to its owner. Five screens
+read it anyway to get a student's email address. Every one threw, every throw
+was caught, and the address fell back to the literal string
+`"student@example.com"`.
+
+So **no accepted student was ever emailed. No rejected student. No waitlist
+promotion. No receipt.** The UI reported "applicant notified" every time. The
+same denied read also meant the organization's "Record Volunteer Hours" form
+failed 100% of the time — it read the student document before calling the
+server, so it never reached the server at all.
+
+Fixed by `POST /api/applications/notify`, which resolves the address with the
+Admin SDK, proves the caller owns the opportunity, sends the mail, and never
+returns the address — stricter than before, not looser.
+
+### Security
+
+| Finding | Evidence |
+|---|---|
+| A new student could set `hours: 999999` in the same `setDoc` that created their profile, taking permanent #1 on the leaderboard | **confirmed live**, now `permission-denied` |
+| A new organization could self-set `verificationStatus: 'verified'` and skip human review entirely | **confirmed live**, now `permission-denied` |
+| The 2FA attempt cap was a read-modify-write, so a concurrent batch of guesses cost ONE attempt instead of one each — with no rate limiter on that endpoint | now a single Firestore transaction |
+| A consumed or locked-out OTP stayed live on every other warm serverless instance | tombstone instead of delete |
+| The developer allowlist did not require `email_verified`, though `firestore.rules` always has | one shared `isAllowlistedDeveloper()` |
+| `/api/log/client-error`'s limiter keyed on a client-settable header, with an unbounded map behind it | `trust proxy` + `req.ip`, with sweeping |
+| `/api/feedback/analyze` had no rate limit on a paid AI call | limited like its siblings |
+| `create` rules lacked `hasOnly` bounds on `students` and `applications` | bounded; create-path tests added |
+
+Every self-promotion test in the suite used `updateDoc`, so the update rules
+were tight and the **create** paths — written once, at signup — had never been
+exercised. That was the blind spot.
+
+### Features that did not work
+
+- **Account deletion never worked, for anyone.** Both profile screens called
+  `deleteDoc` on `users/{uid}`, which is `allow delete: if false`. Students saw
+  a raw permissions error while their account and uploaded passport scan
+  survived. Now `POST /api/account/delete`, with the cascade the client never
+  attempted.
+- **The nightly leaderboard cron had never run once.** Vercel issues GET; the
+  route was POST-only. Opting out of the rankings also changed only your own
+  tab until something else happened to rebuild the board.
+- **The notification badge never fired for any decision** — notifications were
+  stamped with when the student *applied*, so anything decided after they last
+  opened the bell always compared as already-seen. Needed a `decidedAt` field
+  and a rules change.
+- **Editing an opportunity shifted its time by the UTC offset, every save.**
+- **Waitlisted applicants had no controls at all**, and promotion fired on
+  rejections that freed nothing, ignoring `maxVolunteers`.
+- **Deleting an opportunity orphaned every application to it** — unreachable by
+  the organization, unresolvable for the student.
+- **The organization verification queue was permanently empty**: the CRA
+  question never rendered, so `verificationStatus` was always `unverified`.
+- **One unverified organization email killed the entire notification bell.**
+- **"Join List" wrote to a collection nothing read.** Students saw "Added to
+  waitlist!" and no human ever saw the request. Now a developer console tab.
+- **The application message box did not exist**, though every application
+  saved the field — organizations always saw "No message provided."
+- A demo fixture (`armin.k@yorkschool.ca`) was shown as a live `mailto:` to
+  every organization reviewing a real applicant.
+- `errorMessage` was set in six places on the applicants page and rendered in
+  none of them.
+- Bulk reject emailed nobody, and `Promise.all` discarded every successful
+  write when one failed.
+- The printed transcript's supervisor column always read `" ()"`.
+- The rejection dialog carried the previous applicant's note into the next one.
+- Students had no way to withdraw an application, though the rules allow it.
+- A badge gated on `contactEmail` and `phone` — fields no student form collects
+  and the rules would reject — could never be earned.
+- Recurring and multi-shift opportunities stored the *posting* time as the
+  event time.
+- Two tabs could produce two applications for the same student, both counting
+  toward capacity.
+
+### Dead weight removed
+
+Three Google OAuth integrations (Gmail, Calendar, Tasks) that powered nothing
+while requesting five sensitive scopes — `gmail.send`, full `calendar`,
+`calendar.events`, `tasks`, `tasks.readonly`. Two developer switches that wrote
+a localStorage key nothing read: one of them claimed to turn **all**
+transactional email on or off globally. A group chat promised in four places
+that has never existed. An email-log poller firing every 15 seconds whose result
+was rendered nowhere. Plus `design-archive/` (1.5 MB of rejected mockups) and a
+stale `implementation_plan.md` whose every proposal had already shipped.
+
+### New permanent coverage
+
+`check:lifecycle` (13 assertions) for withdraw, waitlist capacity, opportunity
+deletion and account deletion; `check:mfa` (16) for the per-sign-in claim;
+`opportunity-date.spec.ts` (7) for the schedule maths; create-path and
+account-deletion assertions added to `check:security`; notify-endpoint
+assertions added to `check:flows`.
+
+---
+
 
 ## Closed 9 August 2026 (from the independent architecture review)
 

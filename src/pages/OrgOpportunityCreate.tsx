@@ -17,6 +17,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 
 import { Badge } from '../components/ui/Badge';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
+import { resolveOpportunityDate } from '../lib/opportunityDate';
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -91,7 +92,6 @@ export default function OrgOpportunityCreate() {
   const [selectedExclusives, setSelectedExclusives] = useState<string[]>([]);
   const [timeCommitment, setTimeCommitment] = useState(COMMITMENTS[0].value);
   const [isVirtual, setIsVirtual] = useState(false);
-  const [autoCreateGroupChat, setAutoCreateGroupChat] = useState(true);
   const [coords, setCoords] = useState({ lat: 43.7615, lng: -79.4111 }); // North York center
   const [isGeocoding, setIsGeocoding] = useState(false);
 
@@ -122,7 +122,6 @@ export default function OrgOpportunityCreate() {
         if (parsed.selectedExclusives) setSelectedExclusives(parsed.selectedExclusives);
         if (parsed.timeCommitment) setTimeCommitment(parsed.timeCommitment);
         if (parsed.isVirtual !== undefined) setIsVirtual(parsed.isVirtual);
-        if (parsed.autoCreateGroupChat !== undefined) setAutoCreateGroupChat(parsed.autoCreateGroupChat);
         if (parsed.coords) setCoords(parsed.coords);
         if (parsed.scheduleType) setScheduleType(parsed.scheduleType);
         if (parsed.shifts) setShifts(parsed.shifts);
@@ -159,7 +158,6 @@ export default function OrgOpportunityCreate() {
       selectedExclusives,
       timeCommitment,
       isVirtual,
-      autoCreateGroupChat,
       coords,
       scheduleType,
       shifts,
@@ -172,7 +170,7 @@ export default function OrgOpportunityCreate() {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [title, description, location, dateTime, category, requirements, maxVolunteers, selectedSkills, selectedExclusives, timeCommitment, isVirtual, autoCreateGroupChat, coords, scheduleType, shifts]);
+  }, [title, description, location, dateTime, category, requirements, maxVolunteers, selectedSkills, selectedExclusives, timeCommitment, isVirtual, coords, scheduleType, shifts]);
 
   const handleDeleteDraft = () => {
     localStorage.removeItem('opportunity_draft');
@@ -187,7 +185,6 @@ export default function OrgOpportunityCreate() {
     setSelectedExclusives([]);
     setTimeCommitment(COMMITMENTS[0].value);
     setIsVirtual(false);
-    setAutoCreateGroupChat(true);
     setCoords({ lat: 43.7615, lng: -79.4111 });
     setScheduleType('single');
     setShifts([{ startTime: '09:00', endTime: '12:00' }]);
@@ -326,7 +323,10 @@ export default function OrgOpportunityCreate() {
       title,
       description,
       location,
-      dateTime: scheduleType === 'single' ? new Date(dateTime) : serverTimestamp(),
+      // A real event date for every schedule type. This was serverTimestamp()
+      // for anything but a single event, which stored the moment of posting and
+      // showed it to students as the event date. See resolveOpportunityDate.
+      dateTime: resolveOpportunityDate(scheduleType, dateTime, shifts),
       category,
       requirements,
       maxVolunteers: parseInt(maxVolunteers),
@@ -334,7 +334,6 @@ export default function OrgOpportunityCreate() {
       exclusives: selectedExclusives,
       timeCommitment,
       isVirtual,
-      autoCreateGroupChat,
       createdAt: serverTimestamp(),
       coordinates: coords,
       scheduleType,
@@ -574,20 +573,6 @@ export default function OrgOpportunityCreate() {
                   </Card>
                </div>
 
-               <label className="flex items-center gap-3 p-6 rounded-lg bg-blue-dark/5 border border-blue-dark/10 cursor-pointer hover:border-blue-300 transition-all">
-                  <input
-                    type="checkbox"
-                    className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark"
-                    checked={autoCreateGroupChat}
-                    onChange={(e) => setAutoCreateGroupChat(e.target.checked)}
-                  />
-                  <div>
-                    <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest">
-                       <MessageCircle className="w-4 h-4 text-blue-dark" /> Auto-Create Group Chat
-                    </p>
-                    <p className="text-xs text-ink-muted mt-0.5 font-medium">When you accept applicants, they will automatically be added to a dedicated group chat for this opportunity.</p>
-                  </div>
-               </label>
             </section>
 
             {/* Requirements & Skills */}

@@ -1,5 +1,5 @@
 import { useDialog } from '../hooks/useDialog';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
@@ -42,6 +42,18 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
   const [reason, setReason] = useState('');
   // Validation lives in the form, not in a browser dialog. See handleSubmit.
   const [formError, setFormError] = useState<string | null>(null);
+  // Held so it can be cleared on unmount and on reopen — see where it is set.
+  const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (isOpen) return;
+    if (successTimer.current) {
+      clearTimeout(successTimer.current);
+      successTimer.current = null;
+    }
+  }, [isOpen]);
+  useEffect(() => () => {
+    if (successTimer.current) clearTimeout(successTimer.current);
+  }, []);
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [fileDescription, setFileDescription] = useState('');
@@ -248,7 +260,11 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
       }
 
       setStatus('success');
-      setTimeout(() => {
+      // Tracked so it can be cleared. This modal stays mounted at some call
+      // sites, so a timer left running after the success panel was dismissed
+      // fired later and closed the dialog mid-typing on the NEXT report,
+      // discarding what had been written.
+      successTimer.current = setTimeout(() => {
         // Reset states
         setReason('');
         setDescription('');
@@ -317,6 +333,19 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
+              {/* formError was SET in five places and rendered in none of them.
+                  The two reachable paths are the fatal ones — a failed
+                  attachment upload and a denied Firestore write — so a student
+                  filing a safety report about an organization pressed Submit,
+                  the spinner stopped, and absolutely nothing happened. The
+                  report was never filed and they had no way to know. Of every
+                  silent failure in this codebase this was the worst one to
+                  have: these reports are about the safety of minors. */}
+              {formError && (
+                <div role="alert" className="bg-red-50 border border-red-200 text-red-700 text-xs font-semibold p-3.5 rounded-lg leading-relaxed">
+                  {formError}
+                </div>
+              )}
               <div>
                 <label className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Violation Classification *</label>
                 <select
@@ -349,12 +378,21 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
               <div>
                 <label className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Screenshot Proof (Optional)</label>
                 
+                {/* The drop zone stays a div — it cannot be a <button>, because
+                    a button may not contain the <input type="file">. What was
+                    broken is that the input was `display:none`, which makes it
+                    UNFOCUSABLE, and the div had no role, tabIndex or key
+                    handler. So attaching a screenshot to a safety report was
+                    mouse-only, with no alternative path anywhere.
+                    `sr-only` hides the input visually while leaving it in the
+                    tab order, and the <label> below is wired to it — the
+                    standard accessible file-input pattern. */}
                 {!file ? (
                   <div
                     onDragOver={handleDragOver}
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
-                    className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 ${
+                    className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 focus-within:ring-2 focus-within:ring-red-500 ${
                       isDragging 
                         ? 'border-red-500 bg-red-50/10' 
                         : 'border-line hover:border-slate-300 bg-paper-2/40 hover:bg-paper-2'
@@ -364,13 +402,16 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                     <input
                       id="report-file-uploader"
                       type="file"
-                      className="hidden"
+                      className="sr-only"
                       onChange={handleFileChange}
                       accept="image/*"
                     />
                     <UploadCloud className="w-7 h-7 text-ink-muted text-ink-muted" />
                     <p className="text-xs font-bold text-ink-soft">
-                      Drag and drop image, or <span className="text-red-600 underline">browse</span>
+                      Drag and drop image, or{' '}
+                      <label htmlFor="report-file-uploader" className="text-red-600 underline cursor-pointer">
+                        browse
+                      </label>
                     </p>
                     <p className="text-xs text-ink-muted">Supports PNG or JPG up to 5MB</p>
                   </div>
@@ -384,7 +425,11 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                           <p className="text-xs text-ink-muted font-bold font-mono">{formatBytes(file.size)}</p>
                         </div>
                       </div>
-                      <button aria-label="Close modal"
+                      {/* Was aria-label="Close modal", identical to the real
+                          close button — a screen-reader user heard two "Close
+                          modal" buttons and could delete their own evidence
+                          trying to shut the dialog. */}
+                      <button aria-label="Remove attached screenshot"
                         type="button"
                         onClick={() => { setFile(null); setFileDescription(''); }}
                         className="p-1 rounded-lg hover:bg-red-50 text-red-500 hover:text-red-700 transition-colors"

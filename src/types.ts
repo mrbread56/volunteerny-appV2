@@ -80,6 +80,15 @@ export interface Opportunity {
   skillsNeeded: string[];
   timeCommitment: string;
   isVirtual: boolean;
+  /**
+   * Whether the posting still accepts applications.
+   *
+   * Absent means open. Postings created before this field existed carry no
+   * value, so every read treats `!== 'closed'` as open rather than filtering on
+   * `=== 'open'` — a Firestore query on the latter omits documents missing the
+   * field entirely, which would have hidden every existing posting overnight.
+   */
+  status?: 'open' | 'closed';
   createdAt: any;
   coordinates?: {
     lat: number;
@@ -94,7 +103,6 @@ export interface Opportunity {
     exclusiveBadges?: string[];
   }>;
   exclusives?: string[];
-  autoCreateGroupChat?: boolean;
 }
 
 export interface Application {

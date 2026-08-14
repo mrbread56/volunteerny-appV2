@@ -26,6 +26,20 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
   const [note, setNote] = useState('');
   const [isOther, setIsOther] = useState(false);
 
+  // Clear the form each time the dialog opens.
+  //
+  // The component stays mounted (the `if (!isOpen) return null` below is after
+  // the hooks), so state survived between applicants: reject Alice with a
+  // reason and a personal note, then open the dialog for Ben and Alice's note
+  // was already in the textarea with Confirm enabled. One click and Alice's
+  // note was written to Ben's application and emailed to him.
+  useEffect(() => {
+    if (!isOpen) return;
+    setSelectedReason('');
+    setNote('');
+    setIsOther(false);
+  }, [isOpen, studentName]);
+
   useEffect(() => {
     if (isOpen) {
       const originalStyle = window.getComputedStyle(document.body).overflow;

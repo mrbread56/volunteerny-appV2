@@ -20,6 +20,22 @@ export function useDialog(isOpen: boolean, onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
   const previouslyFocused = useRef<HTMLElement | null>(null);
 
+  // onClose is held in a ref so the effect below can depend on isOpen ALONE.
+  //
+  // Every call site passes an inline arrow, so onClose is a new identity on
+  // every parent render. With it in the dependency array the whole effect tore
+  // down and re-ran constantly — and because these dialogs stay mounted, a
+  // parent re-render (an optimistic status update, an Undo toast clearing five
+  // seconds later) yanked focus back to the first control mid-interaction. It
+  // also re-captured previouslyFocused to whatever was focused at that moment,
+  // which by then was an element INSIDE the dialog: when the dialog closed that
+  // node no longer existed and focus fell to <body>. Restoring focus is the one
+  // thing this hook exists to guarantee, and that was the bug that broke it.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -41,7 +57,7 @@ export function useDialog(isOpen: boolean, onClose: () => void) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         e.stopPropagation();
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -54,11 +70,17 @@ export function useDialog(isOpen: boolean, onClose: () => void) {
       const firstItem = items[0];
       const lastItem = items[items.length - 1];
       const active = document.activeElement;
+      // Focus can legitimately be OUTSIDE the dialog: clicking the backdrop (a
+      // plain div) leaves document.activeElement as <body>. The shift-Tab
+      // branch already handled that; the forward branch only compared against
+      // lastItem, so from <body> neither branch fired, nothing was prevented,
+      // and Tab walked into the navbar behind the modal with no way back.
+      const outside = !ref.current?.contains(active);
 
-      if (e.shiftKey && (active === firstItem || !ref.current?.contains(active))) {
+      if (e.shiftKey && (active === firstItem || outside)) {
         e.preventDefault();
         lastItem.focus();
-      } else if (!e.shiftKey && active === lastItem) {
+      } else if (!e.shiftKey && (active === lastItem || outside)) {
         e.preventDefault();
         firstItem.focus();
       }
@@ -71,7 +93,7 @@ export function useDialog(isOpen: boolean, onClose: () => void) {
       // get dumped back at the top of the document.
       previouslyFocused.current?.focus?.();
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   return ref;
 }

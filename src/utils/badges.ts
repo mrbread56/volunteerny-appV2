@@ -29,7 +29,13 @@ export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDe
   const skillsCount = profile?.skills?.length || 0;
   const hasSchool = !!profile?.school && profile?.school !== "Other";
   const hasResume = !!profile?.resumeUrl;
-  const hasContact = !!(profile?.contactEmail && profile?.phone);
+  // contactEmail and phone were what the last badge tested, and a student has
+  // neither: no student form collects them, they are absent from the students
+  // validator in firestore.rules, and the update allow-list would reject a write
+  // of either. So that badge could never unlock for anyone — it sat permanently
+  // greyed out saying "Provide a contact email and active phone number" with
+  // nowhere in the app to do it. It now tests fields students really do fill in.
+  const hasIntroduction = !!(profile?.previousExperience || '').trim();
   const totalInterests = profile?.interests?.length || 0;
 
   const definitions: BadgeDefinition[] = [
@@ -98,12 +104,12 @@ export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDe
     },
     {
       id: "communicator",
-      name: "Active Communicator",
-      description: "Complete contact coordinates ensuring seamless coordination emails/pings.",
-      requirement: "Provide a contact email and active phone number",
+      name: "Well Introduced",
+      description: "Told organizations who you are and what you care about, before they ever meet you.",
+      requirement: "Write your previous experience and pick at least one interest",
       iconName: "user",
       category: "profile",
-      unlockedAt: "Contact Details Complete"
+      unlockedAt: "Introduction Complete"
     }
   ];
 
@@ -132,7 +138,7 @@ export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDe
         isUnlocked = hasResume;
         break;
       case "communicator":
-        isUnlocked = hasContact;
+        isUnlocked = hasIntroduction && totalInterests >= 1;
         break;
     }
     return { badge: defn, isUnlocked };

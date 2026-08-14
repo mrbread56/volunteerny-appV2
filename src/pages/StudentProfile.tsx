@@ -8,6 +8,7 @@ import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
 import { Badge } from "../components/ui/Badge";
 import { FileUpload } from "../components/ui/FileUpload";
+import { deleteOwnAccount } from "../lib/deleteAccount";
 import {
   Card,
   CardContent,
@@ -111,24 +112,21 @@ export default function StudentProfile() {
     setIsDeleting(true);
     try {
       if (user) {
-        // 1. Delete user files/documents in Firestore
-        await deleteDoc(doc(db, "users", user.uid));
-        await deleteDoc(doc(db, "students", user.uid));
-        
-        // 2. Delete the actual FirebaseAuth auth user record
-        await user.delete();
+        // Deleted server-side. This used to call deleteDoc on users/{uid} and
+        // students/{uid} straight from the browser, which firestore.rules
+        // forbids outright (`allow delete: if false` on users, developer-only
+        // on students) — so the first call threw, user.delete() below it never
+        // ran, and the student was shown a raw permissions error while their
+        // account and their uploaded passport scan both survived. The endpoint
+        // also clears applications, saved opportunities and hours requests,
+        // which the client never attempted at all.
+        await deleteOwnAccount(deleteConfirmEmail);
       }
       await logout();
       navigate("/");
     } catch (err: any) {
       console.error("Account deletion failed:", err);
-      if (err.code === "auth/requires-recent-login") {
-        setDeleteError(
-          "🔒 Security restrictions apply: To delete your account, you must have logged in recently. Please log out, log back in, and try deleting again immediately."
-        );
-      } else {
-        setDeleteError(`Deletion failed: ${err.message || err}`);
-      }
+      setDeleteError(err?.message || "We could not delete your account. Please try again.");
     } finally {
       setIsDeleting(false);
     }

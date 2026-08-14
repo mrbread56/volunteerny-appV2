@@ -13,13 +13,13 @@ Issue references (`B1`, `F5`) point at [`STATUS.md`](STATUS.md).
 ## Where we are
 
 The foundation is sound and does not need rewriting. Auth, role separation and
-security rules were built intentionally and now survive 59 adversarial tests. The
+security rules were built intentionally and now survive 67 adversarial tests. The
 full student↔organization journey works against real data. Documentation and
 repository hygiene were the weakest areas and are now addressed.
 
 Three things listed here as missing have since shipped: CI runs on every push
 (`.github/workflows/ci.yml`), email delivery works (`check:email` 4/4), and every
-route is exercised for every role by the Playwright suite (44/44) rather than by
+route is exercised for every role by the Playwright suite (51/51) rather than by
 hand. Firebase Storage was enabled on 12 August 2026 and `storage.rules` was
 published to the bucket for the first time; uploads are verified end to end by
 `check:storage` (5/5).
@@ -41,7 +41,7 @@ being locked out, or seeing something untrue.
 | # | Work | Why it blocks |
 |---|---|---|
 | B1 | Valid `RESEND_API_KEY`, verified sender, `check:email` green | Two-factor is mandatory for organizations and arrives by email. With mail down **no organization can sign in at all** |
-| B2 | A recovery path for a locked-out organization | Otherwise one bounced email permanently removes an organization from the platform |
+| B2 | A recovery path for a locked-out organization | Partly done: `scripts/grant-mfa.ts` opens a time-boxed one-hour window (and `--revoke` closes it early), documented in RUNBOOK step 3. Still needs a path the organization can start themselves, without a developer running a script |
 | B3 | Confirm Firestore backups are enabled | Hour records are graduation evidence. Unrecoverable if lost |
 | B6 | Hand-test the organization dashboard and developer console | 3,388 lines of UI that no human has walked through |
 |, | Hand-test MFA code entry end to end | Blocked by B1 |
@@ -51,9 +51,9 @@ being locked out, or seeing something untrue.
 
 | # | Work |
 |---|---|
-| B4 | CI running `lint`, `check:security`, `check:flows`, and `visual-sweep` on every push |
-| B5 | Bound `hoursRequests.hours` in the security rules |
-| B7 | Delete the `chats`/`messages` rules, or build the feature |
+| B4 | CI running `lint`, `check:security`, `check:flows`, `check:lifecycle` and `visual-sweep` on every push |
+| ~~B5~~ | ~~Bound `hoursRequests.hours` in the security rules~~ — done, capped at 24 in `isValidHoursRequest` |
+| ~~B7~~ | ~~Delete the `chats`/`messages` rules, or build the feature~~ — rules deleted; the UI that promised a group chat was removed 13 Aug 2026 |
 |, | Seed real opportunities before launch, an empty platform is a bad first impression, and F5 showed the temptation to fake them |
 
 **Definition of done:** every check script green, both roles hand-tested end to
@@ -69,11 +69,14 @@ is user-visible; all of it is what the review meant by *technical depth*.
 | # | Work | Why |
 |---|---|---|
 | B13 | Extract routing and route guards out of `App.tsx` into their own module | Authorization should be reviewable in one place, not read out of JSX |
-| B12 | Split the three oversized pages (1,904 / 1,585 / 1,399 lines, measured 13 Aug 2026) into data hooks + presentational components | These are where every hard-to-find bug in this audit lived |
+| B12 | Split the three oversized pages (1,984 / 1,684 / 1,353 lines, re-measured 13 Aug 2026) into data hooks + presentational components | These are where every hard-to-find bug in this audit lived |
 | B14 | One shared error-presentation pattern | Wording and behaviour currently differ per page; silent failures kept appearing because there was no standard |
-| B11 | Get `test:rules` running (Java + emulator) | Rules are proven live today by 59 adversarial tests; unit tests make them provable in CI without touching the real project. `tests/firestore.rules.test.js` exists with 6 tests but cannot run: it requires `vitest`, which is not a dependency |
+| B11 | Get `test:rules` running (Java + emulator) | Rules are proven live today by 67 adversarial tests; unit tests make them provable in CI without touching the real project. `tests/firestore.rules.test.js` exists with 6 tests but cannot run: it requires `vitest`, which is not a dependency |
 | B15 | A second Firebase project for tests | `.firebaserc` names one project, so `check:security`, `check:flows`, `check:signup`, `check:storage` and the Playwright suites all create real accounts in the database real students use. They clean up in a `finally`, which a cancelled run or a crash skips — nine stranded accounts were found and removed on 13 Aug 2026. `npm run cleanup:test-data` is the stopgap, not the fix |
 | B9 | Single source of truth for developer identity | Adding a developer should not require an environment change and redeploy |
+| B16 | Enforce 2FA in `firestore.rules`, not only in the client | The MFA claim is checked in `src/routes/guards.tsx` and nowhere else. Someone holding a stolen password but not the mailbox never loads the React app — they use the Firebase SDK directly and get everything their role permits. Add `request.auth.token.mfaVerifiedFor == request.auth.token.auth_time` to `isVerifiedOrg()` / `isDeveloper()`, and to `verifyAuth()` |
+| B17 | Constrain `/api/email/send` recipients to people the caller has a relationship with | Any signed-in account can send 10 arbitrary addresses per request, 20 requests per 10 minutes, with an attacker-chosen subject and body, from the SPF/DKIM-signed sending domain. Templates are escaped and `actionUrl` is origin-locked, so this is impersonation and domain-reputation risk rather than link injection — but the same relationship query `hasAcceptedApplication()` already runs would close it |
+| B18 | Make `exclusives` editable after an opportunity is posted | `OPPORTUNITY_EXCLUSIVES` is imported by the edit page and never rendered, so eligibility set at create can never be changed |
 
 **Do not start v2 features before this is done.** These files are already the
 reason bugs hid; adding to them compounds it.

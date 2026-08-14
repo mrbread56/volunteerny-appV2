@@ -66,7 +66,7 @@ over". They are recorded so it is clear they were read and considered.
 |---|---|---|---|
 | R20 | Detailed tests for permissions | ✅ | `check:security`, 51 tests |
 | R21 | Detailed tests for auth | ✅ | `check:signup`, `check:security` |
-| R22 | Detailed tests for the application flow | ✅ | `check:flows`, apply → accept → hours → approve → leaderboard → rate, 13/13. Plus `visual-sweep.spec.ts` (Playwright) rendering asserts |
+| R22 | Detailed tests for the application flow | ✅ | `check:flows`, apply → accept → notify → hours → approve → leaderboard → rate, 15/15, plus `check:lifecycle` 13/13 for withdraw, waitlist capacity and the two delete cascades. Plus `visual-sweep.spec.ts` (Playwright) rendering asserts |
 | R23 | Detailed tests for the org flow | ✅ | `check:flows` + hand-tested through the UI + automated visual sweep across breakpoints |
 | R24 | Cheaper long-term maintenance through tests | ✅ | 9 check scripts, now run automatically by CI on every push. It caught a regression within minutes of existing |
 

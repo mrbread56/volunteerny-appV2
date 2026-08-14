@@ -41,6 +41,51 @@ export interface EmailPayload {
 }
 
 /**
+ * Tell an applicant what an organization decided about them.
+ *
+ * Use this instead of composing the mail here. The browser cannot resolve a
+ * student's email address at all — firestore.rules allows reading
+ * users/{studentId} only to that student or a developer — so the organization
+ * screens that tried it got permission-denied, swallowed it, and mailed the
+ * literal fallback string "student@example.com" while telling the organization
+ * the applicant had been notified. The server looks the address up with the
+ * Admin SDK, checks this caller owns the opportunity, sends the mail, and never
+ * returns the address.
+ */
+export async function notifyApplicant(args: {
+  applicationId: string;
+  status: 'accepted' | 'rejected' | 'terminated' | 'waitlist_promoted';
+  reason?: string;
+  note?: string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    let token: string | null = null;
+    const user = auth.currentUser;
+    if (user) token = await user.getIdToken();
+    if (!token) {
+      const demoRole = localStorage.getItem('demo_mode_role');
+      if (demoRole) token = `demo-mode-token-${demoRole}`;
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/applications/notify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(args),
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      return { success: false, error: result?.error || `Request failed (${response.status})` };
+    }
+    return { success: !!result?.success };
+  } catch (err: any) {
+    return { success: false, error: err?.message || String(err) };
+  }
+}
+
+/**
  * Dispatches a transaction email trigger request to the secure backend server.
  */
 export async function sendTransactionalEmail(payload: EmailPayload): Promise<{ success: boolean; mode?: string; error?: string }> {
@@ -95,4 +140,36 @@ export async function sendTransactionalEmail(payload: EmailPayload): Promise<{ s
       error: err?.message || String(err)
     };
   }
+}
+
+export interface ApplicantContact {
+  applicationId: string;
+  studentId: string;
+  studentName: string;
+  status: string;
+  email: string | null;
+}
+
+/**
+ * Contact details for everyone who applied to one of your opportunities.
+ *
+ * The browser cannot read `users/{uid}` for anyone but its owner, so these come
+ * from the server, which checks the caller owns the opportunity first. Used to
+ * build plain `mailto:` links — the organization writes the message in their own
+ * mail client, so nothing here composes a subject or a body.
+ */
+export async function fetchApplicantContacts(opportunityId: string): Promise<ApplicantContact[]> {
+  const user = auth.currentUser;
+  if (!user) return [];
+  const token = await user.getIdToken();
+  const response = await fetch(
+    `${API_BASE_URL}/api/opportunities/${encodeURIComponent(opportunityId)}/applicant-contacts`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error || `Could not load contact details (${response.status}).`);
+  }
+  const result = await response.json().catch(() => null);
+  return Array.isArray(result?.contacts) ? result.contacts : [];
 }

@@ -176,7 +176,11 @@ export default function SettingsTab({
                 )}>{(userProfile?.twoFactorEnabled ?? false) ? "Shield Enabled" : "Shield Disabled"}</strong>
               </p>
               <p className="text-xs text-ink-soft font-medium leading-relaxed">
-                When enabled, we will send an identity authorization key to <span className="text-xs text-ink-soft font-semibold">{user?.email}</span> every time you log back in.
+                We send a 6-digit code to <span className="text-xs text-ink-soft font-semibold">{user?.email}</span> each time you sign in. Staying signed in on this device won't ask again — only a new sign-in will.
+              </p>
+              <p className="text-xs text-ink-soft font-medium leading-relaxed">
+                Turning this on asks for a code right away, so you can confirm you
+                can receive it before your account starts depending on it.
               </p>
             </div>
           </div>

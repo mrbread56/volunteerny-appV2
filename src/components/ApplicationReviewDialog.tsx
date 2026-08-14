@@ -208,7 +208,11 @@ export default function ApplicationReviewDialog({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-ink-soft uppercase tracking-tight font-sans">Contact Coordinate</p>
-                          <p className="font-semibold text-ink-soft text-sm mt-0.5 truncate">{student?.contactEmail || "armin.k@yorkschool.ca"}</p>
+                          {/* No invented fallback. This read `|| "armin.k@yorkschool.ca"`,
+                              a demo fixture — and because no student form collects
+                              contactEmail and the review endpoint deliberately omits it,
+                              that fallback was what EVERY real organization saw. */}
+                          <p className="font-semibold text-ink-soft text-sm mt-0.5 truncate">{student?.contactEmail || "Not shared"}</p>
                         </div>
                         <div>
                           <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">Database Mutation Ledger</p>
@@ -442,21 +446,37 @@ export default function ApplicationReviewDialog({
                           <p className="text-xs font-semibold text-[#153343] tracking-wide mb-2 flex items-center gap-1">
                             <User className="w-3.5 h-3.5" /> Student Contact Details
                           </p>
+                          {/* These two lines used to fall back to a demo student's
+                              address and phone number — shown as a live mailto: to
+                              every organization reviewing a real application, because
+                              neither field is ever populated for a real student. An
+                              organization following it emailed a stranger. Volunteers
+                              are contacted through the platform instead. */}
                           <div className="space-y-2.5 text-xs text-ink-soft">
-                             <div className="flex items-center gap-2">
-                                <Mail className="w-4 h-4 text-blue-dark shrink-0" />
-                                <span className="font-semibold text-ink-soft">Email:</span>
-                                <a aria-label="Download PDF" href={`mailto:${student?.contactEmail || 'armin.k@yorkschool.ca'}`} className="font-bold text-ink hover:text-blue-dark transition-colors">
-                                   {student?.contactEmail || 'armin.k@yorkschool.ca'}
-                                 </a>
-                             </div>
-                             <div className="flex items-center gap-2">
-                                <Phone className="w-4 h-4 text-blue-dark shrink-0" />
-                                <span className="font-semibold text-ink-soft">Phone:</span>
-                                <span className="font-bold text-ink">
-                                   {student?.phone || '(416) 555-0182'}
-                                </span>
-                             </div>
+                             {student?.contactEmail ? (
+                               <div className="flex items-center gap-2">
+                                  <Mail className="w-4 h-4 text-blue-dark shrink-0" />
+                                  <span className="font-semibold text-ink-soft">Email:</span>
+                                  <a href={`mailto:${student.contactEmail}`} className="font-bold text-ink hover:text-blue-dark transition-colors">
+                                     {student.contactEmail}
+                                   </a>
+                               </div>
+                             ) : (
+                               <div className="flex items-start gap-2">
+                                  <Mail className="w-4 h-4 text-blue-dark shrink-0 mt-px" />
+                                  <span className="leading-relaxed">
+                                    Volunteers are contacted through Volunteer North York.
+                                    Accepting this application emails them automatically.
+                                  </span>
+                               </div>
+                             )}
+                             {student?.phone && (
+                               <div className="flex items-center gap-2">
+                                  <Phone className="w-4 h-4 text-blue-dark shrink-0" />
+                                  <span className="font-semibold text-ink-soft">Phone:</span>
+                                  <span className="font-bold text-ink">{student.phone}</span>
+                               </div>
+                             )}
                           </div>
                       </section>
    

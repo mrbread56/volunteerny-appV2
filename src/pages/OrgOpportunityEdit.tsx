@@ -28,6 +28,8 @@ import { Badge } from '../components/ui/Badge';
 import { useGeolocation } from '../hooks/useGeolocation';
 
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
+import { resolveOpportunityDate } from '../lib/opportunityDate';
+import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -82,6 +84,24 @@ const SCHEDULE_TYPES = [
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+/**
+ * Format a Date for an <input type="datetime-local">, in LOCAL time.
+ *
+ * This used to be `dt.toISOString().slice(0, 16)`, which is UTC — while the
+ * input both displays and returns local time, and `new Date(value)` on save
+ * parses a bare "YYYY-MM-DDTHH:mm" as local. So loading an opportunity shifted
+ * its time forward by the UTC offset before the organization had touched
+ * anything, and saving wrote that shifted value back: a 9:00 AM event showed as
+ * 1:00 PM in the field and was stored as 5:00 PM. Every edit moved it again,
+ * silently, and students saw the drifted time. The create page never had this
+ * bug — it consumes the raw input value directly.
+ */
+function toDateTimeLocal(d: Date): string {
+  if (!(d instanceof Date) || Number.isNaN(d.getTime())) return '';
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function OrgOpportunityEdit() {
   const { id } = useParams();
   const { user, orgProfile, isDemoMode } = useAuth();
@@ -89,8 +109,9 @@ export default function OrgOpportunityEdit() {
   const { coords: userCoords } = useGeolocation();
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [autoCreateGroupChat, setAutoCreateGroupChat] = useState(true);
-  const initialAutoCreateGroupChatRef = useRef(true);
+  // What the date field held when the opportunity was loaded, so an edit that
+  // does not touch the date is never rejected for being in the past.
+  const initialDateTimeRef = useRef('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
@@ -200,12 +221,13 @@ export default function OrgOpportunityEdit() {
           if (data.dateTime) {
             try {
               const dt = data.dateTime.toDate ? data.dateTime.toDate() : new Date(data.dateTime);
-              setDateTime(dt.toISOString().slice(0, 16));
+              setDateTime(toDateTimeLocal(dt));
+              initialDateTimeRef.current = toDateTimeLocal(dt);
             } catch (e) {
               // fallback
             }
           } else if (data.dateTime instanceof Date) {
-            setDateTime(data.dateTime.toISOString().slice(0, 16));
+            setDateTime(toDateTimeLocal(data.dateTime));
           } else if (typeof data.dateTime === 'string') {
             setDateTime(data.dateTime.slice(0, 16));
           }
@@ -224,9 +246,6 @@ export default function OrgOpportunityEdit() {
           setSelectedExclusives(data.exclusives || []);
           setTimeCommitment(data.timeCommitment || '');
           setIsVirtual(Boolean(data.isVirtual));
-          const currentAutoCreate = (data as any).autoCreateGroupChat !== false;
-          setAutoCreateGroupChat(currentAutoCreate);
-          initialAutoCreateGroupChatRef.current = currentAutoCreate;
           if (data.coordinates) setCoords(data.coordinates);
           if (data.scheduleType) setScheduleType(data.scheduleType);
           if (data.shifts) setShifts(data.shifts);
@@ -278,11 +297,54 @@ export default function OrgOpportunityEdit() {
     setIsSaving(true);
     setSaveError(null);
 
+    // The same checks the create page runs. This page had none at all, so an
+    // opportunity could be edited to end before it starts, or moved into the
+    // past — neither of which could be entered when posting it.
+    //
+    // Past dates are only rejected when the value actually CHANGED. An
+    // organization fixing a typo in the description of an event that has
+    // already happened is doing something reasonable, and blocking that would
+    // make old postings uneditable.
+    if (scheduleType === 'single' && !dateTime) {
+      // Without this the empty case fell through to the shift branch, whose
+      // loop is a no-op for a single event, and resolveOpportunityDate returned
+      // `now` — so saving a description tweak silently moved the event to today
+      // on every student's card. The load fallback leaves this empty whenever
+      // the stored value cannot be parsed, so it is reachable.
+      setSaveError('This opportunity has no date and time. Please set one before saving.');
+      setIsSaving(false);
+      return;
+    }
+    if (scheduleType === 'single' && dateTime) {
+      const selected = new Date(dateTime);
+      if (Number.isNaN(selected.getTime())) {
+        setSaveError('That date and time could not be read. Please re-enter it.');
+        setIsSaving(false);
+        return;
+      }
+      if (dateTime !== initialDateTimeRef.current && selected < new Date()) {
+        setSaveError('The event date and time cannot be in the past.');
+        setIsSaving(false);
+        return;
+      }
+    } else {
+      for (const shift of shifts) {
+        if (shift.startTime >= shift.endTime) {
+          setSaveError('Shift end time must be after the start time.');
+          setIsSaving(false);
+          return;
+        }
+      }
+    }
+
     const opportunityData = {
       title,
       description,
       location,
-      dateTime: scheduleType === 'single' ? new Date(dateTime) : serverTimestamp(),
+      // A real event date for every schedule type. This was serverTimestamp()
+      // for anything but a single event, which stored the moment of posting and
+      // showed it to students as the event date. See resolveOpportunityDate.
+      dateTime: resolveOpportunityDate(scheduleType, dateTime, shifts),
       category,
       requirements,
       maxVolunteers: parseInt(maxVolunteers),
@@ -290,7 +352,6 @@ export default function OrgOpportunityEdit() {
       exclusives: selectedExclusives,
       timeCommitment,
       isVirtual,
-      autoCreateGroupChat,
       updatedAt: serverTimestamp(),
       coordinates: coords,
       scheduleType,
@@ -335,9 +396,20 @@ export default function OrgOpportunityEdit() {
     }
 
     try {
-
-
-      await deleteDoc(doc(db, 'opportunities', id));
+      // Deleted server-side, with its dependents.
+      //
+      // This was a bare deleteDoc on the opportunity alone. Every application
+      // to the posting survived it and became unreachable by anyone: the
+      // organization's applicant queries are built from the opportunities it
+      // still owns, and the applications `list` rule proves ownership through
+      // exists(/opportunities/{id}) — now false. Students kept a "PENDING" row
+      // forever, never rejected, never told.
+      //
+      // The cascade cannot run from here: the rules let only the student (or a
+      // developer) delete an application or a saved bookmark, and an
+      // organization cannot even list savedOpportunities. So the server does
+      // it, and emails the students whose placement has just disappeared.
+      await deleteOpportunityWithDependents(id);
       navigate('/org/dashboard');
     } catch (err: any) {
       console.error('Failed to delete opportunity:', err);
@@ -481,23 +553,6 @@ export default function OrgOpportunityEdit() {
                    </Card>
                 </div>
 
-                <label className="flex items-center gap-3 p-6 rounded-lg bg-blue-dark/5 border border-blue-dark/10 cursor-pointer hover:border-blue-300 transition-all">
-                   <input
-                     type="checkbox"
-                     className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark"
-                     checked={autoCreateGroupChat}
-                     onChange={(e) => setAutoCreateGroupChat(e.target.checked)}
-                   />
-                   <div>
-                     <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest">
-                        <MessageCircle className="w-4 h-4 text-blue-dark" /> Auto-Create Group Chat
-                     </p>
-                     <p className="text-xs text-ink-muted mt-0.5 font-medium">
-                       Accepted applicants are automatically added to a dedicated group chat for this opportunity.
-                       {!initialAutoCreateGroupChatRef.current && autoCreateGroupChat && ' Turning this on will add everyone already accepted.'}
-                     </p>
-                   </div>
-                </label>
              </section>
 
              <section className="space-y-6">
@@ -531,8 +586,8 @@ export default function OrgOpportunityEdit() {
                           <AlertTriangle className="w-4 h-4 text-red-500" /> Delete This Opportunity
                         </p>
                         <p className="text-xs text-ink-muted mt-1 font-medium max-w-lg">
-                          Permanently removes this posting and its group chat. Existing applications are kept as a
-                          historical record for students, but they'll no longer see this posting listed.
+                          Permanently removes this posting and every application to it. Anyone
+                          still waiting on a decision is emailed to say it was withdrawn.
                         </p>
                       </div>
                       <Button type="button" variant="danger" className="rounded-lg font-semibold text-xs shrink-0" onClick={() => setConfirmingDelete(true)}>
@@ -543,7 +598,8 @@ export default function OrgOpportunityEdit() {
                     <div className="space-y-3">
                       <p className="font-bold text-red-700 text-sm">Are you sure? This can't be undone.</p>
                       <p className="text-xs text-ink-muted font-medium">
-                        This will delete "{title}", its group chat, and all messages in it.
+                        This will delete "{title}" and every application to it. Applicants awaiting
+                        a decision will be emailed. This cannot be undone.
                       </p>
                       {deleteError && <p className="text-xs text-red-600 font-bold">{deleteError}</p>}
                       <div className="flex gap-3">

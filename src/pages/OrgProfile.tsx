@@ -18,6 +18,7 @@ import { Building2, Info, Globe, ShieldCheck, Mail, Phone } from "lucide-react";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";
 import { cn } from "../lib/utils";
+import { deleteOwnAccount } from "../lib/deleteAccount";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
 
 const ORGANIZATION_TYPES = [
@@ -68,24 +69,19 @@ export default function OrgProfile() {
     setIsDeleting(true);
     try {
       if (user) {
-        // 1. Delete organization documents in Firestore
-        await deleteDoc(doc(db, "users", user.uid));
-        await deleteDoc(doc(db, "organizations", user.uid));
-        
-        // 2. Delete the actual FirebaseAuth auth user record
-        await user.delete();
+        // Deleted server-side — firestore.rules forbids the client deleting
+        // either document, so this always failed. Same fix and same reasoning
+        // as StudentProfile. The endpoint additionally removes this
+        // organization's opportunities and the applications to them; without
+        // that, deleting the account left world-readable postings live that
+        // students could still apply to and nobody could ever accept.
+        await deleteOwnAccount(deleteConfirmEmail);
       }
       await logout();
       navigate("/");
     } catch (err: any) {
       console.error("Account deletion failed:", err);
-      if (err.code === "auth/requires-recent-login") {
-        setDeleteError(
-          "🔒 Security Policy: Delete request blocked. Please sign out, log back in immediately, and try again."
-        );
-      } else {
-        setDeleteError(`Deletion failed: ${err.message || err}`);
-      }
+      setDeleteError(err?.message || "We could not delete your account. Please try again.");
     } finally {
       setIsDeleting(false);
     }
@@ -248,6 +244,15 @@ export default function OrgProfile() {
         // to true whenever the org typed anything into the CRA field, which
         // meant any organization could grant itself a verified badge just by
         // editing its own profile. Only a reviewer may set this.
+        //
+        // verificationStatus IS written, but only ever to 'pending' — a request
+        // to be reviewed, not a claim to be verified (the rules enforce that
+        // too). Without it an organization that got charitable status after
+        // signing up could enter its CRA number and never reach the reviewer's
+        // queue, which lists 'pending' only.
+        ...(cleanCra && !orgProfile?.craVerified && orgProfile?.verificationStatus !== 'pending'
+          ? { verificationStatus: 'pending' }
+          : {}),
         organizationType: orgType,
         contactEmail,
         phone,
@@ -487,6 +492,9 @@ export default function OrgProfile() {
               <button
                 type="button"
                 onClick={handleToggle2FA}
+                role="switch"
+                aria-label="Toggle Two-Factor Authentication"
+                aria-checked={userProfile?.twoFactorEnabled ?? true}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
                   (userProfile?.twoFactorEnabled ?? true) ? "bg-emerald-600" : "bg-slate-200",
@@ -501,7 +509,8 @@ export default function OrgProfile() {
               </button>
             </div>
             <p className="text-xs text-ink-soft font-medium leading-relaxed border-t border-line-light pt-4">
-              An identity code will be dispatched to <strong className="text-ink-soft">{user?.email}</strong>.
+              We send a 6-digit code to <strong className="text-ink-soft">{user?.email}</strong> each
+              time you sign in. Staying signed in on this device won't ask again — only a new sign-in will.
             </p>
           </Card>
 
@@ -510,10 +519,56 @@ export default function OrgProfile() {
               <h3 className="text-xl font-bold border-b border-line-light pb-4 text-ink">
                 Verification Status
               </h3>
-              <div className="bg-paper-2 border border-line-light p-4 rounded-lg flex items-center gap-3">
-                <ShieldCheck className="text-emerald-600 w-6 h-6" />
-                <span className="text-sm font-bold text-ink">Standard Account</span>
-              </div>
+              {/* This card was hardcoded to "Standard Account" with a green
+                  shield, so it said the same thing forever — including after a
+                  developer approved the organization and the notification bell
+                  had already told them "Your organization is verified" and
+                  linked them here. It now reads the actual state. */}
+              {(() => {
+                const status = orgProfile?.craVerified
+                  ? 'verified'
+                  : (orgProfile?.verificationStatus || 'unverified');
+                const view = {
+                  verified: {
+                    cls: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                    icon: 'text-emerald-600',
+                    label: 'Verified charity',
+                    note: 'Your CRA registration has been checked by our team.',
+                  },
+                  pending: {
+                    cls: 'bg-amber-50 border-amber-200 text-amber-900',
+                    icon: 'text-amber-600',
+                    label: 'Awaiting review',
+                    note: 'We are checking your CRA registration. This usually takes a few days.',
+                  },
+                  rejected: {
+                    cls: 'bg-red-50 border-red-200 text-red-800',
+                    icon: 'text-red-600',
+                    label: 'Could not be verified',
+                    note: 'We could not match your CRA registration number. Please check it below and contact us if it is correct.',
+                  },
+                  unverified: {
+                    cls: 'bg-paper-2 border-line-light text-ink',
+                    icon: 'text-ink-muted',
+                    label: 'Standard account',
+                    note: 'Registered charities can be verified and shown a badge. Add your CRA number below to request it.',
+                  },
+                }[status as 'verified' | 'pending' | 'rejected' | 'unverified'] ?? {
+                  cls: 'bg-paper-2 border-line-light text-ink',
+                  icon: 'text-ink-muted',
+                  label: 'Standard account',
+                  note: '',
+                };
+                return (
+                  <div className={cn('border p-4 rounded-lg space-y-2', view.cls)}>
+                    <div className="flex items-center gap-3">
+                      <ShieldCheck className={cn('w-6 h-6 shrink-0', view.icon)} />
+                      <span className="text-sm font-bold">{view.label}</span>
+                    </div>
+                    {view.note && <p className="text-xs leading-relaxed opacity-90">{view.note}</p>}
+                  </div>
+                );
+              })()}
             </div>
 
             <div className="space-y-4">

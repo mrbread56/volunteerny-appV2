@@ -207,7 +207,7 @@ if (!resend) {
 }
 
 
-async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: string; role?: string; isDemo: boolean; error?: string }> {
+async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: string; emailVerified?: boolean; role?: string; isDemo: boolean; authTime?: number; error?: string }> {
   const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('[verifyAuth] Missing or invalid authorization header');
@@ -249,8 +249,16 @@ async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: 
     return {
       uid: decoded.uid,
       email: decoded.email,
+      // Needed by the developer allowlist. firestore.rules already requires it
+      // there; the server did not, which made the server the weaker of the two.
+      emailVerified: decoded.email_verified === true,
       role: decoded.role,
-      isDemo: false
+      isDemo: false,
+      // Seconds since epoch, stamped by Firebase when the user actually
+      // authenticated. Unlike iat it does NOT move on silent hourly token
+      // refresh, so it identifies the sign-in session. /api/auth/verify-otp
+      // pins the MFA claim to this value; see the note there.
+      authTime: typeof decoded.auth_time === 'number' ? decoded.auth_time : undefined,
     };
   } catch (err: any) {
     console.warn('[verifyAuth] Token verification failed:', err.message || err);
@@ -258,8 +266,40 @@ async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: 
   }
 }
 
+/**
+ * Is this caller on the developer email allowlist?
+ *
+ * The verified-address requirement is the whole point, and four separate copies
+ * of this check were missing it. Firebase does not make you prove you own an
+ * address to register with it, so without `email_verified` anyone could sign up
+ * using an allowlisted address that had not yet been registered and inherit
+ * every developer power the server grants: reading every student's name, email
+ * and school, deleting any account, crediting hours to anyone, reading resumes.
+ * firestore.rules has always required it for exactly this reason — the server
+ * simply did not, which made it the weaker of the two doors. The allowlist is
+ * also VITE_-prefixed and therefore public in the client bundle, so the target
+ * addresses are known.
+ */
+function isAllowlistedDeveloper(authContext: { email?: string; emailVerified?: boolean }): boolean {
+  if (!authContext.emailVerified) return false;
+  const email = (authContext.email || '').toLowerCase();
+  if (!email) return false;
+  return (process.env.VITE_DEVELOPER_EMAILS || '')
+    .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
+    .includes(email);
+}
+
 const app = express();
 const PORT = parseInt(process.env.PORT || '3000', 10);
+
+// Trust exactly one proxy hop — Vercel's.
+//
+// Without this, req.ip is the socket address (always the proxy) and any code
+// reaching for the real client address has to read x-forwarded-for by hand,
+// which the CLIENT controls. That is how the unauthenticated /api/log/client-error
+// limiter was defeated: rotate the header, get a fresh bucket every request.
+// `1` means "believe the last hop only", so a forged chain cannot extend it.
+app.set('trust proxy', 1);
 
 if (!process.env.VERCEL) {
   app.use(compression());
@@ -458,7 +498,18 @@ app.use(express.json());
   // between the two can then no longer produce a failure.
   // ══════════════════════════════════════════════════════════════════
 
-  type OtpRecord = { otp: string; expires: number; attempts: number; issuedAt: number };
+  // `consumed` is a tombstone, not a deletion.
+  //
+  // Deleting the record on success or lockout looked tidier and was wrong on
+  // serverless: clearOtp removed it from Firestore and from THE HANDLING
+  // INSTANCE's Map, while every other warm instance kept its own copy with its
+  // own lower attempt count — so a code that had already been used, or already
+  // locked out, stayed live over there. Marking it instead means Firestore
+  // always has an authoritative answer that a stale Map cannot override, while
+  // a genuinely absent document still means "the write never landed", which is
+  // the case the in-memory fallback exists for. One document per user, replaced
+  // by the next send, so nothing accumulates.
+  type OtpRecord = { otp: string; expires: number; attempts: number; issuedAt: number; consumed?: boolean };
 
   const memoryOtpStore = new Map<string, OtpRecord>();
 
@@ -481,13 +532,27 @@ app.use(express.json());
     return !!v && typeof v.otp === 'string' && typeof v.expires === 'number';
   }
 
-  /** Read from both stores and return whichever record was issued most recently. */
+  /**
+   * Read from both stores.
+   *
+   * Firestore is authoritative WHENEVER IT HAS A DOCUMENT — including a
+   * consumed tombstone, which is how an already-used or locked-out code stops a
+   * stale in-process Map on another instance from resurrecting it.
+   *
+   * A genuinely absent document is different, and the distinction is the whole
+   * point of the dual store: it means the send-time write never landed, so the
+   * only copy of the code the user is holding in their inbox is this instance's
+   * memory. Falling back there is correct. Conflating "no document" with
+   * "database unreachable" is what made a cleared code come back to life.
+   */
   async function readOtp(uid: string): Promise<OtpRecord | null> {
     let fromDb: OtpRecord | null = null;
+    let dbAnswered = false;
     try {
       const ref = otpDocRef(uid);
       if (ref) {
         const doc = await ref.get();
+        dbAnswered = true;
         if (doc.exists) {
           const data = doc.data();
           if (isOtpRecord(data)) fromDb = data;
@@ -497,10 +562,96 @@ app.use(express.json());
       console.warn('[otp] Firestore read failed, relying on memory store:', err.message);
     }
 
+    if (fromDb) {
+      if (fromDb.consumed) {
+        memoryOtpStore.delete(uid);
+        return null;
+      }
+      const fromMem = memoryOtpStore.get(uid) || null;
+      if (fromMem && !fromMem.consumed && fromMem.issuedAt > fromDb.issuedAt) return fromMem;
+      return fromDb;
+    }
+
+    // No document. Either it was never written (Firestore write failed at send
+    // time) or the database could not be reached — in both cases memory is the
+    // only copy there is. dbAnswered is kept for clarity at the call site.
+    void dbAnswered;
     const fromMem = memoryOtpStore.get(uid) || null;
-    if (!fromDb) return fromMem;
-    if (!fromMem) return fromDb;
-    return fromMem.issuedAt >= fromDb.issuedAt ? fromMem : fromDb;
+    return fromMem && !fromMem.consumed ? fromMem : null;
+  }
+
+  /**
+   * Check a submitted code and consume exactly one attempt, atomically.
+   *
+   * The attempt counter used to be a read-modify-write: verify-otp read the
+   * record, compared, then wrote back attempts + 1. Fire N requests at once and
+   * every one of them reads the same count and writes the same count + 1 — so a
+   * whole concurrent batch cost ONE attempt, not N. With the 6-digit space at
+   * 899,999 and no rate limiter on this endpoint, that reduced the second
+   * factor to a matter of time for anyone holding the password. Doing the
+   * compare and the increment inside one transaction is what makes "5 attempts"
+   * mean five.
+   *
+   * Falls back to the in-process store only when Firestore cannot answer, which
+   * is the same resilience the dual store was built for.
+   */
+  type OtpVerdict = {
+    ok: boolean;
+    reason?: 'none' | 'expired' | 'locked' | 'wrong';
+    remaining?: number;
+  };
+
+  async function verifyOtpAtomic(uid: string, submitted: string): Promise<OtpVerdict> {
+    // Tombstone rather than delete — see the note on OtpRecord.
+    const tomb = (rec: OtpRecord): OtpRecord => ({ ...rec, consumed: true, attempts: 5 });
+
+    const ref = otpDocRef(uid);
+    if (ref) {
+      try {
+        const verdict: OtpVerdict = await adminFirestore().runTransaction(async (tx: any) => {
+          const snap = await tx.get(ref);
+          if (!snap.exists) return { ok: false, reason: 'none' };
+          const rec = snap.data();
+          if (!isOtpRecord(rec) || rec.consumed) return { ok: false, reason: 'none' };
+          if (Date.now() > rec.expires) {
+            tx.set(ref, tomb(rec));
+            return { ok: false, reason: 'expired' };
+          }
+          if (rec.attempts >= 5) {
+            tx.set(ref, tomb(rec));
+            return { ok: false, reason: 'locked' };
+          }
+          if (rec.otp !== submitted) {
+            tx.update(ref, { attempts: rec.attempts + 1 });
+            return { ok: false, reason: 'wrong', remaining: 4 - rec.attempts };
+          }
+          tx.set(ref, tomb(rec));
+          return { ok: true };
+        });
+        // Firestore decided; this instance's copy must not outlive that.
+        if (verdict.ok || verdict.reason !== 'wrong') memoryOtpStore.delete(uid);
+        else {
+          const m = memoryOtpStore.get(uid);
+          if (m) memoryOtpStore.set(uid, { ...m, attempts: m.attempts + 1 });
+        }
+        return verdict;
+      } catch (err: any) {
+        console.warn('[otp] verify transaction failed, falling back to memory:', err.message);
+      }
+    }
+
+    // Firestore is unavailable. Single process, so a plain check is atomic
+    // enough here — there is no second reader to race with.
+    const rec = memoryOtpStore.get(uid);
+    if (!rec || rec.consumed) return { ok: false, reason: 'none' };
+    if (Date.now() > rec.expires) { memoryOtpStore.set(uid, tomb(rec)); return { ok: false, reason: 'expired' }; }
+    if (rec.attempts >= 5) { memoryOtpStore.set(uid, tomb(rec)); return { ok: false, reason: 'locked' }; }
+    if (rec.otp !== submitted) {
+      memoryOtpStore.set(uid, { ...rec, attempts: rec.attempts + 1 });
+      return { ok: false, reason: 'wrong', remaining: 4 - rec.attempts };
+    }
+    memoryOtpStore.set(uid, tomb(rec));
+    return { ok: true };
   }
 
   /** Write to both stores. Firestore is best-effort; memory always succeeds. */
@@ -613,6 +764,60 @@ app.use(express.json());
     }
   });
 
+  /**
+   * The scheduled rebuild. vercel.json registers a daily cron on this path.
+   *
+   * It has never once run. Vercel invokes crons with GET and the only handler
+   * was app.post, so every nightly invocation hit a bare 404 — and because the
+   * setInterval safety net below is deliberately disabled on Vercel, and the
+   * POST route needs a Firebase ID token no cron can produce, the production
+   * board was only ever rebuilt when a browser happened to trigger it. A
+   * student who opted out of the rankings could stay listed indefinitely.
+   *
+   * Authenticated by CRON_SECRET when it is set (Vercel sends it as a bearer
+   * token), falling back to the x-vercel-cron marker. A spoofed marker buys
+   * nothing an ordinary signed-in user could not already do through the POST
+   * route: this reads only server-side data and writes one derived document.
+   */
+  app.get('/api/leaderboard/refresh', async (req, res) => {
+    // Fails CLOSED when CRON_SECRET is unset.
+    //
+    // This used to fall back to "is the x-vercel-cron header present?" when no
+    // secret was configured — and no secret IS configured anywhere: not in
+    // .env.example, not in vercel.json, not in the runbook. So the fallback was
+    // the live branch, and anyone could run `curl -H 'x-vercel-cron: 1'` in a
+    // loop to trigger a full students scan plus a write to a single document,
+    // unauthenticated and billed to us. Worse, this route deliberately skips
+    // the 30-second throttle the POST route has, so it was the cheaper of the
+    // two to abuse. A cron that silently stops running is a far smaller problem
+    // than an open amplification endpoint, so an unset secret now disables it
+    // and says so in the logs.
+    const secret = process.env.CRON_SECRET;
+    if (!secret) {
+      console.warn('[leaderboard] CRON_SECRET is not set, so the scheduled rebuild is disabled.');
+      return res.status(503).json({ error: 'Scheduled rebuild is not configured.' });
+    }
+    if (req.headers.authorization !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    if (!getAdminObj()) return res.status(500).json({ error: 'Server configuration error.' });
+
+    // Throttled, unlike before. A daily cron never trips a 30-second window, so
+    // this costs the legitimate caller nothing and bounds a leaked secret.
+    const CRON_THROTTLE_MS = 30 * 1000;
+    if (Date.now() - lastAggregateAt < CRON_THROTTLE_MS) {
+      return res.json({ success: true, throttled: true });
+    }
+    try {
+      const result = await rebuildGlobalLeaderboard();
+      console.log(`[leaderboard] cron rebuild — ${result.count} ranked student(s)`);
+      return res.json({ success: true, ...result });
+    } catch (err: any) {
+      console.error('[leaderboard] cron rebuild failed:', err);
+      return res.status(500).json({ error: 'Failed to rebuild leaderboard' });
+    }
+  });
+
   // A safety net so the board cannot go permanently stale if no approvals
   // happen to fire the endpoint above. Cheap: one indexed query every 15 min.
   const LEADERBOARD_INTERVAL_MS = 15 * 60 * 1000;
@@ -696,9 +901,7 @@ app.use(express.json());
       const caller = callerSnap.exists ? callerSnap.data() : null;
       const isDeveloperCaller =
         caller?.role === 'developer' ||
-        (process.env.VITE_DEVELOPER_EMAILS || '')
-          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
-          .includes((authContext.email || '').toLowerCase());
+        isAllowlistedDeveloper(authContext);
       if (!isDeveloperCaller) {
         return res.status(403).json({ error: 'Only a developer can list students.' });
       }
@@ -728,6 +931,118 @@ app.use(express.json());
     }
   });
 
+  /**
+   * Delete an account and everything hanging off it.
+   *
+   * The role is read from users/{userId}, never from the caller. It used to be
+   * taken from the request body and used to pick which profile collection to
+   * clear — so a wrong or stale value deleted the sign-in identity and the
+   * users document, then cleared nothing, leaving exactly the orphaned profile
+   * this endpoint exists to prevent, and answering 200.
+   *
+   * The cascade matters more than it looks. Opportunities are world-readable
+   * (firestore.rules), so an organization deleted without them leaves live
+   * postings that students keep finding and applying to, with nobody able to
+   * ever accept them. A deleted student likewise leaves applications sitting in
+   * organizations' queues whose Review button 404s.
+   *
+   * Batches are capped. These collections are small per user, and a runaway
+   * delete loop in a serverless handler is worse than a few survivors — which
+   * a repeat call clears anyway.
+   */
+  async function purgeAccount(adb: any, adminObj: any, userId: string) {
+    const userSnap = await adb.collection('users').doc(userId).get();
+    const role = userSnap.exists ? userSnap.data()?.role : null;
+
+    const deleteWhere = async (coll: string, field: string, value: string) => {
+      const snap = await adb.collection(coll).where(field, '==', value).limit(300).get();
+      await Promise.all(snap.docs.map((d: any) => d.ref.delete()));
+      return snap.size;
+    };
+
+    // Documents first, sign-in identity LAST.
+    //
+    // The other order is unrecoverable. Deleting the Auth record first and then
+    // hitting anything — a Firestore hiccup, a missing index, a serverless time
+    // limit part-way through an organization's opportunities — leaves a person
+    // with no way to sign in, therefore no way to retry, while
+    // students/{uid} still holds their passportUrl: a base64 passport scan of a
+    // minor. Only a developer could then clean it up. This way a failure leaves
+    // the account intact and retryable, which is the safe direction to fail.
+    if (role === 'organization') {
+      // Applications point at an opportunity, so clear them before the
+      // opportunity that identifies them disappears.
+      const opps = await adb.collection('opportunities').where('orgId', '==', userId).limit(300).get();
+      for (const opp of opps.docs) {
+        await deleteWhere('applications', 'opportunityId', opp.id);
+        await deleteWhere('savedOpportunities', 'opportunityId', opp.id);
+        await opp.ref.delete();
+      }
+    } else if (role === 'student') {
+      await deleteWhere('applications', 'studentId', userId);
+      await deleteWhere('savedOpportunities', 'studentId', userId);
+      await deleteWhere('hoursRequests', 'studentId', userId);
+      await deleteWhere('interestRequests', 'studentId', userId);
+    }
+
+    if (role === 'student' || role === 'organization') {
+      await adb.collection(role === 'student' ? 'students' : 'organizations').doc(userId).delete();
+    }
+    await adb.collection('users').doc(userId).delete();
+
+    let authDeleted = false;
+    try {
+      await adminObj.auth().deleteUser(userId);
+      authDeleted = true;
+    } catch (authErr: any) {
+      // Already gone is a success here: it means a previous half-finished
+      // delete left documents behind, and clearing them is exactly the job.
+      if (authErr?.code !== 'auth/user-not-found') throw authErr;
+    }
+
+    return { authDeleted, role };
+  }
+
+  /**
+   * Let a signed-in user delete their own account.
+   *
+   * The profile screens used to do this from the browser with deleteDoc on
+   * users/{uid} and then students|organizations/{uid}. firestore.rules is
+   * `allow delete: if false` on users and developer-only on both profile
+   * collections, so the very first call threw, user.delete() on the next line
+   * never ran, and the student saw a raw "Missing or insufficient permissions".
+   * Nothing was ever deleted — including uploaded passport scans of minors.
+   */
+  app.post('/api/account/delete', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.status(403).json({ error: 'Demo mode cannot delete real accounts.' });
+      }
+      // Confirming the address proves this is the account holder acting
+      // deliberately, and matches what the UI already asks them to type.
+      const { confirmEmail } = req.body || {};
+      if (
+        typeof confirmEmail !== 'string' ||
+        confirmEmail.trim().toLowerCase() !== (authContext.email || '').toLowerCase()
+      ) {
+        return res.status(400).json({ error: 'The confirmation email does not match this account.' });
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) throw new Error('Firebase Admin is not initialized');
+      const result = await purgeAccount(adminFirestore(), adminObj, authContext.uid);
+      console.warn(`[account/delete] ${authContext.email || authContext.uid} deleted their own account`);
+      return res.json({ success: true, ...result });
+    } catch (err: any) {
+      console.error('[account/delete] failed:', err);
+      return res.status(500).json({ error: 'Could not delete your account. Please try again.' });
+    }
+  });
+
   app.post('/api/admin/delete-user', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);
@@ -739,12 +1054,9 @@ app.use(express.json());
         return res.status(403).json({ error: 'Demo mode cannot delete real accounts.' });
       }
 
-      const { userId, role } = req.body || {};
+      const { userId } = req.body || {};
       if (typeof userId !== 'string' || !userId.trim()) {
         return res.status(400).json({ error: 'userId is required.' });
-      }
-      if (role !== 'student' && role !== 'organization') {
-        return res.status(400).json({ error: "role must be 'student' or 'organization'." });
       }
 
       const adb = adminFirestore();
@@ -754,9 +1066,7 @@ app.use(express.json());
       const caller = callerSnap.exists ? callerSnap.data() : null;
       const isDeveloperCaller =
         caller?.role === 'developer' ||
-        (process.env.VITE_DEVELOPER_EMAILS || '')
-          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
-          .includes((authContext.email || '').toLowerCase());
+        isAllowlistedDeveloper(authContext);
       if (!isDeveloperCaller) {
         console.warn(`[admin/delete-user] ${authContext.uid} attempted to delete ${userId}`);
         return res.status(403).json({ error: 'Only a developer can delete accounts.' });
@@ -768,28 +1078,19 @@ app.use(express.json());
       const adminObj = getAdminObj();
       if (!adminObj) throw new Error('Firebase Admin is not initialized');
 
-      let authDeleted = false;
+      let result;
       try {
-        await adminObj.auth().deleteUser(userId);
-        authDeleted = true;
+        result = await purgeAccount(adb, adminObj, userId);
       } catch (authErr: any) {
-        // Already gone is a success for our purposes — it means a previous
-        // half-finished delete left documents behind, and clearing them is
-        // precisely what this call should now do.
-        if (authErr?.code !== 'auth/user-not-found') {
-          console.error('[admin/delete-user] auth delete failed:', authErr);
-          return res.status(502).json({
-            error: 'Could not delete the sign-in account, so nothing was removed.',
-            details: 'The profile documents were left intact. Please try again.',
-          });
-        }
+        console.error('[admin/delete-user] auth delete failed:', authErr);
+        return res.status(502).json({
+          error: 'Could not delete the sign-in account, so nothing was removed.',
+          details: 'The profile documents were left intact. Please try again.',
+        });
       }
 
-      await adb.collection('users').doc(userId).delete();
-      await adb.collection(role === 'student' ? 'students' : 'organizations').doc(userId).delete();
-
-      console.warn(`[admin/delete-user] ${authContext.email || authContext.uid} deleted ${role} ${userId}`);
-      return res.json({ success: true, authDeleted });
+      console.warn(`[admin/delete-user] ${authContext.email || authContext.uid} deleted ${result.role} ${userId}`);
+      return res.json({ success: true, ...result });
     } catch (err: any) {
       console.error('[admin/delete-user] failed:', err);
       return res.status(500).json({ error: 'Could not delete that account. Please try again.' });
@@ -822,6 +1123,318 @@ app.use(express.json());
       .get();
     return snap.docs.some((d: any) => d.data()?.status === 'accepted');
   }
+
+  /**
+   * Tell an applicant what an organization decided about them.
+   *
+   * This exists because the browser cannot do it. The organization screens used
+   * to resolve the student's address with getDoc(users/{studentId}) — and
+   * firestore.rules only allows that read to the account's owner or a
+   * developer. So the read threw for every real organization, the throw was
+   * caught, and the address fell back to the literal sandbox string
+   * "student@example.com". Every acceptance and every rejection went there
+   * instead of to the student, while the UI reported the applicant had been
+   * notified. Three separate screens had the same broken lookup
+   * (OrgOpportunityApplicants, OrgDashboard, lib/waitlistService).
+   *
+   * Doing it here fixes the delivery AND is the stricter design: the address is
+   * resolved with the Admin SDK and used to send the mail, and is never
+   * returned to the caller, so an organization still cannot read a student's
+   * contact details out of the app.
+   *
+   * Authorization is ownership of the opportunity the application belongs to —
+   * not merely "is an organization", which anyone gets free at signup.
+   */
+  app.post('/api/applications/notify', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.json({ success: true, emailSent: false, mode: 'demo' });
+      }
+
+      const { applicationId, status, reason, note } = req.body || {};
+      if (typeof applicationId !== 'string' || !applicationId.trim() || applicationId.length > 128) {
+        return res.status(400).json({ error: 'applicationId is required.' });
+      }
+      const ALLOWED = ['accepted', 'rejected', 'terminated', 'waitlist_promoted'];
+      if (!ALLOWED.includes(status)) {
+        return res.status(400).json({ error: 'status must be one of: ' + ALLOWED.join(', ') });
+      }
+
+      // Rate limited like every other outbound-mail route. Without this an
+      // organization holding one applicant could loop this endpoint and
+      // mail-bomb that student — who is usually a minor — from our verified
+      // sending domain, from a free account, burning the domain's reputation
+      // along the way.
+      if (await isEmailRateLimited(authContext.uid)) {
+        return res.status(429).json({ error: 'Too many notifications sent. Please wait a few minutes.' });
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) return res.status(500).json({ error: 'Server configuration error.' });
+      const adb = adminFirestore();
+
+      const appSnap = await adb.collection('applications').doc(applicationId).get();
+      if (!appSnap.exists) return res.status(404).json({ error: 'Application not found.' });
+      const appData = appSnap.data() || {};
+
+      const oppSnap = await adb.collection('opportunities').doc(String(appData.opportunityId || '')).get();
+      if (!oppSnap.exists) return res.status(404).json({ error: 'Opportunity not found.' });
+      // THE authorization check: this caller must own the posting.
+      if (oppSnap.data()?.orgId !== authContext.uid) {
+        return res.status(403).json({ error: 'You do not own this opportunity.' });
+      }
+
+      const studentSnap = await adb.collection('users').doc(String(appData.studentId || '')).get();
+      const studentEmail = studentSnap.exists ? studentSnap.data()?.email : null;
+      if (!studentEmail) {
+        // Report it rather than silently "succeeding" — the org needs to know
+        // the applicant was not reached so they can follow up another way.
+        return res.status(422).json({ error: 'This applicant has no email address on file.' });
+      }
+
+      const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+      const orgName = orgSnap.exists ? (orgSnap.data()?.organizationName || 'Verified Organization') : 'Verified Organization';
+      const oppTitle = oppSnap.data()?.title || 'Volunteer Opportunity';
+      const studentName = appData.studentName || 'Student';
+
+      const accepted = status === 'accepted' || status === 'waitlist_promoted';
+      const subject = status === 'waitlist_promoted'
+        ? `A spot opened up — you're in for "${oppTitle}"`
+        : accepted
+          ? `Your application for "${oppTitle}" was accepted`
+          : status === 'terminated'
+            ? `Placement update for "${oppTitle}"`
+            : `Application update for "${oppTitle}"`;
+
+      const html = renderTemplate('application_status', {
+        studentName,
+        oppTitle,
+        orgName,
+        status: accepted ? 'accepted' : 'rejected',
+        note: status === 'waitlist_promoted'
+          ? 'A place became available and you have been moved off the waitlist.'
+          : status === 'terminated'
+            ? 'Your placement for this shift was ended by the organization.'
+            : status === 'rejected'
+              ? [reason, note].filter((s) => typeof s === 'string' && s.trim()).join('. ').slice(0, 1000) || undefined
+              : undefined,
+      });
+      if (!html) return res.status(500).json({ error: 'Could not build the message.' });
+
+      if (!resend) {
+        return res.status(503).json({ error: 'Email delivery is not configured on this server.' });
+      }
+      const { error } = await resend.emails.send({
+        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+        to: [studentEmail],
+        subject,
+        html,
+      });
+      // Recorded in the same log the Control Room shows. Without this the three
+      // highest-volume real senders were invisible there, so a developer
+      // checking during an incident would see no applicant emails and conclude
+      // mail was down when it was working.
+      recordEmailLog({
+        to: studentEmail,
+        subject,
+        templateName: 'application_status',
+        status: error ? 'failed' : 'sent',
+        error: error?.message,
+        sentBy: authContext.email || authContext.uid,
+      });
+
+      if (error) {
+        console.error('[applications/notify] Resend error:', error.message);
+        return res.status(502).json({ error: 'The applicant could not be emailed.' });
+      }
+
+      res.json({ success: true, emailSent: true });
+    } catch (err: any) {
+      console.error('[applications/notify] Crash:', err);
+      res.status(500).json({ error: 'Failed to notify the applicant.' });
+    }
+  });
+
+  /**
+   * Delete an opportunity together with everything that points at it.
+   *
+   * The organization cannot do this from the browser. The rules let only the
+   * student who owns an application (or a developer) delete it, and an
+   * organization cannot even list savedOpportunities. So a client-side delete
+   * removed the posting and stranded every application to it: unreachable by
+   * the organization, whose applicant queries are built from opportunities that
+   * still exist and whose `list` rule proves ownership via exists() on the
+   * opportunity, and unresolvable for the student, who kept a pending row for a
+   * placement that no longer existed.
+   *
+   * Students with a live application are emailed before anything is removed —
+   * having a placement vanish silently is the actual harm here.
+   */
+  app.post('/api/opportunities/delete', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) return res.json({ success: true, demo: true });
+
+      const { opportunityId } = req.body || {};
+      if (typeof opportunityId !== 'string' || !opportunityId.trim() || opportunityId.length > 128) {
+        return res.status(400).json({ error: 'opportunityId is required.' });
+      }
+      const adminObj = getAdminObj();
+      if (!adminObj) return res.status(500).json({ error: 'Server configuration error.' });
+      const adb = adminFirestore();
+
+      const oppRef = adb.collection('opportunities').doc(opportunityId);
+      const oppSnap = await oppRef.get();
+      if (!oppSnap.exists) return res.status(404).json({ error: 'Opportunity not found.' });
+      if (oppSnap.data()?.orgId !== authContext.uid) {
+        return res.status(403).json({ error: 'You do not own this opportunity.' });
+      }
+      const oppTitle = oppSnap.data()?.title || 'a volunteer opportunity';
+
+      const appsSnap = await adb.collection('applications')
+        .where('opportunityId', '==', opportunityId).limit(500).get();
+      const savedSnap = await adb.collection('savedOpportunities')
+        .where('opportunityId', '==', opportunityId).limit(500).get();
+
+      // Who to tell — captured BEFORE the delete, sent AFTER it.
+      //
+      // This used to email every applicant serially first, one Firestore read
+      // plus one Resend send each, and only then delete. Resend allows ~2
+      // requests a second, so 200 applicants is over a minute of awaits: the
+      // serverless function was killed part-way through, nothing was deleted,
+      // and sixty students had already been told the opportunity was withdrawn.
+      // The organization then saw a network error and pressed Delete again,
+      // emailing those sixty a second time. Deleting first means the state is
+      // correct even if the mail never goes out, which is the safe direction.
+      const LIVE = ['pending', 'reviewed', 'accepted', 'waitlist'];
+      const recipients: { name: string; studentId: string }[] = appsSnap.docs
+        .map((d: any) => d.data() || {})
+        .filter((a: any) => LIVE.includes(a.status))
+        .slice(0, 100)
+        .map((a: any) => ({ name: a.studentName || 'Student', studentId: String(a.studentId || '') }));
+
+      await Promise.all([
+        ...appsSnap.docs.map((d: any) => d.ref.delete()),
+        ...savedSnap.docs.map((d: any) => d.ref.delete()),
+      ]);
+      await oppRef.delete();
+
+      if (resend && recipients.length) {
+        const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+        const orgName = orgSnap.exists ? (orgSnap.data()?.organizationName || 'The organization') : 'The organization';
+        for (const r of recipients) {
+          try {
+            const uSnap = await adb.collection('users').doc(r.studentId).get();
+            const to = uSnap.exists ? uSnap.data()?.email : null;
+            if (!to) continue;
+            const html = renderTemplate('application_status', {
+              studentName: r.name,
+              oppTitle,
+              orgName,
+              status: 'rejected',
+              note: 'This opportunity has been withdrawn by the organization, so your application has been closed. Nothing went wrong with your application — please browse other opportunities.',
+            });
+            if (!html) continue;
+            const { error: sendErr } = await resend.emails.send({
+              from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+              to: [to],
+              subject: `"${oppTitle}" has been withdrawn`,
+              html,
+            });
+            recordEmailLog({
+              to, subject: `"${oppTitle}" has been withdrawn`,
+              templateName: 'application_status', status: sendErr ? 'failed' : 'sent',
+              error: sendErr?.message, sentBy: authContext.email || authContext.uid,
+            });
+          } catch (mailErr: any) {
+            console.error('[opportunities/delete] withdrawal email failed:', mailErr?.message || mailErr);
+          }
+        }
+      }
+
+      return res.json({ success: true, applicationsRemoved: appsSnap.size });
+    } catch (err: any) {
+      console.error('[opportunities/delete] failed:', err);
+      return res.status(500).json({ error: 'Could not delete the opportunity. Please try again.' });
+    }
+  });
+
+  /**
+   * The contact details of everyone who applied to one of your opportunities.
+   *
+   * `firestore.rules` refuses a client read of `users/{uid}` to anyone but its
+   * owner, and that rule is right: without it any signed-in account could walk
+   * the whole user base. But it is the wrong answer to "can this organization
+   * reach the students who applied to its own posting", which it also blocked —
+   * leaving an organization unable to contact a volunteer it had just accepted.
+   *
+   * Applying IS the contact request. A student chooses the organization, and
+   * the organization has to be able to arrange a shift, ask a question, or
+   * follow up. So this returns addresses for every applicant to one specific
+   * opportunity, at any status, and the authorization is ownership of that
+   * opportunity — not "is an organization", which anyone gets free at signup.
+   * An organization still cannot read a student it has no relationship with.
+   */
+  app.get('/api/opportunities/:id/applicant-contacts', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) return res.json({ contacts: [] , demo: true });
+
+      const opportunityId = String(req.params.id || '');
+      if (!opportunityId || opportunityId.length > 128) {
+        return res.status(400).json({ error: 'Invalid opportunity id.' });
+      }
+      const adminObj = getAdminObj();
+      if (!adminObj) return res.status(500).json({ error: 'Server configuration error.' });
+      const adb = adminFirestore();
+
+      const oppSnap = await adb.collection('opportunities').doc(opportunityId).get();
+      if (!oppSnap.exists) return res.status(404).json({ error: 'Opportunity not found.' });
+      if (oppSnap.data()?.orgId !== authContext.uid) {
+        return res.status(403).json({ error: 'You do not own this opportunity.' });
+      }
+
+      const appsSnap = await adb.collection('applications')
+        .where('opportunityId', '==', opportunityId).limit(500).get();
+
+      // One lookup per distinct student, not per application.
+      const studentIds: string[] = Array.from(new Set<string>(appsSnap.docs
+        .map((d: any) => String(d.data()?.studentId || ''))
+        .filter((v: string) => !!v)));
+      const emails = new Map<string, string>();
+      await Promise.all(studentIds.map(async (uid) => {
+        const u = await adb.collection('users').doc(uid).get().catch(() => null);
+        const email = u?.exists ? u.data()?.email : null;
+        if (email) emails.set(uid, email);
+      }));
+
+      const contacts = appsSnap.docs.map((d: any) => {
+        const a = d.data() || {};
+        return {
+          applicationId: d.id,
+          studentId: a.studentId,
+          studentName: a.studentName || 'Student',
+          status: a.status,
+          email: emails.get(String(a.studentId)) || null,
+        };
+      });
+
+      return res.json({ contacts });
+    } catch (err: any) {
+      console.error('[applicant-contacts] failed:', err);
+      return res.status(500).json({ error: 'Could not load applicant contact details.' });
+    }
+  });
 
   app.post('/api/recommendations/create', async (req, res) => {
     try {
@@ -991,9 +1604,7 @@ app.use(express.json());
       const caller = callerSnap.exists ? callerSnap.data() : null;
       const isDeveloperCaller =
         caller?.role === 'developer' ||
-        (process.env.VITE_DEVELOPER_EMAILS || '')
-          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
-          .includes((authContext.email || '').toLowerCase());
+        isAllowlistedDeveloper(authContext);
       if (!isDeveloperCaller && caller?.role !== 'organization') {
         return res.status(403).json({ error: 'Only an organization can approve volunteer hours.' });
       }
@@ -1075,6 +1686,11 @@ app.use(express.json());
         }
         await requestRef.update({
           status: 'declined',
+          // Read by the student's notification bell. Without a decision stamp
+          // it fell back to requestedAt — when the STUDENT submitted — so a
+          // decision made after they last opened the bell always compared as
+          // already-seen and the unread badge never appeared.
+          decidedAt: new Date().toISOString(),
           declinedBy: authContext.uid,
           declinedAt: new Date().toISOString(),
         });
@@ -1082,6 +1698,12 @@ app.use(express.json());
       }
 
       const studentRef = adb.collection('students').doc(studentId);
+      // Read outside the transaction: it is only used to label the entry, and a
+      // transaction may not issue reads after its first write.
+      const creditingOrgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+      const creditingOrgName = creditingOrgSnap.exists
+        ? (creditingOrgSnap.data()?.organizationName || '')
+        : '';
       const result = await adb.runTransaction(async (tx: any) => {
         // Re-read the request INSIDE the transaction. The pre-check above runs
         // before the transaction starts, so two concurrent approvals of the
@@ -1108,6 +1730,27 @@ app.use(express.json());
           approved: true,
           approvedBy: authContext.uid,
           approvedAt: new Date().toISOString(),
+          // Carried across from the request the student submitted.
+          //
+          // These were never copied, even though the student had typed both and
+          // requestData is right here. The printed transcript renders
+          // "${coordinatorName} (${coordinatorContact})" per row under
+          // "Coordinator Supervisor Details", and escapeHTML maps undefined to
+          // "" — so every row of the document a student hands their guidance
+          // counsellor for graduation credit read " ()". The supervisor is the
+          // part of that record a school actually checks.
+          // Falls back to the crediting ORGANIZATION when there is no request
+          // to carry these from. The direct-credit path (an organization
+          // logging hours itself, with no hoursRequest) leaves requestData
+          // null, so without this half the transcript rows still rendered
+          // " ()" under "Coordinator Supervisor Details" — the very symptom
+          // this was added to fix.
+          coordinatorName: String(
+            requestData?.coordinatorName || creditingOrgName || '',
+          ).slice(0, 200),
+          coordinatorContact: String(
+            requestData?.coordinatorContact || authContext.email || '',
+          ).slice(0, 200),
         };
         const loggedHours = [...existing, entry];
         // Recomputed from the array, never incremented, so a retry cannot
@@ -1117,9 +1760,52 @@ app.use(express.json());
           return sum + (Number.isFinite(n) ? n : 0);
         }, 0);
         tx.update(studentRef, { loggedHours, hours: total });
-        if (requestRef) tx.update(requestRef, { status: 'approved' });
+        // decidedAt: same reason as the decline path above.
+        if (requestRef) tx.update(requestRef, { status: 'approved', decidedAt: new Date().toISOString() });
         return { total, entryId: entry.id };
       });
+
+      // Tell the student their hours were credited.
+      //
+      // This used to be done from the organization's browser, which had to read
+      // the student's address out of users/{studentId} first — a read
+      // firestore.rules denies to organizations. It threw every time, so the
+      // confirmation never went anywhere. Here the address is resolved with the
+      // Admin SDK, after the credit has already been committed.
+      //
+      // Deliberately after the transaction and deliberately not awaited into
+      // the response's success: the hours ARE credited at this point, and a
+      // mail failure must not turn that into an error the organization retries.
+      try {
+        const emailSnap = await adb.collection('users').doc(studentId).get();
+        const studentEmail = emailSnap.exists ? emailSnap.data()?.email : null;
+        if (studentEmail && resend) {
+          const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
+          const studentDoc = await adb.collection('students').doc(studentId).get();
+          const html = renderTemplate('hours_confirmation', {
+            studentName: (studentDoc.exists && studentDoc.data()?.fullName) || 'Student',
+            hours: parsedHours,
+            activity: String(activity || 'Volunteer Activity'),
+            orgName: orgSnap.exists ? (orgSnap.data()?.organizationName || 'Verified Organization') : 'Verified Organization',
+          });
+          if (html) {
+            const { error } = await resend.emails.send({
+              from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+              to: [studentEmail],
+              subject: `${parsedHours} volunteer hours confirmed`,
+              html,
+            });
+            recordEmailLog({
+              to: studentEmail, subject: `${parsedHours} volunteer hours confirmed`,
+              templateName: 'hours_confirmation', status: error ? 'failed' : 'sent',
+              error: error?.message, sentBy: authContext.email || authContext.uid,
+            });
+            if (error) console.error('[hours/approve] confirmation email failed:', error.message);
+          }
+        }
+      } catch (mailErr: any) {
+        console.error('[hours/approve] confirmation email failed:', mailErr?.message || mailErr);
+      }
 
       return res.json({ success: true, hours: result.total, entryId: result.entryId });
     } catch (err: any) {
@@ -1178,9 +1864,7 @@ app.use(express.json());
       const caller = callerSnap.exists ? callerSnap.data() : null;
       const isDeveloperCaller =
         caller?.role === 'developer' ||
-        (process.env.VITE_DEVELOPER_EMAILS || '')
-          .split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)
-          .includes((authContext.email || '').toLowerCase());
+        isAllowlistedDeveloper(authContext);
       if (!isDeveloperCaller && caller?.role !== 'organization') {
         return res.status(403).json({ error: 'Forbidden' });
       }
@@ -1410,39 +2094,58 @@ app.use(express.json());
         return res.status(500).json({ error: 'Server configuration error.' });
       }
 
-      // Reads both stores and takes the freshest record, so a stale Firestore
-      // document can no longer shadow the code that was actually emailed.
-      const stored = await readOtp(authContext.uid);
-
-      if (!stored) {
-        return res.status(400).json({ error: 'No code was requested. Please request a new code.' });
-      }
-
-      if (Date.now() > stored.expires) {
-        await clearOtp(authContext.uid);
-        return res.status(400).json({ error: 'Your code has expired. Please request a new one.' });
-      }
-
-      if (stored.attempts >= 5) {
-        await clearOtp(authContext.uid);
-        return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
-      }
-
       // Tolerate how people actually type a code out of an email client:
       // spaces, and the non-breaking space that copying from HTML can carry.
       const submitted = code.replace(/[\s ]/g, '');
 
-      if (stored.otp !== submitted) {
-        await writeOtp(authContext.uid, { ...stored, attempts: stored.attempts + 1 });
+      // One transaction does the lookup, the expiry check, the attempt cap, the
+      // comparison and the consume. It used to be five separate steps around a
+      // read-modify-write, so concurrent guesses all read the same attempt
+      // count and a whole batch cost ONE attempt instead of one each — see
+      // verifyOtpAtomic.
+      const verdict = await verifyOtpAtomic(authContext.uid, submitted);
+
+      if (!verdict.ok) {
+        if (verdict.reason === 'none') {
+          return res.status(400).json({ error: 'No code was requested. Please request a new code.' });
+        }
+        if (verdict.reason === 'expired') {
+          return res.status(400).json({ error: 'Your code has expired. Please request a new one.' });
+        }
+        if (verdict.reason === 'locked') {
+          return res.status(429).json({ error: 'Too many incorrect attempts. Please request a new code.' });
+        }
+        const left = verdict.remaining ?? 0;
         return res.status(400).json({
-          error: `Incorrect code. Please check and try again. ${4 - stored.attempts} attempt${4 - stored.attempts === 1 ? '' : 's'} remaining.`,
+          error: `Incorrect code. Please check and try again. ${left} attempt${left === 1 ? '' : 's'} remaining.`,
         });
       }
 
-      // ── Code is correct. Set the MFA custom claim. ──
-      await clearOtp(authContext.uid);
+      // ── Code is correct, and the transaction already consumed it. ──
 
       if (!authContext.isDemo) {
+        // The claim must name the sign-in it belongs to.
+        //
+        // This used to write only { mfaVerified: true }. Custom claims live on
+        // the Firebase Auth user record, not on a session, so that flag was
+        // permanent: a student passed one OTP and was never challenged again,
+        // on any device, forever. The settings screen meanwhile promised a code
+        // "every time you log back in". Verified against production — an
+        // account signed in 3.8 days after its claim was written and received
+        // no code.
+        //
+        // auth_time is minted by Firebase at sign-in and survives the silent
+        // hourly token refresh, so pinning the claim to it means "verified for
+        // THIS sign-in". The client compares mfaVerifiedFor against auth_time
+        // from the same token (src/lib/mfa.ts), so both sides of the comparison
+        // come from one signed document and no clock skew between our server
+        // and Firebase can enter into it. Signing in again mints a new
+        // auth_time, the values stop matching, and the gate closes.
+        if (typeof authContext.authTime !== 'number') {
+          return res.status(500).json({
+            error: 'Your code was correct, but we could not complete verification on the server. Please try again, or contact support if this persists.',
+          });
+        }
         let claimSet = false;
         try {
           const userRecord = await adminObj.auth().getUser(authContext.uid);
@@ -1450,6 +2153,7 @@ app.use(express.json());
           await adminObj.auth().setCustomUserClaims(authContext.uid, {
             ...existingClaims,
             mfaVerified: true,
+            mfaVerifiedFor: authContext.authTime,
             mfaVerifiedAt: Date.now(),
           });
           claimSet = true;
@@ -1491,12 +2195,61 @@ app.use(express.json());
   // top of this file was the leftover of that removal.
   // ══════════════════════════════════════════════════════════════════
 
-  /** Recent send attempts, newest first. In-memory and intentionally small. */
+  /**
+   * Recent send attempts, newest first.
+   *
+   * Mirrored to Firestore, because in-memory alone is wrong on serverless: each
+   * invocation can land on a different instance, so the Control Room showed
+   * whatever that one instance happened to have sent — usually nothing. It was
+   * the only piece of module state here with no durable backing, while the OTP
+   * and email rate limiters had both already been moved for the same reason.
+   *
+   * The in-memory copy is kept as the fallback for when Firestore is
+   * unreachable, matching the OTP store's shape.
+   */
   const emailHistory: Array<{
     id: string; to: string; subject: string; templateName: string;
     status: 'sent' | 'failed' | 'demo'; error?: string; sentBy: string; at: string;
   }> = [];
   const EMAIL_HISTORY_LIMIT = 100;
+
+  type EmailLogEntry = (typeof emailHistory)[number];
+
+  /** Best-effort mirror. A logging failure must never fail the send it logs. */
+  /**
+   * Record a send in the log the developer console reads.
+   *
+   * `/api/email/send` was the only route that did this, so the three highest
+   * volume real senders — applicant notifications, withdrawal notices and hours
+   * confirmations — never appeared. Anyone checking that table during an
+   * incident would see nothing and conclude mail was down.
+   *
+   * Function declaration, not a const, so the endpoints defined earlier in this
+   * file can call it. Never throws: a logging failure must not fail a send.
+   */
+  function recordEmailLog(entry: Omit<EmailLogEntry, 'id' | 'at'>): void {
+    try {
+      const full: EmailLogEntry = {
+        ...entry,
+        id: 'em_' + crypto.randomBytes(6).toString('hex'),
+        at: new Date().toISOString(),
+      };
+      emailHistory.unshift(full);
+      if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
+      persistEmailLog(full);
+    } catch {
+      /* the send itself already happened */
+    }
+  }
+
+  function persistEmailLog(entry: EmailLogEntry): void {
+    try {
+      const adb = adminFirestore();
+      if (adb) void adb.collection('emailLog').doc(entry.id).set(entry).catch(() => {});
+    } catch {
+      /* memory copy still holds it */
+    }
+  }
 
   /** Max 20 send requests per 10 minutes per account, so an authenticated
    *  session can't turn this into an open relay for our sending domain. */
@@ -1703,6 +2456,7 @@ app.use(express.json());
           at: new Date().toISOString(),
         });
         if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
+        persistEmailLog(emailHistory[0]);
         return res.json({ success: true, mode: 'demo', warning: 'Demo mode: email was simulated, not sent.' });
       }
 
@@ -1763,6 +2517,7 @@ app.use(express.json());
           at: new Date().toISOString(),
         });
         if (emailHistory.length > EMAIL_HISTORY_LIMIT) emailHistory.length = EMAIL_HISTORY_LIMIT;
+        persistEmailLog(emailHistory[0]);
       };
 
       // (Demo sessions are already short-circuited above, before the
@@ -1816,17 +2571,17 @@ app.use(express.json());
       // on every request it makes. The role is read server-side from Firestore,
       // never from the request, and it cannot be self-assigned (the rules
       // require incoming().role == existing().role on update).
-      const devEmails = (process.env.VITE_DEVELOPER_EMAILS || '')
-        .split(',')
-        .map((e) => e.trim().toLowerCase())
-        .filter(Boolean);
-      const callerEmail = (authContext.email || '').toLowerCase();
-
       let isDeveloper: boolean;
       if (authContext.isDemo) {
-        isDeveloper = authContext.role === 'developer';
+        // A demo token asserts its own role — `Bearer demo-mode-token-developer`
+        // is something anyone can type — so it must not unlock the real
+        // recipient addresses of real sends. Demo tokens are already refused
+        // outright when NODE_ENV is production, but preview deployments do not
+        // always set that, and this is the one route where a demo token would
+        // otherwise return live data.
+        isDeveloper = false;
       } else {
-        isDeveloper = devEmails.includes(callerEmail);
+        isDeveloper = isAllowlistedDeveloper(authContext);
         if (!isDeveloper && getAdminObj()) {
           try {
             const snap = await adminFirestore().collection('users').doc(authContext.uid).get();
@@ -1841,6 +2596,24 @@ app.use(express.json());
         return res.status(403).json({ error: 'Forbidden' });
       }
 
+      // Firestore first — see the note on emailHistory for why the in-process
+      // array cannot be trusted on serverless. Old entries are pruned here
+      // rather than on the send path: this route is developer-only and rare, so
+      // the cost lands where nobody is waiting on it.
+      try {
+        const adb = adminFirestore();
+        const snap = await adb.collection('emailLog')
+          .orderBy('at', 'desc').limit(EMAIL_HISTORY_LIMIT).get();
+        if (!snap.empty) {
+          const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+          void adb.collection('emailLog').where('at', '<', cutoff).limit(200).get()
+            .then((old: any) => Promise.all(old.docs.map((d: any) => d.ref.delete())))
+            .catch(() => {});
+          return res.json(snap.docs.map((d: any) => d.data()));
+        }
+      } catch (logErr: any) {
+        console.warn('[email/history] Firestore unavailable, using in-process log:', logErr?.message);
+      }
       res.json(emailHistory);
     } catch (err: any) {
       console.error('[email/history] Crash:', err);
@@ -1865,9 +2638,31 @@ app.use(express.json());
    * stored fields, and a capped collection - rather than trusted.
    */
   const errorLogLimit = new Map<string, { count: number; windowStart: number }>();
+  /**
+   * Per-IP limiter for the unauthenticated error sink.
+   *
+   * Two things were wrong with the previous version and each defeated it on its
+   * own. The key came from `x-forwarded-for`, which the CLIENT sets and Express
+   * does not validate unless `trust proxy` is configured — so rotating one
+   * header gave an attacker a fresh 30/min bucket per request, and each accepted
+   * request writes a ~5 KB document to Firestore, billed to us. And the Map was
+   * never pruned, so it grew one entry per distinct (spoofable) value until the
+   * process died.
+   *
+   * `app.set('trust proxy', 1)` below makes `req.ip` the real client address on
+   * Vercel rather than a client-supplied string, and expired entries are swept
+   * on write so the map stays proportional to active callers, not to history.
+   */
   function errorLogRateLimited(ip: string): boolean {
     const now = Date.now();
     const windowMs = 60 * 1000;
+
+    if (errorLogLimit.size > 5000) {
+      for (const [key, v] of errorLogLimit) {
+        if (now - v.windowStart > windowMs) errorLogLimit.delete(key);
+      }
+    }
+
     const entry = errorLogLimit.get(ip);
     if (!entry || now - entry.windowStart > windowMs) {
       errorLogLimit.set(ip, { count: 1, windowStart: now });
@@ -1879,7 +2674,10 @@ app.use(express.json());
 
   app.post('/api/log/client-error', async (req, res) => {
     try {
-      const ip = String(req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown').split(',')[0].trim();
+      // req.ip, not the raw header — see errorLogRateLimited. With
+      // `trust proxy` set, Express derives this from x-forwarded-for only as far
+      // as the hop it is told to trust, so a client cannot choose its own key.
+      const ip = req.ip || req.socket.remoteAddress || 'unknown';
       if (errorLogRateLimited(ip)) return res.status(429).json({ ok: false });
 
       const { context, message, stack, path } = req.body || {};
@@ -1929,9 +2727,17 @@ app.use(express.json());
       return res.status(401).json({ error: 'Unauthorized: Valid authentication required to use AI features.' });
     }
 
-    const { subject, message, type } = req.body;
+    // Rate limited like its two siblings. Requiring a signed-in caller bounds
+    // WHO can spend the AI quota but not HOW MUCH: an account is free and
+    // instant, and this was the only paid call in the file with no limiter at
+    // all, so one account could loop it and run up the Gemini bill unbounded.
+    if (await isEmailRateLimited(authContext.uid)) {
+      return res.status(429).json({ error: 'Too many requests. Please wait a few minutes and try again.' });
+    }
 
-    if (!subject || !message) {
+    const { subject, message, type } = req.body || {};
+
+    if (typeof subject !== 'string' || typeof message !== 'string' || !subject.trim() || !message.trim()) {
       return res.status(400).json({ error: 'Subject and message are required' });
     }
 

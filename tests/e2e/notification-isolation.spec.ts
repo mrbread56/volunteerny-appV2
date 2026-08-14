@@ -57,7 +57,7 @@ test.beforeAll(async () => {
   for (const [role, acct] of [['student', A], ['student', B], ['organization', ORG]] as const) {
     const u = await adminApp.auth().createUser({ email: acct.email, password: PASSWORD, emailVerified: true });
     acct.uid = u.uid;
-    await adminApp.auth().setCustomUserClaims(u.uid, { mfaVerified: true });
+    await adminApp.auth().setCustomUserClaims(u.uid, { mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600 });
     await db.collection('users').doc(u.uid).set({
       uid: u.uid, email: acct.email, role, twoFactorEnabled: role !== 'student',
       createdAt: a.firestore.FieldValue.serverTimestamp(),

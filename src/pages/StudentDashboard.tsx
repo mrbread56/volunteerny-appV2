@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
 import { DEMO_OPPORTUNITIES } from './studentDashboard/demoOpportunities';
@@ -9,7 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 import SuccessAnimation from "../components/SuccessAnimation";
 import EmailDeliveryNote from "../components/ui/EmailDeliveryNote";
 import { db } from "../firebase/config";
-import { subscribeToScalableLeaderboard } from "../lib/scalableLeaderboard";
+import { subscribeToScalableLeaderboard, requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { reportError } from "../lib/errors";
 import { totalLoggedHours } from "../lib/hours";
 import {
@@ -25,6 +25,7 @@ import {
   setDoc,
   serverTimestamp,
   updateDoc,
+  deleteDoc,
 } from "firebase/firestore";
 import {
   Application,
@@ -114,6 +115,7 @@ export default function StudentDashboard() {
   const [recommended, setRecommended] = useState<Opportunity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   // Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -279,18 +281,12 @@ export default function StudentDashboard() {
       setShowLogForm(false);
       setTimeout(() => setLogSuccess(false), 5000);
       setIsLogging(false);
-
-      sendTransactionalEmail({
-        to: normalizedContact,
-        subject: `${studentProfile?.fullName || "A student"} asked you to confirm their volunteer hours`,
-        templateName: "notification",
-        templateData: {
-          heading: "Please confirm these volunteer hours",
-          details: `${studentProfile?.fullName || "A student"} logged ${parsedHours} hours for "${logActivity}" on ${logDate} and has asked your organization to approve them.`,
-          actionLabel: "Review the request",
-          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
-        }
-      }).catch(err => console.error("Could not send hours request notification email:", err));
+      // Deliberately NO email from the demo branch. This used to send for real,
+      // to whatever address an anonymous visitor typed into the coordinator
+      // field, from our verified sending domain. Production was saved only by
+      // the server refusing demo tokens — and that refusal was swallowed by a
+      // .catch — so any preview deploy without NODE_ENV=production delivered it.
+      // A demo must never touch a real inbox.
       return;
     }
 
@@ -347,6 +343,14 @@ export default function StudentDashboard() {
       await updateDoc(doc(db, "students", user.uid), {
         trackerEnabled: newVal,
       });
+      // The public board is a materialised document, not a live query, so
+      // writing the flag changes nothing other students can see until something
+      // rebuilds it. Without this the toggle only altered THIS student's own
+      // tab: they were told "Leaderboard Participation Disabled" while everyone
+      // else carried on seeing their real name and hours, until some unrelated
+      // organization happened to approve someone's hours. Opting out of a
+      // public ranking has to take effect when you opt out.
+      void requestLeaderboardRebuild();
       await refreshProfile();
     } catch (err) {
       console.error("Error updating trackerEnabled", err);
@@ -367,10 +371,55 @@ export default function StudentDashboard() {
       await updateDoc(doc(db, "students", user.uid), {
         trackerAnonymous: newVal,
       });
+      // Same reason as the visibility toggle above — the rendered board is a
+      // stored snapshot, so hiding your name has to rebuild it.
+      void requestLeaderboardRebuild();
       await refreshProfile();
     } catch (err) {
       console.error("Error updating trackerAnonymous", err);
       setErrorMessage("Couldn't change your leaderboard anonymity. Please try again.");
+    }
+  };
+
+  /**
+   * Withdraw an application the student no longer wants.
+   *
+   * This DELETES the application rather than setting status 'terminated', and
+   * the difference matters because applications are now keyed deterministically
+   * as `${studentId}_${opportunityId}` to make duplicates impossible.
+   *
+   * A tombstoned document keeps that key occupied. Re-applying would then be an
+   * UPDATE, and isValidApplication pins `appliedAt` to its stored value while
+   * the apply path sends serverTimestamp() — so the write is refused, and the
+   * detail page's hasApplied check (which counts any status) shows "You've
+   * Applied!" for ever. Withdrawing would have been a permanent dead end.
+   *
+   * Deleting is also the more honest record: no decision had been made, so
+   * there is nothing for the organization to keep. firestore.rules has always
+   * allowed the owner to delete their own application. Withdrawal is only
+   * offered before a decision — an accepted placement is the organization's to
+   * terminate, and that path still uses 'terminated'.
+   */
+  const handleWithdrawApplication = async (app: any) => {
+    if (!user) return;
+    if (!window.confirm(`Withdraw your application for "${app.opportunityTitle || 'this opportunity'}"? You can apply again afterwards.`)) return;
+    setWithdrawingId(app.id);
+    try {
+      if (isDemoMode) {
+        const stored = JSON.parse(localStorage.getItem("demo_applications") || "[]");
+        localStorage.setItem("demo_applications", JSON.stringify(
+          stored.filter((a: any) => a.id !== app.id),
+        ));
+      } else {
+        await deleteDoc(doc(db, "applications", app.id));
+      }
+      setApplications((prev: any[]) => prev.filter((a) => a.id !== app.id));
+      setErrorMessage(null);
+    } catch (err) {
+      console.error("Error withdrawing application", err);
+      setErrorMessage("We couldn't withdraw that application. Please try again.");
+    } finally {
+      setWithdrawingId(null);
     }
   };
 
@@ -700,10 +749,21 @@ export default function StudentDashboard() {
     }
   }, [applications, isDemoMode]);
 
+  // hasLoadedOnce: the full-page loader is for the FIRST load only.
+  //
+  // This effect depends on studentProfile, and every settings toggle calls
+  // refreshProfile(), which yields a new object identity — so flipping
+  // "Participate in Rankings" re-ran the fetch, set isLoading true, and replaced
+  // the entire dashboard (sidebar, tabs, and the switch just touched) with
+  // "Loading your dashboard..." for the duration of six Firestore queries. A
+  // toggle should move, not blank the page. Refetches after the first now happen
+  // quietly in the background.
+  const hasLoadedOnce = useRef(false);
+
   useEffect(() => {
     const fetchData = async () => {
       if (!user) return;
-      setIsLoading(true);
+      if (!hasLoadedOnce.current) setIsLoading(true);
 
       // Demo-mode fixtures only — see src/pages/studentDashboard/demoOpportunities.ts
       // for why this must never reach the real signed-in path.
@@ -844,9 +904,15 @@ export default function StudentDashboard() {
         // Fetch saved opportunities with robust fallback
         let savedIds: string[] = [];
         try {
+          // orderBy savedAt: without it Firestore returns an arbitrary five,
+          // so a student who bookmarked six opportunities could not see the one
+          // they just saved. firestore.indexes.json already provisions exactly
+          // this composite index, described as "this student's most recent
+          // saves" — the query simply never asked for the ordering.
           const savedQuery = query(
             collection(db, "savedOpportunities"),
             where("studentId", "==", user.uid),
+            orderBy("savedAt", "desc"),
             limit(5),
           );
           const savedSnap = await getDocs(savedQuery);
@@ -907,9 +973,12 @@ export default function StudentDashboard() {
             limit(50),
           );
           const recSnap = await getDocs(recQuery);
-          fetchedOpps = recSnap.docs.map(
-            (doc) => ({ id: doc.id, ...doc.data() }) as Opportunity,
-          );
+          // Closed postings are dropped here, not in the query: Firestore omits
+          // documents missing the field, so filtering on status === 'open'
+          // would have hidden every opportunity created before it existed.
+          fetchedOpps = recSnap.docs
+            .map((doc) => ({ id: doc.id, ...doc.data() }) as Opportunity)
+            .filter((o) => o.status !== 'closed');
         } catch (dbErr) {
           // Same as above: an empty list plus an honest message, never invented
           // listings. This is the recommendations feed — the most prominent
@@ -958,6 +1027,7 @@ export default function StudentDashboard() {
     };
 
     fetchData();
+    hasLoadedOnce.current = true;
   }, [user, isDemoMode, studentProfile]);
 
   if (isLoading)
@@ -1065,6 +1135,22 @@ export default function StudentDashboard() {
                             >
                               <FileText className="w-3.5 h-3.5 text-amber-dark animate-pulse" />
                               <span>Receipt</span>
+                            </button>
+                          )}
+                          {/* Withdraw. firestore.rules has always permitted a student
+                              to set their own application to 'terminated', and no UI
+                              anywhere called it — a student who applied to the wrong
+                              opportunity had no way to take it back, the detail page
+                              said "You've Applied!" forever, and the organization kept
+                              counting them as an applicant against its capacity. */}
+                          {(app.status === "pending" || app.status === "reviewed" || app.status === "waitlist") && (
+                            <button
+                              title="Withdraw this application"
+                              disabled={withdrawingId === app.id}
+                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-white hover:bg-rose-50 text-red-600 border border-red-200 rounded-full flex items-center gap-1 transition-all duration-200 whitespace-nowrap disabled:opacity-50"
+                              onClick={() => handleWithdrawApplication(app)}
+                            >
+                              <span>{withdrawingId === app.id ? "Withdrawing…" : "Withdraw"}</span>
                             </button>
                           )}
                           {app.status === "accepted" && !existingRatings[`${app.orgId || app.organizationId}_${app.opportunityId}`] && (
@@ -1808,8 +1894,8 @@ export default function StudentDashboard() {
         />
       )}
       {showPrintModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn">
-          <Card className="w-full max-w-4xl bg-white border border-line/80 rounded-lg p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
+        <div data-print-root className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn">
+          <Card data-print-sheet className="w-full max-w-4xl bg-white border border-line/80 rounded-lg p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
             <button
               onClick={() => setShowPrintModal(false)}
               aria-label="Close transcript modal"
@@ -1881,7 +1967,7 @@ export default function StudentDashboard() {
             </div>
 
             {/* Sticky Actions */}
-            <div className="flex gap-3 justify-end pt-4">
+            <div data-print-hide className="flex gap-3 justify-end pt-4">
               <Button
                 variant="outline"
                 className="px-5 h-11 text-xs uppercase text-ink-soft font-semibold hover:bg-paper-3 rounded-lg"

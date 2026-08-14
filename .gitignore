@@ -42,6 +42,10 @@ revert_*.cjs
 # are mostly minors. Never commit one.
 backups/
 
-# Design review screenshots — regenerated on demand, not worth versioning.
-# The HTML mockups in design-archive/ are kept deliberately as references.
-design-archive/*.png
+# Scratch output from design and test runs. Regenerated on demand; none of it
+# is a source of truth, and screenshots in particular bloat the repo fast.
+# design-archive/ held mockups for redesigns that were all rejected — it was
+# deleted rather than carried forward. The tracked HTML is still in git history
+# if a reference is ever needed.
+design-archive/
+*.timestamp-*.mjs

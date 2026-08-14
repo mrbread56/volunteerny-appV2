@@ -199,6 +199,56 @@ const as = (email: string) => signInWithEmailAndPassword(auth, email, PASSWORD);
       console.log('[PASS] organization: can review its own applicant, and gets no passportUrl');
     }
 
+    // ── the organization can actually notify its applicant ──────────────────
+    // This is the half that was broken for every real organization. The
+    // applicant screens resolved the student's address with
+    // getDoc(users/{studentId}), which firestore.rules allows only to the
+    // account owner or a developer — so it threw, the throw was caught, and the
+    // address fell back to the literal string "student@example.com". Every
+    // acceptance and rejection went there instead of to the student, while the
+    // UI reported the applicant had been notified. The server now resolves the
+    // address itself, and never returns it.
+    {
+      // Point the student's account at Resend's sandbox address for this one
+      // step. Resend refuses @example.com outright ("Please use our testing
+      // email address instead of domains like example.com"), so leaving the
+      // fixture address in place would fail on the provider's validation rather
+      // than on anything this app does — while quietly not proving that
+      // delivery works at all. delivered@resend.dev is a real accepted
+      // recipient, so this exercises the whole path including the send.
+      const adb = adminFirestore();
+      await adb.collection('users').doc(student.uid).update({ email: 'delivered@resend.dev' });
+
+      const orgToken = await auth.currentUser!.getIdToken();
+      const r = await fetch(`${apiBase}/api/applications/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${orgToken}` },
+        body: JSON.stringify({ applicationId: appRef.id, status: 'accepted' }),
+      });
+      const body: any = await r.json().catch(() => ({}));
+      assert.ok(r.ok && body.success, `the organization could not notify its own applicant: ${r.status} ${body?.error || ''}`);
+      assert.ok(!JSON.stringify(body).includes('@'), 'the notify endpoint leaked an email address back to the organization');
+      console.log('[PASS] organization: notified its own applicant, without learning their address');
+
+      await adb.collection('users').doc(student.uid).update({ email: student.email });
+    }
+
+    // ...and an unrelated organization cannot. Ownership of the opportunity is
+    // the authorization here — not merely "is an organization", which anyone
+    // gets free at signup.
+    {
+      const outsider = await signUpAs('organization', 'outsider');
+      docs.push({ col: 'users', id: outsider.uid }, { col: 'organizations', id: outsider.uid });
+      const outsiderToken = await auth.currentUser!.getIdToken();
+      const r = await fetch(`${apiBase}/api/applications/notify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${outsiderToken}` },
+        body: JSON.stringify({ applicationId: appRef.id, status: 'rejected' }),
+      });
+      assert.equal(r.status, 403, `an unrelated organization was allowed to email someone else's applicant (${r.status})`);
+      console.log('[PASS] an unrelated organization cannot notify that applicant');
+    }
+
     // ── student rates the org ───────────────────────────────────────────────
     // Through the server, because the rules can no longer allow this from a
     // client. Anyone could previously rate any organization for any

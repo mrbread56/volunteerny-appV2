@@ -43,8 +43,17 @@ directly:
 npx tsx scripts/grant-mfa.ts them@theirdomain.org
 ```
 
-This sets the same signed `mfaVerified` claim the server sets after a correct
-code. They must sign out and back in for it to take effect.
+This opens a **one-hour window**: any sign-in they start before the deadline is
+exempt for that whole session. Tell them to sign out and back in straight away.
+After the deadline they are challenged normally again — the grant is not a
+permanent bypass and does not need undoing, though you can end it early:
+
+```bash
+npx tsx scripts/grant-mfa.ts them@theirdomain.org --revoke
+```
+
+The window is measured against Firebase's own record of when they signed in, not
+their browser clock, so it cannot be stretched from their end.
 
 **Confirm you are talking to the account owner before doing this.** It bypasses
 two-factor on an account that holds contact details for students, most of whom
@@ -122,7 +131,7 @@ hours, and `POST /api/hours/approve` enforces that. If hours appear that nobody
 approved, treat it as a security incident:
 
 ```bash
-npm run check:security  # expect 59/59
+npm run check:security   # expect 67/67
 npm run backup          # snapshot before touching anything
 ```
 
@@ -185,8 +194,9 @@ the matching code, or the reverse, breaks writes in production.
 ```bash
 npm run backup
 npx firebase-tools deploy --only firestore:rules --project volunteer-ny
-npm run check:security   # expect 59/59
-npm run check:flows      # expect 13/13
+npm run check:security   # expect 67/67
+npm run check:flows      # expect 15/15
+npm run check:lifecycle  # expect 13/13 (withdraw, waitlist, deletes)
 ```
 
 If the rules are wrong, redeploy the previous version from git history

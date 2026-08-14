@@ -150,6 +150,12 @@ export default function Signup() {
     if (!role) return;
 
     if (role === "organization") {
+      // The question has to be answered. It is what decides whether this
+      // organization enters the human verification queue at all.
+      if (hasCra === null) {
+        setError("Please tell us whether your organization is a CRA-registered charity.");
+        return;
+      }
       // Previously this only validated `if (craNumber)`, so an organization
       // could answer "yes, we are a registered charity", leave the field blank,
       // and still be written to Firestore with craVerified: true.
@@ -473,6 +479,50 @@ export default function Signup() {
                         onCoordinatesChange={setCoords}
                       />
                     </div>
+
+                    {/* The charity question. This never rendered, so hasCra was
+                        always null: craNumber was always written empty and
+                        verificationStatus was always "unverified". The developer
+                        review queue lists verificationStatus == "pending" only, so
+                        it was permanently empty and no organization could ever be
+                        verified — the whole verification feature was unreachable,
+                        even though its validation and its reviewer UI both existed. */}
+                    <fieldset className="space-y-2.5">
+                      <legend className="text-[13px] font-medium text-ink">
+                        Are you a CRA-registered charity? <span className="text-red-500">*</span>
+                      </legend>
+                      <p className="text-xs text-ink-soft leading-relaxed">
+                        Registered charities are reviewed by our team and shown a verified badge.
+                        You can join without one.
+                      </p>
+                      <div className="flex gap-3">
+                        {([["yes", "Yes"], ["no", "No"]] as const).map(([val, label]) => (
+                          <button
+                            key={val}
+                            type="button"
+                            onClick={() => setHasCra(val)}
+                            aria-pressed={hasCra === val}
+                            className={cn(
+                              "flex-1 h-11 rounded-lg border text-[13px] font-semibold transition-colors",
+                              hasCra === val
+                                ? "border-blue-dark bg-blue-dark text-white"
+                                : "border-line bg-white text-ink hover:border-blue-dark/40",
+                            )}
+                          >
+                            {label}
+                          </button>
+                        ))}
+                      </div>
+                      {hasCra === "yes" && (
+                        <Input
+                          label="CRA Registration Number"
+                          value={craNumber}
+                          onChange={(e) => setCraNumber(e.target.value)}
+                          placeholder="118833011RR0001"
+                          required
+                        />
+                      )}
+                    </fieldset>
 
                   </>
                 )}

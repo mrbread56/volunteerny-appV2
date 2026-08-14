@@ -130,28 +130,28 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
         id: `app-${d.id}-accepted`, kind: 'accepted',
         title: 'Application accepted',
         body: `You were accepted for ${title}. Contact the organization to arrange your first shift.`,
-        at: toDate(a.appliedAt), href: '/student/dashboard?tab=applications',
+        at: toDate(a.decidedAt ?? a.appliedAt), href: '/student/dashboard?tab=applications',
       });
     } else if (a.status === 'rejected') {
       out.push({
         id: `app-${d.id}-rejected`, kind: 'rejected',
         title: 'Application update',
         body: `Your application for ${title} was not successful this time.`,
-        at: toDate(a.appliedAt), href: '/student/dashboard?tab=applications',
+        at: toDate(a.decidedAt ?? a.appliedAt), href: '/student/dashboard?tab=applications',
       });
     } else if (a.status === 'waitlist') {
       out.push({
         id: `app-${d.id}-waitlist`, kind: 'waitlist',
         title: 'You are on the waitlist',
         body: `You are on the waitlist for ${title}. We will tell you if a place opens.`,
-        at: toDate(a.appliedAt), href: '/student/dashboard?tab=applications',
+        at: toDate(a.decidedAt ?? a.appliedAt), href: '/student/dashboard?tab=applications',
       });
     } else if (a.status === 'reviewed') {
       out.push({
         id: `app-${d.id}-reviewed`, kind: 'reviewed',
         title: 'Application reviewed',
         body: `${title} has reviewed your application.`,
-        at: toDate(a.appliedAt), href: '/student/dashboard?tab=applications',
+        at: toDate(a.decidedAt ?? a.appliedAt), href: '/student/dashboard?tab=applications',
       });
     }
   }
@@ -169,7 +169,8 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
         h.status === 'approved'
           ? `${h.hours} hour${h.hours === 1 ? '' : 's'} for ${h.activity} were approved and added to your total.`
           : `Your request for ${h.hours} hour${h.hours === 1 ? '' : 's'} (${h.activity}) was declined.`,
-      at: toDate(h.requestedAt), href: '/student/dashboard?tab=hours',
+      // The decision, not the submission — see the applications block above.
+      at: toDate(h.decidedAt ?? h.declinedAt ?? h.requestedAt), href: '/student/dashboard?tab=hours',
     });
   }
 
@@ -267,18 +268,39 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
   // coordinator list requests addressed to their email, which is exactly this.
   // Filtered in JS rather than a second `where` so no composite index is needed.
   if (email) {
-    const reqs = await getDocs(
-      query(collection(db, 'hoursRequests'), where('coordinatorContact', '==', email), limit(50)),
-    );
-    for (const d of reqs.docs) {
-      const h: any = d.data();
-      if (h.status !== 'pending') continue;
-      extra.push({
-        id: `hoursreq-${d.id}`, kind: 'hoursPending',
-        title: 'Hours waiting for your confirmation',
-        body: `${h.studentName || 'A student'} logged ${h.hours} hour${h.hours === 1 ? '' : 's'} for ${h.activity} and needs you to confirm.`,
-        at: toDate(h.requestedAt), href: '/org/dashboard?tab=hours',
-      });
+    // Isolated, because this one query can legitimately be denied.
+    //
+    // The rule behind it requires request.auth.token.email_verified, and
+    // nothing in the app forces an organization to click its verification link
+    // before using the dashboard. An unverified organization therefore gets
+    // permission-denied here — and this used to reject the whole
+    // fetchNotifications call, so ONE unclickable email killed every other
+    // notification kind and the bell rendered "Couldn't load your
+    // notifications" with nothing in it.
+    //
+    // The other sources are unaffected by that state, so they must still be
+    // returned. The dashboard tells the organization to verify its address
+    // separately; the bell's job is to show what it can.
+    //
+    // Lowercased to match: OrgDashboard queries the same field lowercased,
+    // students store it lowercased, and the two used to disagree.
+    try {
+      const reqs = await getDocs(
+        query(collection(db, 'hoursRequests'),
+          where('coordinatorContact', '==', email.trim().toLowerCase()), limit(50)),
+      );
+      for (const d of reqs.docs) {
+        const h: any = d.data();
+        if (h.status !== 'pending') continue;
+        extra.push({
+          id: `hoursreq-${d.id}`, kind: 'hoursPending',
+          title: 'Hours waiting for your confirmation',
+          body: `${h.studentName || 'A student'} logged ${h.hours} hour${h.hours === 1 ? '' : 's'} for ${h.activity} and needs you to confirm.`,
+          at: toDate(h.requestedAt), href: '/org/dashboard?tab=hours',
+        });
+      }
+    } catch (err) {
+      console.warn('[notifications] hours requests unavailable (verify your email address):', err);
     }
   }
 

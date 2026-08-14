@@ -135,6 +135,7 @@ export default function StudentOpportunities() {
   const [savedIds, setSavedIds] = useState<string[]>([]);
   const [view, setView] = useState<'list' | 'map'>('list');
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   
   // Filters
   const [searchTerm, setSearchTerm] = useState('');
@@ -229,9 +230,28 @@ export default function StudentOpportunities() {
       }
 
       try {
-        const oppsQuery = query(collection(db, 'opportunities'), orderBy('createdAt', 'desc'));
+        // Bounded. This had no limit at all, so the main browse page downloaded
+        // EVERY opportunity ever posted on every visit and filtered them in the
+        // browser — a read cost and a payload that grow with the collection
+        // forever, on the one page students open most. The `limit` import was
+        // already sitting there unused. 200 is far past what anyone scrolls,
+        // and the newest are what the ordering guarantees are kept.
+        const oppsQuery = query(
+          collection(db, 'opportunities'),
+          orderBy('createdAt', 'desc'),
+          limit(200),
+        );
         const snap = await getDocs(oppsQuery);
-        setOpportunities(snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Opportunity)));
+        // Closed postings are filtered HERE rather than with a
+        // where('status','==','open') clause, deliberately: Firestore omits
+        // documents that lack the field entirely, so a query filter would have
+        // hidden every opportunity created before `status` existed. Absent
+        // means open.
+        setOpportunities(
+          snap.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Opportunity))
+            .filter(o => o.status !== 'closed'),
+        );
 
         // Fetch saved status with local storage fallback mirror
         if (user) {
@@ -252,7 +272,17 @@ export default function StudentOpportunities() {
           }
         }
       } catch (err) {
-        console.error('Error fetching opportunities:', err);
+        // This was a bare console.error, so `opportunities` stayed [] and the
+        // page rendered its empty state: "No volunteer opportunities yet." A
+        // student on a dropped connection was told there was nothing to
+        // volunteer for and left. A failed read is not an empty result.
+        setLoadError(
+          reportError(
+            'load opportunities',
+            err,
+            "We couldn't load the opportunities. Check your connection and refresh to try again.",
+          ),
+        );
       } finally {
         setIsLoading(false);
       }
@@ -464,6 +494,19 @@ export default function StudentOpportunities() {
                 studentInterests={studentProfile?.interests || []}
               />
             ))
+          ) : loadError ? (
+            // A failed read must not look like an empty catalogue.
+            <div role="alert" className="col-span-full py-24 text-center bg-white rounded-lg border border-dashed border-red-200 space-y-4">
+               <div className="text-5xl">⚠️</div>
+               <p className="text-xl font-bold text-ink tracking-tight leading-none">We couldn't load the opportunities.</p>
+               <p className="text-ink-muted max-w-md mx-auto leading-relaxed">{loadError}</p>
+               <button
+                 onClick={() => window.location.reload()}
+                 className="mt-2 h-11 px-6 rounded-lg bg-blue-dark text-white font-semibold text-sm"
+               >
+                 Try again
+               </button>
+            </div>
           ) : (
             <div className="col-span-full py-24 text-center bg-white rounded-lg border border-dashed text-ink-muted font-medium space-y-4 ">
                <div className="text-5xl">🔭</div>

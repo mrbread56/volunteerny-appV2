@@ -3,6 +3,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { ShieldCheck, Printer, Clipboard, Clock, CheckCircle, FileText, Download, Mail, Check, Loader2 } from 'lucide-react';
 import { Button } from './ui/Button';
 import { sendTransactionalEmail } from '../lib/emailService';
+import { cn } from '../lib/utils';
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -112,11 +113,24 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
   const generatedSerial = `YVR-${application.id.substr(0, 6).toUpperCase()}-${(application.studentName || 'VOL').substring(0, 3).toUpperCase()}-${new Date().getFullYear()}`;
 
   const handleSendEmailReceipt = async () => {
+    // No placeholder recipient.
+    //
+    // This was `application.studentEmail || "student@example.com"`, and
+    // applications never store studentEmail — the apply form does not write it.
+    // The student's own dashboard injects it before opening this modal, so that
+    // path works; the organization's two call sites pass the raw Firestore
+    // document, so every receipt an organization sent went to the literal
+    // sandbox address while the button reported "Emailed!". Refuse instead of
+    // lying about where it went.
+    if (!application.studentEmail) {
+      setEmailStatus("No address on file");
+      return;
+    }
     setIsSendingEmail(true);
     setEmailStatus(null);
     try {
       const res = await sendTransactionalEmail({
-        to: application.studentEmail || "student@example.com",
+        to: application.studentEmail,
         subject: `📄 [Receipt Confirmation] ${application.opportunityTitle || 'Community Service Participation'}`,
         templateName: 'application_status',
         templateData: {
@@ -239,11 +253,27 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
 
         {/* Action Controls */}
         <div className="p-6 bg-paper-2 border-t border-line flex flex-col gap-3">
-          {emailStatus && (
-            <div className="text-center text-xs font-semibold text-emerald-600 tracking-wide p-2 bg-emerald-50 border border-emerald-200 rounded-lg mb-1 animate-in zoom-in-95">
-              📧 {emailStatus}
-            </div>
-          )}
+          {/* Coloured by OUTCOME. This rendered every value in emerald with a
+              📧 prefix, including "Failed email" and "No address on file" — so
+              an organization pressing Email Receipt for a student with no
+              address on file got a green confirmation box and reasonably
+              concluded it had been sent. */}
+          {emailStatus && (() => {
+            const sent = emailStatus === 'Emailed!';
+            return (
+              <div
+                role={sent ? undefined : 'alert'}
+                className={cn(
+                  'text-center text-xs font-semibold tracking-wide p-2 border rounded-lg mb-1 animate-in zoom-in-95',
+                  sent
+                    ? 'text-emerald-600 bg-emerald-50 border-emerald-200'
+                    : 'text-red-700 bg-red-50 border-red-200',
+                )}
+              >
+                {sent ? '📧 ' : ''}{emailStatus}
+              </div>
+            );
+          })()}
           <div className="flex flex-col sm:flex-row gap-2">
             <Button 
               variant="outline"

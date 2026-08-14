@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useDialog } from "../hooks/useDialog";
 import { useAuth } from "../contexts/AuthContext";
-import { db } from "../firebase/config";
+import { db, auth } from "../firebase/config";
 import {
   collection,
   query,
@@ -40,7 +40,7 @@ import { motion, AnimatePresence } from "motion/react";
 import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
 import { serverTimestamp } from "firebase/firestore";
-import { sendTransactionalEmail } from "../lib/emailService";
+import { sendTransactionalEmail, notifyApplicant } from "../lib/emailService";
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { reportError } from "../lib/errors";
@@ -54,9 +54,6 @@ export default function OrgDashboard() {
     user,
     orgProfile,
     isDemoMode,
-    accessToken,
-    connectGmail,
-    disconnectGmail,
   } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -210,16 +207,27 @@ export default function OrgDashboard() {
         ...doc.data()
       }));
       setHoursRequests(list);
-    } catch (e) {
+    } catch (e: any) {
       // Deliberately no demo-fixture fallback. An organization seeing invented
       // pending requests, or an empty queue that is really a failed read, both
       // lead to a real student's hours going unapproved.
+      //
+      // permission-denied here has exactly one cause, and a generic "please
+      // refresh" is useless against it: the rule requires a VERIFIED email
+      // address (it is what stops anyone registering a coordinator's address
+      // and reading every student's hours submitted to it), and nothing forces
+      // an organization to click its verification link before reaching this
+      // page. Refreshing will never fix that, so say what will.
+      const needsVerification =
+        e?.code === 'permission-denied' && auth.currentUser?.emailVerified === false;
       setErrorMessage(
-        reportError(
-          'load hours requests',
-          e,
-          "We couldn't load the hours awaiting your approval. Please refresh to try again.",
-        ),
+        needsVerification
+          ? "Confirm your email address before you can see hours awaiting approval. We sent a link when you signed up — open it, then sign out and back in."
+          : reportError(
+              'load hours requests',
+              e,
+              "We couldn't load the hours awaiting your approval. Please refresh to try again.",
+            ),
       );
       setHoursRequests([]);
     }
@@ -298,7 +306,10 @@ export default function OrgDashboard() {
         if (approved) void requestLeaderboardRebuild();
       }
 
-      sendTransactionalEmail({
+      // Guarded. This sat AFTER the demo/real fork rather than inside the real
+      // branch, so a demo session mailed whatever address the fixture carried,
+      // for real, from our verified domain.
+      if (!isDemoMode) sendTransactionalEmail({
         to: req.studentEmail,
         subject: approved
           ? `${req.hours} volunteer hours approved`
@@ -453,23 +464,30 @@ export default function OrgDashboard() {
             (doc) => ({ id: doc.id, ...doc.data() }) as Opportunity,
           );
         } catch (dbErr) {
-          console.warn(
-            "Firestore fetch for opportunities failed, using local fallback:",
-            dbErr,
+          // Say so. This was a console.warn, so oppsData stayed empty and the
+          // page rendered "No opportunities posted yet." — then, because the
+          // applications query below is skipped when there are no ids, "No
+          // applications to review yet." as well. On any dropped connection or
+          // permission error an organization was shown two clean empty states
+          // and nothing at all indicating a failure.
+          setErrorMessage(
+            reportError(
+              'load opportunities',
+              dbErr,
+              "We couldn't load your opportunities. Refresh to try again — they have not been deleted.",
+            ),
           );
         }
 
-        // Merge with any local opportunities saved to localStorage by this organization
-        const localOpps = JSON.parse(
-          localStorage.getItem("local_opportunities") || "[]",
-        );
-        const orgLocalOpps = localOpps.filter(
-          (opp: any) => opp.orgId === user.uid,
-        );
-
-        // Combine keeping latest on top, avoiding duplicate IDs
-        const combinedOpps = [...orgLocalOpps, ...oppsData];
-        const uniqueOpps = combinedOpps.filter(
+        // The `local_opportunities` localStorage merge that used to be here is
+        // gone. NOTHING in this codebase ever wrote that key — it was read-only
+        // dead scaffolding — so it never once produced a fallback. It was also
+        // actively harmful: any browser still carrying the key from an older
+        // build injected opportunity ids that do not exist in Firestore, and the
+        // applications `list` rule proves ownership with exists() on each id in
+        // the `in` clause. One phantom id failed that check and denied the whole
+        // chunk, so every real applicant vanished behind an error.
+        const uniqueOpps = oppsData.filter(
           (opp, idx, self) => self.findIndex((o) => o.id === opp.id) === idx,
         );
 
@@ -557,63 +575,27 @@ export default function OrgDashboard() {
     const dispatchEmailNotification = async (
       currentRecentApps: Application[],
     ) => {
+      if (isDemoMode) return;
+
       try {
-        let studentEmail: string | null = null;
-        const targetApp = currentRecentApps.find((a) => a.id === appId);
-        const targetStudentName = targetApp?.studentName || "Student";
-        const opportunityTitle = targetApp?.opportunityTitle || "Opportunity";
-
-        if (isDemoMode) {
-          studentEmail =
-            targetApp?.studentId === "demo-student-1"
-              ? "armin.k@yorkschool.ca"
-              : "student@example.com";
-        } else if (targetApp?.studentId) {
-          const studentUserDoc = await getDoc(
-            doc(db, "users", targetApp.studentId),
+        // Resolved and sent server-side — the browser cannot read
+        // users/{studentId}. See POST /api/applications/notify, and the note on
+        // the identical call in OrgOpportunityApplicants.tsx.
+        const emailResult = await notifyApplicant({
+          applicationId: appId,
+          status: newStatus as "accepted" | "rejected" | "terminated",
+          reason: rejectionData?.reason,
+          note: rejectionData?.note,
+        });
+        emailSent = emailResult.success;
+        if (!emailResult.success) {
+          console.error("Applicant status email was not delivered:", emailResult.error);
+          setErrorMessage(
+            `The status was saved, but we could not email the applicant. ${emailResult.error || ""}`.trim()
           );
-          if (studentUserDoc.exists()) {
-            studentEmail = studentUserDoc.data().email;
-          }
-        }
-
-        // Sandbox safety fallback if email is not resolved or is demo
-        if (!studentEmail || studentEmail === "student@example.com") {
-          studentEmail = "student@example.com";
-        }
-
-        if (studentEmail) {
-          const subject = newStatus === "accepted"
-            ? `Your application for "${opportunityTitle}" was accepted! 🎉`
-            : `Application Update for "${opportunityTitle}"`;
-
-          // sendTransactionalEmail never throws: it resolves with
-          // { success: false } on failure. This set emailSent = true
-          // unconditionally, so the organization was told the applicant had
-          // been notified even when no email left the building. (The identical
-          // bug was already fixed in OrgOpportunityApplicants.tsx; the fix
-          // never reached this copy.)
-          const emailResult = await sendTransactionalEmail({
-            to: studentEmail,
-            subject: subject,
-            templateName: "application_status",
-            templateData: {
-              studentName: targetStudentName,
-              oppTitle: opportunityTitle,
-              orgName: orgProfile?.organizationName || "Verified Organization",
-              status: newStatus === "accepted" ? "accepted" : "rejected",
-              note: newStatus === "rejected"
-                ? `${rejectionData?.reason || "Schedule Match Conflict"}. ${rejectionData?.note || ""}`
-                : undefined
-            }
-          });
-          emailSent = emailResult.success;
-          if (!emailResult.success) {
-            console.error("Applicant status email was not delivered:", emailResult.error);
-          }
         }
       } catch (e) {
-        console.error("Failed to compile or dispatch Resend notification:", e);
+        console.error("Failed to dispatch the applicant notification:", e);
       }
     };
 
@@ -643,6 +625,10 @@ export default function OrgDashboard() {
     try {
       const updates: any = {
         status: newStatus,
+        // When the decision was made, so the student's notification bell can
+        // tell a fresh decision from the moment they applied. Without it the
+        // unread badge never fired for an acceptance or a rejection.
+        decidedAt: serverTimestamp(),
       };
 
       if (newStatus === "rejected" && rejectionData) {
@@ -796,58 +782,36 @@ export default function OrgDashboard() {
         setSelectedStudentId("");
         setSuccessMessage("Successfully logged credits for student!");
       } else {
-        const studentRef = doc(db, "students", selectedStudentId);
-        const studentSnap = await getDoc(studentRef);
+        // This used to getDoc(students/{id}) and getDoc(users/{id}) first, to
+        // read the name and the address. firestore.rules allows neither read to
+        // an organization, so the very first one threw for every real account
+        // and the throw fell into the catch below — this form reported
+        // "Failed to save hours log" every single time and never reached the
+        // server. Nothing was lost by deleting it: studentsList already carries
+        // fullName (it is what the picker renders), and the address is not
+        // needed here, because /api/hours/approve emails the student itself
+        // after it has proved the placement.
+        studentName =
+          studentsList.find((s) => s.id === selectedStudentId)?.fullName || studentName;
 
-        if (studentSnap.exists()) {
-          const sName = studentSnap.data().fullName;
-          if (sName) studentName = sName;
-
-          const userRef = doc(db, "users", selectedStudentId);
-          const userSnap = await getDoc(userRef);
-          if (userSnap.exists()) {
-            const sEmail = userSnap.data().email;
-            if (sEmail) studentEmail = sEmail;
-          }
-
-          // Same reason as the request-approval path above: the credit is
-          // written by the server, which can prove this student actually
-          // volunteered with us. A student the organization has no accepted
-          // application for is now refused with a clear message instead of
-          // being silently credited.
-          await approveStudentHours({
-            studentId: selectedStudentId,
-            hours: Number(logHours),
-            activity: newLogItem.activity,
-            date: logDate,
-          });
-          setLogResultStatus("success");
-          // Direct credit logging also moves the student's total.
-          void requestLeaderboardRebuild();
-          setLogDate("");
-          setLogHours("");
-          setLogActivity("");
-          setSelectedStudentId("");
-          setSuccessMessage("Successfully logged and authorized hours!");
-        } else {
-          setLogResultStatus("error_not_found");
-        }
-      }
-
-      if (studentEmail && studentEmail !== "student@example.com") {
-        sendTransactionalEmail({
-          to: studentEmail,
-          subject: `${parsedHours} Volunteer Hours Successfully Authorized! 🎉`,
-          templateName: "hours_confirmation",
-          templateData: {
-            studentName: studentName,
-            hours: parsedHours,
-            activity: logActivity,
-            orgName: orgProfile?.organizationName || "Verified Organization"
-          }
-        }).catch((err) => {
-          console.error("Failed to automatically email hours notification to student:", err);
+        // The credit is written by the server, which can prove this student
+        // actually volunteered with us. A student the organization has no
+        // accepted application for is refused with a clear message instead of
+        // being silently credited.
+        await approveStudentHours({
+          studentId: selectedStudentId,
+          hours: Number(logHours),
+          activity: newLogItem.activity,
+          date: logDate,
         });
+        setLogResultStatus("success");
+        // Direct credit logging also moves the student's total.
+        void requestLeaderboardRebuild();
+        setLogDate("");
+        setLogHours("");
+        setLogActivity("");
+        setSelectedStudentId("");
+        setSuccessMessage("Successfully logged and authorized hours!");
       }
     } catch (err) {
       console.error("Failed to log student hours:", err);

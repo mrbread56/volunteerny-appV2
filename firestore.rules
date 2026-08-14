@@ -146,6 +146,14 @@ service cloud.firestore {
              (absent(data, 'exclusives') || data.exclusives is list) &&
              (absent(data, 'timeCommitment') || data.timeCommitment is string) &&
              (absent(data, 'isVirtual') || data.isVirtual is bool) &&
+             // 'closed' stops new applications without deleting the posting.
+             // Absent means open, so every opportunity created before this
+             // field existed keeps working with no backfill.
+             (absent(data, 'status') || data.status in ['open', 'closed']) &&
+             // 'closed' stops new applications without deleting the posting.
+             // Absent means open, so every opportunity created before this
+             // field existed keeps working with no backfill.
+             (absent(data, 'status') || data.status in ['open', 'closed']) &&
              (absent(data, 'scheduleType') || data.scheduleType is string) &&
              (absent(data, 'shifts') || data.shifts is list) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number)) &&
@@ -185,6 +193,10 @@ service cloud.firestore {
               (absent(data, 'message') || (data.message is string && data.message.size() <= 5000)) &&
               (absent(data, 'rejectionReason') || (data.rejectionReason is string && data.rejectionReason.size() <= 300)) &&
               (absent(data, 'rejectionNote') || (data.rejectionNote is string && data.rejectionNote.size() <= 2000)) &&
+              // When the organization decided, as opposed to when the student
+              // applied. The student's notification bell reads this; see the
+              // note on the org branch of `allow update`.
+              (absent(data, 'decidedAt') || data.decidedAt is timestamp) &&
               data.appliedAt == (resource == null ? request.time : resource.data.appliedAt) &&
               // Same 400 KB cap the student document already enforces. Without it an
              // application could carry most of the 1 MiB document limit.
@@ -290,13 +302,20 @@ service cloud.firestore {
     }
 
     function isValidInterestRequest(data) {
+      // createdAt and status are pinned to their EXISTING value on update, and
+      // only fixed on create. They were both hard-coded to the create-time
+      // values — `createdAt == request.time` and `status == 'pending'` — which
+      // can never hold once the document exists: createdAt does not change, so
+      // it can never equal "now". That made the whole student branch of
+      // `allow update` unreachable, and a student could never edit the interest
+      // request they had just filed. Same shape as isValidApplication.
       return data.studentId == request.auth.uid &&
-             data.studentName is string &&
-             data.email is string &&
-             data.categories is list &&
-             data.description is string &&
-             data.createdAt == request.time &&
-             data.status == 'pending';
+             data.studentName is string && data.studentName.size() <= 300 &&
+             data.email is string && data.email.size() <= 320 &&
+             data.categories is list && data.categories.size() <= 50 &&
+             data.description is string && data.description.size() <= 5000 &&
+             data.createdAt == (resource == null ? request.time : resource.data.createdAt) &&
+             data.status == (resource == null ? 'pending' : resource.data.status);
     }
 
     // --- Match Blocks ---
@@ -360,7 +379,25 @@ service cloud.firestore {
       // Only students and developers can run list queries
       allow list: if isSignedIn() && (isOwner(uid) || isDeveloper());
       
-      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidStudent(incoming()) && 
+      // hasOnly is the outer bound, and it is doing real work here.
+      //
+      // isValidStudent() below validates thirteen NAMED fields. It says nothing
+      // about any field it does not name, and `hours` is not one of them —
+      // `hours` is the denormalised total the leaderboard rebuild orders by
+      // (server.ts, orderBy('hours','desc')). The update rule pins it, so
+      // self-crediting was closed on that path and check-security.ts asserts it
+      // with updateDoc. Create was never tested and never bounded: a new
+      // account could set { hours: 999999 } in the SAME setDoc that created the
+      // profile and rank first on the public board permanently, because
+      // students delete is developer-only. Verified against the live project
+      // before this line was added.
+      //
+      // The same gap let a create pad the document with arbitrary unnamed keys
+      // up to the 1 MiB ceiling — free storage attached to a free account,
+      // dragged along by every read. Identical reasoning to /users above.
+      allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidStudent(incoming()) &&
+                    incoming().keys().hasOnly(['uid', 'email', 'fullName', 'school', 'grade', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'loggedHours', 'isBanned', 'trackerEnabled', 'trackerAnonymous', 'createdAt']) &&
+                    incoming().get('hours', 0) == 0 &&
                     (!('loggedHours' in incoming()) || incoming().loggedHours.size() == 0);
       // `hours` is the denormalised total of `loggedHours` and is what the
       // leaderboard rebuild orders by, so it is exactly as self-crediting as the
@@ -408,12 +445,36 @@ service cloud.firestore {
       // set them on itself - the client used to write craVerified: true purely
       // because the org typed a number, and these rules allowed it, so any org
       // could self-issue a verified badge with a single request.
+      // Both trust signals must be pinned on create, not just craVerified.
+      //
+      // verificationStatus was in the hasOnly allowlist below with no value
+      // constraint, so an organization could sign up with
+      // { craVerified: false, verificationStatus: 'verified' } and skip human
+      // vetting entirely — the developer review queue only lists
+      // verificationStatus == 'pending', so a self-verified org never appears
+      // in it and is never looked at by a person. Confirmed against the live
+      // project before this line was added. The update rule already omits both
+      // keys, which is why only the create path was open.
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidOrganization(incoming()) &&
                       incoming().get('craVerified', false) == false &&
+                      incoming().get('verificationStatus', 'unverified') in ['pending', 'unverified'] &&
                       incoming().keys().hasOnly(['uid', 'organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'craVerified', 'verificationStatus']);
+      // verificationStatus is writable by the organization, but ONLY to
+      // 'pending' — asking to be reviewed, never declaring the outcome.
+      //
+      // It was absent from this list entirely, which meant an organization that
+      // obtained charitable status after signing up could enter its CRA number,
+      // see it saved, and never appear in the reviewer's queue: that queue
+      // lists verificationStatus == 'pending' and nothing could ever move a
+      // profile into it after creation. craVerified stays pinned to its
+      // existing value here, so the actual trust signal remains a decision only
+      // a reviewer can make.
       allow update: if isSignedIn() && isValidId(uid) && (
         (request.auth.uid == uid && isValidOrganization(incoming()) &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks'])) ||
+         incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'verificationStatus']) &&
+         incoming().get('craVerified', false) == existing().get('craVerified', false) &&
+         (incoming().get('verificationStatus', '') == existing().get('verificationStatus', '') ||
+          incoming().get('verificationStatus', '') == 'pending')) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -422,11 +483,11 @@ service cloud.firestore {
     match /opportunities/{opportunityId} {
       allow read: if true; // Public access to browse
       allow create: if isVerifiedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
-                      incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
+                      incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
       allow update: if isVerifiedOrg() && isValidId(opportunityId) &&
                       existing().orgId == request.auth.uid && 
                       isValidOpportunity(incoming()) &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'autoCreateGroupChat', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
       allow delete: if isVerifiedOrg() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 
@@ -447,8 +508,15 @@ service cloud.firestore {
         isDeveloper()
       );
       
-      // Allow students to apply either directly (pending) or to waitlist (waitlist)
-      allow create: if isVerifiedStudent() && isValidId(applicationId) && isValidApplication(incoming()) && 
+      // Allow students to apply either directly (pending) or to waitlist (waitlist).
+      //
+      // hasOnly bounds the document. isValidApplication caps every field it
+      // names, but named nothing about fields it does not — and with document
+      // ids unconstrained, a student could create unlimited applications each
+      // padded with an unnamed key toward the 1 MiB ceiling. Same reasoning as
+      // /users and /students.
+      allow create: if isVerifiedStudent() && isValidId(applicationId) && isValidApplication(incoming()) &&
+                    incoming().keys().hasOnly(['opportunityId', 'orgId', 'studentId', 'status', 'appliedAt', 'message', 'opportunityTitle', 'studentName', 'previousExperience', 'resumeUrl']) &&
                     (incoming().status == 'pending' || incoming().status == 'waitlist');
                     
       allow update: if isSignedIn() && isValidId(applicationId) && isValidApplication(incoming()) && (
@@ -456,10 +524,18 @@ service cloud.firestore {
         (isOwner(existing().studentId) && 
          (incoming().status == existing().status || incoming().status == 'terminated') &&
          incoming().diff(existing()).affectedKeys().hasOnly(['message', 'resumeUrl', 'status'])) ||
-        // Org can update status, rejectionReason, and rejectionNote
+        // Org can update status, rejectionReason, rejectionNote and decidedAt.
+        //
+        // decidedAt is what makes the student's notification bell work. The
+        // bell used to timestamp "application accepted" with appliedAt — the
+        // moment the STUDENT applied — so a decision made after they last
+        // opened the bell always compared as already-seen and the unread badge
+        // never appeared for an acceptance, a rejection, or a waitlist move.
+        // appliedAt cannot be reused: it is pinned on create and never changes,
+        // which is correct. So the decision needs its own stamp.
         (exists(/databases/$(database)/documents/opportunities/$(existing().opportunityId)) &&
          get(/databases/$(database)/documents/opportunities/$(existing().opportunityId)).data.orgId == request.auth.uid &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectionNote'])) ||
+         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectionNote', 'decidedAt'])) ||
         isDeveloper()
       );
       allow delete: if isOwner(resource.data.studentId) || isDeveloper();
@@ -508,6 +584,15 @@ service cloud.firestore {
 
     // Email request counters, written only by the server's Admin SDK.
     match /email_rate_limits/{uid} {
+      allow read, write: if false;
+    }
+
+    // The transactional email log behind the developer console. It records the
+    // RECIPIENT ADDRESS of every send, which is personal data for people who are
+    // mostly minors, so no client may touch it — not even a developer. The
+    // Admin SDK writes it and GET /api/email/history reads it there, behind the
+    // verified developer allowlist.
+    match /emailLog/{entryId} {
       allow read, write: if false;
     }
 

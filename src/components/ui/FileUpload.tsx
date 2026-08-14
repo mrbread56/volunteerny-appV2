@@ -227,12 +227,20 @@ export function FileUpload({
             )}
           </div>
           
-          {error && (
-            <p className="absolute -bottom-6 left-2 text-xs font-bold text-red-500 uppercase">
-              {error}
-            </p>
-          )}
         </div>
+
+        {/* Rendered OUTSIDE the drop zone, in normal flow.
+            This used to be `absolute -bottom-6` INSIDE a container carrying
+            `overflow-hidden` — so it was positioned 24px below that box's
+            bottom edge and clipped away entirely. Every upload failure was
+            invisible: a student dropped a file the storage rules refuse, the
+            spinner vanished, the zone read "Click to upload" again, and they
+            believed their resume was attached. */}
+        {error && (
+          <p role="alert" className="mt-2 text-xs font-semibold text-red-600 leading-relaxed">
+            {error}
+          </p>
+        )}
       </div>
 
       {isTooLarge && tooLargeSizeKB && pendingFile && (

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
+import { reportError } from '../lib/errors';
 import { db } from '../firebase/config';
 import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'firebase/firestore';
 import { Button } from '../components/ui/Button';
@@ -40,6 +41,7 @@ export default function FeedbackPage() {
   const [submittedFeedback, setSubmittedFeedback] = useState<any | null>(null);
   const [error, setError] = useState('');
   const [myFeedbacks, setMyFeedbacks] = useState<any[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // Drag-and-drop attachment file states
   const [file, setFile] = useState<File | null>(null);
@@ -72,10 +74,21 @@ export default function FeedbackPage() {
         setMyFeedbacks(fbList);
       }
     } catch (err) {
-      console.warn('Error fetching personal feedbacks, using fallback local array:', err);
-      const demoFeedbacks = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
-      const filtered = demoFeedbacks.filter((fb: any) => fb.userId === userId);
-      setMyFeedbacks(filtered);
+      // NO demo-fixture fallback. This catch sits outside the isDemoMode fork
+      // above, so a real signed-in user whose query failed was shown localStorage
+      // demo data as "My submissions" — and because the seeded samples carry no
+      // userId, the filter usually emptied the list instead and told them they
+      // had never submitted anything. Both are lies about their own records.
+      // The same hardening was already applied to OrgDashboard and the developer
+      // console; this call site was missed.
+      setMyFeedbacks([]);
+      setLoadError(
+        reportError(
+          'load your feedback',
+          err,
+          "We couldn't load your previous submissions. Refresh to try again.",
+        ),
+      );
     }
   };
 
@@ -441,7 +454,16 @@ export default function FeedbackPage() {
           </span>
         </div>
 
-        {myFeedbacks.length === 0 ? (
+        {loadError ? (
+          /* A failed read must not read as "you have never submitted anything". */
+          <div role="alert" className="text-center py-12 bg-red-50 border border-red-200 rounded-lg text-red-700 font-semibold text-xs max-w-md mx-auto space-y-3">
+            <h4 className="font-bold">We couldn't load your tickets</h4>
+            <p className="font-medium px-4 leading-relaxed">{loadError}</p>
+            <button onClick={() => window.location.reload()} className="mt-1 underline underline-offset-2">
+              Try again
+            </button>
+          </div>
+        ) : myFeedbacks.length === 0 ? (
           <div className="text-center py-12 bg-paper-2 border border-line rounded-lg text-ink-soft font-semibold text-xs max-w-md mx-auto space-y-3">
             <MessageSquare className="w-8 h-8 mx-auto text-ink-soft animate-pulse" />
             <h4 className="text-ink-soft font-bold">No tickets logged yet</h4>

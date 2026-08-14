@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { reportError } from '../lib/errors';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase/config';
-import { doc, getDoc, collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
 import { Opportunity, Application, OrganizationProfile } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
@@ -234,9 +234,37 @@ export default function StudentOpportunityDetail() {
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !id || !opportunity) return;
-    
+
+    // Closed postings take no new applications. Checked against the document
+    // read at mount AND re-read below, because an organization can close the
+    // opportunity while a student has this page open.
+    if (opportunity.status === 'closed') {
+      setApplyError('This opportunity has closed and is no longer accepting applications.');
+      return;
+    }
+
     setIsApplying(true);
     setApplyError("");
+
+    try {
+      // Re-read rather than trusting the copy captured at mount. Without this,
+      // a student who loaded the page before it closed could still apply.
+      const liveOpp = await getDoc(doc(db, 'opportunities', id));
+      if (!liveOpp.exists()) {
+        setApplyError('This opportunity is no longer available.');
+        setIsApplying(false);
+        return;
+      }
+      if (liveOpp.data()?.status === 'closed') {
+        setOpportunity((prev) => (prev ? { ...prev, status: 'closed' } : prev));
+        setApplyError('This opportunity has just closed and is no longer accepting applications.');
+        setIsApplying(false);
+        return;
+      }
+    } catch {
+      // A failed re-read must not block a legitimate application; the rules and
+      // the capacity check below still apply.
+    }
 
     let determinedStatus = 'pending';
     let currentAcceptedCount = 0;
@@ -299,7 +327,18 @@ export default function StudentOpportunityDetail() {
         console.warn('Could not read opportunity capacity, applying as pending:', capacityErr);
       }
 
-      await addDoc(collection(db, 'applications'), {
+      // Deterministic id: one application per student per opportunity.
+      //
+      // This was addDoc, which mints a random id every time, and the only guard
+      // against applying twice was the hasApplied flag read once at page load.
+      // Two tabs — or a phone and a laptop — opened before applying produced two
+      // application documents for the same student: the organization saw them
+      // listed twice, and both counted toward maxVolunteers, so an opportunity
+      // could fill with duplicates. Keying the document by the pair makes a
+      // second application impossible rather than merely unlikely: Firestore
+      // then treats it as an update, and the update rule pins appliedAt, so it
+      // is refused cleanly instead of silently duplicating.
+      await setDoc(doc(db, 'applications', `${user.uid}_${id}`), {
         opportunityId: id,
         // Who the student actually volunteered for. Without this, "Rate this
         // organization" on the student dashboard built its rating document
@@ -324,9 +363,17 @@ export default function StudentOpportunityDetail() {
       // failed application left the modal open with no message at all - the
       // student had no idea whether they had applied. Log and tell them.
       console.error('Failed to submit application:', err);
-      setApplyError(
-        "We couldn't submit your application. Please check your connection and try again."
-      );
+      // permission-denied here almost always means the deterministic id already
+      // exists — i.e. this student already applied, probably in another tab.
+      // "Check your connection" would be actively misleading.
+      if (err?.code === 'permission-denied') {
+        setHasApplied(true);
+        setApplyError('You have already applied to this opportunity.');
+      } else {
+        setApplyError(
+          "We couldn't submit your application. Please check your connection and try again."
+        );
+      }
     } finally {
       setIsApplying(false);
     }
@@ -513,6 +560,19 @@ export default function StudentOpportunityDetail() {
                          <span className="font-bold text-blue-dark">You've Applied!</span>
                          <Link to="/student/dashboard" className="text-xs text-blue-dark hover:underline">View in dashboard</Link>
                       </div>
+                    ) : opportunity.status === 'closed' ? (
+                      /* Say so rather than offering a button that will be
+                         refused. Someone can still reach this page from a
+                         bookmark or a shared link after it closes. */
+                      <div className="flex flex-col items-center gap-2 p-4 bg-paper-2 rounded-lg border border-line text-center">
+                         <span className="font-bold text-ink">Applications are closed</span>
+                         <p className="text-xs text-ink-muted leading-relaxed">
+                           This organization has the volunteers it needs. Browse other opportunities.
+                         </p>
+                         <Link to="/student/opportunities" className="text-xs text-blue-dark hover:underline">
+                           See what else is open
+                         </Link>
+                      </div>
                     ) : (
                       <Button size="lg" className="w-full text-lg font-bold shadow-blue-200" onClick={() => setShowApplyModal(true)}>
                          Apply Now
@@ -609,7 +669,30 @@ export default function StudentOpportunityDetail() {
                         Your profile description and previous experience will automatically be shared with the organization.
                      </p>
                   </div>
-                  
+
+                  {/* The field that was already being saved but could never be
+                      filled in. `applicationMessage` was written onto every
+                      application and setApplicationMessage was never called from
+                      anywhere, so every application arrived with message: "" and
+                      the organization's "Personal Message" panel always read
+                      "No message provided." */}
+                  <div className="space-y-2">
+                     <label htmlFor="application-message" className="text-[13px] font-semibold text-ink">
+                        Anything you'd like to add? <span className="font-normal text-ink-muted">(optional)</span>
+                     </label>
+                     <textarea
+                        id="application-message"
+                        value={applicationMessage}
+                        onChange={(e) => setApplicationMessage(e.target.value.slice(0, 1000))}
+                        rows={4}
+                        maxLength={1000}
+                        placeholder="Why this opportunity interests you, when you're free, or anything the organization should know."
+                        className="w-full p-3.5 text-sm bg-paper-2 border border-line rounded-lg outline-none focus:ring-1 focus:ring-blue-dark focus:bg-white transition-all resize-y leading-relaxed"
+                     />
+                     <p className="text-xs text-ink-muted text-right">{applicationMessage.length}/1000</p>
+                  </div>
+
+
                   <Button 
                      type="submit" 
                      className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]" 
