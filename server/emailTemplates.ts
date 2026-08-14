@@ -388,7 +388,7 @@ export const emailTemplates = {
 
       <p>Thank you for making our community a better place through your service!</p>
     `;
-    return wrapBaseTemplate({ title, children, previewText: `You successfully logged +${hours} verified volunteer hours!` });
+    return wrapBaseTemplate({ title, children, previewText: `You successfully logged +${Number(hours) || 0} verified volunteer hours!` });
   },
 
   /**

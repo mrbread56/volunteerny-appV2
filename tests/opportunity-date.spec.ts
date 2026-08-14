@@ -73,3 +73,31 @@ test('unusable shift data falls back to now rather than throwing', () => {
     .toBe(WED.getTime());
   expect(resolveOpportunityDate('single', 'not-a-date', [], WED).getTime()).toBe(WED.getTime());
 });
+
+test('a shift starting at this exact instant rolls to next week, not today', () => {
+  // The `<=` boundary in resolveOpportunityDate. Mutation testing found that
+  // flipping it to `<` changed nothing any test could see: the property suite
+  // allows a one-second tolerance, and every example here is minutes away from
+  // the boundary. So the one comparison that decides "has this week's session
+  // already started?" was uncovered at the only value where it matters.
+  //
+  // Pinning the current behaviour deliberately: at exactly the start time the
+  // session is no longer something a student can newly join, so the useful
+  // answer is the next one. If that judgement is ever revisited, this test is
+  // where the decision is recorded.
+  const wed = new Date('2026-08-12T19:00:00');
+  const out = resolveOpportunityDate('recurring', '', [
+    { day: 'Wed', startTime: '19:00', endTime: '21:00' },
+  ], wed);
+
+  expect(out.getDate(), 'exactly at the start time should resolve to next week').toBe(19);
+  expect(out.getHours()).toBe(19);
+
+  // One millisecond BEFORE the start time is still today — the other side of
+  // the same boundary, which is what makes the comparison load-bearing.
+  const justBefore = new Date('2026-08-12T18:59:59.999');
+  const stillToday = resolveOpportunityDate('recurring', '', [
+    { day: 'Wed', startTime: '19:00', endTime: '21:00' },
+  ], justBefore);
+  expect(stillToday.getDate(), 'a millisecond before the start it is still today').toBe(12);
+});
