@@ -1529,7 +1529,7 @@ export default function DeveloperDashboard() {
                 type="button"
                 onClick={handleSendTestEmail}
                 disabled={isSendingTestEmail || !testEmailTo}
-                className="w-full bg-amber text-white hover:bg-amber font-semibold text-xs shadow-orange-500/10"
+                className="w-full bg-amber-dark text-white hover:bg-amber-dark font-semibold text-xs shadow-orange-500/10"
               >
                 {isSendingTestEmail ? "Dispatching Delivery..." : "Send Test Email"}
               </Button>

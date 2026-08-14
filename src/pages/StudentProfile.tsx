@@ -688,7 +688,7 @@ export default function StudentProfile() {
                       className={cn(
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
-                          ? "bg-amber border-amber text-white  shadow-orange-500/15 scale-105"
+                          ? "bg-amber-dark border-amber-dark text-white shadow-orange-500/15 scale-105"
                           : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark hover:scale-[1.02]",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}

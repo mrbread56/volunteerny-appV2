@@ -180,6 +180,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       </aside>
 
       {/* Mobile header */}
+      {/* Skip link — WCAG 2.4.1, and the first thing an AODA reviewer checks.
+          Every page puts a nav of 5-8 links, a bell and a user card ahead of the
+          content, so a keyboard user re-tabbed the whole sidebar on every single
+          navigation. Visually hidden until focused. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-blue-dark focus:px-4 focus:py-2 focus:text-white focus:font-semibold focus:text-sm"
+      >
+        Skip to main content
+      </a>
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-line-light flex items-center justify-between px-4 h-14">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="" className="w-6 h-6" />
@@ -188,7 +198,6 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         {/* Outside the collapsed menu on purpose: an unread badge that only
             appears after you open a menu defeats the point of a badge. */}
         <div className="flex items-center gap-1">
-          <NotificationBell />
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
@@ -200,11 +209,18 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       </div>
 
-      {/* Desktop notification bell.
-          The desktop layout is a fixed sidebar with no top bar, so there is no
-          header to sit in — this floats at the top right of the content area,
-          which is where a bell is expected and where nothing else competes. */}
-      <div className="hidden lg:block fixed top-4 right-6 z-40">
+      {/* ONE bell, for the whole shell.
+          It used to be rendered twice — once inside the mobile header and once
+          in a desktop float — hidden from each other with `lg:hidden` /
+          `hidden lg:block`. Those are CSS, not mounting: React mounted both, so
+          every notification fetch ran TWICE on every dashboard load. For a
+          student that is ten Firestore queries and up to 380 documents instead
+          of five and 190, paid for on mobile data.
+          It cannot live inside the mobile header either, because that header is
+          itself `lg:hidden` and would take the bell with it on desktop. So it
+          sits here, outside both, and only its position changes: left of the
+          hamburger on mobile, top-right of the content area on desktop. */}
+      <div className="fixed z-50 top-3 right-14 lg:top-4 lg:right-6">
         <NotificationBell />
       </div>
 
@@ -228,7 +244,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
           375.3px parent. With min-w-0 the content reflows and nothing is cut
           off. Every dashboard page renders through here, so removing it
           re-breaks all of them the moment one gains a wide child. */}
-      <main className="flex-1 min-w-0 lg:ml-[240px] min-h-screen">
+      <main id="main" tabIndex={-1} className="flex-1 min-w-0 lg:ml-[240px] min-h-screen">
         <div className="pt-14 lg:pt-0">
           {children}
         </div>

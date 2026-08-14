@@ -1767,10 +1767,14 @@ app.use(express.json());
           const n = Number(l?.hours);
           return sum + (Number.isFinite(n) ? n : 0);
         }, 0);
+        const priorTotal = existing.reduce((sum: number, l: any) => {
+          const n = Number(l?.hours);
+          return sum + (Number.isFinite(n) ? n : 0);
+        }, 0);
         tx.update(studentRef, { loggedHours, hours: total });
         // decidedAt: same reason as the decline path above.
         if (requestRef) tx.update(requestRef, { status: 'approved', decidedAt: new Date().toISOString() });
-        return { total, entryId: entry.id };
+        return { total, entryId: entry.id, priorTotal };
       });
 
       // Tell the student their hours were credited.
@@ -1813,6 +1817,43 @@ app.use(express.json());
         }
       } catch (mailErr: any) {
         console.error('[hours/approve] confirmation email failed:', mailErr?.message || mailErr);
+      }
+
+      // Crossing 40 hours is the entire reason a student is here, and nothing
+      // marked it — the bar filled, a client-side badge unlocked, and no one was
+      // told. `result.total` is the newly recomputed total and `priorTotal` the
+      // one before this approval, so this fires exactly once, on the approval
+      // that crosses the line.
+      if (result.priorTotal < 40 && result.total >= 40) {
+        try {
+          const uSnap = await adb.collection('users').doc(studentId).get();
+          const to = uSnap.exists ? uSnap.data()?.email : null;
+          if (to && resend) {
+            const html = renderTemplate('notification', {
+              heading: "You've reached 40 volunteer hours",
+              details:
+                `That is the community involvement requirement for your Ontario Secondary School Diploma, complete. ` +
+                `Print your hours record and take it to your guidance office — your school may also need its own signed form.`,
+              actionLabel: 'Print your hours record',
+              actionUrl: `${appOrigin()}/student/dashboard?tab=hours`,
+            });
+            if (html) {
+              const { error: mErr } = await resend.emails.send({
+                from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+                to: [to],
+                subject: "You've reached 40 volunteer hours",
+                html,
+              });
+              recordEmailLog({
+                to, subject: "You've reached 40 volunteer hours", templateName: 'notification',
+                status: mErr ? 'failed' : 'sent', error: mErr?.message,
+                sentBy: authContext.email || authContext.uid,
+              });
+            }
+          }
+        } catch (mErr: any) {
+          console.error('[hours/approve] milestone email failed:', mErr?.message || mErr);
+        }
       }
 
       return res.json({ success: true, hours: result.total, entryId: result.entryId });

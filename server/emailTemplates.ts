@@ -370,7 +370,14 @@ export const emailTemplates = {
         <p><strong>Opportunity:</strong> ${esc(oppTitle)}</p>
         <p><strong>Organization:</strong> ${esc(orgName)}</p>
         <p><strong>Authorized By:</strong> ${esc(supervisorName)}</p>
-        <p><strong>Verification Code:</strong> <span class="mono-badge">VERIFIED-VNY-${Math.random().toString(36).substr(2, 6).toUpperCase()}</span></p>
+        <!-- There was a "Verification Code" here reading
+             VERIFIED-VNY-${'$'}{Math.random()...}, generated fresh at send time,
+             stored nowhere and checkable by nobody. It appeared in the one
+             email a student is most likely to forward to a school as proof —
+             a trust claim the system could not back, which is worse than no
+             claim at all. The confirmation date below is real: it is written
+             onto the logged entry when a coordinator confirms the hours. -->
+        <p><strong>Confirmed on:</strong> ${esc(new Date().toISOString().slice(0, 10))}</p>
       </div>
 
       <p>These hours have been automatically added to your dynamic progress dashboard. You can export your official community hours transcript PDF directly from your profile dashboard for graduation submission.</p>

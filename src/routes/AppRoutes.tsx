@@ -40,8 +40,15 @@ function PublicLayout({ children }: { children: React.ReactNode }) {
   // horizontal overflow at 375, 768 or 1440.
   return (
     <div className="min-h-screen bg-white font-sans text-ink">
+      {/* Skip link — WCAG 2.4.1. See the note in DashboardShell. */}
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-lg focus:bg-blue-dark focus:px-4 focus:py-2 focus:text-white focus:font-semibold focus:text-sm"
+      >
+        Skip to main content
+      </a>
       <Navbar />
-      <main>{children}</main>
+      <main id="main" tabIndex={-1}>{children}</main>
       <Footer />
       <CookieBanner />
     </div>

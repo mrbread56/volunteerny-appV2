@@ -415,7 +415,7 @@ export default function StudentOnboarding() {
                     value={previousExperience}
                     onChange={(e) => setPreviousExperience(e.target.value)}
                     placeholder="E.g., tutee support, neighborhood cleanups, school clubs, community events..."
-                    className="w-full h-32 p-4 text-sm border-2 border-line-light rounded-lg focus:border-blue-dark focus:ring-0 resize-none font-medium text-ink-soft outline-none placeholder-slate-300"
+                    className="w-full h-32 p-4 text-sm border-2 border-line-light rounded-lg focus:border-blue-dark focus:ring-0 resize-none font-medium text-ink-soft outline-none placeholder:text-ink-muted"
                   />
                 </div>
 
@@ -481,7 +481,7 @@ export default function StudentOnboarding() {
                 <Button 
                   onClick={(e) => handleSubmit(e as any, false)}
                   isLoading={isSubmitting}
-                  className="h-12 bg-amber hover:bg-amber text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 shadow-orange-500/10"
+                  className="h-12 bg-amber-dark hover:bg-amber-dark text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 shadow-orange-500/10"
                 >
                   Complete Onboarding <Check className="w-3.5 h-3.5" />
                 </Button>

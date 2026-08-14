@@ -238,7 +238,7 @@ export default function Login() {
               required
               placeholder="student@example.com"
               autoComplete="username"
-              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
             />
           </div>
           <div>
@@ -262,7 +262,7 @@ export default function Login() {
               required
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted/50 focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
             />
           </div>
           <button

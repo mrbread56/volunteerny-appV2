@@ -47,7 +47,11 @@ export function buildCertificateHtml(
         ${escapeHTML(lh.coordinatorName || '')}
         ${lh.coordinatorContact ? `<br><span class="muted">${escapeHTML(lh.coordinatorContact)}</span>` : ''}
       </td>
-      <td class="sign"></td>
+      <td class="sign">${
+        lh.approvedAt
+          ? `<span class="muted">Confirmed in app<br>${escapeHTML(String(lh.approvedAt).slice(0, 10))}</span>`
+          : ''
+      }</td>
       <td class="sign"></td>
     </tr>
   `,

@@ -13,6 +13,7 @@ import { MapPin, Calendar, Clock, ArrowLeft, Building2, Share2, Bookmark, CheckC
 import { formatDate, cn, copyToClipboard } from '../lib/utils';
 import { fetchAcceptedCount } from '../lib/opportunityCapacity';
 import ReportModal from '../components/ReportModal';
+import { sendTransactionalEmail } from '../lib/emailService';
 import { useDialog } from '../hooks/useDialog';
 
 export default function StudentOpportunityDetail() {
@@ -370,6 +371,33 @@ export default function StudentOpportunityDetail() {
 
       setHasApplied(true);
       setShowApplyModal(false);
+
+      // Tell the organization someone applied.
+      //
+      // Nothing did. The `new_applicant` template has existed all along, the
+      // send endpoint accepts it, and its ONLY caller was a dropdown in the
+      // developer console's test-email form — so a coordinator found out a
+      // student had applied only if they happened to log in and notice the
+      // bell. For a small nonprofit checking the site once a fortnight, an
+      // application could sit for two weeks before anyone saw it.
+      //
+      // Fire and forget, after the write: the application is saved either way,
+      // and a mail failure must not tell the student their application failed.
+      if (!isDemoMode && organization?.contactEmail) {
+        sendTransactionalEmail({
+          to: organization.contactEmail,
+          subject: `New applicant for "${opportunity.title}"`,
+          templateName: 'new_applicant',
+          templateData: {
+            applicantName: studentProfile?.fullName || user.displayName || 'A student',
+            oppTitle: opportunity.title,
+            orgName: organization.organizationName || 'your organization',
+            message: applicationMessage || '',
+            actionLabel: 'Review the application',
+            actionUrl: `${window.location.origin}/org/opportunities/${id}/applicants`,
+          },
+        }).catch((err) => console.error('Could not email the organization about a new applicant:', err));
+      }
     } catch (err: any) {
       // Previously this called handleFirestoreError, which logs and then THROWS
       // a new error from inside the catch block. That escaped unhandled, so a
