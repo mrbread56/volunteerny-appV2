@@ -137,10 +137,13 @@ export function buildCertificateHtml(
           </div>
         </div>
 
-        <p class="note">
+        <p class="note" style="border:2px solid #1F4C63; padding:10px 12px; font-size:12px; line-height:1.5;">
+          <strong style="font-size:13px;">This is not an official school document.
+          You still need your school board's own community involvement form, signed
+          by your supervisor.</strong><br>
           Hours shown were confirmed in Volunteer North York by the named supervisor.
-          Your school may require its own board form &mdash; check with your guidance
-          office, and keep the signature and pre-approval columns above completed in ink.
+          Use this sheet to help you fill in your board's form &mdash; the signature
+          and pre-approval columns above are left blank for ink.
         </p>
       </body>
     </html>

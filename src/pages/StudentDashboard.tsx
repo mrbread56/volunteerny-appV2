@@ -1,3 +1,4 @@
+import { useDialog } from '../hooks/useDialog';
 import React, { useState, useEffect, useRef } from "react";
 import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
@@ -165,6 +166,13 @@ export default function StudentDashboard() {
   const [logError, setLogError] = useState("");
 
   const [hoursRequests, setHoursRequests] = useState<any[]>([]);
+
+  // Keyboard and screen-reader plumbing for this page's three modals. See
+  // src/hooks/useDialog.ts — role, aria-modal, Escape, focus trap and focus
+  // restore, none of which these had.
+  const ratingDialogRef = useDialog(!!ratingApp, () => { setRatingApp(null); setRatingError(''); });
+  const logFormDialogRef = useDialog(showLogForm, () => setShowLogForm(false));
+  const printDialogRef = useDialog(showPrintModal, () => setShowPrintModal(false));
   // Hours the student has submitted that a coordinator has not confirmed yet.
   // Without showing these, a student who logged 8 hours sees the bar refuse to
   // move and has no idea whether the submission worked.
@@ -1406,9 +1414,20 @@ export default function StudentDashboard() {
                     <span>⚠️</span> REQUIREMENT DISCLAIMER
                   </h3>
 
-                  <p className="text-[11px] text-amber-900 leading-relaxed font-semibold">
-                    While logging hours on Volunteer NY updates your digital
-                    portal metrics instantly, <strong>you may still require a physical community involvement form with your supervisor's signature to submit to your high school.</strong>
+                  {/* Deliberately larger than the copy around it, and phrased
+                      without hedging. "may still require" reads as "probably
+                      not" — and a student who believes this page replaces their
+                      board's form finds out in their graduating year, when it is
+                      far too late to go back and collect signatures. */}
+                  <p className="text-[13px] text-amber-950 leading-relaxed font-bold">
+                    <strong className="text-[15px]">You still need your school's own community involvement form, signed by your supervisor.</strong>
+                  </p>
+                  <p className="text-[12px] text-amber-900 leading-relaxed font-semibold mt-2">
+                    Volunteer North York tracks your hours here so you can see your
+                    progress and your leaderboard position. It is <strong>not</strong> an
+                    official record and no school board accepts it in place of their
+                    own form. Print your hours from here to help you fill that form
+                    in — then get it signed.
                   </p>
                 </div>
 
@@ -1639,7 +1658,13 @@ export default function StudentDashboard() {
 
       {/* Rating Modal */}
       {ratingApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div
+          ref={ratingDialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Rate this organization"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        >
           <div className="w-full max-w-md bg-white p-8 space-y-5 relative">
             <button onClick={() => { setRatingApp(null); setRatingError(""); }} className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
               <X className="w-5 h-5" />
@@ -1652,9 +1677,19 @@ export default function StudentDashboard() {
               </div>
             )}
             <div className="flex gap-1 py-2">
+              {/* A screen reader announced five identical unnamed buttons, and the
+                  chosen value was carried by fill colour alone. aria-pressed is what
+                  conveys the current rating without sight; min-w/h takes the target
+                  from 24px to the 44px guideline. */}
               {[1, 2, 3, 4, 5].map(s => (
-                <button key={s} onClick={() => setRatingStars(s)} className="p-1 transition-transform hover:scale-110">
-                  <Star className={cn("w-8 h-8", s <= ratingStars ? "fill-amber-400 text-amber-400" : "text-ink-muted")} />
+                <button
+                  key={s}
+                  onClick={() => setRatingStars(s)}
+                  aria-label={`${s} star${s === 1 ? '' : 's'}`}
+                  aria-pressed={s <= ratingStars}
+                  className="p-1 min-w-[44px] min-h-[44px] flex items-center justify-center transition-transform hover:scale-110"
+                >
+                  <Star aria-hidden="true" className={cn("w-8 h-8", s <= ratingStars ? "fill-amber-400 text-amber-400" : "text-ink-muted")} />
                 </button>
               ))}
             </div>
@@ -1677,7 +1712,13 @@ export default function StudentDashboard() {
       )}
 
       {showLogForm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
+        <div
+          ref={logFormDialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Log volunteer hours"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+        >
           <Card className="w-full max-w-lg rounded-lg border-none p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto">
             <button 
               onClick={() => {
@@ -1703,9 +1744,13 @@ export default function StudentDashboard() {
                 <h3 className="text-amber-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <span>⚠️</span> REQUIREMENT DISCLAIMER
                 </h3>
-                <p className="text-[11px] text-amber-900 leading-relaxed font-semibold">
-                  While logging hours on Volunteer NY updates your digital
-                  portal metrics instantly, <strong>you may still require a physical community involvement form with your supervisor's signature to submit to your high school.</strong>
+                <p className="text-[13px] text-amber-950 leading-relaxed font-bold">
+                  <strong className="text-[15px]">You still need your school's own community involvement form, signed by your supervisor.</strong>
+                </p>
+                <p className="text-[12px] text-amber-900 leading-relaxed font-semibold mt-2">
+                  These hours are tracked here for your own progress and your
+                  leaderboard position. This is <strong>not</strong> an official record
+                  and no school board accepts it in place of their form.
                 </p>
               </div>
             </div>
@@ -1940,7 +1985,14 @@ export default function StudentDashboard() {
         />
       )}
       {showPrintModal && (
-        <div data-print-root className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn">
+        <div
+          data-print-root
+          ref={printDialogRef}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Your community involvement hours"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn"
+        >
           <Card data-print-sheet className="w-full max-w-4xl bg-white border border-line/80 rounded-lg p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
             <button
               onClick={() => setShowPrintModal(false)}
@@ -1952,8 +2004,8 @@ export default function StudentDashboard() {
             
             {/* Certificate Header */}
             <div className="border-b-4 border-blue-dark pb-5 text-center sm:text-left">
-              <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Toronto Community Involvement Hours Transcript</h2>
-              <p className="text-xs text-ink-soft mt-1">Ontario High School Graduation Requirement Official Tracking Document</p>
+              <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Community Involvement Hours — Personal Record</h2>
+              <p className="text-xs text-ink-soft mt-1">A summary of hours confirmed on Volunteer North York. Not an official school document.</p>
             </div>
 
             {/* Student Info Box */}

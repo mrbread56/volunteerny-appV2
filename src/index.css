@@ -253,6 +253,20 @@ button:active:not(:disabled), [role="button"]:active:not(:disabled) {
     scroll-behavior: auto !important;
   }
 
+  /*
+   * Transitions are neutralised on EVERYTHING, not just on the three selectors
+   * that used to be listed. A toggle knob is a <span> that slides, a card is a
+   * <div> that scales on hover, a chevron is an <svg> that translates — none of
+   * them are a button, a link or a [role="button"], so all of them kept moving
+   * for a user who had asked the operating system for less motion. Colour
+   * transitions are kept below because they carry no vestibular risk and their
+   * removal makes hover states snap unpleasantly.
+   */
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+    transition-delay: 0ms !important;
+  }
+
   button, a, [role="button"] {
     transition: color 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
   }

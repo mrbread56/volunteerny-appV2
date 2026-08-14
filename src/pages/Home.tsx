@@ -196,9 +196,13 @@ export default function Home() {
                 </span>
               </Reveal>
               <Reveal delay={0.08}>
-                <h2 className="mt-5 text-[2rem] sm:text-[2.6rem] lg:text-[3rem] font-bold text-ink leading-[1.05]">
+                {/* h1, not h2. Heading level is the primary way a screen-reader
+                    user navigates a page, and this file contained no h1 at all —
+                    so the landing page had no top level to jump to. Visual size
+                    is unchanged; only the tag differs. */}
+                <h1 className="mt-5 text-[2rem] sm:text-[2.6rem] lg:text-[3rem] font-bold text-ink leading-[1.05]">
                   Connecting students with communities that need them
-                </h2>
+                </h1>
               </Reveal>
             </div>
 
