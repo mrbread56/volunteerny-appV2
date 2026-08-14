@@ -451,7 +451,16 @@ export default function DeveloperDashboard() {
       setPendingOrgs(prev => prev.filter(o => o.uid !== orgUid));
     } catch (err: any) {
       console.error('Verify org failed:', err);
-      setDeveloperDeleteError(`Failed to ${decision === 'verified' ? 'approve' : 'reject'} organization: ${err?.message || err}`);
+      // consoleNotice, not developerDeleteError. That state is rendered only
+      // under activeTab === 'users', and this handler is reachable only from
+      // the VERIFICATION tab — so the message went to a panel the moderator
+      // could not be looking at. They saw the spinner stop, the organization
+      // stay in the queue, and nothing else: indistinguishable from a misfired
+      // click, and the natural response is to click again, silently.
+      setConsoleNotice(
+        `Couldn't ${decision === 'verified' ? 'approve' : 'reject'} that organization. ` +
+        `It is still in the queue. ${err?.message || err}`,
+      );
     } finally {
       setVerifyingId(null);
     }
@@ -661,11 +670,6 @@ export default function DeveloperDashboard() {
     return (
       <div className="min-h-[calc(100vh-64px)] flex items-center justify-center bg-paper-2 p-6 text-center">
 
-      {consoleNotice && (
-        <div role="alert" aria-live="assertive" className="fixed top-20 left-1/2 -translate-x-1/2 z-50 max-w-[90vw] px-4 py-2.5 text-[13px] font-semibold bg-red-50 border border-red-200 text-red-700">
-          {consoleNotice}
-        </div>
-      )}
         <Card className="max-w-md p-8 border-line border space-y-4 bg-white rounded-lg">
           <ShieldAlert className="text-red-600 w-12 h-12 mx-auto" />
           <h2 className="text-xl font-bold text-ink tracking-tight">Access Denied</h2>
@@ -738,6 +742,25 @@ export default function DeveloperDashboard() {
   // MAIN RUNNING CONTROL ROOM
   return (
     <div className="max-w-7xl mx-auto py-12 px-4 space-y-8 animate-fadeIn">
+      {/* consoleNotice is set in ten places — a failed feedback load, failed
+          interest requests, failed safety reports, failed admin lists, a failed
+          verification queue, permission refusals, a failed reply — and it used
+          to be rendered ONLY inside the "Access Denied" early return above,
+          which is a branch a real developer never reaches.
+          So every one of those messages was produced and shown to nobody. The
+          worst case is the safety-reports read failing: the tab then renders
+          "All clear! No pending support logs found" over a queue of reports
+          about minors, and a moderator reasonably concludes there is nothing to
+          action. */}
+      {consoleNotice && (
+        <div
+          role="alert"
+          aria-live="assertive"
+          className="px-4 py-3 text-[13px] font-semibold bg-red-50 border border-red-200 text-red-700 rounded-lg"
+        >
+          {consoleNotice}
+        </div>
+      )}
       {actionError && (
         <div
           role="alert"

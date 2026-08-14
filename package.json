@@ -19,6 +19,7 @@
     "check:flows": "tsx scripts/check-flows.ts",
     "check:lifecycle": "tsx scripts/check-lifecycle.ts",
     "check:concurrency": "tsx scripts/check-concurrency.ts",
+    "check:integrity": "tsx scripts/check-integrity.ts",
     "check:email": "tsx scripts/check-email.ts",
     "check:queries": "tsx scripts/check-queries.ts",
     "check:errors": "tsx scripts/check-errors.ts",
