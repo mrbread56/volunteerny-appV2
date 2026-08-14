@@ -1751,6 +1751,14 @@ app.use(express.json());
           coordinatorContact: String(
             requestData?.coordinatorContact || authContext.email || '',
           ).slice(0, 200),
+          // WHERE the student volunteered. An Ontario board form has an
+          // "Organization" column on every activity row, and this was never
+          // stored on the entry — only on the hoursRequest, which the transcript
+          // does not read. So the printed record a student hands to guidance
+          // named the supervisor but never the organization they supervised for.
+          organization: String(
+            requestData?.organization || creditingOrgName || '',
+          ).slice(0, 200),
         };
         const loggedHours = [...existing, entry];
         // Recomputed from the array, never incremented, so a retry cannot

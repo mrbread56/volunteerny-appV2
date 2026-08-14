@@ -32,7 +32,7 @@ const REPORT_REASONS = [
   { value: 'misleading_post', label: 'Misleading or Fraudulent Post ⚠️' },
   { value: 'no_show', label: 'No-Shows or Unreliable Attendance ⏰' },
   { value: 'harassment', label: 'Safety Concern or Harassment 🛡️' },
-  { value: 'spam', label: 'Spam or Inappropriate Material �,�️' },
+  { value: 'spam', label: 'Spam or inappropriate material' },
   { value: 'other', label: 'Other Terms of Service Violations ⚙️' },
 ];
 

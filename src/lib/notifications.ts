@@ -349,7 +349,7 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
         id: `applicant-${d.id}`, kind: 'applicant',
         title: 'New applicant',
         body: `${a.studentName || 'A student'} applied for ${a.opportunityTitle || 'one of your opportunities'}.`,
-        at: toDate(a.appliedAt), href: '/org/dashboard',
+        at: toDate(a.appliedAt), href: '/org/dashboard?tab=applications',
       });
     }
   }

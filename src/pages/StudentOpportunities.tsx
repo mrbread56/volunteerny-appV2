@@ -148,6 +148,13 @@ export default function StudentOpportunities() {
   const shareDialogRef = useDialog(!!sharingOpp, closeShareDialog);
   const [saveError, setSaveError] = useState<string | null>(null);
 
+  // Shared by the toolbar button and the empty state, so "clear filters" cannot
+  // drift between the two places that offer it.
+  const hasActiveFilters = !!(searchTerm || category || exclusive || commitment || virtualOnly);
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm(''); setCategory(''); setExclusive(''); setCommitment(''); setVirtualOnly(false);
+  }, []);
+
   useEffect(() => {
     if (!saveError) return;
     const timer = setTimeout(() => setSaveError(null), 5000);
@@ -456,7 +463,7 @@ export default function StudentOpportunities() {
             onChange={(e) => setCommitment(e.target.value)} 
           />
           <div className="flex items-center gap-2">
-            <Button variant="outline" onClick={() => { setSearchTerm(''); setCategory(''); setExclusive(''); setCommitment(''); setVirtualOnly(false); }} className="w-full gap-2">
+            <Button variant="outline" onClick={clearAllFilters} className="w-full gap-2">
                <X className="w-4 h-4" /> Clear filters
             </Button>
           </div>
@@ -510,8 +517,28 @@ export default function StudentOpportunities() {
           ) : (
             <div className="col-span-full py-24 text-center bg-white rounded-lg border border-dashed text-ink-muted font-medium space-y-4 ">
                <div className="text-5xl">🔭</div>
-               <p className="text-xl font-bold text-ink tracking-tight leading-none">No volunteer opportunities yet.</p>
-               <p className="text-ink-muted">Try adjusting your filters or check back soon!</p>
+               {/* "No opportunities yet" is a lie when 200 loaded and the
+                   student's own filters excluded all of them — and the only way
+                   out was a Clear button far above, which they have to connect
+                   to the problem themselves. Say which it is, and put the escape
+                   hatch here. */}
+               {hasActiveFilters ? (
+                 <>
+                   <p className="text-xl font-bold text-ink tracking-tight leading-none">No opportunities match these filters.</p>
+                   <p className="text-ink-muted">{opportunities.length} are available in total.</p>
+                   <button
+                     onClick={clearAllFilters}
+                     className="mt-1 h-11 px-6 rounded-lg bg-blue-dark text-white font-semibold text-sm"
+                   >
+                     Clear all filters
+                   </button>
+                 </>
+               ) : (
+                 <>
+                   <p className="text-xl font-bold text-ink tracking-tight leading-none">No volunteer opportunities yet.</p>
+                   <p className="text-ink-muted">New postings appear here as organizations add them — check back soon.</p>
+                 </>
+               )}
             </div>
           )}
         </div>

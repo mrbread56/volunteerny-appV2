@@ -28,62 +28,87 @@ export function buildCertificateHtml(
       .replace(/'/g, '&#39;');
   };
 
+  // One row per activity, shaped to what an Ontario board form actually asks
+  // for — see the note at the top of this file.
+  //
+  // `organization` is read with a fallback chain because it has only recently
+  // been carried onto the logged entry; older entries baked it into the
+  // activity text instead, and the column must not read blank for those.
   const tableRows =
     (studentProfile?.loggedHours || [])
       .map(
-        (lh, idx) => `
-    <tr style="border-bottom: 1px solid #e2e8f0;">
-      <td style="padding: 12px; font-weight: bold; color: #1e293b;">${escapeHTML(lh.activity)}</td>
-      <td style="padding: 12px; font-weight: bold; color: #2563eb;">${escapeHTML(lh.hours)} hrs</td>
-      <td style="padding: 12px; color: #475569;">${escapeHTML(lh.date)}</td>
-      <td style="padding: 12px; color: #475569;">${escapeHTML(lh.coordinatorName)} (${escapeHTML(lh.coordinatorContact)})</td>
-      <td style="padding: 12px; color: #1F4C63; font-weight: bold;">Verified Profile Check</td>
+        (lh: any) => `
+    <tr>
+      <td>${escapeHTML(lh.date)}</td>
+      <td style="text-align: center; font-weight: 700;">${escapeHTML(lh.hours)}</td>
+      <td>${escapeHTML(lh.activity)}</td>
+      <td>${escapeHTML(lh.organization || lh.orgName || '')}</td>
+      <td>
+        ${escapeHTML(lh.coordinatorName || '')}
+        ${lh.coordinatorContact ? `<br><span class="muted">${escapeHTML(lh.coordinatorContact)}</span>` : ''}
+      </td>
+      <td class="sign"></td>
+      <td class="sign"></td>
     </tr>
   `,
       )
       .join("") ||
-    `<tr><td colSpan="5" style="padding: 24px; text-align: center; color: #94a3b8; font-style: italic;">No volunteer hours logged in your tracking list yet.</td></tr>`;
+    `<tr><td colspan="7" style="padding: 24px; text-align: center; color: #94a3b8; font-style: italic;">No volunteer hours logged yet.</td></tr>`;
 
   return (`
     <html>
       <head>
-        <title>Ontario High School Community Involvement Hour Document - Export</title>
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+        <title>Community Involvement Hours</title>
         <style>
-          body { font-family: 'Outfit', system-ui, sans-serif; padding: 40px; color: #0f172a; line-height: 1.5; }
-          .header { border-bottom: 3px solid #2563eb; padding-bottom: 20px; margin-bottom: 30px; }
-          .title { font-size: 24px; font-weight: 900; text-transform: uppercase; letter-spacing: -0.5px; }
-          .student-info { background: #f8fafc; padding: 20px; border-radius: 12px; margin-bottom: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 40px; }
-          th { background: #0f172a; color: white; text-align: left; padding: 12px; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: 0.5px; }
-          .totals { font-size: 18px; font-weight: 800; text-align: right; margin-bottom: 50px; }
-          .signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 60px; }
-          .sig-box { border-top: 1px solid #94a3b8; padding-top: 12px; text-align: center; font-size: 12px; color: #475569; }
+          @page { margin: 14mm; }
+          body { font-family: system-ui, -apple-system, "Segoe UI", sans-serif; color: #0f172a; font-size: 12px; line-height: 1.45; }
+          h1 { font-size: 17px; margin: 0 0 2px; }
+          .sub { font-size: 11px; color: #475569; margin: 0 0 14px; }
+          .ident { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+          .ident td { padding: 5px 8px; border: 1px solid #cbd5e1; }
+          .ident .label { background: #f1f5f9; font-weight: 600; width: 130px; white-space: nowrap; }
+          table.log { width: 100%; border-collapse: collapse; }
+          table.log th, table.log td { border: 1px solid #cbd5e1; padding: 6px 7px; vertical-align: top; text-align: left; }
+          table.log th { background: #f1f5f9; font-size: 10px; text-transform: uppercase; letter-spacing: .03em; }
+          table.log tr { break-inside: avoid; }
+          td.sign { min-width: 110px; height: 34px; }
+          .muted { color: #64748b; font-size: 10px; }
+          .total { margin-top: 10px; font-size: 13px; font-weight: 700; text-align: right; }
+          .declare { margin-top: 18px; border-top: 2px solid #0f172a; padding-top: 10px; }
+          .declare p { margin: 0 0 10px; font-size: 11px; }
+          .sigrow { display: flex; gap: 26px; margin-top: 22px; }
+          .sigrow div { flex: 1; border-top: 1px solid #0f172a; padding-top: 4px; font-size: 10px; color: #475569; }
+          .note { margin-top: 14px; font-size: 10px; color: #64748b; }
         </style>
       </head>
       <body>
-        <div class="header">
-          <div class="title">Toronto Community Involvement Hours Transcript</div>
-          <p style="font-size: 12px; color: #64748b; margin-top: 4px;">Ontario High School Graduation (40-Hours Requirement Tracker Document)</p>
-        </div>
+        <h1>Community Involvement Hours</h1>
+        <p class="sub">
+          Ontario Secondary School Diploma requirement &middot; 40 hours
+          &middot; Record generated by Volunteer North York
+        </p>
 
-        <div class="student-info">
-          <div><strong>Student Name:</strong> ${escapeHTML(studentProfile?.fullName || "Anonymous Student")}</div>
-          <div><strong>Academic School:</strong> ${escapeHTML(studentProfile?.school || "Secondary School")}</div>
-          <div><strong>Grade:</strong> Grade ${escapeHTML(studentProfile?.grade || "N/A")}</div>
-          <div><strong>Toronto Neighborhood:</strong> ${escapeHTML(studentProfile?.neighborhood || "N/A")}</div>
-        </div>
+        <table class="ident">
+          <tr>
+            <td class="label">Student name</td><td>${escapeHTML(studentProfile?.fullName || '')}</td>
+            <td class="label">Student number</td><td></td>
+          </tr>
+          <tr>
+            <td class="label">School</td><td>${escapeHTML(studentProfile?.school || '')}</td>
+            <td class="label">Grade</td><td>${escapeHTML(studentProfile?.grade || '')}</td>
+          </tr>
+        </table>
 
-        <table border="0">
+        <table class="log">
           <thead>
             <tr>
-              <th>Activity Description</th>
-              <th>Hours</th>
-              <th>Completion Date</th>
-              <th>Coordinator Supervisor Details</th>
-              <th>Verification Hook</th>
+              <th style="width: 74px;">Date completed</th>
+              <th style="width: 46px;">Hours</th>
+              <th>Description of activity</th>
+              <th style="width: 130px;">Organization</th>
+              <th style="width: 140px;">Supervisor name &amp; contact</th>
+              <th style="width: 110px;">Supervisor signature</th>
+              <th style="width: 110px;">Pre-approval (initial)</th>
             </tr>
           </thead>
           <tbody>
@@ -91,28 +116,29 @@ export function buildCertificateHtml(
           </tbody>
         </table>
 
-        <div class="totals">
-           Total Ontario Involvement Hours Logged: <span style="color: #2563eb; font-size: 24px;">${escapeHTML(totalCompletedHours)} / 40</span>
+        <p class="total">Total hours: ${escapeHTML(totalCompletedHours)} of 40</p>
+
+        <div class="declare">
+          <p>
+            I certify that the information recorded above is accurate and that these
+            hours were completed as described.
+          </p>
+          <div class="sigrow">
+            <div>Student signature &nbsp;&middot;&nbsp; Date</div>
+            <div>Parent / guardian signature &nbsp;&middot;&nbsp; Date <span class="muted">(required if under 18)</span></div>
+          </div>
+          <div class="sigrow">
+            <div>Principal / designate &nbsp;&middot;&nbsp; Date</div>
+            <div>&nbsp;</div>
+          </div>
         </div>
 
-        <p style="font-size: 11.5px; color: #64748b; font-style: italic; border-left: 2px solid #cbd5e1; padding-left: 12px; margin-bottom: 40px;">
-           Disclaimer: These community involvement hours are logged on Volunteer NY for community tracking. Legal school pre-approval and physical verification forms should be authenticated in agreement with your local school board guidelines.
+        <p class="note">
+          Hours shown were confirmed in Volunteer North York by the named supervisor.
+          Your school may require its own board form &mdash; check with your guidance
+          office, and keep the signature and pre-approval columns above completed in ink.
         </p>
-
-        <div class="signatures">
-          <div class="sig-box">
-            Supervisor Signature & Stamp
-          </div>
-          <div class="sig-box">
-            School Principal / Guidance Counselor Approval Date
-          </div>
-        </div>
-
-        <script>
-          window.onload = function() { window.print(); }
-        </script>
       </body>
     </html>
   `);
-
 }

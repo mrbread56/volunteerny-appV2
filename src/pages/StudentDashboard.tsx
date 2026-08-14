@@ -166,6 +166,18 @@ export default function StudentDashboard() {
   const [logError, setLogError] = useState("");
 
   const [hoursRequests, setHoursRequests] = useState<any[]>([]);
+  // Hours the student has submitted that a coordinator has not confirmed yet.
+  // Without showing these, a student who logged 8 hours sees the bar refuse to
+  // move and has no idea whether the submission worked.
+  const pendingHourCount = React.useMemo(
+    () => hoursRequests
+      .filter((r: any) => r?.status === 'pending')
+      .reduce((sum: number, r: any) => {
+        const n = Number(r?.hours);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0),
+    [hoursRequests],
+  );
   const [sendingReminderId, setSendingReminderId] = useState<string | null>(null);
   const [reminderSuccessId, setReminderSuccessId] = useState<string | null>(null);
 
@@ -1334,14 +1346,40 @@ export default function StudentDashboard() {
                       {totalCompletedHours} / {hourGoal} hrs
                     </span>
                   </div>
-                  <div className="w-full bg-paper-3 h-2.5 rounded-lg overflow-hidden">
+                  {/* bg-blue-dark is load-bearing. The fill carried NO background
+                      utility at all — just " h-full rounded-lg transition-all" —
+                      so the width was computed correctly and then painted with
+                      nothing. The one visual showing a student how close they are
+                      to the 40 hours they need to graduate was an empty grey
+                      track at every value, including 39/40. */}
+                  <div
+                    className="w-full bg-paper-3 h-2.5 rounded-lg overflow-hidden"
+                    role="progressbar"
+                    aria-valuenow={Math.round(totalCompletedHours)}
+                    aria-valuemin={0}
+                    aria-valuemax={hourGoal}
+                    aria-label={`${totalCompletedHours} of ${hourGoal} volunteer hours completed`}
+                  >
                     <div
-                      className=" h-full rounded-lg transition-all"
+                      className="h-full rounded-lg bg-blue-dark transition-all"
                       style={{
                         width: `${Math.min((totalCompletedHours / hourGoal) * 100, 100)}%`,
                       }}
                     />
                   </div>
+                  {/* The number that actually motivates: what is LEFT. Pending
+                      claims are shown separately so a student who submitted
+                      hours understands why the bar has not moved. */}
+                  <p className="text-xs text-ink-muted text-center">
+                    {totalCompletedHours >= hourGoal
+                      ? `You've completed all ${hourGoal} hours.`
+                      : `${Math.max(0, Math.round((hourGoal - totalCompletedHours) * 10) / 10)} hours to go`}
+                    {pendingHourCount > 0 && (
+                      <span className="text-amber-dark">
+                        {' '}· {pendingHourCount} hr{pendingHourCount === 1 ? '' : 's'} awaiting confirmation
+                      </span>
+                    )}
+                  </p>
                   <div className="pt-1 flex items-center justify-center">
                     <Button
                       onClick={handlePrintCertificate}

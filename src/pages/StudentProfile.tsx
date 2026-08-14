@@ -40,6 +40,13 @@ import { motion } from "motion/react";
 import { evaluateBadges } from "../utils/badges";
 import ReferralBadge from "../components/ReferralBadge";
 
+const GENDERS = [
+  { value: "", label: "Select…" },
+  { value: "male", label: "Male" },
+  { value: "female", label: "Female" },
+  { value: "other", label: "Other" },
+];
+
 const GRADES = [
   { value: "9", label: "Grade 9" },
   { value: "10", label: "Grade 10" },
@@ -136,6 +143,7 @@ export default function StudentProfile() {
   const [fullName, setFullName] = useState(studentProfile?.fullName || "");
   const [school, setSchool] = useState(studentProfile?.school || "");
   const [grade, setGrade] = useState(studentProfile?.grade || "");
+  const [gender, setGender] = useState(studentProfile?.gender || "");
   const [neighborhood, setNeighborhood] = useState(
     studentProfile?.neighborhood || "",
   );
@@ -164,6 +172,7 @@ export default function StudentProfile() {
       setFullName(studentProfile.fullName);
       setSchool(studentProfile.school);
       setGrade(studentProfile.grade);
+      setGender(studentProfile.gender || "");
       setNeighborhood(studentProfile.neighborhood);
       setInterests(studentProfile.interests);
       setSkills(studentProfile.skills);
@@ -254,6 +263,7 @@ export default function StudentProfile() {
           fullName,
           school,
           grade,
+          gender,
           neighborhood,
           interests,
           skills,
@@ -281,6 +291,7 @@ export default function StudentProfile() {
         fullName,
         school,
         grade,
+        gender,
         neighborhood,
         interests,
         skills,
@@ -501,6 +512,18 @@ export default function StudentProfile() {
                       ⚠️ {errors.school}
                     </p>
                   )}
+                </div>
+                <div className="space-y-3">
+                  <label className="text-xs font-semibold text-ink-soft ml-2">
+                    Gender
+                  </label>
+                  <Select
+                    aria-label="Gender"
+                    value={gender}
+                    onChange={(e) => setGender(e.target.value)}
+                    options={GENDERS}
+                    className="h-11 rounded-lg bg-paper-2 border-line font-semibold"
+                  />
                 </div>
                 <div className="space-y-3">
                   <label className="text-xs font-semibold text-ink-soft ml-2">

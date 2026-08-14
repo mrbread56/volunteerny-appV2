@@ -101,6 +101,7 @@ service cloud.firestore {
               data.fullName is string && data.fullName.size() <= 100 &&
               (absent(data, 'school') || (data.school is string && data.school.size() <= 100)) &&
               (absent(data, 'grade') || data.grade in ['9', '10', '11', '12', '']) &&
+              (absent(data, 'gender') || data.gender in ['male', 'female', 'other']) &&
               (absent(data, 'neighborhood') || (data.neighborhood is string && data.neighborhood.size() <= 100)) &&
               (absent(data, 'interests') || (data.interests is list && data.interests.size() <= 50)) &&
               (absent(data, 'skills') || (data.skills is list && data.skills.size() <= 50)) &&
@@ -396,7 +397,7 @@ service cloud.firestore {
       // up to the 1 MiB ceiling — free storage attached to a free account,
       // dragged along by every read. Identical reasoning to /users above.
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidStudent(incoming()) &&
-                    incoming().keys().hasOnly(['uid', 'email', 'fullName', 'school', 'grade', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'loggedHours', 'isBanned', 'trackerEnabled', 'trackerAnonymous', 'createdAt']) &&
+                    incoming().keys().hasOnly(['uid', 'email', 'fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'loggedHours', 'isBanned', 'trackerEnabled', 'trackerAnonymous', 'createdAt']) &&
                     incoming().get('hours', 0) == 0 &&
                     (!('loggedHours' in incoming()) || incoming().loggedHours.size() == 0);
       // `hours` is the denormalised total of `loggedHours` and is what the
@@ -428,7 +429,7 @@ service cloud.firestore {
       // Deliberately no organization branch below. Adding one back re-opens the
       // hole; scripts/check-security.ts asserts it stays shut.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (isOwner(uid) && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
+        (isOwner(uid) && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'passportUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();

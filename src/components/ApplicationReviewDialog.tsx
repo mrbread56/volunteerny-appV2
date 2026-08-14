@@ -72,14 +72,7 @@ export default function ApplicationReviewDialog({
     try {
       setSubmittingState('database');
       
-      const startTime = Date.now();
       const res = await onAccept(application.id);
-      
-      // Ensure at least 800ms of comfortable database mutation animation
-      const elapsed = Date.now() - startTime;
-      if (elapsed < 800) {
-        await new Promise(resolve => setTimeout(resolve, 800 - elapsed));
-      }
 
       // The applicants page defers its write by 5s so the toast can offer Undo.
       // Undoing, or acting on the same applicant again inside that window,
@@ -95,16 +88,15 @@ export default function ApplicationReviewDialog({
         throw new Error(res.error || "Failed to update record in Firestore database context.");
       }
 
+      // Straight to the result. There were three artificial sleeps here — an
+      // 800ms floor plus two 850ms "stages" animating a ladder of things that
+      // had all already finished — so accepting one applicant took two and a
+      // half seconds of watching fake progress. Twelve applicants was a minute
+      // and a half of theatre. Worse, this modal renders over the Undo toast at
+      // the same z-index, so the delay actively hid the one control that was
+      // still useful during it.
       setDbVerified(true);
-      setSubmittingState('receipt');
-
-      // Stage 2: Receipt Compilation delay
-      await new Promise(resolve => setTimeout(resolve, 850));
       setReceiptCompiled(res.receiptGenerated);
-      setSubmittingState('email');
-
-      // Stage 3: Resend notification compilation delay
-      await new Promise(resolve => setTimeout(resolve, 850));
       setEmailDispatched(res.emailSent);
       setSubmittingState('success');
 

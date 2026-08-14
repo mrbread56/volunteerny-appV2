@@ -15,6 +15,7 @@ export interface StudentProfile {
   fullName: string;
   school: string;
   grade: string;
+  gender?: 'male' | 'female' | 'other';
   neighborhood: string;
   interests: string[];
   skills: string[];
@@ -31,6 +32,10 @@ export interface StudentProfile {
     date: string;
     coordinatorName?: string;
     coordinatorContact?: string;
+    /** Where the hours were served. An Ontario board form asks for this on
+     *  every activity row. Optional because entries confirmed before it was
+     *  carried across do not have it. */
+    organization?: string;
     approved?: boolean;
   }>;
   contactEmail?: string;

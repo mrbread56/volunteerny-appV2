@@ -35,6 +35,13 @@ const ORGANIZATION_TYPES = [
   { value: "Other", label: "Other Group" },
 ];
 
+const GENDERS = [
+  { value: '', label: 'Select…' },
+  { value: 'male', label: 'Male' },
+  { value: 'female', label: 'Female' },
+  { value: 'other', label: 'Other' },
+];
+
 const GRADES = [
   { value: "9", label: "Grade 9" },
   { value: "10", label: "Grade 10" },
@@ -118,6 +125,7 @@ export default function Signup() {
   const [otherSchool, setOtherSchool] = useState("");
   const [school, setSchool] = useState("");
   const [grade, setGrade] = useState("");
+  const [gender, setGender] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
   const [selectedInterests, setSelectedInterests] = useState<string[]>([]);
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -148,6 +156,11 @@ export default function Signup() {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!role) return;
+
+    if (role === "student" && !gender) {
+      setError("Please select your gender.");
+      return;
+    }
 
     if (role === "organization") {
       // The question has to be answered. It is what decides whether this
@@ -249,6 +262,7 @@ export default function Signup() {
             fullName,
             school: school || selectedSchool,
             grade,
+            gender,
             neighborhood,
             interests: selectedInterests,
             skills: selectedSkills,
@@ -446,6 +460,13 @@ export default function Signup() {
                       options={GRADES}
                       value={grade}
                       onChange={(e) => setGrade(e.target.value)}
+                      required
+                    />
+                    <Select
+                      label="Gender"
+                      options={GENDERS}
+                      value={gender}
+                      onChange={(e) => setGender(e.target.value)}
                       required
                     />
                   </>

@@ -37,6 +37,9 @@ export default function StudentOpportunityDetail() {
   const applyDialogRef = useDialog(showApplyModal, closeApplyModal);
   const [isSaved, setIsSaved] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  // null until the count is known, so the sidebar never claims "0 left" while
+  // the request is still in flight.
+  const [acceptedCount, setAcceptedCount] = useState<number | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -108,6 +111,16 @@ export default function StudentOpportunityDetail() {
             }
           } catch (orgErr) {
             reportError('load organization for opportunity', orgErr);
+          }
+
+          // How many places are already taken. Counting other students'
+          // applications is something the rules correctly refuse a client, so
+          // this goes through the endpoint built for exactly that and returns
+          // only an integer.
+          if (user) {
+            fetchAcceptedCount(id)
+              .then((n) => setAcceptedCount(typeof n === 'number' ? n : null))
+              .catch(() => setAcceptedCount(null));
           }
 
           // Check if already applied
@@ -547,9 +560,22 @@ export default function StudentOpportunityDetail() {
                        <span className="text-ink-muted font-medium flex items-center gap-2"><Clock className="w-4 h-4" /> Commitment</span>
                        <span className="font-bold text-ink">{opportunity.timeCommitment}</span>
                     </div>
+                    {/* How many places are LEFT, not just the capacity.
+                        This read "10 total", so a student applying to a full
+                        opportunity was quietly written as 'waitlist' and then
+                        shown "You've Applied!" with no mention of a waitlist
+                        anywhere. fetchAcceptedCount was already imported and
+                        used inside handleApply — it just was not asked before
+                        the decision to apply. */}
                     <div className="flex items-center justify-between text-sm">
                        <span className="text-ink-muted font-medium flex items-center gap-2"><Users className="w-4 h-4" /> Spots</span>
-                       <span className="font-bold text-ink">{opportunity.maxVolunteers} total</span>
+                       <span className="font-bold text-ink">
+                         {acceptedCount === null
+                           ? `${opportunity.maxVolunteers} total`
+                           : acceptedCount >= (opportunity.maxVolunteers || 0)
+                             ? 'Full — you can join the waitlist'
+                             : `${Math.max(0, (opportunity.maxVolunteers || 0) - acceptedCount)} of ${opportunity.maxVolunteers} left`}
+                       </span>
                     </div>
                  </div>
 
