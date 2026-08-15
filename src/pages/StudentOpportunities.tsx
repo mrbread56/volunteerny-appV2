@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
 import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -13,66 +13,14 @@ import { Card } from '../components/ui/Card';
 import OpportunityCard from '../components/OpportunityCard';
 import { Map as MapIcon, List, Search, X, MapPin, Share2 } from 'lucide-react';
 import { Badge } from '../components/ui/Badge';
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { cn, copyToClipboard } from '../lib/utils';
 import { useGeolocation } from '../hooks/useGeolocation';
 
-// Fix for Leaflet marker icons in React - custom, beautiful vector SVG pin
-const DefaultIcon = L.divIcon({
-  html: `
-    <div class="relative flex items-center justify-center">
-      <div class="absolute w-6 h-6 bg-blue-dark/15 rounded-lg blur-sm"></div>
-      <div class="w-8 h-8    border-2 border-white rounded-lg  flex items-center justify-center transition-all duration-300 transform hover:scale-110">
-        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 21C12 21 4 14 4 9C4 5.96 6.46 3.5 9.5 3.5C11.18 3.5 12.69 4.25 13.7 5.43" />
-          <path d="M12 21C12 21 20 14 20 9C20 5.96 17.54 3.5 14.5 3.5C12.82 3.5 11.31 4.25 10.3 5.43" />
-        </svg>
-      </div>
-    </div>
-  `,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 28],
-});
-L.Marker.prototype.options.icon = DefaultIcon;
-
-const userLocationIcon = L.divIcon({
-  html: `
-    <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
-      <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg  flex items-center justify-center">
-        <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />
-          <circle cx="12" cy="12" r="4" fill="white" />
-        </svg>
-      </div>
-    </div>
-  `,
-  className: '',
-  iconSize: [32, 32],
-  iconAnchor: [16, 16],
-});
-
-function MapViewManager({ coords }: { coords: { lat: number; lng: number } | null }) {
-  const map = useMap();
-  
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      map.invalidateSize();
-    }, 250);
-    return () => clearTimeout(timer);
-  }, [map]);
-
-  useEffect(() => {
-    if (coords) {
-      map.setView([coords.lat, coords.lng], 14);
-    }
-  }, [coords, map]);
-  return null;
-}
+// Leaflet lives in src/components/OpportunitiesMap.tsx and is reached through
+// React.lazy below, so the 154 kB map bundle is fetched only when a student
+// actually switches to map view — not on every visit to the browse page.
+const OpportunitiesMap = lazy(() => import('../components/OpportunitiesMap'));
 
 const COMMITMENTS = [
   { value: '', label: 'Any Commitment' },
@@ -264,7 +212,7 @@ export default function StudentOpportunities() {
         if (user) {
           const localSaves = JSON.parse(localStorage.getItem('demo_saved_ids') || '[]');
           try {
-            const savedQuery = query(collection(db, 'savedOpportunities'), where('studentId', '==', user.uid));
+            const savedQuery = query(collection(db, 'savedOpportunities'), where('studentId', '==', user.uid), limit(200));
             const savedSnap = await getDocs(savedQuery);
             const remoteIds = savedSnap.docs.map(doc => (doc.data() as SavedOpportunity).opportunityId);
             const merged = Array.from(new Set([...remoteIds, ...(isDemoMode ? localSaves : [])]));
@@ -490,9 +438,20 @@ export default function StudentOpportunities() {
 
       {/* Main View */}
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20 space-y-4">
-           <div className="animate-spin rounded-lg h-12 w-12 border-4 border-blue-dark border-t-transparent" />
-           <p className="text-ink-muted font-medium">Finding the best matches for you...</p>
+        // A card grid in outline, rather than a spinner in the middle of nothing.
+        // The finished layout is a three-column grid of cards, and showing that
+        // shape while it loads is what makes the wait feel short.
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" aria-busy="true" aria-live="polite">
+           <span className="sr-only">Finding opportunities</span>
+           {[0, 1, 2, 3, 4, 5].map((i) => (
+             <div key={i} className="rounded-lg border border-line bg-white p-6 space-y-4">
+                <div className="h-4 w-20 rounded bg-line animate-shimmer" />
+                <div className="h-6 w-3/4 rounded bg-line animate-shimmer" />
+                <div className="h-3 w-full rounded bg-line animate-shimmer" />
+                <div className="h-3 w-5/6 rounded bg-line animate-shimmer" />
+                <div className="h-10 w-full rounded-lg bg-paper-2 animate-shimmer" />
+             </div>
+           ))}
         </div>
       ) : view === 'list' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -551,54 +510,20 @@ export default function StudentOpportunities() {
       ) : (
         <div className="space-y-6">
           <Card className="h-[300px] sm:h-[450px] md:h-[600px] rounded-lg overflow-hidden relative border-none ">
-             <MapContainer 
-                center={userCoords ? [userCoords.lat, userCoords.lng] : [43.7615, -79.4111]} 
-                zoom={14} 
-                style={{ height: '100%', width: '100%' }}
+             <Suspense
+                fallback={
+                  <div className="h-full w-full grid place-items-center bg-paper-2 text-sm text-ink-muted">
+                    Loading map…
+                  </div>
+                }
              >
-                <MapViewManager coords={userCoords} />
-                
-                
-                {userCoords && (
-                   <Marker 
-                      position={[userCoords.lat, userCoords.lng]} 
-                      icon={userLocationIcon}
-                      
-                      
-                      
-                   >
-                      <Popup className="rounded-lg overflow-hidden">
-                         <div className="p-2 text-center text-xs space-y-1">
-                            <div className="font-bold text-ink font-sans">Your Location</div>
-                            <div className="text-xs text-amber-dark font-mono font-bold uppercase tracking-wider">{coords ? "Live GPS Tracker" : "Neighborhood Location"}</div>
-                            <div className="text-xs text-ink-muted font-mono">Lat: {userCoords.lat.toFixed(4)}, Lng: {userCoords.lng.toFixed(4)}</div>
-                         </div>
-                      </Popup>
-                   </Marker>
-                )}
-                <TileLayer 
-                   url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                   attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> Contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                    
-                   maxZoom={20}
+                <OpportunitiesMap
+                   opportunities={filteredOpps}
+                   userCoords={userCoords}
+                   hasLiveGps={!!coords}
+                   onOpen={(id: string) => navigate(`/student/opportunities/${id}`)}
                 />
-                {filteredOpps.filter(o => o.coordinates).map(opp => (
-                  <Marker key={opp.id} position={[opp.coordinates!.lat, opp.coordinates!.lng]} icon={DefaultIcon}>
-                     <Popup className="custom-popup">
-                        <div className="p-2 space-y-2">
-                           <h4 className="font-bold text-ink leading-tight">{opp.title}</h4>
-                           <Badge variant="secondary" className="text-xs">{opp.category}</Badge>
-                           <div className="text-xs text-ink-muted flex items-center gap-1">
-                              <MapPin className="w-3 h-3 text-ink-muted" /> {opp.location}
-                           </div>
-                           <Button size="sm" className="w-full mt-2" onClick={() => navigate(`/student/opportunities/${opp.id}`)}>
-                              View Details
-                           </Button>
-                        </div>
-                     </Popup>
-                  </Marker>
-                ))}
-             </MapContainer>
+             </Suspense>
           </Card>
 
 

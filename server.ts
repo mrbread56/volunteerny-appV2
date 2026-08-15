@@ -1172,6 +1172,85 @@ app.use(express.json());
 
   /** The shared test: an accepted application from this student to this
    *  opportunity. Returns false rather than throwing on a missing index. */
+  /**
+   * The addresses this account is allowed to send mail to.
+   *
+   * ROADMAP B17. /api/email/send accepted any recipient from any signed-in
+   * account: ten arbitrary addresses per request, twenty requests per ten
+   * minutes, with an attacker-chosen subject and body, delivered from the
+   * SPF/DKIM-signed domain that also carries this platform's real mail. The
+   * templates escape their inputs and actionUrl is origin-locked, so this was
+   * never link injection — it was impersonation, and the damage lands on the
+   * sending domain's reputation, which is shared with every genuine
+   * notification the platform sends.
+   *
+   * The fix is the relationship the app already models. You may email:
+   *   - yourself, always;
+   *   - as a student: an organization you have applied to, and any coordinator
+   *     you named on your own hours request;
+   *   - as an organization: a student who applied to one of your opportunities;
+   *   - as a developer: anyone, because the console's test-send exists to
+   *     diagnose delivery and is already developer-gated.
+   *
+   * Returning null means unrestricted. Every lookup is bounded and read with
+   * the Admin SDK, because a student cannot read an organization's contact
+   * address directly and must not be able to.
+   */
+  async function allowedEmailRecipients(
+    adb: any,
+    uid: string,
+    ownEmail?: string,
+  ): Promise<Set<string> | null> {
+    const allowed = new Set<string>();
+    if (ownEmail) allowed.add(ownEmail.toLowerCase());
+
+    const userSnap = await adb.collection('users').doc(uid).get();
+    const role = userSnap.exists ? userSnap.data()?.role : null;
+    if (role === 'developer') return null;
+
+    const admin = getAdminObj();
+    const FieldPath = admin?.firestore?.FieldPath;
+
+    /** documentId() `in` queries take at most 10 values. */
+    const byId = async (collection: string, ids: string[], field: string) => {
+      if (!FieldPath) return;
+      for (let i = 0; i < ids.length; i += 10) {
+        const chunk = ids.slice(i, i + 10);
+        if (!chunk.length) continue;
+        const snap = await adb.collection(collection)
+          .where(FieldPath.documentId(), 'in', chunk).get();
+        for (const d of snap.docs) {
+          const value = d.data()?.[field];
+          if (typeof value === 'string' && value) allowed.add(value.toLowerCase());
+        }
+      }
+    };
+
+    if (role === 'student') {
+      const apps = await adb.collection('applications')
+        .where('studentId', '==', uid).limit(100).get();
+      const orgIds = [...new Set(apps.docs.map((d: any) => d.data()?.orgId).filter(Boolean))] as string[];
+      await byId('organizations', orgIds, 'contactEmail');
+      await byId('users', orgIds, 'email');
+
+      // A coordinator the student named themselves. The hours request is
+      // written before the notification is sent, so it is always found here.
+      const hours = await adb.collection('hoursRequests')
+        .where('studentId', '==', uid).limit(100).get();
+      for (const d of hours.docs) {
+        const contact = d.data()?.coordinatorContact;
+        if (typeof contact === 'string' && contact) allowed.add(contact.toLowerCase());
+      }
+    } else if (role === 'organization') {
+      const apps = await adb.collection('applications')
+        .where('orgId', '==', uid).limit(200).get();
+      const studentIds = [...new Set(apps.docs.map((d: any) => d.data()?.studentId).filter(Boolean))] as string[];
+      await byId('users', studentIds, 'email');
+    }
+
+    return allowed;
+  }
+
   async function hasAcceptedApplication(adb: any, studentId: string, opportunityId: string): Promise<boolean> {
     const snap = await adb.collection('applications')
       .where('studentId', '==', studentId)
@@ -2589,6 +2668,28 @@ app.use(express.json());
       }
       if (recipients.length > 10) {
         return res.status(400).json({ error: 'Too many recipients in a single request (max 10).' });
+      }
+
+      // B17: you may only email people this account actually has a relationship
+      // with. See allowedEmailRecipients for what that means per role.
+      {
+        const adb = adminFirestore();
+        if (!adb) {
+          return res.status(500).json({ error: 'Server configuration error.' });
+        }
+        const allowed = await allowedEmailRecipients(adb, authContext.uid, authContext.email);
+        if (allowed) {
+          const refused = recipients.filter((r: string) => !allowed.has(r.toLowerCase()));
+          if (refused.length) {
+            // Deliberately does not name which address was refused, or confirm
+            // that any of the others exist — that would make this endpoint a
+            // membership oracle for a platform used by minors.
+            console.warn(`[email/send] ${authContext.uid} tried to email ${refused.length} unrelated address(es).`);
+            return res.status(403).json({
+              error: 'You can only email people connected to your account — an organization you applied to, a student who applied to you, or a coordinator you named.',
+            });
+          }
+        }
       }
       if (typeof subject !== 'string' || !subject.trim()) {
         return res.status(400).json({ error: 'A subject line is required.' });

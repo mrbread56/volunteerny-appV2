@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
 
 // Read Firebase config from environment variables (VITE_ prefixed = exposed to client)
 // Fall back to imported JSON for backward compatibility during migration
@@ -29,7 +28,7 @@ const firebaseConfig = {
  */
 const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
-const app = initializeApp(firebaseConfig);
+export const app = initializeApp(firebaseConfig);
 
 export const db = firestoreDatabaseId
   ? initializeFirestore(app, {}, firestoreDatabaseId)
@@ -44,7 +43,14 @@ if (!firestoreDatabaseId && import.meta.env.DEV) {
 }
 
 export const auth = getAuth(app);
-export const storage = getStorage(app);
+// `storage` is deliberately NOT exported from here.
+//
+// This module is imported by 18 files — every page, every context, the router.
+// A module-scope `getStorage(app)` therefore pulled the whole Firebase Storage
+// SDK (44.65 kB raw, 11.04 kB gzipped) into the entry chunk for every visitor,
+// including anyone who only ever reads the landing page. Its single consumer is
+// src/lib/storageUpload.ts, which now creates it itself and is loaded only when
+// an upload actually happens.
 
 // NOTE: a startup "connection test" used to read test/connection here. The
 // security rules deny that path via the default catch-all, so it failed with

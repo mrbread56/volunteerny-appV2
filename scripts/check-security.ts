@@ -241,7 +241,7 @@ const ROUTES: Array<{ method: string; path: string; body?: unknown }> = [
   { method: 'POST', path: '/api/hours/approve', body: { studentId: 'x', hours: 1 } },
 ];
 
-async function apiChecks(studentToken: string, orgToken: string, victimStudentId: string) {
+async function apiChecks(studentToken: string, orgToken: string, victimStudentId: string, studentEmail: string) {
   console.log('\n── HTTP API ──');
 
   // (a) No credentials at all.
@@ -280,7 +280,11 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
     body: JSON.stringify({
-      to: 'security-probe@example.com',
+      // Addressed to the sender's OWN account, so the relationship check in
+      // (d2) passes and this isolates the thing it is actually testing: the
+      // actionUrl. Pointed at a stranger it now returns 403 for the other
+      // reason, which would quietly stop exercising the URL check at all.
+      to: studentEmail,
       subject: 'Action required',
       templateName: 'notification',
       templateData: {
@@ -300,6 +304,53 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
     // 502/503 means mail is unconfigured here; the URL check runs before send,
     // so reaching the mailer at all means the payload was accepted.
     fail(`off-site actionUrl was not rejected before sending (status ${phish.status})`);
+  }
+
+  // (d2) B17: a stranger's address must be refused outright.
+  //
+  //      The URL check above stops the LINK being hostile. It does nothing
+  //      about WHO the mail reaches: this endpoint accepted ten arbitrary
+  //      recipients per request from any signed-in account, delivered from the
+  //      SPF/DKIM-signed domain that carries every genuine notification this
+  //      platform sends. That is impersonation, and the cost lands on the
+  //      sending domain's reputation.
+  //
+  //      This student has no application, no hours request and no relationship
+  //      with the address below, so it must not be deliverable to.
+  const stranger = await fetch(`${BASE}/api/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+    body: JSON.stringify({
+      to: 'someone-unrelated@example.com',
+      subject: 'Hello',
+      templateName: 'notification',
+      templateData: { heading: 'Hi', details: 'Nothing.', actionLabel: 'Open', actionUrl: `${BASE}/` },
+    }),
+  });
+  if (stranger.status === 403) {
+    pass('a student cannot email an address they have no relationship with');
+  } else if (stranger.ok) {
+    fail('a student sent mail to an unrelated address from our signed domain');
+  } else {
+    fail(`unrelated recipient returned ${stranger.status}, expected 403`);
+  }
+
+  // (d3) ...while a student may still email THEMSELVES, which several genuine
+  //      flows do (welcome mail, their own receipts).
+  const toSelf = await fetch(`${BASE}/api/email/send`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+    body: JSON.stringify({
+      to: studentEmail,
+      subject: 'Your own address',
+      templateName: 'notification',
+      templateData: { heading: 'Hi', details: 'Nothing.', actionLabel: 'Open', actionUrl: `${BASE}/` },
+    }),
+  });
+  if (toSelf.status === 403) {
+    fail('a student was blocked from emailing their OWN address — the B17 check is too tight');
+  } else {
+    pass('a student can still email their own address');
   }
 
   // (e) A same-origin actionUrl must still be accepted — a fix that blocks
@@ -688,7 +739,7 @@ async function cleanup() {
     // studentB is the victim: the org has no opportunity, application or hours
     // request connecting it to them.
     console.log('STAGE: server up, running API checks');
-    await apiChecks(studentToken, orgToken, studentB.uid);
+    await apiChecks(studentToken, orgToken, studentB.uid, studentA.email);
     // Runs before the Firestore half because it needs studentB's hours to still
     // be zero, and it uses studentB so a credit here cannot be confused with
     // the legitimate approval exercised in check:flows.

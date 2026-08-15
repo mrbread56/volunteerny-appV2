@@ -1,5 +1,10 @@
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { storage } from '../firebase/config';
+import { ref, uploadBytesResumable, getDownloadURL, getStorage } from 'firebase/storage';
+import { app } from '../firebase/config';
+
+// Created here rather than in firebase/config, which every page imports — see
+// the note there. getStorage is memoised by the SDK per app, so calling it at
+// module scope in this file costs nothing beyond the first call.
+const storage = getStorage(app);
 
 /**
  * Resize an image file on a canvas before upload, matching the existing

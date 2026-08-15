@@ -118,9 +118,17 @@ export function countUnread(items: AppNotification[], seenAt: Date): number {
 async function studentNotifications(uid: string): Promise<AppNotification[]> {
   const out: AppNotification[] = [];
 
-  const apps = await getDocs(
-    query(collection(db, 'applications'), where('studentId', '==', uid), limit(50)),
-  );
+  // All three reads at once.
+  //
+  // These were three sequential awaits with a for-loop between each, so the bell
+  // cost three stacked round trips before it could render — on school wifi or
+  // mobile data that is most of the delay a student notices. They are entirely
+  // independent: nothing in one query's result feeds another.
+  const [apps, hours, recs] = await Promise.all([
+    getDocs(query(collection(db, 'applications'), where('studentId', '==', uid), limit(50))),
+    getDocs(query(collection(db, 'hoursRequests'), where('studentId', '==', uid), limit(50))),
+    getDocs(query(collection(db, 'recommendations'), where('studentId', '==', uid), limit(30))),
+  ]);
   for (const d of apps.docs) {
     const a: any = d.data();
     const title = a.opportunityTitle || 'your application';
@@ -156,9 +164,6 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
     }
   }
 
-  const hours = await getDocs(
-    query(collection(db, 'hoursRequests'), where('studentId', '==', uid), limit(50)),
-  );
   for (const d of hours.docs) {
     const h: any = d.data();
     if (h.status !== 'approved' && h.status !== 'declined') continue;
@@ -176,9 +181,6 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
 
   // A reference an organization wrote about them. Students can read their own
   // recommendations; nobody else's are visible.
-  const recs = await getDocs(
-    query(collection(db, 'recommendations'), where('studentId', '==', uid), limit(30)),
-  );
   for (const d of recs.docs) {
     const r: any = d.data();
     out.push({
@@ -202,9 +204,12 @@ async function sharedNotifications(uid: string, feedbackHref: string): Promise<A
 
   // The example this was built for: you file feedback, a developer replies, and
   // until now nothing told you to go back and look.
-  const feedbacks = await getDocs(
-    query(collection(db, 'feedbacks'), where('userId', '==', uid), limit(30)),
-  );
+  // Both reads at once — they are independent, and this pair sat on the end of
+  // whichever role-specific chain ran before it.
+  const [feedbacks, reports] = await Promise.all([
+    getDocs(query(collection(db, 'feedbacks'), where('userId', '==', uid), limit(30))),
+    getDocs(query(collection(db, 'reports'), where('reportingUserId', '==', uid), limit(30))),
+  ]);
   for (const d of feedbacks.docs) {
     const f: any = d.data();
     if (!f.developerReply) continue;
@@ -218,9 +223,6 @@ async function sharedNotifications(uid: string, feedbackHref: string): Promise<A
 
   // A safety report is the most serious thing anyone sends through this site,
   // so the person who filed it should be told it was actually looked at.
-  const reports = await getDocs(
-    query(collection(db, 'reports'), where('reportingUserId', '==', uid), limit(30)),
-  );
   for (const d of reports.docs) {
     const r: any = d.data();
     if (r.status !== 'resolved' && r.status !== 'dismissed') continue;
@@ -306,9 +308,15 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
 
   // Ratings students left for them. Readable by any signed-in user by design —
   // they are meant to be shown on org profiles.
-  const ratings = await getDocs(
-    query(collection(db, 'orgRatings'), where('orgId', '==', uid), limit(30)),
-  );
+  // Ratings, the org's own postings, and the shared feedback/report pair are all
+  // independent, and ran as three more sequential hops on top of the hours read
+  // above. An organization's bell was six round trips deep before the chunked
+  // applications loop even started.
+  const [ratings, opps, shared] = await Promise.all([
+    getDocs(query(collection(db, 'orgRatings'), where('orgId', '==', uid), limit(30))),
+    getDocs(query(collection(db, 'opportunities'), where('orgId', '==', uid), limit(30))),
+    sharedNotifications(uid, '/feedback'),
+  ]);
   for (const d of ratings.docs) {
     const r: any = d.data();
     extra.push({
@@ -319,11 +327,8 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
     });
   }
 
-  extra.push(...(await sharedNotifications(uid, '/feedback')));
+  extra.push(...shared);
 
-  const opps = await getDocs(
-    query(collection(db, 'opportunities'), where('orgId', '==', uid), limit(30)),
-  );
   const ids = opps.docs.map((d) => d.id);
   // No opportunities does not mean no notifications — verification, ratings,
   // hours to confirm and feedback replies are all independent of them.

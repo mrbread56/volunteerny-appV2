@@ -3,7 +3,7 @@ import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
 import { reportError } from '../lib/errors';
 import { db } from '../firebase/config';
-import { doc, setDoc, serverTimestamp, collection, getDocs, query, where } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
@@ -61,7 +61,7 @@ export default function FeedbackPage() {
         const filtered = demoFeedbacks.filter((fb: any) => fb.userId === userId);
         setMyFeedbacks(filtered);
       } else {
-        const q = query(collection(db, 'feedbacks'), where('userId', '==', userId));
+        const q = query(collection(db, 'feedbacks'), where('userId', '==', userId), limit(100));
         const fbSnap = await getDocs(q);
         const fbList = fbSnap.docs
           .map(doc => ({ id: doc.id, ...doc.data() } as any));

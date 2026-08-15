@@ -418,7 +418,7 @@ export default function DeveloperDashboard() {
       return;
     }
     try {
-      const q = query(collection(db, 'organizations'), where('verificationStatus', '==', 'pending'));
+      const q = query(collection(db, 'organizations'), where('verificationStatus', '==', 'pending'), limit(200));
       const snap = await getDocs(q);
       setPendingOrgs(snap.docs.map(d => ({ ...d.data(), uid: d.id } as any)));
     } catch (err) {

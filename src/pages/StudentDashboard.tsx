@@ -474,7 +474,7 @@ export default function StudentDashboard() {
     if (!user || isDemoMode) return;
     const fetchRatings = async () => {
       try {
-        const q = query(collection(db, 'orgRatings'), where('studentId', '==', user.uid));
+        const q = query(collection(db, 'orgRatings'), where('studentId', '==', user.uid), limit(100));
         const snap = await getDocs(q);
         const map: Record<string, boolean> = {};
         snap.docs.forEach(d => { map[`${d.data().orgId}_${d.data().opportunityId}`] = true; });
@@ -1052,7 +1052,32 @@ export default function StudentDashboard() {
   }, [user, isDemoMode, studentProfile]);
 
   if (isLoading)
-    return <div className="p-8 text-center">Loading your dashboard...</div>;
+    // A skeleton of the real layout, not a sentence.
+    //
+    // This screen sits behind six Firestore queries and is the first thing a
+    // student sees after signing in. A centred line of text gives no hint of
+    // what is coming, so the page appears to snap into existence; a shape that
+    // matches the finished layout reads as faster even when it is not. The
+    // shimmer primitive already exists (--animate-shimmer, used by the navbar).
+    return (
+      <div className="max-w-6xl mx-auto p-6 space-y-8" aria-busy="true" aria-live="polite">
+        <span className="sr-only">Loading your dashboard</span>
+        <div className="h-9 w-64 rounded-lg bg-line animate-shimmer" />
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[0, 1, 2].map((i) => (
+            <div key={i} className="h-32 rounded-lg bg-paper-2 border border-line animate-shimmer" />
+          ))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 space-y-4">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="h-24 rounded-lg bg-paper-2 border border-line animate-shimmer" />
+            ))}
+          </div>
+          <div className="h-64 rounded-lg bg-paper-2 border border-line animate-shimmer" />
+        </div>
+      </div>
+    );
 
   const sidebarItems = [
     { id: "dashboard", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
