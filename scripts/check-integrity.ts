@@ -103,6 +103,33 @@ const num = (v: any) => {
       }
     }
 
+    // ── 2b. no opportunity points at a missing organization ───────────────
+    //
+    // This was the gap. Invariant 2 caught applications orphaned by a deleted
+    // OPPORTUNITY, and nothing caught opportunities orphaned by a deleted
+    // ORGANIZATION — so the scan reported "all invariants hold" over a database
+    // holding two postings whose owner no longer existed, each still carrying
+    // accepted applications.
+    //
+    // It matters beyond tidiness: the applications `list` rule proves ownership
+    // by reading the parent opportunity, and OrgOpportunityApplicants resolves
+    // the organization for the header. A posting with no owner is visible to
+    // students, unmanageable by anyone, and impossible to withdraw.
+    {
+      const orgIds = new Set(orgs.docs.map((d: any) => d.id));
+      const orphans = opportunities.docs.filter((d: any) => {
+        const orgId = d.data().orgId;
+        return orgId && !orgIds.has(orgId);
+      });
+      if (orphans.length === 0) ok('every opportunity points at an organization that exists');
+      else {
+        bad(`${orphans.length} opportunit(y/ies) reference a deleted organization`);
+        for (const d of orphans.slice(0, 10)) {
+          console.error(`          ${d.id} "${d.data().title ?? ''}" -> organization ${d.data().orgId}`);
+        }
+      }
+    }
+
     // ── 3. every profile has an account, and every account a profile ──────
     {
       const userIds = new Set(users.docs.map((d: any) => d.id));

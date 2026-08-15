@@ -211,6 +211,39 @@ const isTestAddress = (email: string) => !!email && TEST_PATTERNS.some((p) => p.
       }
     }
 
+    // An opportunity whose organization no longer exists.
+    //
+    // The account-deletion cascade removes these, but a test that deletes an
+    // org straight through the Admin SDK bypasses it — and two such postings
+    // survived every sweep here, still carrying accepted applications from
+    // students who were themselves deleted. check:integrity now names this
+    // class explicitly (invariant 2b); this is what actually removes it.
+    //
+    // These are not merely untidy. The applications `list` rule proves
+    // ownership by reading the parent opportunity, and the applicants screen
+    // resolves the organization for its header — so an ownerless posting stays
+    // visible to students, cannot be managed by anyone, and cannot be withdrawn.
+    const liveOrgs = new Set((await db.collection('organizations').get()).docs.map((d: any) => d.id));
+    for (const d of (await db.collection('opportunities').get()).docs) {
+      const orgId = d.data()?.orgId;
+      if (orgId && liveOrgs.has(orgId)) continue;
+      unreachable.push({
+        col: 'opportunities', id: d.id,
+        label: `"${d.data()?.title ?? '(untitled)'}" — organization ${orgId} no longer exists`,
+      });
+    }
+
+    // Applications pointing at an opportunity that is gone, for the same reason.
+    const liveOpps = new Set((await db.collection('opportunities').get()).docs.map((d: any) => d.id));
+    for (const d of (await db.collection('applications').get()).docs) {
+      const oppId = d.data()?.opportunityId;
+      if (oppId && liveOpps.has(oppId)) continue;
+      unreachable.push({
+        col: 'applications', id: d.id,
+        label: `application to a deleted opportunity ${oppId}`,
+      });
+    }
+
     // The reverse: an account document whose identity is gone and which has no
     // profile. Same reasoning, same irrecoverability.
     for (const d of (await db.collection('users').get()).docs) {
