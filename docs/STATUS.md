@@ -10,25 +10,28 @@ already been fixed and gave the impression the project was unfinished.
 
 ---
 
-## Full verification, 13 August 2026
+## Full verification, 14 August 2026
 
-Every gate below was run on this commit and passed.
+Every gate below was run THREE times on this commit, on the migrated Toronto
+database, and produced identical results each time. Repeating them is the point:
+a suite that passes once may be passing by accident of ordering or timing.
 
 | Check | Result |
 |---|---|
 | `lint` (types + ESM guard) | 0 errors |
 | `build` (SPA + server bundle) | succeeds |
 | `check:firebase` | 13/13 |
-| `check:security` (adversarial) | **67/67** |
+| `check:security` (adversarial) | **69/69** |
 | `check:flows` (full journey) | 15/15 |
-| `check:lifecycle` (withdraw, waitlist, deletes) | 13/13 |
+| `check:lifecycle` (withdraw, waitlist, deletes) | 22/22 |
 | `check:signup` | 6/6 |
-| `check:queries` | 0 failures |
+| `check:queries` | 7/7 |
+| `check:integrity` (invariants over real data) | **7/7** |
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
-| `test` (full Playwright suite, chromium + webkit) | **74/74** |
-| `test:rules` (emulator, per-field) | **49/49** |
+| `test` (full Playwright suite, chromium + webkit) | **100/100** |
+| `test:rules` (emulator, per-field) | **56/56** |
 | `check:concurrency` (200-way parallel) | **5/5** |
 | `test:tz` (5 timezones incl. UTC+14 and a half-hour zone) | **5/5** |
 | `test:mutation` (deliberate breakages caught) | **8/8 killed** |
@@ -475,7 +478,10 @@ attachments) now goes to Firebase Storage; documents carry only URLs. Legacy
 documents still hold their base64 and read through the same components; they
 shrink naturally as students re-upload.
 
-**B11. Rules unit tests cannot run here**, `test:rules` needs Java and the
+**B11. CLOSED 14 Aug 2026.** A JDK is installed, `firebase.json` carries an
+emulators block, and `npm run test:rules` boots the Firestore emulator, runs 56
+per-field assertions against the real rules file offline, and shuts it down.
+Historic note follows: `test:rules` needed Java and the
 Firebase emulator. Rules are currently proven by live adversarial tests instead.
 
 ### P3, long-term
