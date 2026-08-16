@@ -52,4 +52,8 @@ design-archive/
 
 # Third-party agent skills installed with `npx skills add`. Regenerable, MIT
 # licensed, and not this project's code — reinstall rather than vendor them.
+# The installer writes BOTH of these: .agents/ is the source, .claude/skills/
+# is a per-agent copy, and missing the second one silently commits 24 files.
 .agents/
+.claude/skills/
+skills-lock.json
