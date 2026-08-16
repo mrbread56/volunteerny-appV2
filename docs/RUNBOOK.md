@@ -247,6 +247,35 @@ destroy data another user depends on. See `scripts/repair-orphaned-accounts.ts`.
 
 ---
 
+## A deletion that did not finish
+
+`purgeAccount` clears Firestore, Cloud Storage and the sign-in identity. The
+Storage half collects its failures rather than throwing, because aborting
+half-way would leave the account in a worse state than before it was asked for —
+so a partial deletion is reported, not raised.
+
+Find it:
+
+```bash
+vercel logs <deployment-url> | grep purge_storage_incomplete
+```
+
+The event carries the uid and how many prefixes failed. Clear the remainder by
+hand in the Firebase console under Storage, removing every object beneath:
+
+```
+students/<uid>/        organizations/<uid>/
+reports/<uid>/         feedbacks/<uid>/
+```
+
+This matters more than an ordinary orphan. Every file URL the app hands out is a
+`getDownloadURL()` link with a token embedded in it, and that token **bypasses
+`storage.rules` entirely** — so any link already shared or sitting in someone's
+email keeps resolving until the object itself is removed. Deleting the account
+does not invalidate it.
+
+---
+
 ## Restoring data
 
 Backups are manual. Take one before anything risky.

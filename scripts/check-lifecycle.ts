@@ -364,6 +364,18 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
         coordinatorContact: org.email, status: 'pending', requestedAt: new Date().toISOString(),
       });
 
+      // A real object under this student's Storage prefix, so deletion can be
+      // proven rather than assumed. Written with the Admin SDK because the
+      // point is what SURVIVES the purge, not whether the upload rules work —
+      // check:storage already covers those.
+      const bucketName = process.env.VITE_FIREBASE_STORAGE_BUCKET!;
+      const objectPath = `students/${s3.uid}/lifecycle-resume.txt`;
+      await adb.__app.storage().bucket(bucketName).file(objectPath)
+        .save('pretend resume bytes', { contentType: 'text/plain' });
+      const uploadedExists = (await adb.__app.storage().bucket(bucketName).file(objectPath).exists())[0];
+      if (uploadedExists) pass('a file was uploaded under the student\'s Storage prefix');
+      else fail('could not stage a Storage object, so deletion cannot be proven');
+
       const token = await as(s3.email);
       const wrong = await fetch(`${apiBase}/api/account/delete`, {
         method: 'POST',
@@ -384,6 +396,16 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
         const profileGone = !(await adb.collection('students').doc(s3.uid).get()).exists;
         const hoursLeft = (await adb.collection('hoursRequests').where('studentId', '==', s3.uid).get()).size;
         const authGone = await adb.__app.auth().getUser(s3.uid).then(() => false).catch(() => true);
+
+        // The part that was missing entirely. Deletion cleared Firestore and the
+        // Auth identity and never touched Cloud Storage, so a resume — and the
+        // photographs on any safety report — outlived the account. Every URL the
+        // app hands out carries a getDownloadURL token that bypasses
+        // storage.rules, so an already-shared link kept resolving forever.
+        const objectGone = !(await adb.__app.storage().bucket(bucketName).file(objectPath).exists())[0];
+        if (objectGone) pass('self-deletion removed the uploaded file from Cloud Storage');
+        else fail('the uploaded file SURVIVED account deletion — its download URL still resolves');
+
         if (userGone && profileGone && authGone && hoursLeft === 0) {
           pass('self-deletion removed the account, the profile, the sign-in identity and the dependents');
         } else {

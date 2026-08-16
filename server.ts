@@ -1124,6 +1124,9 @@ app.use(express.json());
   async function purgeAccount(adb: any, adminObj: any, userId: string) {
     const userSnap = await adb.collection('users').doc(userId).get();
     const role = userSnap.exists ? userSnap.data()?.role : null;
+    // Read before anything is deleted — emailLog is keyed by ADDRESS, and once
+    // the account document is gone there is no way back to it.
+    const userEmail = userSnap.exists ? String(userSnap.data()?.email || '') : '';
 
     const deleteWhere = async (coll: string, field: string, value: string) => {
       // Paginated. This was a single `.limit(300)` with nothing after it, so an
@@ -1180,7 +1183,70 @@ app.use(express.json());
     await deleteWhere('reports', 'reportedUserId', userId);
     await deleteWhere('orgRatings', 'studentId', userId);
     await deleteWhere('orgRatings', 'orgId', userId);
-    await deleteWhere('emailLog', 'toUid', userId);
+    // emailLog is keyed by the recipient ADDRESS, not by uid.
+    //
+    // This used to be deleteWhere('emailLog', 'toUid', userId) — and `toUid` is
+    // written nowhere. recordEmailLog persists { to, subject, templateName,
+    // status, error, sentBy, at }, so the query matched zero documents every
+    // time and a deleted user's email address survived in the log. The only
+    // thing that ever removed it was an opportunistic 30-day prune that runs
+    // when a developer happens to open the Control Room.
+    if (userEmail) {
+      await deleteWhere('emailLog', 'to', userEmail);
+      await deleteWhere('emailLog', 'sentBy', userEmail);
+    }
+
+    // References written ABOUT this student. Absent from the purge entirely,
+    // and the authoring organization could still read them afterwards — they
+    // carry studentId, studentName and free text about a named minor.
+    await deleteWhere('recommendations', 'studentId', userId);
+    await deleteWhere('recommendations', 'orgId', userId);
+
+    // Reported client errors carry uid, path and user agent.
+    await deleteWhere('clientErrors', 'uid', userId);
+
+    // ── Cloud Storage ────────────────────────────────────────────────────
+    //
+    // Deletion never touched it. Every upload lands under {collection}/{uid}/,
+    // so the objects simply stayed: a student's resume, an organization's logo,
+    // and the photographs attached to safety reports and feedback — evidence
+    // involving minors.
+    //
+    // Worse than orphaned data. Every URL this app hands out is a
+    // getDownloadURL() link with a token embedded in it, and that token
+    // BYPASSES storage.rules entirely — so any link already shared, pasted into
+    // an email, or sitting in someone's history kept resolving forever after
+    // the account was erased. "Delete my account" did not delete the most
+    // sensitive thing the account held.
+    //
+    // deleteFiles is prefix-based and paginated by the SDK. Failures are
+    // collected rather than thrown: a Storage problem must not abort a purge
+    // that has already removed the Firestore half, or the account is left
+    // in a worse state than before it was asked for.
+    const storageFailures: string[] = [];
+    try {
+      const bucket = adminObj.storage().bucket(process.env.VITE_FIREBASE_STORAGE_BUCKET);
+      for (const prefix of [
+        `students/${userId}/`,
+        `organizations/${userId}/`,
+        `reports/${userId}/`,
+        `feedbacks/${userId}/`,
+      ]) {
+        try {
+          await bucket.deleteFiles({ prefix, force: true });
+        } catch (err: any) {
+          storageFailures.push(`${prefix}: ${err?.message || err}`);
+        }
+      }
+    } catch (err: any) {
+      storageFailures.push(`bucket unavailable: ${err?.message || err}`);
+    }
+    if (storageFailures.length) {
+      // Loud, because the remnant is a file about a minor that someone asked to
+      // have removed. RUNBOOK covers clearing it by hand.
+      logEvent('purge_storage_incomplete', { target: userId, failures: storageFailures.length });
+      console.error('[purge] Storage objects NOT removed for', userId, storageFailures);
+    }
 
     if (role === 'student' || role === 'organization') {
       await adb.collection(role === 'student' ? 'students' : 'organizations').doc(userId).delete();
