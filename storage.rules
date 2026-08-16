@@ -25,7 +25,16 @@ service firebase.storage {
     }
     
     function callerRole() {
-      return firestore.get(/databases/ai-studio-volunteerny-abfab7a5-e856-49f4-882f-511f963bb755/documents/users/$(request.auth.uid)).data.role;
+      // MUST name the live database. This read still pointed at the
+      // pre-migration AI-Studio database after production moved to
+      // `volunteerny`, and storage.rules was not part of that commit — so the
+      // developer branches below authorized against a stale copy. It failed in
+      // BOTH directions at once and silently: a developer demoted or deleted
+      // since the migration still passed from their leftover document, while a
+      // developer promoted after it had no document there at all, so the get()
+      // errored and the rule denied. Keep this in step with
+      // FIREBASE_DATABASE_ID and firebase.json.
+      return firestore.get(/databases/volunteerny/documents/users/$(request.auth.uid)).data.role;
     }
 
     function isOrgOrDeveloper() {

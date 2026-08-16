@@ -241,7 +241,7 @@ const ROUTES: Array<{ method: string; path: string; body?: unknown }> = [
   { method: 'POST', path: '/api/hours/approve', body: { studentId: 'x', hours: 1 } },
 ];
 
-async function apiChecks(studentToken: string, orgToken: string, victimStudentId: string, studentEmail: string) {
+async function apiChecks(studentToken: string, orgToken: string, victimStudentId: string, studentEmail: string, studentUid: string) {
   console.log('\n── HTTP API ──');
 
   // (a) No credentials at all.
@@ -351,6 +351,68 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
     fail('a student was blocked from emailing their OWN address — the B17 check is too tight');
   } else {
     pass('a student can still email their own address');
+  }
+
+  // (d4) B17 bypass: self-authorising a recipient through your own hours request.
+  //
+  //      The relationship check reads `coordinatorContact` off hoursRequests the
+  //      student owns — and the student writes that field, with the rules only
+  //      checking it is a short string. So the allowlist could be self-issued:
+  //      write a request naming any address, then send it anything.
+  //
+  //      The address stays reachable (a real coordinator is usually at an
+  //      unregistered organisation), but the server now composes the message
+  //      from the stored request, so attacker-chosen subject and body cannot
+  //      survive. This asserts the words do not come back.
+  {
+    const adb = adminFirestore();
+    const victim = `b17_probe_${Date.now()}@example.com`;
+    let probeId = '';
+    try {
+      const ref = await adb.collection('hoursRequests').add({
+        studentId: studentUid, studentName: 'B17 Probe', studentEmail: studentEmail,
+        activity: 'Probe activity', hours: 2, date: '2026-08-14',
+        organization: 'Probe Org', coordinatorName: 'Probe Coordinator',
+        coordinatorContact: victim, status: 'pending',
+        requestedAt: new Date().toISOString(),
+      });
+      probeId = ref.id;
+
+      const r = await fetch(`${BASE}/api/email/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${studentToken}` },
+        body: JSON.stringify({
+          to: victim,
+          subject: 'ATTACKER CHOSEN SUBJECT',
+          templateName: 'notification',
+          templateData: {
+            heading: 'ATTACKER CHOSEN HEADING',
+            details: 'ATTACKER CHOSEN BODY',
+            actionLabel: 'Click', actionUrl: `${BASE}/`,
+          },
+        }),
+      });
+
+      if (r.status === 403 || r.status === 400) {
+        pass('a self-named coordinator address cannot be sent arbitrary content');
+      } else {
+        // Accepted — so the only remaining question is WHAT was sent. The log
+        // records the subject that actually went out.
+        const log = await adb.collection('emailLog')
+          .where('to', '==', victim).limit(5).get();
+        const leaked = log.docs.some((d: any) => String(d.data()?.subject || '').includes('ATTACKER CHOSEN'));
+        if (leaked) {
+          fail('attacker-chosen subject reached an address the attacker authorised themselves');
+        } else {
+          pass('the coordinator notice was rebuilt by the server, not the caller');
+        }
+        await Promise.all(log.docs.map((d: any) => d.ref.delete().catch(() => {})));
+      }
+    } catch (err: any) {
+      fail(`B17 bypass probe crashed: ${err?.message || err}`);
+    } finally {
+      if (probeId) await adb.collection('hoursRequests').doc(probeId).delete().catch(() => {});
+    }
   }
 
   // (e) A same-origin actionUrl must still be accepted — a fix that blocks
@@ -739,7 +801,7 @@ async function cleanup() {
     // studentB is the victim: the org has no opportunity, application or hours
     // request connecting it to them.
     console.log('STAGE: server up, running API checks');
-    await apiChecks(studentToken, orgToken, studentB.uid, studentA.email);
+    await apiChecks(studentToken, orgToken, studentB.uid, studentA.email, studentA.uid);
     // Runs before the Firestore half because it needs studentB's hours to still
     // be zero, and it uses studentB so a credit here cannot be confused with
     // the legitimate approval exercised in check:flows.

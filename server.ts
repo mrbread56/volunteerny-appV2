@@ -80,6 +80,25 @@ if (!process.env.FIREBASE_DATABASE_ID) {
 }
 
 /** Returns true when it has already answered the request. */
+/**
+ * One greppable line per event that matters.
+ *
+ *   vercel logs <url> | grep '"evt"'
+ *   vercel logs <url> | grep '"evt":"hours_credited"'
+ *
+ * There are ~189 console.error/warn calls in this project. They are fine, and
+ * nobody will ever read them: on Vercel they land unindexed in per-invocation
+ * function logs. This is the small set that has to be findable AFTER the fact,
+ * emitted as JSON so it can be filtered rather than eyeballed.
+ *
+ * uid only — never an email, name, school, OTP code or token. These users are
+ * mostly minors and log lines outlive the request that wrote them. It is the
+ * same reason firestore.rules refuses every client access to emailLog.
+ */
+function logEvent(evt: string, fields: Record<string, string | number | boolean | null> = {}) {
+  console.log(JSON.stringify({ evt, at: new Date().toISOString(), ...fields }));
+}
+
 function mailUnavailable(res: any): boolean {
   if (!MAIL_CONFIG_ERROR) return false;
   console.error('[mail] request refused: ' + MAIL_CONFIG_ERROR);
@@ -246,7 +265,15 @@ async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: 
   try {
     const adminObj = (adminInstance as any).default || adminInstance;
     const decoded = await adminObj.auth().verifyIdToken(token);
-    console.log('[verifyAuth] Token verified for user:', decoded.uid, 'email:', decoded.email);
+    // uid only. This logged `email: <address>` on EVERY authenticated API call,
+    // so a log stream that outlives the request accumulated the email addresses
+    // of users who are mostly minors — the exact data the privacy policy
+    // promises to protect, written out as a side effect of a debug line nobody
+    // reads. The uid is enough to trace a request; the address adds nothing an
+    // operator needs and everything a leak would cost.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[verifyAuth] token verified for', decoded.uid);
+    }
     return {
       uid: decoded.uid,
       email: decoded.email,
@@ -802,6 +829,127 @@ app.use(express.json());
    * nothing an ordinary signed-in user could not already do through the POST
    * route: this reads only server-side data and writes one derived document.
    */
+  /**
+   * Liveness, for an external monitor. Unauthenticated, called every few minutes.
+   *
+   * Its real job is to prove THIS MODULE LOADED. api/index.ts imports the whole
+   * Express app, so a single bad module load 500s every /api/* route at once
+   * while Vercel's CDN keeps serving a perfectly healthy-looking SPA — a student
+   * browses opportunities happily and then every apply, every hours submission
+   * and every sign-in code fails silently. That has happened twice here: the
+   * extensionless import, and MAIL_FROM calling process.exit at load. In both
+   * cases this handler does not answer at all, which is the correct signal.
+   *
+   * Everything it asserts is in-process. Deliberately NO Firestore read (it is
+   * public and uncached, so a loop against it would bill a read per request —
+   * the same mistake /api/leaderboard/refresh already had to be hardened
+   * against), NO Resend call (it would spend the send quota and cause the very
+   * outage it exists to detect), and NO token verification (a round trip to
+   * Google on every probe, and a monitor holds no Firebase token anyway).
+   *
+   * Booleans only. A public endpoint gets no secrets, no error strings and no
+   * stack traces — but each key names the broken thing well enough to reach the
+   * right RUNBOOK section.
+   */
+  app.get('/api/health', (_req, res) => {
+    const checks = {
+      // Lazy init: parses the service account locally, no network. Catches a
+      // rotated or malformed key.
+      adminInit: !!getAdminObj(),
+      // Unset makes every server-side Firestore call fail with a bare
+      // 5 NOT_FOUND against a "(default)" database this project does not have.
+      databaseId: !!process.env.FIREBASE_DATABASE_ID,
+      // Unset locks every organization out of sign-in: their second factor
+      // arrives by email or not at all.
+      mailFrom: !!process.env.MAIL_FROM,
+      resendKey: !!process.env.RESEND_API_KEY,
+      // Unset fails the nightly leaderboard rebuild closed, silently.
+      cronSecret: !!process.env.CRON_SECRET,
+    };
+    const ok = Object.values(checks).every(Boolean);
+    // The STATUS CODE is the whole public answer. An earlier version returned
+    // the per-check booleans and the deployed commit to anyone who asked, which
+    // told an anonymous caller exactly which subsystem was unconfigured —
+    // including whether CRON_SECRET exists, i.e. whether the cron and deep
+    // health routes are reachable at all — and pinned the running source
+    // version. A monitor only needs 200 or 503; the detail belongs behind the
+    // same bearer /api/health/deep already requires.
+    res
+      .status(ok ? 200 : 503)
+      .set('Cache-Control', 'no-store')
+      .json({ ok });
+  });
+
+  /**
+   * The deeper check: one authenticated request a day that actually looks at
+   * the data.
+   *
+   * This exists mainly to connect a pipe that was built and never plugged in.
+   * `clientErrors` had exactly one reference in the whole codebase — the write.
+   * Every permission-denied and failed read the app has ever reported has been
+   * accumulating in a collection nothing has opened. That is the fastest signal
+   * this application can produce about its own health, and it was invisible.
+   *
+   * Same auth shape as the cron: an unset secret disables it rather than
+   * leaving an unauthenticated endpoint that reads the database.
+   */
+  app.get('/api/health/deep', async (req, res) => {
+    const secret = process.env.CRON_SECRET;
+    if (!secret || req.headers.authorization !== `Bearer ${secret}`) {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    try {
+      const adb = adminFirestore();
+      if (!adb) return res.status(503).json({ ok: false, firestore: 'unavailable' });
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      // One real read, and it doubles as a cron-liveness check: this document's
+      // lastUpdated is written by the nightly rebuild, so a stale timestamp
+      // means a student who opted out of the rankings is still listed.
+      const board = await adb.collection('leaderboards').doc('global_top').get();
+      const lastUpdated = board.exists ? board.data()?.lastUpdated : null;
+      const boardAgeHours = lastUpdated
+        ? Math.round((Date.now() - Date.parse(String(lastUpdated))) / 3.6e6)
+        : null;
+
+      // Single-field range only, so no composite index is needed; status is
+      // filtered in memory for the same reason.
+      const mail = await adb.collection('emailLog').where('at', '>=', since).limit(200).get();
+      const emailFailures24h = mail.docs.filter((d: any) => d.data()?.status === 'failed').length;
+
+      const errs = await adb.collection('clientErrors')
+        .where('at', '>=', since).orderBy('at', 'desc').limit(50).get();
+
+      const ok =
+        emailFailures24h === 0 &&
+        errs.size < 10 &&
+        boardAgeHours !== null && boardAgeHours < 48;
+
+      res.status(ok ? 200 : 503).set('Cache-Control', 'no-store').json({
+        ok,
+        // Moved off the public endpoint: which subsystem is unconfigured, and
+        // which commit is running, are operator details rather than liveness.
+        checks: {
+          adminInit: !!getAdminObj(),
+          databaseId: !!process.env.FIREBASE_DATABASE_ID,
+          mailFrom: !!process.env.MAIL_FROM,
+          resendKey: !!process.env.RESEND_API_KEY,
+          cronSecret: true,
+        },
+        commit: (process.env.VERCEL_GIT_COMMIT_SHA || 'dev').slice(0, 7),
+        firestore: 'ok',
+        boardAgeHours,
+        emailFailures24h,
+        clientErrors24h: errs.size,
+        // Context only. Never the message — it can contain user input.
+        topContexts: [...new Set(errs.docs.map((d: any) => d.data()?.context))].slice(0, 5),
+      });
+    } catch (err: any) {
+      logEvent('health_deep_failed', { msg: String(err?.message || err).slice(0, 200) });
+      res.status(503).json({ ok: false, firestore: 'unreachable' });
+    }
+  });
+
   app.get('/api/leaderboard/refresh', async (req, res) => {
     // Fails CLOSED when CRON_SECRET is unset.
     //
@@ -1200,8 +1348,11 @@ app.use(express.json());
     adb: any,
     uid: string,
     ownEmail?: string,
-  ): Promise<Set<string> | null> {
+  ): Promise<{ allowed: Set<string>; selfAsserted: Set<string> } | null> {
     const allowed = new Set<string>();
+    // Addresses the CALLER typed in themselves, which nobody has verified.
+    // Kept apart from `allowed` because they are not the same kind of fact.
+    const selfAsserted = new Set<string>();
     if (ownEmail) allowed.add(ownEmail.toLowerCase());
 
     const userSnap = await adb.collection('users').doc(uid).get();
@@ -1233,13 +1384,26 @@ app.use(express.json());
       await byId('organizations', orgIds, 'contactEmail');
       await byId('users', orgIds, 'email');
 
-      // A coordinator the student named themselves. The hours request is
-      // written before the notification is sent, so it is always found here.
+      // A coordinator the student named themselves.
+      //
+      // SELF-ASSERTED, and that distinction is the whole point. `coordinatorContact`
+      // is written by the student through the client SDK, and the rules only
+      // check it is a string under 200 characters — they cannot check it belongs
+      // to a real supervisor. So this branch, on its own, let anyone authorise
+      // any address: create an account, write an hours request naming
+      // victim@anywhere.com, and the relationship check hands it back as
+      // "allowed". Up to 100 addresses could be pre-authorised that way.
+      //
+      // The address still has to be reachable — a genuine coordinator is often
+      // at an organisation that has never registered here, so requiring a
+      // registered account would break the one flow that graduation depends on.
+      // What gets withheld instead is the ability to choose what the message
+      // SAYS; see the send handler.
       const hours = await adb.collection('hoursRequests')
         .where('studentId', '==', uid).limit(100).get();
       for (const d of hours.docs) {
         const contact = d.data()?.coordinatorContact;
-        if (typeof contact === 'string' && contact) allowed.add(contact.toLowerCase());
+        if (typeof contact === 'string' && contact) selfAsserted.add(contact.toLowerCase());
       }
     } else if (role === 'organization') {
       const apps = await adb.collection('applications')
@@ -1248,7 +1412,7 @@ app.use(express.json());
       await byId('users', studentIds, 'email');
     }
 
-    return allowed;
+    return { allowed, selfAsserted };
   }
 
   async function hasAcceptedApplication(adb: any, studentId: string, opportunityId: string): Promise<boolean> {
@@ -2660,7 +2824,10 @@ app.use(express.json());
         return res.status(429).json({ error: 'Too many emails requested. Please wait a few minutes.' });
       }
 
-      const { to, subject, templateName, templateData } = req.body || {};
+      // `let`, not `const`: for a coordinator address the server discards these
+      // and rebuilds them below, so they must be reassignable.
+      const { to } = req.body || {};
+      let { subject, templateName, templateData } = req.body || {};
 
       const recipients = (Array.isArray(to) ? to : [to]).filter(isEmailAddress).map((e: string) => e.trim());
       if (recipients.length === 0) {
@@ -2677,9 +2844,12 @@ app.use(express.json());
         if (!adb) {
           return res.status(500).json({ error: 'Server configuration error.' });
         }
-        const allowed = await allowedEmailRecipients(adb, authContext.uid, authContext.email);
-        if (allowed) {
-          const refused = recipients.filter((r: string) => !allowed.has(r.toLowerCase()));
+        const scope = await allowedEmailRecipients(adb, authContext.uid, authContext.email);
+        if (scope) {
+          const { allowed, selfAsserted } = scope;
+          const refused = recipients.filter(
+            (r: string) => !allowed.has(r.toLowerCase()) && !selfAsserted.has(r.toLowerCase()),
+          );
           if (refused.length) {
             // Deliberately does not name which address was refused, or confirm
             // that any of the others exist — that would make this endpoint a
@@ -2688,6 +2858,68 @@ app.use(express.json());
             return res.status(403).json({
               error: 'You can only email people connected to your account — an organization you applied to, a student who applied to you, or a coordinator you named.',
             });
+          }
+
+          // Reaching a SELF-ASSERTED address costs you the right to compose the
+          // message.
+          //
+          // Allowing an unverified address was necessary: a real coordinator is
+          // usually at an organisation that has never registered here. But the
+          // pairing of "any address I typed" with "any subject and body I chose"
+          // is a send-arbitrary-mail-from-a-signed-domain primitive, and it is
+          // reachable by anyone who can create a student account. So for these
+          // recipients the server picks the template and writes the subject, and
+          // the only client-supplied values that survive are the ones the
+          // hours-verification template needs.
+          const toUnverified = recipients.filter((r: string) => !allowed.has(r.toLowerCase()));
+          if (toUnverified.length) {
+            if (toUnverified.length !== recipients.length) {
+              // Mixing verified and unverified recipients would let the stricter
+              // rule below be dodged by attaching one legitimate address.
+              return res.status(400).json({
+                error: 'Send an hours-verification request on its own, not alongside other recipients.',
+              });
+            }
+            // The server writes the message, not the caller.
+            //
+            // Everything the client sent — subject, heading, details, button
+            // label and destination — is discarded and rebuilt from the
+            // student's OWN hours request. The request is looked up by the
+            // address it names, so a caller can only ever produce a sentence
+            // about hours they actually submitted.
+            //
+            // This is what makes an unverified recipient safe to keep. The
+            // address is still attacker-chosen; the words no longer are, so the
+            // worst available outcome is mailing a stranger a factual note about
+            // a real submission rather than arbitrary branded text.
+            const target = toUnverified[0];
+            const match = await adb.collection('hoursRequests')
+              .where('studentId', '==', authContext.uid)
+              .where('coordinatorContact', '==', target)
+              .limit(1).get();
+            if (match.empty) {
+              return res.status(403).json({
+                error: 'You can only email a coordinator you named on one of your own hours requests.',
+              });
+            }
+            const hr: any = match.docs[0].data() || {};
+            const who = String(hr.studentName || 'A student').slice(0, 100);
+            const what = String(hr.activity || 'volunteer work').slice(0, 200);
+            const when = String(hr.date || '').slice(0, 40);
+            const howMany = Number(hr.hours);
+            const hoursText = Number.isFinite(howMany) ? `${howMany} hour${howMany === 1 ? '' : 's'}` : 'volunteer hours';
+
+            subject = `${who} asked you to confirm their volunteer hours`;
+            templateName = 'notification';
+            templateData = {
+              heading: 'Please confirm these volunteer hours',
+              details:
+                `${who} submitted ${hoursText} for "${what}"${when ? ` on ${when}` : ''} ` +
+                `and has asked you to verify them online.`,
+              actionLabel: 'Review the request',
+              actionUrl: `${appOrigin()}/org/dashboard?tab=hours`,
+            };
+            logEvent('coordinator_notice_rebuilt', { uid: authContext.uid });
           }
         }
       }
@@ -3040,6 +3272,28 @@ app.use(express.json());
   // endpoints could only ever answer 500. Google sign-in goes through
   // Firebase's signInWithPopup (see Login.tsx and AuthContext), which needs no
   // server relay. Restore from git history if a server-side flow is ever needed.
+// Express 4 does not catch a rejected promise from an async handler. Most
+// routes here try/catch, but one miss means the request hangs until Vercel's
+// timeout with nothing in the log at all — the worst possible failure, because
+// it looks like slowness rather than an error.
+//
+// Both halves are needed: the middleware catches synchronous throws, the
+// process handler catches the async ones Express never sees. Neither leaks the
+// underlying message to the caller.
+app.use((err: any, req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  logEvent('unhandled_error', {
+    path: req.path,
+    method: req.method,
+    msg: String(err?.message || err).slice(0, 300),
+  });
+  if (res.headersSent) return;
+  res.status(500).json({ error: 'Something went wrong. Please try again.' });
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  logEvent('unhandled_rejection', { msg: String(reason?.message || reason).slice(0, 300) });
+});
+
 async function startServer() {
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
