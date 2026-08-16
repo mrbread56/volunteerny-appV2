@@ -703,6 +703,28 @@ export default function StudentDashboard() {
     }
   };
 
+  // Registered organizations, loaded the first time the hours form is opened.
+  //
+  // Up to 200 documents for a single dropdown. Gating it on showLogForm removes
+  // them from the default dashboard load entirely; the student pays for it only
+  // when they are actually logging hours, and only once per session.
+  useEffect(() => {
+    if (!showLogForm || isDemoMode || allOrganizations.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const orgsSnap = await getDocs(query(collection(db, "organizations"), limit(200)));
+        if (cancelled) return;
+        setAllOrganizations(orgsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      } catch (orgsErr) {
+        // The picker also accepts a typed name, so this degrades rather than
+        // blocking the submission.
+        console.warn("Could not load registered organizations:", orgsErr);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [showLogForm, isDemoMode, allOrganizations.length]);
+
   useEffect(() => {
     const fetchOrgContacts = async () => {
       const acceptedApps = applications;
@@ -714,33 +736,65 @@ export default function StudentDashboard() {
       > = { ...orgContacts };
       let changed = false;
 
-      for (const app of acceptedApps) {
-        if (app.opportunityId && !newContacts[app.opportunityId]) {
-          try {
-            // Fetch the opportunity to get orgId
-            const oppSnap = await getDoc(
-              doc(db, "opportunities", app.opportunityId),
-            );
-            if (oppSnap.exists()) {
-              const oppData = oppSnap.data();
-              const orgId = oppData.orgId;
+      // Two rounds of parallel reads, not two reads per application in series.
+      //
+      // This was `await getDoc(opportunity)` then `await getDoc(organization)`
+      // INSIDE the loop, so the reads serialised: applications are capped at 50,
+      // making a worst case of 100 sequential round trips. At a 150ms mobile
+      // RTT that is roughly fifteen seconds during which the contact block
+      // simply is not there.
+      //
+      // The organizations were also being re-fetched despite already being in
+      // memory — the same effect loads up to 200 of them for the hours form —
+      // so the second round only asks for what is genuinely missing.
+      const needed = acceptedApps.filter(
+        (app: any) => app.opportunityId && !newContacts[app.opportunityId],
+      );
 
-              // Fetch the organization
-              const orgSnap = await getDoc(doc(db, "organizations", orgId));
-              if (orgSnap.exists()) {
-                const orgData = orgSnap.data();
-                newContacts[app.opportunityId] = {
-                  email: orgData.contactEmail || "",
-                  phone: orgData.phone || "",
-                  website: orgData.websiteUrl || "",
-                  organizationName: orgData.organizationName || "Community Group",
-                };
-                changed = true;
-              }
-            }
-          } catch (err) {
-            console.error("Error fetching org contact:", err);
+      if (needed.length) {
+        try {
+          const opps = await Promise.all(
+            needed.map((app: any) =>
+              getDoc(doc(db, "opportunities", app.opportunityId))
+                .then((snap) => ({ app, snap }))
+                .catch(() => ({ app, snap: null })),
+            ),
+          );
+
+          const known = new Map<string, any>(
+            (allOrganizations || []).map((o: any) => [o.uid ?? o.id, o]),
+          );
+          const missingOrgIds = [
+            ...new Set(
+              opps
+                .map(({ snap }) => (snap?.exists() ? snap.data()?.orgId : null))
+                .filter((id): id is string => !!id && !known.has(id)),
+            ),
+          ];
+
+          const fetched = await Promise.all(
+            missingOrgIds.map((orgId) =>
+              getDoc(doc(db, "organizations", orgId))
+                .then((snap) => (snap.exists() ? { orgId, data: snap.data() } : null))
+                .catch(() => null),
+            ),
+          );
+          for (const row of fetched) if (row) known.set(row.orgId, row.data);
+
+          for (const { app, snap } of opps) {
+            const orgId = snap?.exists() ? snap.data()?.orgId : null;
+            const orgData = orgId ? known.get(orgId) : null;
+            if (!orgData) continue;
+            newContacts[app.opportunityId] = {
+              email: orgData.contactEmail || "",
+              phone: orgData.phone || "",
+              website: orgData.websiteUrl || "",
+              organizationName: orgData.organizationName || "Community Group",
+            };
+            changed = true;
           }
+        } catch (err) {
+          console.error("Error fetching org contacts:", err);
         }
       }
 
@@ -768,7 +822,11 @@ export default function StudentDashboard() {
         },
       });
     }
-  }, [applications, isDemoMode]);
+    // allOrganizations is read to avoid re-fetching organizations already in
+    // memory, so the effect re-runs once it arrives and can fill in contacts it
+    // previously had to skip. orgContacts is deliberately NOT a dependency: the
+    // effect writes it, and listing it would loop.
+  }, [applications, isDemoMode, allOrganizations]);
 
   // hasLoadedOnce: the full-page loader is for the FIRST load only.
   //
@@ -885,23 +943,19 @@ export default function StudentDashboard() {
         );
         setApplications(appsData);
 
-        // Fetch organizations database list for direct selection / verification
-        try {
-          // Bounded. This populates the organization picker on the hours form and
-          // ran on every dashboard load; unbounded it was the entire collection
-          // fetched to fill a dropdown.
-          const orgsSnap = await getDocs(query(collection(db, "organizations"), limit(200)));
-          const orgsList = orgsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          setAllOrganizations(orgsList);
-        } catch (orgsErr) {
-          console.warn("Could not load registered organizations:", orgsErr);
-        }
+        // The organization list is NOT loaded here — see the effect below. It
+        // feeds one dropdown on the hours form, and reading up to 200 documents
+        // on every dashboard visit to populate a control most students never
+        // open is most of this screen's cost for none of its value.
 
         // Fetch hours requests
         try {
           const hoursQuery = query(
             collection(db, "hoursRequests"),
-            where("studentId", "==", user.uid)
+            where("studentId", "==", user.uid),
+            // Bounded. This grew forever with use; a student who volunteers
+            // weekly for three years would read every row on every visit.
+            limit(300)
           );
           const hoursSnap = await getDocs(hoursQuery);
           const hoursList = hoursSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));

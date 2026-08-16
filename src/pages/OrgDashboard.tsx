@@ -11,6 +11,7 @@ import {
   updateDoc,
   doc,
   getDoc,
+  limit,
 } from "firebase/firestore";
 import { Opportunity, Application, StudentProfile } from "../types";
 import {
@@ -199,7 +200,10 @@ export default function OrgDashboard() {
       const q = query(
         collection(db, "hoursRequests"),
         where("coordinatorContact", "==", (user.email || "").trim().toLowerCase()),
-        where("status", "==", "pending")
+        where("status", "==", "pending"),
+        // Bounded. A coordinator's pending queue is normally small, but nothing
+        // capped it, so a busy term read the whole thing on every load.
+        limit(300)
       );
       const snap = await getDocs(q);
       const list = snap.docs.map((doc) => ({

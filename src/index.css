@@ -11,7 +11,15 @@
  * there is a rule: Outfit states, Fraunces inflects.
  *
  * Only the weights and the optical range actually used are requested. */
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Fraunces:ital,opsz,wght@1,9..144,500;1,9..144,600&display=swap');
+/* The font request lives in index.html, NOT here.
+ *
+ * As an @import it sat at byte 0 of the built stylesheet, and the chain was
+ * strictly serial: HTML -> index.css (render-blocking) -> parse -> Google's CSS
+ * -> the woff2 files. The browser could not even DISCOVER the font request
+ * until this entire file had downloaded and parsed. The preconnect hints in
+ * index.html warm the sockets but cannot fix discovery order — only moving the
+ * request into the HTML does, where it starts during the initial parse and runs
+ * alongside this stylesheet instead of behind it. */
 @import "tailwindcss";
 
 @theme {

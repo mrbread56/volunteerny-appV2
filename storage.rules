@@ -8,7 +8,19 @@ service firebase.storage {
     }
     
     function isValidImage() {
-      return request.resource.contentType.matches('image/.*');
+      // SVG is excluded deliberately.
+      //
+      // contentType is whatever the UPLOADER declares — the client passes
+      // `file.type` straight through — so 'image/.*' accepted 'image/svg+xml',
+      // and an SVG is a document that can carry script. Organization logos are
+      // world-readable (`allow read: if true`), so that produced a permanent,
+      // publicly addressable, attacker-controlled page hosted under this
+      // project's own bucket. It runs on the storage origin rather than the app
+      // origin, so it is not session theft — it is our domain lending its name
+      // to someone else's content.
+      //
+      // Raster only. Every real use here is a photo or a logo.
+      return request.resource.contentType.matches('image/(png|jpe?g|gif|webp|avif)');
     }
     
     function isValidPdf() {

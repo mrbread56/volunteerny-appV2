@@ -342,11 +342,18 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
   // permission-denied once an org had six opportunities. Same constraint as
   // OrgDashboard — if that ownership check ever changes cost, this moves too.
   const out: AppNotification[] = [];
-  for (let i = 0; i < ids.length; i += 5) {
-    const chunk = ids.slice(i, i + 5);
-    const apps = await getDocs(
-      query(collection(db, 'applications'), where('opportunityId', 'in', chunk), limit(50)),
-    );
+  // The chunks run together. They were awaited one at a time inside the loop,
+  // and with postings capped at 30 that is six serial round trips before the
+  // bell can render — the last sequential hop left after the rest of this file
+  // was parallelised. Nothing in one chunk's result feeds another.
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += 5) chunks.push(ids.slice(i, i + 5));
+  const results = await Promise.all(
+    chunks.map((chunk) =>
+      getDocs(query(collection(db, 'applications'), where('opportunityId', 'in', chunk), limit(50))),
+    ),
+  );
+  for (const apps of results) {
     for (const d of apps.docs) {
       const a: any = d.data();
       if (a.status !== 'pending') continue; // only what still needs a decision

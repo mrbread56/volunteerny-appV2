@@ -295,15 +295,15 @@ service cloud.firestore {
 
     function isValidFeedback(data) {
       return data.userId == request.auth.uid &&
-             data.userEmail is string &&
+             data.userEmail is string && data.userEmail.size() <= 254 &&
              data.type in ['bug', 'feature', 'ux', 'other'] &&
              data.subject is string && data.subject.size() <= 200 &&
              data.message is string && data.message.size() <= 10000 &&
-             (absent(data, 'userRole') || data.userRole is string) &&
-             (absent(data, 'id') || data.id is string) &&
-             (absent(data, 'attachmentName') || data.attachmentName is string) &&
-             (absent(data, 'attachmentSize') || data.attachmentSize is string) &&
-             (absent(data, 'attachmentDescription') || data.attachmentDescription is string) &&
+             (absent(data, 'userRole') || (data.userRole is string && data.userRole.size() <= 40)) &&
+             (absent(data, 'id') || (data.id is string && data.id.size() <= 128)) &&
+             (absent(data, 'attachmentName') || (data.attachmentName is string && data.attachmentName.size() <= 260)) &&
+             (absent(data, 'attachmentSize') || (data.attachmentSize is string && data.attachmentSize.size() <= 40)) &&
+             (absent(data, 'attachmentDescription') || (data.attachmentDescription is string && data.attachmentDescription.size() <= 1000)) &&
              // Capped like resumeUrl/passportUrl above: this is a base64 file
              // upload from the client and it had no size limit at all, so one
              // feedback ticket or safety report could be inflated to the 1 MiB
@@ -311,25 +311,32 @@ service cloud.firestore {
              (absent(data, 'attachmentData') ||
                (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
-             (absent(data, 'developerReply') || data.developerReply is string) &&
+             (absent(data, 'developerReply') || (data.developerReply is string && data.developerReply.size() <= 10000)) &&
              (absent(data, 'repliedAt') || data.repliedAt is string || data.repliedAt is timestamp) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }
 
     function isValidReport(data) {
+      // Every string here is capped.
+      //
+      // `attachmentData` was capped and the rest were not, so the hole simply
+      // moved: `description` alone could carry a megabyte, and any signed-in
+      // account could write reports unlimited times. Client delete is
+      // developer-only, so nothing reclaimed them, and each one landed in the
+      // safety-triage queue a human is supposed to read.
       return data.reportingUserId == request.auth.uid &&
-             data.reportingUserEmail is string &&
-             data.reportedUserId is string &&
-             data.reason is string &&
-             data.description is string &&
+             data.reportingUserEmail is string && data.reportingUserEmail.size() <= 254 &&
+             data.reportedUserId is string && data.reportedUserId.size() <= 128 &&
+             data.reason is string && data.reason.size() <= 200 &&
+             data.description is string && data.description.size() <= 5000 &&
              data.status in ['pending', 'resolved', 'dismissed'] &&
-             (absent(data, 'reportingUserName') || data.reportingUserName is string) &&
-             (absent(data, 'reportedUserName') || data.reportedUserName is string) &&
-             (absent(data, 'reportedUserRole') || data.reportedUserRole is string) &&
-             (absent(data, 'id') || data.id is string) &&
-             (absent(data, 'attachmentName') || data.attachmentName is string) &&
-             (absent(data, 'attachmentSize') || data.attachmentSize is string) &&
-             (absent(data, 'attachmentDescription') || data.attachmentDescription is string) &&
+             (absent(data, 'reportingUserName') || (data.reportingUserName is string && data.reportingUserName.size() <= 100)) &&
+             (absent(data, 'reportedUserName') || (data.reportedUserName is string && data.reportedUserName.size() <= 100)) &&
+             (absent(data, 'reportedUserRole') || (data.reportedUserRole is string && data.reportedUserRole.size() <= 40)) &&
+             (absent(data, 'id') || (data.id is string && data.id.size() <= 128)) &&
+             (absent(data, 'attachmentName') || (data.attachmentName is string && data.attachmentName.size() <= 260)) &&
+             (absent(data, 'attachmentSize') || (data.attachmentSize is string && data.attachmentSize.size() <= 40)) &&
+             (absent(data, 'attachmentDescription') || (data.attachmentDescription is string && data.attachmentDescription.size() <= 1000)) &&
              // Capped like resumeUrl/passportUrl above: this is a base64 file
              // upload from the client and it had no size limit at all, so one
              // feedback ticket or safety report could be inflated to the 1 MiB
@@ -341,7 +348,7 @@ service cloud.firestore {
                (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
              // Current reports store the attachment in Firebase Storage
              // (reports/{uid}/... per storage.rules) and carry only the URL.
-             (absent(data, 'attachmentUrl') || data.attachmentUrl is string) &&
+             (absent(data, 'attachmentUrl') || (data.attachmentUrl is string && data.attachmentUrl.size() <= 1000)) &&
              (absent(data, 'aiOverview') || data.aiOverview is map) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }
@@ -656,7 +663,12 @@ service cloud.firestore {
       allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper()) && isValidId(feedbackId);
       // The feedback page lists the tickets you filed; developers list them all.
       allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'developerReply', 'repliedAt', 'createdAt']);
+      // `developerReply` and `repliedAt` are NOT creatable. They were in this
+      // allowlist, so anyone filing a ticket could ship it with a reply already
+      // attached — and the notification bell reads exactly that field to
+      // announce "we answered your feedback". A user could manufacture a reply
+      // from us to themselves. Only the developer branch below writes them.
+      allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'createdAt']);
       allow update: if isSignedIn() && isValidId(feedbackId) && (
         isDeveloper() || 
         (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))

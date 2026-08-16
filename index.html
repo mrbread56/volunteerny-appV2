@@ -33,6 +33,10 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- Discovered during the initial HTML parse, so it runs in parallel with
+         the app stylesheet rather than being found only after it parses.
+         Moved here from an @import at the top of src/index.css. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&amp;family=Fraunces:ital,opsz,wght@1,9..144,500;1,9..144,600&amp;display=swap" />
 
     <!--
       The hero background is applied via a Tailwind bg-[url(...)] class, so the

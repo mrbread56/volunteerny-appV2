@@ -689,3 +689,61 @@ test.describe('the support grace window', () => {
     await assertFails(updateDoc(doc(expired, 'organizations', ORG), { mission: 'too late' }));
   });
 });
+
+// ───────────── free text is bounded, replies are not forgeable ─────────────
+
+test.describe('reports and feedback', () => {
+  const report = (over: Record<string, unknown> = {}) => ({
+    reportingUserId: STUDENT, reportingUserEmail: `${STUDENT}@example.com`,
+    reportedUserId: ORG, reason: 'Inappropriate behaviour',
+    description: 'Something happened.', status: 'pending',
+    createdAt: serverTimestamp(), ...over,
+  });
+
+  test('a safety report cannot be inflated to the document ceiling', async () => {
+    // attachmentData was capped and every other string was not, so the hole
+    // simply moved: description alone could carry a megabyte, unlimited times,
+    // straight into the queue a human reads.
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'reports', 'r_ok'), report()));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'reports', 'r_big'), report({
+      description: 'x'.repeat(5001),
+    })));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'reports', 'r_reason'), report({
+      reason: 'x'.repeat(201),
+    })));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'reports', 'r_name'), report({
+      reportedUserName: 'x'.repeat(101),
+    })));
+  });
+
+  test('a user cannot file feedback that already contains our reply', async () => {
+    // developerReply was in the create allowlist, and the notification bell
+    // reads exactly that field to announce "we answered your feedback" — so a
+    // user could manufacture a reply from us, to themselves.
+    const base = {
+      userId: STUDENT, userEmail: `${STUDENT}@example.com`, type: 'bug',
+      subject: 'Something is broken', message: 'It does not work.',
+      createdAt: serverTimestamp(),
+    };
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'feedbacks', 'f_ok'), base));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'feedbacks', 'f_forged'), {
+      ...base, developerReply: 'We have fixed this, well done.',
+    }));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'feedbacks', 'f_replied'), {
+      ...base, repliedAt: new Date().toISOString(),
+    }));
+  });
+
+  test('feedback free text is bounded', async () => {
+    const base = {
+      userId: STUDENT, userEmail: `${STUDENT}@example.com`, type: 'bug',
+      subject: 'Subject', message: 'Message', createdAt: serverTimestamp(),
+    };
+    await assertFails(setDoc(doc(asUser(STUDENT), 'feedbacks', 'f_long'), {
+      ...base, message: 'x'.repeat(10001),
+    }));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'feedbacks', 'f_email'), {
+      ...base, userEmail: 'x'.repeat(255),
+    }));
+  });
+});

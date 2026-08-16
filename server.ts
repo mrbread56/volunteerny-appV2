@@ -3241,6 +3241,22 @@ app.use(express.json());
       return res.status(401).json({ error: 'Unauthorized: Valid authentication required to use AI features.' });
     }
 
+    // Demo sessions do not spend the AI quota.
+    //
+    // Every sibling route short-circuits a demo token; this one did not. Demo
+    // tokens are self-asserted and only accepted outside production, so this is
+    // not reachable on Vercel — but the startup banner explicitly anticipates
+    // NODE_ENV being unset, and on such a host an anonymous caller sending
+    // `Bearer demo-mode-token-x` would pass here and spend real Gemini credit,
+    // all of it sharing one rate-limit bucket keyed 'demo-user-123'.
+    if (authContext.isDemo) {
+      return res.json({
+        category: 'other',
+        priority: 'low',
+        overview: 'Demo mode does not run the AI triage — this is placeholder output.',
+      });
+    }
+
     // Rate limited like its two siblings. Requiring a signed-in caller bounds
     // WHO can spend the AI quota but not HOW MUCH: an account is free and
     // instant, and this was the only paid call in the file with no limiter at
