@@ -8,6 +8,53 @@ it. Confirm before fixing. Most of these look alike from a user's description.
 
 ---
 
+## Production configuration (what is set where)
+
+Vercel holds its own environment variables. **Changing `.env` locally does
+nothing to production**, which is exactly how the site spent several hours after
+the Toronto migration still reading the old database: local and production had
+diverged and every local suite was green.
+
+Verify what production actually uses by reading the deployed bundle, not by
+trusting the dashboard:
+
+```bash
+BUNDLE=$(curl -s https://volunteerny-app-v2.vercel.app | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+curl -s "https://volunteerny-app-v2.vercel.app${BUNDLE}" | grep -oE 'volunteerny' | head -1
+```
+
+`VITE_*` variables are baked in **at build time**, so changing one requires a
+redeploy before it takes effect:
+
+```bash
+npx vercel link --yes --project volunteerny-app-v2
+npx vercel env ls production
+npx vercel redeploy https://volunteerny-app-v2.vercel.app
+```
+
+Set on Vercel for Production and Preview:
+
+| Variable | Purpose |
+|---|---|
+| `VITE_FIREBASE_DATABASE_ID` | `volunteerny`. Read by the browser; baked in at build. |
+| `FIREBASE_DATABASE_ID` | `volunteerny`. Read by the server. Must match the line above — `check:firebase` asserts they agree. |
+| `FIREBASE_SERVICE_ACCOUNT_KEY` | Admin SDK credentials. |
+| `RESEND_API_KEY`, `MAIL_FROM` | Transactional email. |
+| `CRON_SECRET` | Vercel sends this as `Authorization: Bearer <value>` on scheduled invocations. **Without it the nightly leaderboard rebuild fails closed with 503** — the route refuses to run rather than accept a spoofable header. It was unset for the route's entire existence, so the rebuild never ran once. |
+| `APP_URL` | Canonical origin for links in email. |
+
+Check the cron is actually armed:
+
+```bash
+curl -s -o /dev/null -w '%{http_code}
+' https://volunteerny-app-v2.vercel.app/api/leaderboard/refresh
+```
+
+`401` means configured and refusing anonymous callers, which is correct.
+`503` means `CRON_SECRET` is missing and the rebuild is silently disabled.
+
+---
+
 ## Running the test suites
 
 Grouped by what they need, because that determines when you can run them.

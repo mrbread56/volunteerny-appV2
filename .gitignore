@@ -49,3 +49,7 @@ backups/
 # if a reference is ever needed.
 design-archive/
 *.timestamp-*.mjs
+
+# Third-party agent skills installed with `npx skills add`. Regenerable, MIT
+# licensed, and not this project's code — reinstall rather than vendor them.
+.agents/
