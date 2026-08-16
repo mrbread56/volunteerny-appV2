@@ -747,3 +747,70 @@ test.describe('reports and feedback', () => {
     }));
   });
 });
+
+// ───────────────── boundaries, pinned exactly ─────────────────
+
+test.describe('caps are pinned at their boundary, not merely "somewhere"', () => {
+  /**
+   * Mutation testing found these.
+   *
+   * The existing assertions used values so extreme (100000 hours, a megabyte of
+   * text) that widening a cap tenfold still left them failing — so the tests
+   * passed against a rule that had been substantially loosened. A cap is only
+   * really tested by the pair either side of it.
+   */
+  test('hours are capped at 24, exactly', async () => {
+    const req = (hours: number) => ({
+      studentId: STUDENT, studentName: 'S One', studentEmail: `${STUDENT}@example.com`,
+      activity: 'Cleanup', hours, date: '2026-08-13', organization: 'Org One',
+      coordinatorName: 'Coord', coordinatorContact: 'o1@example.com',
+      status: 'pending', requestedAt: new Date().toISOString(),
+    });
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'hoursRequests', 'b_24'), req(24)));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'hoursRequests', 'b_25'), req(25)));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'hoursRequests', 'b_24_1'), req(24.5)));
+  });
+
+  test('an opportunity description is capped at 5000, exactly', async () => {
+    const opp = (description: string) => ({
+      orgId: ORG, orgName: 'Org One', title: 'Boundary probe', description,
+      location: 'North York', category: 'Environment', requirements: '',
+      maxVolunteers: 5, skillsNeeded: [], exclusives: [],
+      timeCommitment: 'One-time', isVirtual: false,
+      dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'b_desc_ok'), opp('x'.repeat(5000))));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'b_desc_over'), opp('x'.repeat(5001))));
+  });
+
+  test('an opportunity title is capped at 100, exactly', async () => {
+    const opp = (title: string) => ({
+      orgId: ORG, orgName: 'Org One', title, description: 'd',
+      location: 'North York', category: 'Environment', requirements: '',
+      maxVolunteers: 5, skillsNeeded: [], exclusives: [],
+      timeCommitment: 'One-time', isVirtual: false,
+      dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'b_title_ok'), opp('x'.repeat(100))));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'b_title_over'), opp('x'.repeat(101))));
+  });
+
+  test('a report description is capped at 5000, exactly', async () => {
+    const report = (description: string) => ({
+      reportingUserId: STUDENT, reportingUserEmail: `${STUDENT}@example.com`,
+      reportedUserId: ORG, reason: 'Concern', description, status: 'pending',
+      createdAt: serverTimestamp(),
+    });
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'reports', 'b_rep_ok'), report('x'.repeat(5000))));
+    await assertFails(setDoc(doc(asUser(STUDENT), 'reports', 'b_rep_over'), report('x'.repeat(5001))));
+  });
+
+  test('a resume is capped at 400000, exactly', async () => {
+    await assertSucceeds(updateDoc(doc(asUser(STUDENT), 'students', STUDENT), {
+      resumeUrl: 'd'.repeat(400000),
+    }));
+    await assertFails(updateDoc(doc(asUser(STUDENT), 'students', STUDENT), {
+      resumeUrl: 'd'.repeat(400001),
+    }));
+  });
+});
