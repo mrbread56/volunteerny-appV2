@@ -206,7 +206,9 @@ service cloud.firestore {
              data.northYorkConfirmed is bool &&
              (absent(data, 'phone') || data.phone is string) &&
              (absent(data, 'websiteUrl') || data.websiteUrl is string) &&
-             (absent(data, 'organizationType') || data.organizationType is string) &&
+             (absent(data, 'organizationType') || (data.organizationType is string && data.organizationType.size() <= 80)) &&
+             // Free text, so it is capped like every other free-text field.
+             (absent(data, 'organizationTypeOther') || (data.organizationTypeOther is string && data.organizationTypeOther.size() <= 80)) &&
              (absent(data, 'address') || data.address is string) &&
              (absent(data, 'isBanned') || data.isBanned is bool) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number));
@@ -567,7 +569,7 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.auth.uid == uid && isValidId(uid) && isValidOrganization(incoming()) &&
                       incoming().get('craVerified', false) == false &&
                       incoming().get('verificationStatus', 'unverified') in ['pending', 'unverified'] &&
-                      incoming().keys().hasOnly(['uid', 'organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'craVerified', 'verificationStatus']);
+                      incoming().keys().hasOnly(['uid', 'organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'organizationTypeOther', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'craVerified', 'verificationStatus']);
       // verificationStatus is writable by the organization, but ONLY to
       // 'pending' — asking to be reviewed, never declaring the outcome.
       //
@@ -583,7 +585,7 @@ service cloud.firestore {
       // registering an organization impossible.
       allow update: if isSignedIn() && isValidId(uid) && (
         (request.auth.uid == uid && mfaSatisfied() && isValidOrganization(incoming()) &&
-         incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'verificationStatus']) &&
+         incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'organizationTypeOther', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'verificationStatus']) &&
          incoming().get('craVerified', false) == existing().get('craVerified', false) &&
          (incoming().get('verificationStatus', '') == existing().get('verificationStatus', '') ||
           incoming().get('verificationStatus', '') == 'pending')) ||

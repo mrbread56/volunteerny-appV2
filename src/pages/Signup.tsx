@@ -9,6 +9,7 @@ import { toUserMessage } from "../lib/errors";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
+import SearchableSelect from "../components/ui/SearchableSelect";
 import { sendTransactionalEmail } from "../lib/emailService";
 import {
   Card,
@@ -19,21 +20,11 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { GraduationCap, Building2, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
-import { TORONTO_SCHOOLS, NEIGHBORHOODS } from "../constants";
+import { TORONTO_SCHOOLS, NEIGHBORHOODS, ORGANIZATION_TYPES } from "../constants";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";
 
-const ORGANIZATION_TYPES = [
-  { value: "Registered Charity", label: "Registered Charity" },
-  { value: "Non-Profit Organization (NPO)", label: "Non-Profit Organization (NPO)" },
-  { value: "Community Group", label: "Community Group" },
-  { value: "High School / Education", label: "School / Educational Institution" },
-  { value: "Healthcare / Hospital Foundation", label: "Healthcare & Hospital Foundation" },
-  { value: "Religious / Faith-Based", label: "Religious & Faith-Based Organization" },
-  { value: "Sports / Recreational Club", label: "Sports & Recreational Club" },
-  { value: "Other", label: "Other Group" },
-];
 
 const GENDERS = [
   { value: '', label: 'Select…' },
@@ -134,6 +125,9 @@ export default function Signup() {
   const [orgName, setOrgName] = useState("");
   const [mission, setMission] = useState("");
   const [orgType, setOrgType] = useState("");
+  // Only meaningful when orgType === 'Other'. No fixed list survives contact
+  // with reality, and "Other" with nowhere to say what you are is a dead end.
+  const [orgTypeOther, setOrgTypeOther] = useState("");
   const [address, setAddress] = useState("");
   const [coords, setCoords] = useState<{lat: number, lng: number} | null>(null);
   const [contactEmail, setContactEmail] = useState("");
@@ -167,6 +161,13 @@ export default function Signup() {
       // organization enters the human verification queue at all.
       if (hasCra === null) {
         setError("Please tell us whether your organization is a CRA-registered charity.");
+        return;
+      }
+      // 'Other' with an empty box is the same as no answer at all, and the
+      // browser cannot enforce `required` on a field that was hidden when the
+      // form first rendered.
+      if (orgType === 'Other' && !orgTypeOther.trim()) {
+        setError("Please tell us what kind of organization you are.");
         return;
       }
       // Previously this only validated `if (craNumber)`, so an organization
@@ -275,6 +276,9 @@ export default function Signup() {
             organizationName: orgName,
             mission,
             organizationType: orgType,
+            // Stored beside the type rather than instead of it, so the coarse
+            // category stays queryable and the specific answer is not lost.
+            organizationTypeOther: orgType === 'Other' ? orgTypeOther.trim() : '',
             address,
             coordinates: coords,
             contactEmail: (contactEmail || normalizedEmail),
@@ -483,13 +487,27 @@ export default function Signup() {
                       onChange={(e) => setMission(e.target.value)}
                       required
                     />
-                    <Select
+                    <SearchableSelect
                       label="Organization Type"
                       options={ORGANIZATION_TYPES}
                       value={orgType}
-                      onChange={(e) => setOrgType(e.target.value)}
+                      onChange={(v) => {
+                        setOrgType(v);
+                        if (v !== 'Other') setOrgTypeOther('');
+                      }}
+                      placeholder="Search organization types…"
                       required
                     />
+                    {orgType === 'Other' && (
+                      <Input
+                        label="Please specify"
+                        value={orgTypeOther}
+                        onChange={(e) => setOrgTypeOther(e.target.value)}
+                        placeholder="What kind of organization are you?"
+                        maxLength={80}
+                        required
+                      />
+                    )}
                     
                     <div className="space-y-1.5">
                       <label className="text-[13px] font-medium text-ink">Organization Address <span className="text-red-600">*</span></label>

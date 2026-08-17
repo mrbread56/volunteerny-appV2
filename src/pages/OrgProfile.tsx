@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { reportError } from "../lib/errors";
+import { ORGANIZATION_TYPES } from '../constants';
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase/config";
 import { doc, updateDoc } from "firebase/firestore";
@@ -7,6 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
+import SearchableSelect from "../components/ui/SearchableSelect";
 import {
   Card,
   CardContent,
@@ -20,28 +22,6 @@ import { cn } from "../lib/utils";
 import { deleteOwnAccount } from "../lib/deleteAccount";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
 
-const ORGANIZATION_TYPES = [
-  { value: "Registered Charity", label: "Registered Charity" },
-  {
-    value: "Non-Profit Organization (NPO)",
-    label: "Non-Profit Organization (NPO)",
-  },
-  { value: "Community Group", label: "Community Group" },
-  {
-    value: "High School / Education",
-    label: "School / Educational Institution",
-  },
-  {
-    value: "Healthcare / Hospital Foundation",
-    label: "Healthcare & Hospital Foundation",
-  },
-  {
-    value: "Religious / Faith-Based",
-    label: "Religious & Faith-Based Organization",
-  },
-  { value: "Sports / Recreational Club", label: "Sports & Recreational Club" },
-  { value: "Other", label: "Other Group" },
-];
 
 export default function OrgProfile() {
   const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout } = useAuth();
@@ -114,6 +94,7 @@ export default function OrgProfile() {
   const [hasCra, setHasCra] = useState(orgProfile?.hasCra ?? true);
   const [craNumber, setCraNumber] = useState(orgProfile?.craNumber || "");
   const [orgType, setOrgType] = useState(orgProfile?.organizationType || "");
+  const [orgTypeOther, setOrgTypeOther] = useState(orgProfile?.organizationTypeOther || "");
   const [contactEmail, setContactEmail] = useState(
     orgProfile?.contactEmail || "",
   );
@@ -145,6 +126,7 @@ export default function OrgProfile() {
       setHasCra(orgProfile.hasCra ?? (orgProfile.craNumber ? true : false));
       setCraNumber(orgProfile.craNumber || "");
       setOrgType(orgProfile.organizationType || "");
+      setOrgTypeOther(orgProfile.organizationTypeOther || "");
       setContactEmail(orgProfile.contactEmail);
       setPhone(orgProfile.phone || "");
       setAddress(orgProfile.address || "");
@@ -208,6 +190,7 @@ export default function OrgProfile() {
           hasCra: cleanCra ? true : false,
           craNumber: cleanCra,
           organizationType: orgType,
+          organizationTypeOther: orgType === 'Other' ? orgTypeOther.trim() : '',
           contactEmail: contactEmail,
           phone,
           address,
@@ -253,6 +236,7 @@ export default function OrgProfile() {
           ? { verificationStatus: 'pending' }
           : {}),
         organizationType: orgType,
+        organizationTypeOther: orgType === 'Other' ? orgTypeOther.trim() : '',
         contactEmail,
         phone,
         address,
@@ -322,14 +306,27 @@ export default function OrgProfile() {
                 required
               />
 
-              <Select
+              <SearchableSelect
                 label="Organization Type"
                 value={orgType}
-                onChange={(e) => setOrgType(e.target.value)}
+                onChange={(v: string) => {
+                  setOrgType(v);
+                  if (v !== 'Other') setOrgTypeOther('');
+                }}
                 options={ORGANIZATION_TYPES}
                 required
-                placeholder="Select organization type"
+                placeholder="Search organization types…"
               />
+              {orgType === 'Other' && (
+                <Input
+                  label="Please specify"
+                  value={orgTypeOther}
+                  onChange={(e) => setOrgTypeOther(e.target.value)}
+                  placeholder="What kind of organization are you?"
+                  maxLength={80}
+                  required
+                />
+              )}
 
               <div className="flex flex-col gap-1.5">
                 <label className="text-sm font-medium text-ink-soft">

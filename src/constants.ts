@@ -137,3 +137,54 @@ export const OPPORTUNITY_EXCLUSIVES = [
   'Grade 11 Only',
   'Grade 12 Only'
 ];
+
+/**
+ * Organization types offered at signup.
+ *
+ * The list is drawn from what Ontario school boards actually publish as places
+ * students earn community involvement hours — TDSB, TCDSB, York Region and Peel
+ * — rather than invented categories, so a coordinator recognises their own kind
+ * of organization rather than guessing.
+ *
+ * Ordered by how often each comes up in Toronto and North York, not
+ * alphabetically: the common answers sit at the top where they are found
+ * immediately, and the list is searchable for everything else.
+ *
+ * "Other" is last and takes a free-text answer, because no fixed list survives
+ * contact with reality.
+ */
+export const ORGANIZATION_TYPES: { value: string; label: string }[] = [
+  { value: 'Non-profit organization', label: 'Non-profit organization' },
+  { value: 'Registered charity', label: 'Registered charity' },
+  { value: 'For-profit organization', label: 'For-profit organization' },
+  { value: 'Community group', label: 'Community group' },
+  { value: 'School or educational institution', label: 'School or educational institution' },
+  { value: 'Club', label: 'Club' },
+  { value: 'Long-term care or seniors', label: "Long-term care home, retirement residence, or seniors' centre" },
+  { value: 'Hospital or health care', label: 'Hospital, hospice, or health care institution' },
+  { value: 'Food bank or meal program', label: 'Food bank, meal, or nutrition program' },
+  { value: 'Public library', label: 'Public library' },
+  { value: 'Place of worship', label: 'Place of worship or religious organization' },
+  { value: 'Community or recreation centre', label: 'Community centre or recreation centre' },
+  { value: 'Sports league or club', label: 'Sports league, club, or athletic association' },
+  { value: 'Youth organization', label: 'Youth organization (Scouts, Guides, Boys & Girls Club)' },
+  { value: 'Camp or holiday program', label: 'Summer camp, day camp, or March Break program' },
+  { value: 'Child care or preschool', label: 'Child care centre, daycare, or preschool' },
+  { value: 'Animal shelter or farm', label: 'Animal shelter, humane society, zoo, or farm' },
+  { value: 'Environmental organization', label: 'Environmental or conservation organization' },
+  { value: 'Arts or culture organization', label: 'Arts, culture, museum, or gallery organization' },
+  { value: 'Social service agency', label: 'Social service agency, shelter, or community support service' },
+  { value: 'Government program', label: 'Municipal, regional, provincial, or federal government program' },
+  { value: 'Constituency office', label: "Elected representative's constituency office" },
+  { value: 'Community event or festival', label: 'Community festival or one-off community event' },
+  { value: 'Political organization', label: 'Political campaign or political organization' },
+  { value: 'Emergency or public service', label: 'Emergency or public service agency (police, fire, paramedic)' },
+  { value: 'First Nation, Metis, or Inuit organization', label: 'First Nation, Métis, or Inuit community or organization' },
+  { value: 'Veterans organization', label: "Veterans' organization (e.g. Legion)" },
+  { value: 'Service club', label: 'Service club (Rotary, Lions, Kiwanis)' },
+  { value: 'Neighbourhood association', label: "Neighbourhood, residents', or tenants' association" },
+  { value: 'Business improvement area', label: 'Business improvement area or chamber of commerce' },
+  { value: 'Housing or shelter provider', label: 'Housing provider or shelter' },
+  { value: 'Newcomer or settlement services', label: 'Newcomer or settlement services organization' },
+  { value: 'Other', label: 'Other' },
+];

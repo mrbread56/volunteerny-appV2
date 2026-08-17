@@ -814,3 +814,43 @@ test.describe('caps are pinned at their boundary, not merely "somewhere"', () =>
     }));
   });
 });
+
+// ───────────── organization type, including the free-text answer ─────────────
+
+test.describe('organizationType and its "Other" free text', () => {
+  const org = (extra: Record<string, unknown>) => ({
+    uid: 'new_typed_org', organizationName: 'Typed Org', contactEmail: 't@example.com',
+    northYorkConfirmed: true, ...extra,
+  });
+
+  test('a type and its free-text specification are both accepted', async () => {
+    await assertSucceeds(setDoc(doc(asUser('new_typed_org'), 'organizations', 'new_typed_org'),
+      org({ organizationType: 'Other', organizationTypeOther: 'Student-run repair café' })));
+  });
+
+  test('a for-profit organization can register', async () => {
+    // Ontario boards disagree about commercial settings, and that is a matter
+    // for a student's principal, not for the database. The platform records
+    // what an organization IS; it does not adjudicate eligibility.
+    await assertSucceeds(setDoc(doc(asUser('fp_org'), 'organizations', 'fp_org'),
+      { ...org({ organizationType: 'For-profit organization' }), uid: 'fp_org' }));
+  });
+
+  test('the free-text answer is capped like every other free-text field', async () => {
+    await assertSucceeds(setDoc(doc(asUser('cap_ok'), 'organizations', 'cap_ok'),
+      { ...org({ organizationType: 'Other', organizationTypeOther: 'x'.repeat(80) }), uid: 'cap_ok' }));
+    await assertFails(setDoc(doc(asUser('cap_over'), 'organizations', 'cap_over'),
+      { ...org({ organizationType: 'Other', organizationTypeOther: 'x'.repeat(81) }), uid: 'cap_over' }));
+  });
+
+  test('the type itself is capped, so the field cannot become free storage', async () => {
+    await assertFails(setDoc(doc(asUser('type_over'), 'organizations', 'type_over'),
+      { ...org({ organizationType: 'x'.repeat(81) }), uid: 'type_over' }));
+  });
+
+  test('an organization can change its type later', async () => {
+    await assertSucceeds(updateDoc(doc(asUser(ORG), 'organizations', ORG), {
+      organizationType: 'Other', organizationTypeOther: 'Neighbourhood tool library',
+    }));
+  });
+});

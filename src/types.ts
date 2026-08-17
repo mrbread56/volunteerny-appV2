@@ -48,6 +48,8 @@ export interface OrganizationProfile {
   phone?: string;
   address?: string;
   organizationType?: string;
+  /** Free text, only when organizationType is 'Other'. */
+  organizationTypeOther?: string;
   northYorkConfirmed: boolean;
   websiteUrl?: string;
   hasCra?: boolean;
