@@ -405,6 +405,55 @@ const as = async (email: string) => {
       assert.ok(enumerated.size >= 2, 'the promoted developer cannot enumerate accounts');
       console.log('[PASS] the promoted developer has real privileges, not just the UI');
 
+      // ── metrics ────────────────────────────────────────────────────────
+      // The numbers the whole "measure instead of guess" argument rests on. If
+      // this endpoint is wrong or unreachable, every figure quoted about the
+      // platform is invented.
+      {
+        const devToken = await auth.currentUser!.getIdToken(true);
+        const r = await fetch(`${apiBase}/api/metrics`, {
+          headers: { Authorization: `Bearer ${devToken}` },
+        });
+        assert.ok(r.ok, `a developer could not read metrics (${r.status})`);
+        const m: any = await r.json();
+        assert.ok(m?.signal && m?.counts, 'metrics came back without signal and counts');
+        // This suite has just created a student, an organization, an
+        // opportunity and an accepted application, so these cannot be zero.
+        assert.ok(m.counts.students >= 1, 'metrics report no students after creating one');
+        assert.ok(m.counts.opportunities >= 1, 'metrics report no opportunities after posting one');
+        assert.ok(m.signal.opportunitiesWithAnAccept >= 1,
+          'metrics report no opportunity with an accepted applicant, after accepting one');
+        assert.ok(m.signal.hoursConfirmed >= 3.5,
+          `metrics report ${m.signal.hoursConfirmed} confirmed hours after approving 3.5`);
+        assert.ok(typeof m.signal.placementRate === 'number' && m.signal.placementRate > 0,
+          'placementRate is the headline indicator and came back zero or missing');
+        console.log('[PASS] metrics: a developer reads real signal, not placeholders');
+
+        // Reading the full set refreshes the public counters as a byproduct.
+        const pub = await fetch(`${apiBase}/api/metrics/public`);
+        assert.ok(pub.ok, `public counters unavailable (${pub.status})`);
+        const p: any = await pub.json();
+        assert.ok(p.hoursConfirmed >= 3.5,
+          'the public counter was not refreshed by the developer read');
+        console.log('[PASS] metrics: the public counters refresh from the same pass');
+      }
+
+      // Anyone signed out can read the public figure, and nobody can read the
+      // full set without being a developer.
+      {
+        const anon = await fetch(`${apiBase}/api/metrics`);
+        assert.equal(anon.status, 401, 'the full metric set was readable without signing in');
+        const studentToken = await (async () => {
+          await as(student.email);
+          return auth.currentUser!.getIdToken(true);
+        })();
+        const asStudent = await fetch(`${apiBase}/api/metrics`, {
+          headers: { Authorization: `Bearer ${studentToken}` },
+        });
+        assert.equal(asStudent.status, 403, 'a student could read the full metric set');
+        console.log('[PASS] metrics: the full set is developers only');
+      }
+
       await as(student.email);
       let selfPromoteDenied = false;
       try {

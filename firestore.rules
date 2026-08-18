@@ -725,6 +725,16 @@ service cloud.firestore {
     // these rules entirely. Keeping client writes closed to everyone — not even
     // developers — means a compromised dev account cannot forge rankings, and
     // documents the fact that aggregation is deliberately server-only.
+    // The public counters — "students have completed N hours with M verified
+    // organisations". Written only by the server, and readable by anyone
+    // including a signed-out visitor, because it is the one number the landing
+    // page states about itself. It holds aggregates only: no name, no uid, no
+    // way back to a person.
+    match /metrics/{docId} {
+      allow read: if docId == 'public';
+      allow write: if false;
+    }
+
     match /leaderboards/{leaderboardId} {
       allow read: if isSignedIn();
       allow write: if false;

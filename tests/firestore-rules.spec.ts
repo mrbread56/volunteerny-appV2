@@ -950,3 +950,33 @@ test.describe('minAge on an opportunity', () => {
     await assertSucceeds(updateDoc(doc(asUser(ORG), 'opportunities', 'age_edit'), { minAge: 18 }));
   });
 });
+
+// ───────────────── the public counters ─────────────────
+
+test.describe('metrics/public', () => {
+  test('anyone can read the public counters, including a signed-out visitor', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'metrics', 'public'), { hoursConfirmed: 120, verifiedOrganizations: 3 });
+    });
+    // The landing page states this figure about itself, so it has to be
+    // readable before anyone signs in.
+    await assertSucceeds(getDoc(doc(asAnon(), 'metrics', 'public')));
+    await assertSucceeds(getDoc(doc(asUser(STUDENT), 'metrics', 'public')));
+  });
+
+  test('nobody can write them from a browser', async () => {
+    await assertFails(setDoc(doc(asUser(STUDENT), 'metrics', 'public'), { hoursConfirmed: 999999 }));
+    await assertFails(setDoc(doc(asUser(ORG), 'metrics', 'public'), { hoursConfirmed: 999999 }));
+    // Not even a developer: this is a server-computed aggregate, and a
+    // hand-edited counter is worse than no counter.
+    await assertFails(setDoc(doc(asUser(DEV), 'metrics', 'public'), { hoursConfirmed: 999999 }));
+  });
+
+  test('no other document in the collection is readable', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'metrics', 'internal'), { secret: true });
+    });
+    await assertFails(getDoc(doc(asAnon(), 'metrics', 'internal')));
+    await assertFails(getDoc(doc(asUser(STUDENT), 'metrics', 'internal')));
+  });
+});

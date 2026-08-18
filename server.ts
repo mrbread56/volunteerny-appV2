@@ -743,6 +743,144 @@ app.use(express.json());
   const LEADERBOARD_TOP_N = 100;
   let lastAggregateAt = 0;
 
+  /**
+   * The numbers that say whether this is working.
+   *
+   * Split deliberately into SIGNAL and COUNTS, because they are not equally
+   * informative and presenting them together invites the wrong conclusion.
+   *
+   * Counts — students registered, organizations registered, opportunities
+   * posted, applications — are close to vanity here. Every Ontario student
+   * needs 40 hours to graduate, so registrations are mandate-driven and cost
+   * nothing; postings are free and unlimited; an application is one click.
+   * They can all rise while nothing real happens.
+   *
+   * Signal is what required BOTH sides to act: an organization actually
+   * decided, a student actually attended, a supervisor actually confirmed the
+   * hours. `placementRate` — the share of posted opportunities that produced at
+   * least one accepted applicant — is the single best leading indicator,
+   * because it is the direct measurement of whether matching beats listing and
+   * it cannot be inflated by the graduation mandate. `medianDaysToDecision` is
+   * the earliest usable proxy: it is measurable from the very first
+   * application, and it is precisely what a listings board structurally cannot
+   * improve.
+   *
+   * Computed on demand rather than on a schedule. The one Vercel cron slot is
+   * spent on the leaderboard, and nobody reads these except a developer opening
+   * the console — so the read cost is paid when someone actually looks. The
+   * public counters are written out as a side effect of the same pass, which is
+   * why they cost nothing extra.
+   */
+  async function computeMetrics() {
+    const dbAdmin = adminFirestore();
+
+    const [students, orgs, opps, apps, hours, reports] = await Promise.all([
+      dbAdmin.collection('students').get(),
+      dbAdmin.collection('organizations').get(),
+      dbAdmin.collection('opportunities').get(),
+      dbAdmin.collection('applications').get(),
+      dbAdmin.collection('hoursRequests').get(),
+      dbAdmin.collection('reports').get(),
+    ]);
+
+    const orgsByStatus = { unverified: 0, pending: 0, verified: 0, rejected: 0 } as Record<string, number>;
+    for (const d of orgs.docs) {
+      const status = d.data()?.craVerified ? 'verified' : (d.data()?.verificationStatus || 'unverified');
+      if (status in orgsByStatus) orgsByStatus[status]++;
+    }
+
+    const appsByStatus: Record<string, number> = {};
+    const decisionDays: number[] = [];
+    const opportunitiesWithAnAccept = new Set<string>();
+
+    for (const d of apps.docs) {
+      const a = d.data() || {};
+      const status = String(a.status || 'pending');
+      appsByStatus[status] = (appsByStatus[status] || 0) + 1;
+
+      if (status === 'accepted' && a.opportunityId) opportunitiesWithAnAccept.add(String(a.opportunityId));
+
+      // Time from applying to hearing back. Only decided applications count —
+      // an undecided one has no duration yet, and treating it as zero would
+      // make an unresponsive organization look fast.
+      const applied = toMillis(a.appliedAt);
+      const decided = toMillis(a.decidedAt);
+      if (applied && decided && decided >= applied) {
+        decisionDays.push((decided - applied) / 86400000);
+      }
+    }
+
+    // Hours a supervisor actually confirmed, which is the thing a student
+    // needed in the first place. Read off the student record rather than the
+    // request queue, because that is where an approval lands.
+    let hoursConfirmed = 0;
+    let studentsWithAnyHours = 0;
+    let studentsAt40 = 0;
+    const placements = new Set<string>();
+    for (const d of students.docs) {
+      const logged: any[] = d.data()?.loggedHours || [];
+      const total = logged.reduce((sum, l) => {
+        const n = Number(l?.hours);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0);
+      if (total > 0) studentsWithAnyHours++;
+      if (total >= 40) studentsAt40++;
+      hoursConfirmed += total;
+      // A completed placement is a student-and-organization pair with confirmed
+      // hours between them — both sides did real work.
+      for (const l of logged) {
+        if (l?.organization) placements.add(`${d.id}::${l.organization}`);
+      }
+    }
+
+    const openOpps = opps.docs.filter((d: any) => (d.data()?.status || 'open') !== 'closed').length;
+    const accepted = appsByStatus.accepted || 0;
+    const decided = accepted + (appsByStatus.rejected || 0);
+    const sortedDays = decisionDays.sort((a, b) => a - b);
+    const median = sortedDays.length
+      ? sortedDays[Math.floor(sortedDays.length / 2)]
+      : null;
+
+    const openReports = reports.docs.filter((d: any) => (d.data()?.status || 'pending') === 'pending').length;
+
+    return {
+      generatedAt: new Date().toISOString(),
+      signal: {
+        // Share of postings that produced at least one accepted applicant.
+        placementRate: opps.size ? opportunitiesWithAnAccept.size / opps.size : 0,
+        opportunitiesWithAnAccept: opportunitiesWithAnAccept.size,
+        completedPlacements: placements.size,
+        hoursConfirmed: Math.round(hoursConfirmed * 10) / 10,
+        studentsWithAnyHours,
+        studentsAt40,
+        acceptanceRate: decided ? accepted / decided : 0,
+        medianDaysToDecision: median === null ? null : Math.round(median * 10) / 10,
+        decisionsMeasured: sortedDays.length,
+      },
+      counts: {
+        students: students.size,
+        organizations: orgs.size,
+        orgsByStatus,
+        opportunities: opps.size,
+        openOpportunities: openOpps,
+        applications: apps.size,
+        applicationsByStatus: appsByStatus,
+        hoursRequests: hours.size,
+        openReports,
+        totalReports: reports.size,
+      },
+    };
+  }
+
+  /** Firestore hands back Timestamp, string, or nothing depending on the writer. */
+  function toMillis(value: any): number | null {
+    if (!value) return null;
+    if (typeof value?.toDate === 'function') return value.toDate().getTime();
+    if (typeof value?.seconds === 'number') return value.seconds * 1000;
+    const t = Date.parse(value);
+    return Number.isFinite(t) ? t : null;
+  }
+
   async function rebuildGlobalLeaderboard(): Promise<{ count: number }> {
     const dbAdmin = adminFirestore();
 
@@ -947,6 +1085,83 @@ app.use(express.json());
     } catch (err: any) {
       logEvent('health_deep_failed', { msg: String(err?.message || err).slice(0, 200) });
       res.status(503).json({ ok: false, firestore: 'unreachable' });
+    }
+  });
+
+  /**
+   * The full metric set, for the developer console.
+   *
+   * Developer-only, because it reads every collection and because the counts
+   * are internal until they mean something. The public figures below are a
+   * deliberately small subset of the same computation.
+   */
+  app.get('/api/metrics', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext?.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      // Same test the other privileged routes use: the ROLE first, then the
+      // bootstrap allowlist. Allowlist-only would lock out a second developer
+      // promoted the supported way, by setting their role.
+      const adb = adminFirestore();
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      if (!(caller?.role === 'developer' || isAllowlistedDeveloper(authContext))) {
+        return res.status(403).json({ error: 'Only a developer can read metrics.' });
+      }
+
+      const metrics = await computeMetrics();
+
+      // Refresh the public counters as a side effect: the expensive part is the
+      // read pass, which has already happened, so this costs one write rather
+      // than a second job.
+      try {
+        await adminFirestore().collection('metrics').doc('public').set({
+          hoursConfirmed: metrics.signal.hoursConfirmed,
+          verifiedOrganizations: metrics.counts.orgsByStatus.verified || 0,
+          studentsWithAnyHours: metrics.signal.studentsWithAnyHours,
+          completedPlacements: metrics.signal.completedPlacements,
+          updatedAt: metrics.generatedAt,
+        });
+      } catch (writeErr: any) {
+        // The dashboard is still useful without the public copy being fresh.
+        console.error('[metrics] public counters not refreshed:', writeErr?.message || writeErr);
+      }
+
+      res.json(metrics);
+    } catch (err: any) {
+      console.error('[metrics] failed:', err?.message || err);
+      res.status(500).json({ error: 'Could not calculate metrics right now.' });
+    }
+  });
+
+  /**
+   * The public counters.
+   *
+   * Reads the small cached document rather than recomputing, because this is
+   * reachable without signing in and a scan-per-request would be both a cost
+   * and an amplification vector. It is refreshed whenever a developer opens the
+   * metrics tab.
+   *
+   * Returns zeroes rather than an error when the document does not exist yet —
+   * a landing page should not break because nobody has opened the console.
+   */
+  app.get('/api/metrics/public', async (_req, res) => {
+    try {
+      const snap = await adminFirestore().collection('metrics').doc('public').get();
+      const d = snap.exists ? snap.data() : null;
+      res.set('Cache-Control', 'public, max-age=300');
+      res.json({
+        hoursConfirmed: d?.hoursConfirmed ?? 0,
+        verifiedOrganizations: d?.verifiedOrganizations ?? 0,
+        studentsWithAnyHours: d?.studentsWithAnyHours ?? 0,
+        completedPlacements: d?.completedPlacements ?? 0,
+        updatedAt: d?.updatedAt ?? null,
+      });
+    } catch (err: any) {
+      console.error('[metrics/public] failed:', err?.message || err);
+      res.status(503).json({ error: 'unavailable' });
     }
   });
 
