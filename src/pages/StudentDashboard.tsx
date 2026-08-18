@@ -2,7 +2,6 @@ import { useDialog } from '../hooks/useDialog';
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
-import { DEMO_OPPORTUNITIES } from './studentDashboard/demoOpportunities';
 import { buildCertificateHtml } from './studentDashboard/certificate';
 import LeaderboardTab from './studentDashboard/LeaderboardTab';
 import SettingsTab from './studentDashboard/SettingsTab';
@@ -11,7 +10,6 @@ import SuccessAnimation from "../components/SuccessAnimation";
 import EmailDeliveryNote from "../components/ui/EmailDeliveryNote";
 import { db } from "../firebase/config";
 import { subscribeToScalableLeaderboard, requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
-import { reportError } from "../lib/errors";
 import { totalLoggedHours } from "../lib/hours";
 import {
   collection,
@@ -45,19 +43,14 @@ import {
   Star,
   ArrowRight,
   Sparkles,
-  Mail,
-  Phone,
-  Globe,
   ListPlus,
-  Send,
   X,
   Trophy,
   Settings,
   Printer,
-  FileText,
   LayoutDashboard,
 } from "lucide-react";
-import { formatDate, cn } from "../lib/utils";
+import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";
 import { OPPORTUNITY_CATEGORIES } from "../constants";
 // CalendarView was imported here but never rendered. As a static import it was

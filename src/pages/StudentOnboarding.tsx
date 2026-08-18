@@ -20,7 +20,6 @@ import {
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TORONTO_SCHOOLS, NEIGHBORHOODS } from '../constants';
-import { compressFile } from '../utils/compress';
 import { SKILLS, AVAILABILITY } from '../lib/vocabularies';
 import { OPPORTUNITY_CATEGORIES as INTERESTS } from '../constants';
 

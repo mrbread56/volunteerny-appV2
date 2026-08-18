@@ -3,7 +3,7 @@ import { Calendar, FileText, Globe, Mail, Phone, Sparkles, Star } from 'lucide-r
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
-import { cn, formatDate } from '../../lib/utils';
+import { formatDate } from '../../lib/utils';
 import type { Application } from '../../types';
 
 /**

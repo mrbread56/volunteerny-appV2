@@ -12,7 +12,6 @@ import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import OpportunityCard from '../components/OpportunityCard';
 import { Map as MapIcon, List, Search, X, MapPin, Share2 } from 'lucide-react';
-import { Badge } from '../components/ui/Badge';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { cn, copyToClipboard } from '../lib/utils';
 import { useGeolocation } from '../hooks/useGeolocation';

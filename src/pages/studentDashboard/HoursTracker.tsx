@@ -1,4 +1,4 @@
-import { Bell, FileText, Printer, Send, Trophy } from 'lucide-react';
+import { Printer, Send, Trophy } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
 import { cn } from '../../lib/utils';
