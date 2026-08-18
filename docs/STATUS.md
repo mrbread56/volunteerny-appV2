@@ -10,7 +10,7 @@ already been fixed and gave the impression the project was unfinished.
 
 ---
 
-## Full verification, 14 August 2026
+## Full verification, 17 August 2026
 
 Every gate below was run THREE times on this commit, on the migrated Toronto
 database, and produced identical results each time. Repeating them is the point:
@@ -21,22 +21,24 @@ a suite that passes once may be passing by accident of ordering or timing.
 | `lint` (types + ESM guard) | 0 errors |
 | `build` (SPA + server bundle) | succeeds |
 | `check:firebase` | 13/13 |
-| `check:security` (adversarial) | **69/69** |
-| `check:flows` (full journey) | 15/15 |
-| `check:lifecycle` (withdraw, waitlist, deletes) | 22/22 |
+| `check:security` (adversarial) | **70/70** |
+| `check:flows` (full journey, incl. metrics) | 18/18 |
+| `check:lifecycle` (withdraw, waitlist, deletes) | 24/24 |
 | `check:signup` | 6/6 |
 | `check:queries` | 7/7 |
-| `check:integrity` (invariants over real data) | **7/7** |
+| `check:integrity` (invariants over real data) | **8/8** |
 | `check:hours` / `check:certificate` / `check:errors` | pass |
 | `check:email` | 4/4, key valid, sender verified, links resolve |
 | `sweep:console` (every route, every role) | **0 unexpected** |
-| `test` (full Playwright suite, chromium + webkit) | **100/100** |
-| `test:rules` (emulator, per-field) | **56/56** |
+| `test` (full Playwright suite, chromium + webkit) | **135/135** |
+| `test:rules` (emulator, per-field) | **83/83** |
 | `check:concurrency` (200-way parallel) | **5/5** |
 | `test:tz` (5 timezones incl. UTC+14 and a half-hour zone) | **5/5** |
 | `test:mutation` (deliberate breakages caught) | **8/8 killed** |
-| `test:offline` (pure logic, no network) | **43/43** |
+| `test:offline` (pure logic, no network) | **70/70** |
 | `check:storage` (uploads + Storage rules) | **5/5** |
+| `check:recovery` (recovery codes, end to end) | **11/11** |
+| `check:reliability` (consecutive registrations) | **50/50, 0 failures** |
 | click reachability (every control, every role) | 211 controls, **0 blocked** |
 | **GitHub Actions CI** | **green, live tier executing** |
 
@@ -97,6 +99,115 @@ the offline suites (`lint`, `test:offline`, `test:tz`, `test:mutation`,
 `test:rules`) exist precisely so that most verification costs nothing.
 
 ---
+
+## Closed 17 August 2026 (post-review: stabilise, measure, then improve)
+
+The review's central point was that the mindset had to change — stop adding
+features, start proving the built ones work and that anyone uses them. Nothing
+here is a new capability except where a capability was being claimed and not
+delivered.
+
+### Two things that were latent and would have bitten
+
+**Any account registering as an organization could publish to minors within a
+minute, with no human review.** The rule helper was called `isVerifiedOrg()` and
+it never read `verificationStatus` — it checked role, ban status and MFA.
+Verification existed as a field, a queue, a badge and an email, and gated
+nothing. A teenager inventing a charity is the exact scenario it was introduced
+for. Renamed to `isOrgAccount()`, and a real `isApprovedOrg()` now gates
+publishing and editing. Deleting deliberately still works for a rejected
+organization, because withdrawing your own listing is the outcome everyone
+wants.
+
+**`availability` was written by two incompatible vocabularies sharing two of
+seven values.** A student onboarded with "Weekend Mornings", opened their
+profile, and the answer was gone from the screen — then saving wrote the other
+vocabulary over it. Invisible because nothing consumed the field, and it would
+have surfaced the moment availability filtering shipped, which was the next
+thing planned. `timeCommitment` disagreed the same way and only worked because
+the filter used `.includes()`.
+
+### The matching engine
+
+The stated difference from Volunteer Toronto is that they are discovery and we
+are matching. The browse page ordered by newest-first and offered no distance,
+age or availability filter — the three things that decide whether a
+fifteen-year-old can take a placement.
+
+Five pure modules, no dependencies, no new indexes. Distance is a client-side
+haversine over the list already fetched, deliberately not geohashing (the
+upgrade point is written into the module rather than guessed at later). Age is
+compared against a floor derived from grade, because we do not collect a
+birthdate from a minor for a value we can approximate — so the verdict is
+"likely", and results are marked rather than hidden.
+
+Three bugs surfaced building it. The neighbourhood lookup tested
+`.includes("york")` before `.includes("north york")`, so **North York measured
+every distance from a point 8 km away**, and it covered ten spellings out of
+twenty-one. The old match score **counted the category twice** and was
+unbounded. And the "% SKILLS MATCH" pill on every card compared the student's
+INTERESTS against the opportunity's skillsNeeded — different vocabularies — so
+someone interested in Technology got no credit for the skill Computer & Tech.
+
+### Measurement
+
+`GET /api/metrics` and a developer tab, split into signal and vanity because
+presenting them together implies they are comparable. Registrations are
+mandate-driven and cost nothing; postings are free; an application is one click.
+`placementRate` is the headline — the share of postings that produced an
+accepted applicant, the one number the graduation mandate cannot inflate.
+
+Public counters are written as a side effect of the developer read, readable by
+anyone and writable by nobody including a developer. The landing-page counter
+renders **nothing** until the figures are worth stating: "helped students
+complete 0 hours" is an advertisement for emptiness on the first screen a
+student sees.
+
+### Recovery codes (ROADMAP B2)
+
+Two-step sign-in is mandatory for organizations and arrives by email, so a
+bounced address locked one out permanently — the only route back was a developer
+running a script by hand. Ten single-use codes, hashes only, same claim, same
+rate limiter, same-transaction spend. The collection is unreadable by every
+client including a developer.
+
+### Found by writing a test
+
+The developer console opened on a splash screen reading "CREATE CONTROL ROOM
+DASHBOARD" and nothing was reachable until it was clicked — for a dashboard that
+already existed, holding data `loadData()` had already fetched. Three more of the
+same shape: two counters rendered a literal 0 with "Click to Load" beside real
+data in memory, and the Feedback tab was hidden behind clicking the Reports
+metric. Four `useState(false)` gating content that was already loaded.
+
+A browser test tried to click a tab, could not find one, and that is what
+surfaced it.
+
+### Reliability
+
+`check:reliability` registers students and organizations consecutively and
+requires every one to succeed. **50 consecutive registrations, 0 failures**,
+median 642 ms — and it got faster as it went, so there is no hidden rate limit
+or degradation. This is a different question from `check:signup`, which proves a
+signup *can* work; this proves it works *every* time, which is what matters when
+thirty students arrive from one classroom.
+
+### Three of my own mistakes, caught by the suites
+
+A blanket find/replace turned a security test's deliberate `'verified'` payload
+into `'unverified'`, so a `mustDeny` assertion started passing the value it was
+written to reject. A `` written through a shell heredoc became a literal
+backspace character inside a regex, so `/^waitlist<0x08>/i` matched nothing and
+every attempt to fix it missed for the same invisible reason. And
+`check-recovery` reported a plaintext leak that did not exist, because its admin
+handle addressed `(default)` instead of the named database — the read came back
+empty and the `else` branch blamed the wrong thing.
+
+All three were caught by the tests they broke, which is the argument for having
+them.
+
+---
+
 
 ## Closed 13 August 2026 (seven-agent review + hardening pass)
 
