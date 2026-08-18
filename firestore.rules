@@ -730,6 +730,15 @@ service cloud.firestore {
     // including a signed-out visitor, because it is the one number the landing
     // page states about itself. It holds aggregates only: no name, no uid, no
     // way back to a person.
+    // Recovery codes. Hashes only, and no client may touch them at all — not
+    // the owner, not a developer. The Admin SDK bypasses these rules and is the
+    // only door, exactly like verification_otps. Allowing an owner to READ
+    // their own document would leak the hashes; allowing a write would let
+    // someone mark a code unused and replay it.
+    match /mfaBackupCodes/{uid} {
+      allow read, write: if false;
+    }
+
     match /metrics/{docId} {
       allow read: if docId == 'public';
       allow write: if false;

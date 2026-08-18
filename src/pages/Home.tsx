@@ -5,6 +5,7 @@ import { ArrowRight, ChevronRight, Play, UserCircle, Search, BadgeCheck } from '
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useCarousel } from '../hooks/useCarousel';
+import ImpactCounter from '../components/ImpactCounter';
 
 /* ── Reveal wrapper ── */
 const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = ({ children, className = '', delay = 0 }) => {
@@ -214,6 +215,13 @@ export default function Home() {
                   community or anywhere across the city, join us to build skills, fulfill
                   your 40 mandatory hours, and make a real impact.
                 </p>
+              </Reveal>
+
+              {/* Renders nothing until the figures are worth stating — see the
+                  note in the component. An honest zero on the first screen a
+                  student sees is an advertisement for emptiness. */}
+              <Reveal delay={0.17}>
+                <ImpactCounter />
               </Reveal>
 
               <Reveal delay={0.2}>

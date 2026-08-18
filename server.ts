@@ -2710,6 +2710,172 @@ app.use(express.json());
   });
 
   // ── VERIFY OTP ──
+  /**
+   * Recovery codes, so losing a mailbox is not losing the account.
+   *
+   * ROADMAP B2. Two-factor is mandatory for organisations and the code arrives
+   * by email, so a bounced address, a departed staff member or an aggressive
+   * school spam filter locks an organisation out of its own dashboard with no
+   * way back. Until now the only route was emailing us and a developer running
+   * scripts/grant-mfa.ts by hand — which is a support process, not a recovery
+   * mechanism, and it does not work at two in the morning.
+   *
+   * Ten single-use codes, shown ONCE at generation and never again.
+   *
+   * Only the hashes are stored. SHA-256 without a work factor is the right
+   * choice here and would be the wrong one for passwords: these are 40 bits of
+   * cryptographic randomness that nobody chooses, remembers or reuses, so the
+   * dictionary and rainbow-table attacks that make bcrypt necessary do not
+   * apply. What matters is that a database leak does not yield usable codes,
+   * and a preimage of SHA-256 does not exist.
+   *
+   * The collection is server-only in firestore.rules — no client may read or
+   * write it, including a developer.
+   */
+  const BACKUP_CODE_COUNT = 10;
+
+  function hashBackupCode(code: string): string {
+    return crypto.createHash('sha256').update(code.trim().toUpperCase()).digest('hex');
+  }
+
+  /** Unambiguous alphabet: no O/0, no I/1, no S/5. These get read aloud and written down. */
+  function newBackupCode(): string {
+    const alphabet = 'ABCDEFGHJKLMNPQRTUVWXYZ2346789';
+    let out = '';
+    for (let i = 0; i < 10; i++) {
+      out += alphabet[crypto.randomInt(0, alphabet.length)];
+      if (i === 4) out += '-';
+    }
+    return out;
+  }
+
+  app.post('/api/auth/backup-codes', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext?.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.status(400).json({ error: 'Recovery codes are not available in demo mode.' });
+      }
+
+      const adb = adminFirestore();
+      const codes = Array.from({ length: BACKUP_CODE_COUNT }, newBackupCode);
+
+      // Replaces any previous set: generating new codes must invalidate the old
+      // ones, or a leaked printout stays valid forever.
+      await adb.collection('mfaBackupCodes').doc(authContext.uid).set({
+        hashes: codes.map((c) => ({ hash: hashBackupCode(c), usedAt: null })),
+        generatedAt: new Date().toISOString(),
+      });
+
+      logEvent('backup_codes_generated', { uid: authContext.uid, count: codes.length });
+
+      // The only time these are ever returned in plaintext.
+      res.json({ codes });
+    } catch (err: any) {
+      console.error('[backup-codes] failed:', err?.message || err);
+      res.status(500).json({ error: 'Could not create recovery codes. Please try again.' });
+    }
+  });
+
+  /** How many unused codes remain, so the UI can warn before they run out. */
+  app.get('/api/auth/backup-codes/status', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext?.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const snap = await adminFirestore().collection('mfaBackupCodes').doc(authContext.uid).get();
+      const hashes: any[] = snap.exists ? (snap.data()?.hashes || []) : [];
+      res.json({
+        exists: snap.exists,
+        remaining: hashes.filter((h) => !h.usedAt).length,
+        generatedAt: snap.exists ? snap.data()?.generatedAt ?? null : null,
+      });
+    } catch (err: any) {
+      console.error('[backup-codes/status] failed:', err?.message || err);
+      res.status(500).json({ error: 'Could not read recovery code status.' });
+    }
+  });
+
+  /**
+   * Spend one recovery code, in place of an emailed one.
+   *
+   * Deliberately a separate route from verify-otp rather than a branch inside
+   * it. The OTP path has its own rate limiter, its own attempt cap and its own
+   * tombstone, and threading a second credential type through all of it is how
+   * a bypass gets introduced by accident. This one grants exactly the same
+   * claim by exactly the same call, and nothing else.
+   */
+  app.post('/api/auth/backup-codes/redeem', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext?.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (typeof authContext.authTime !== 'number') {
+        return res.status(400).json({ error: 'Please sign in again and retry.' });
+      }
+
+      const { code } = req.body || {};
+      if (!code || typeof code !== 'string' || code.length > 32) {
+        return res.status(400).json({ error: 'Enter one of your recovery codes.' });
+      }
+
+      // Same limiter as the emailed code, so recovery codes cannot be used to
+      // sidestep the attempt cap by brute force.
+      const limited = await isOtpRateLimited(authContext.uid);
+      if (limited) {
+        return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' });
+      }
+
+      const adb = adminFirestore();
+      const ref = adb.collection('mfaBackupCodes').doc(authContext.uid);
+      const wanted = hashBackupCode(code);
+
+      // A transaction, so two tabs submitting the same code cannot both spend
+      // it — the same race the OTP attempt counter had before it was rewritten.
+      const outcome = await adb.runTransaction(async (tx: any) => {
+        const snap = await tx.get(ref);
+        if (!snap.exists) return 'none';
+        const hashes: any[] = snap.data()?.hashes || [];
+        const idx = hashes.findIndex((h) => h.hash === wanted && !h.usedAt);
+        if (idx === -1) return 'invalid';
+        hashes[idx] = { ...hashes[idx], usedAt: new Date().toISOString() };
+        tx.update(ref, { hashes });
+        return 'ok';
+      });
+
+      if (outcome === 'none') {
+        return res.status(400).json({ error: 'This account has no recovery codes. Contact support.' });
+      }
+      if (outcome === 'invalid') {
+        logEvent('backup_code_rejected', { uid: authContext.uid });
+        return res.status(400).json({ error: 'That code is not valid, or has already been used.' });
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) return res.status(500).json({ error: 'Server configuration error.' });
+      const userRecord = await adminObj.auth().getUser(authContext.uid);
+      await adminObj.auth().setCustomUserClaims(authContext.uid, {
+        ...(userRecord.customClaims || {}),
+        mfaVerified: true,
+        mfaVerifiedFor: authContext.authTime,
+        mfaVerifiedAt: Date.now(),
+      });
+
+      const remaining = await ref.get().then((s: any) =>
+        (s.data()?.hashes || []).filter((h: any) => !h.usedAt).length);
+
+      logEvent('backup_code_redeemed', { uid: authContext.uid, remaining });
+      res.json({ success: true, remaining });
+    } catch (err: any) {
+      console.error('[backup-codes/redeem] failed:', err?.message || err);
+      res.status(500).json({ error: 'Could not verify that code. Please try again.' });
+    }
+  });
+
   app.post('/api/auth/verify-otp', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);

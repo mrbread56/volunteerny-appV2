@@ -1,6 +1,15 @@
-# Roadmap
+# Technical roadmap
 
-Where the project is, and what has to happen before each version ships.
+Where the engineering is, and what has to happen before each version ships.
+
+**This document covers code only.** Whether anyone uses what the code produces
+is tracked separately in [`PRODUCT-ROADMAP.md`](PRODUCT-ROADMAP.md), because the
+two fail differently: engineering work is finished when a test passes, product
+work is finished when a person who is not you does something they did not have
+to do.
+
+That split matters here specifically. Every item below could be closed and the
+platform would still have zero organisations on it.
 
 Ordered on one principle from the technical review: **stabilise the foundation
 before adding anything to it.** Every architecture item below is placed ahead of
@@ -24,10 +33,10 @@ hand. Firebase Storage was enabled on 12 August 2026 and `storage.rules` was
 published to the bucket for the first time; uploads are verified end to end by
 `check:storage` (5/5).
 
-What is *not* yet true: the site has almost no content — one organization and a
-handful of students — and no photography. That is now the gap between "the code
-is right" and "the service is worth arriving at". No amount of engineering
-closes it.
+What is *not* yet true, measured 17 August 2026: **3 students, 0 organisations,
+0 opportunities, 0 applications, 0 confirmed hours.** That is the gap between
+"the code is right" and "the service is worth arriving at", and no amount of
+engineering closes it. See [`PRODUCT-ROADMAP.md`](PRODUCT-ROADMAP.md).
 
 ---
 
@@ -42,7 +51,7 @@ being locked out, or seeing something untrue.
 |---|---|---|
 | ~~**B19**~~ | ~~**Move production off the AI-Studio database**~~ — **DONE 14 Aug 2026.** Production now runs on `volunteerny`: STANDARD edition, `northamerica-northeast2` (Toronto), billable rather than free-tier-capped, and data resident in Canada. Migrated by backup/restore, rules and the 7 composite indexes redeployed, verified by every live suite. `npm run deploy:indexes` is new — indexes are not part of rules and do NOT travel with a restore, which is exactly how the first attempt left `applications (mine)` failing `failed-precondition`. | **The hardest blocker on this list.** `FIREBASE_DATABASE_ID` points at `ai-studio-volunteerny-abfab7a5-…`, created by AI Studio, and Firestore answers reads against it with: *"This database cannot exceed free quota limits even when a billing instrument is enabled."* There is a hard daily read ceiling and **Blaze does not lift it**. Hit on 14 Aug 2026 by a day of test runs, which took production reads down until the quota reset — real traffic will do the same. The browse page alone reads up to 200 documents and the student dashboard fires six queries per visit, so a few dozen active students in one day is enough. The project has no `(default)` database; both existing ones are AI-Studio-created (us-west2 and us-east1, Enterprise edition). Create a database through the Firebase console instead, confirm it is not free-tier-capped, migrate with the existing `npm run backup` / `npm run restore`, then repoint `FIREBASE_DATABASE_ID` and `firebase.json`. Do this before any launch, and before B15 — a second project for tests is worth much more once reads are billable rather than rationed. |
 | ~~B1~~ | ~~Valid `RESEND_API_KEY`, verified sender, `check:email` green~~ — **DONE.** `check:email` is 4/4: the key is accepted by Resend, the sending domain `volunteernorthyork.indevs.in` is verified (us-east-1), every link is absolute and resolves to a real route. |
-| B2 | A recovery path for a locked-out organization | Partly done: `scripts/grant-mfa.ts` opens a time-boxed one-hour window (and `--revoke` closes it early), documented in RUNBOOK step 3. Still needs a path the organization can start themselves, without a developer running a script |
+| ~~B2~~ | ~~A recovery path for a locked-out organization~~ — **DONE 17 Aug 2026.** Ten single-use recovery codes, generated from the organization's own profile and shown once. Redeeming one grants the same per-sign-in claim the emailed code grants, through `/api/auth/backup-codes/redeem`. Only hashes are stored, the collection is unreadable by every client including a developer, generating a new set invalidates the old, and the same rate limiter applies so codes cannot be brute-forced. `check:recovery` 11/11. `grant-mfa.ts` stays as the last resort for an organization that saved none. | Partly done: `scripts/grant-mfa.ts` opens a time-boxed one-hour window (and `--revoke` closes it early), documented in RUNBOOK step 3. Still needs a path the organization can start themselves, without a developer running a script |
 | B3 | **Turn on point-in-time recovery for `volunteerny`** | **Measured 14 Aug 2026: `pointInTimeRecoveryEnablement` is `POINT_IN_TIME_RECOVERY_DISABLED`, and the backup-schedules API answers 403.** So the only recovery that exists is `npm run backup`, run by hand. Hour records are graduation evidence — a bad write or an accidental delete is currently unrecoverable beyond the last manual snapshot. Neither can be fixed from here: the service account has `datastore.databases.get` but not `.update`, so the PATCH returns 403. **Owner action:** Firebase console → Firestore → the `volunteerny` database → enable Point-in-time recovery (7-day window), and add a daily backup schedule. Alternatively grant the service account `roles/datastore.owner` and this becomes scriptable. |
 | B6 | Hand-test the organization dashboard and developer console | 3,388 lines of UI that no human has walked through |
 |, | Hand-test MFA code entry end to end | Blocked by B1 |

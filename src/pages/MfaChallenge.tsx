@@ -13,6 +13,8 @@ import { motion } from "motion/react";
 
 export default function MfaChallenge() {
   const [code, setCode] = useState("");
+  /** Switches the form between the emailed 6-digit code and a recovery code. */
+  const [usingRecoveryCode, setUsingRecoveryCode] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [hasSentOTP, setHasSentOTP] = useState(false);
@@ -101,7 +103,15 @@ export default function MfaChallenge() {
 
   const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (code.length !== 6) {
+    // A recovery code is ten characters and a dash; an emailed one is six
+    // digits. Validating the wrong shape would reject the thing the person is
+    // holding, at the exact moment they have no other way in.
+    if (usingRecoveryCode) {
+      if (code.trim().replace('-', '').length < 10) {
+        setError("Please enter a full recovery code, including the dash.");
+        return;
+      }
+    } else if (code.length !== 6) {
       setError("Please enter a valid 6-digit code.");
       return;
     }
@@ -110,7 +120,7 @@ export default function MfaChallenge() {
 
     try {
       const token = await user!.getIdToken();
-      const response = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+      const response = await fetch(`${API_BASE_URL}${usingRecoveryCode ? '/api/auth/backup-codes/redeem' : '/api/auth/verify-otp'}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -212,14 +222,23 @@ export default function MfaChallenge() {
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <KeyRound className="h-5 w-5 text-ink-muted" />
                 </div>
+                {/* The input adapts, because the two credentials have different
+                    shapes: stripping non-digits would silently eat every letter
+                    of a recovery code as the person typed it. */}
                 <Input
                   id="mfa-code"
                   type="text"
-                  maxLength={6}
+                  maxLength={usingRecoveryCode ? 12 : 6}
                   value={code}
-                  onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                  placeholder="Enter 6-digit code"
-                  className="pl-10 text-center text-2xl tracking-[0.5em] font-mono h-14"
+                  onChange={(e) => setCode(
+                    usingRecoveryCode
+                      ? e.target.value.toUpperCase().replace(/[^A-Z0-9-]/g, '')
+                      : e.target.value.replace(/\D/g, ''),
+                  )}
+                  placeholder={usingRecoveryCode ? 'ABCDE-FGHJK' : 'Enter 6-digit code'}
+                  className={usingRecoveryCode
+                    ? 'pl-10 text-center text-xl tracking-[0.25em] font-mono h-14'
+                    : 'pl-10 text-center text-2xl tracking-[0.5em] font-mono h-14'}
                   required
                 />
               </div>
@@ -247,9 +266,24 @@ export default function MfaChallenge() {
                 which helps when mail is the thing that is broken. Support can
                 verify the account by hand; see docs/RUNBOOK.md. */}
             <div className="pt-4 mt-2 border-t border-line text-center space-y-2">
+              {/* The self-serve route. Until this existed, an organisation whose
+                  email bounced could only get back in by writing to us and
+                  waiting for a developer to run a script by hand — which is a
+                  support process, not recovery, and it does not work at two in
+                  the morning. */}
+              <button
+                type="button"
+                onClick={() => { setUsingRecoveryCode(!usingRecoveryCode); setCode(''); setError(''); }}
+                className="text-xs font-semibold text-blue-dark hover:underline"
+              >
+                {usingRecoveryCode
+                  ? 'Use the code sent to my email instead'
+                  : 'Use a recovery code instead'}
+              </button>
               <p className="text-xs text-ink-muted leading-relaxed">
-                Code still not arriving? Check your spam folder first. If it is not
-                there, email us from the address on this account and we can verify
+                Code still not arriving? Check your spam folder first. If you saved
+                recovery codes when you set up your account, use one above. Otherwise
+                email us from the address on this account and we can verify
                 it manually.
               </p>
               <a

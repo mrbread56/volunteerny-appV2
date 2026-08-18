@@ -21,6 +21,7 @@ import { motion } from "motion/react";
 import { cn } from "../lib/utils";
 import { deleteOwnAccount } from "../lib/deleteAccount";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
+import RecoveryCodes from '../components/RecoveryCodes';
 
 
 export default function OrgProfile() {
@@ -504,6 +505,8 @@ export default function OrgProfile() {
                 />
               </button>
             </div>
+
+            <RecoveryCodes />
             <p className="text-xs text-ink-soft font-medium leading-relaxed border-t border-line-light pt-4">
               We send a 6-digit code to <strong className="text-ink-soft">{user?.email}</strong> each
               time you sign in. Staying signed in on this device won't ask again — only a new sign-in will.

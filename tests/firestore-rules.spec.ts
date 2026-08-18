@@ -980,3 +980,24 @@ test.describe('metrics/public', () => {
     await assertFails(getDoc(doc(asUser(STUDENT), 'metrics', 'internal')));
   });
 });
+
+// ───────────── recovery codes are server-only ─────────────
+
+test.describe('mfaBackupCodes', () => {
+  test('nobody can read the hashes — not even their owner', async () => {
+    await seed(async (db) => {
+      await setDoc(doc(db, 'mfaBackupCodes', STUDENT), { hashes: [{ hash: 'abc', usedAt: null }] });
+    });
+    // Reading your own document would leak the hashes, and hashes are the only
+    // thing standing between a database copy and a working second factor.
+    await assertFails(getDoc(doc(asUser(STUDENT), 'mfaBackupCodes', STUDENT)));
+    await assertFails(getDoc(doc(asUser(DEV), 'mfaBackupCodes', STUDENT)));
+    await assertFails(getDoc(doc(asAnon(), 'mfaBackupCodes', STUDENT)));
+  });
+
+  test('nobody can write them either', async () => {
+    // A write would let someone mark a spent code unused and replay it.
+    await assertFails(setDoc(doc(asUser(STUDENT), 'mfaBackupCodes', STUDENT), { hashes: [] }));
+    await assertFails(setDoc(doc(asUser(DEV), 'mfaBackupCodes', STUDENT), { hashes: [] }));
+  });
+});
