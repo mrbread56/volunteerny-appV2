@@ -29,6 +29,10 @@ const IGNORED = [
   /net::ERR_/i,
   /Download the React DevTools/i,
   /WebChannelConnection/i,
+  // The Vite dev server HMR websocket, dying under parallel load. Port 24678
+  // is the hot-reload channel; the production build ships no HMR client, so
+  // this cannot reach a user. Same narrow class the console sweep allowlists.
+  /ws:\/\/localhost:24678|\[vite\] failed to connect|WebSocket closed without opened/,
 ];
 
 function isRealError(msg: ConsoleMessage) {

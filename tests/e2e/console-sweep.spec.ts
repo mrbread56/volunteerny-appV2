@@ -52,6 +52,18 @@ const EXPECTED: { match: RegExp; why: string }[] = [
       'opportunity form that owns the request. Flaky by nature: it only appears when ' +
       'a lookup happens to be in flight at teardown.',
   },
+  {
+    match: /ws:\/\/localhost:24678|\[vite\] failed to connect|WebSocket closed without opened/,
+    why:
+      "the Vite dev server HMR websocket, dying under load. Port 24678 is the " +
+      "hot-reload channel; the production build contains no HMR client at all, " +
+      "so this class of error cannot reach a user. It appears only when this " +
+      "sweep runs alongside enough parallel work that the dev server cannot " +
+      "service the socket - first seen in a soak round running the full browser " +
+      "suite concurrently with five live check suites. Kept narrow: only the " +
+      "HMR port and Vite-specific message text match, so a real application " +
+      "websocket failure would still fail the sweep.",
+  },
 ];
 
 function expectedReason(text: string): string | null {
