@@ -1,0 +1,272 @@
+import { useEffect, useState } from 'react';
+import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { db } from '../firebase/config';
+import { reportError } from '../lib/errors';
+import { API_BASE_URL } from '../lib/config';
+
+/**
+ * Everything the developer console reads.
+ *
+ * The third and last of the components the review named. This one is an
+ * internal admin tool that nobody outside the project opens, so the case for
+ * moving it is weaker than for the two user-facing dashboards — but leaving one
+ * of three behind means the next person has to learn two conventions instead of
+ * one, and the transformation is identical.
+ *
+ * Both loaders are returned so the page can re-run them after it changes
+ * something: approving an organisation or resolving a report has to refresh the
+ * list it just acted on, and that trigger belongs to the page.
+ */
+export interface DeveloperDashboardData {
+  students: any[];
+  orgs: any[];
+  feedbacks: any[];
+  reports: any[];
+  interestRequests: any[];
+  pendingOrgs: any[];
+  realStudentCount: number;
+  realOrgCount: number;
+  realFeedbackCount: number;
+  realReportCount: number;
+  isLoading: boolean;
+  consoleNotice: string | null;
+  setConsoleNotice: (message: string | null) => void;
+  setStudents: React.Dispatch<React.SetStateAction<any[]>>;
+  setOrgs: React.Dispatch<React.SetStateAction<any[]>>;
+  setFeedbacks: React.Dispatch<React.SetStateAction<any[]>>;
+  setReports: React.Dispatch<React.SetStateAction<any[]>>;
+  setPendingOrgs: React.Dispatch<React.SetStateAction<any[]>>;
+  /** Re-run after an action that changes what the lists should show. */
+  loadData: () => Promise<void>;
+  loadPendingOrgs: () => Promise<void>;
+}
+
+export function useDeveloperDashboardData(
+  /** Needed for the privileged admin endpoints, which take a bearer token. */
+  user: { getIdToken: () => Promise<string> } | null | undefined,
+  isDemoMode: boolean,
+): DeveloperDashboardData {
+  const [students, setStudents] = useState<any[]>([]);
+  const [orgs, setOrgs] = useState<any[]>([]);
+  const [feedbacks, setFeedbacks] = useState<any[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [interestRequests, setInterestRequests] = useState<any[]>([]);
+  const [pendingOrgs, setPendingOrgs] = useState<any[]>([]);
+  const [realStudentCount, setRealStudentCount] = useState(0);
+  const [realOrgCount, setRealOrgCount] = useState(0);
+  const [realFeedbackCount, setRealFeedbackCount] = useState(0);
+  const [realReportCount, setRealReportCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [consoleNotice, setConsoleNotice] = useState<string | null>(null);
+
+  const loadData = async () => {
+    setIsLoading(true);
+    try {
+      if (isDemoMode) {
+        // Load demo feedbacks
+        const demoFeedbacks = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
+        if (demoFeedbacks.length === 0) {
+          const sample = [
+            {
+              id: 'fb_sample1',
+              userEmail: 'tom.clarke@senecacollege.ca',
+              userRole: 'student',
+              type: 'bug',
+              subject: 'Leaflet Map tile failing to render inside profile container',
+              message: 'When I open my org dashboard, sometimes the background tiles of the Leaflet map stay grey until I resize my browser tab. This is quite tricky to deal with.',
+              createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
+              aiOverview: {
+                category: 'bug',
+                urgency: 'high',
+                summary: 'Map tiles fail to load immediately on modal mount due to Leaflet container size change before initialization.',
+                suggestedFix: 'Implement map.invalidateSize() inside a standard useEffect timeout trigger on map mount.'
+              }
+            },
+            {
+              id: 'fb_sample2',
+              userEmail: 'outreach@nycharity.ca',
+              userRole: 'organization',
+              type: 'feature',
+              subject: 'Needs a certificate generation option for school credit',
+              message: 'Adding a feature where we can click a single button to auto-generate a completion certificate PDF containing student hours would save us several hours of administrative work.',
+              createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+              aiOverview: {
+                category: 'feature',
+                urgency: 'medium',
+                summary: 'Organization requests automatic PDF certificate generating widget to streamline proof-of-completion signatures.',
+                suggestedFix: 'Integrate jsPDF package on frontend to generate custom PDF certificates from application details on high-school templates.'
+              }
+            }
+          ];
+          localStorage.setItem('demo_feedbacks', JSON.stringify(sample));
+          setFeedbacks(sample);
+          setRealFeedbackCount(sample.length);
+        } else {
+          setFeedbacks(demoFeedbacks);
+          setRealFeedbackCount(demoFeedbacks.length);
+        }
+
+        // Demo fallback students and orgs
+        const sampleStudents = [
+          { uid: 'student_1', fullName: 'Armin Karimi', email: 'armin.k@yorkschool.ca', school: 'York Mills Collegiate', grade: '11', neighborhood: 'York Mills', isBanned: false },
+          { uid: 'student_2', fullName: 'Sarah Jenkins', email: 's.jenkins@willowdale.ca', school: 'Earl Haig Secondary', grade: '12', neighborhood: 'Willowdale', isBanned: false }
+        ];
+        const sampleOrgs = [
+          { uid: 'org_1', organizationName: 'North York Food Share', contactEmail: 'outreach@nyfoodshare.ca', isBanned: false, organizationType: 'Registered Charity', address: '1700 Sheppard Ave E, North York' },
+          { uid: 'org_2', organizationName: 'Yonge Athletics Club', contactEmail: 'info@yongeathletics.ca', isBanned: false, organizationType: 'Sports / Recreational Club', address: '3900 Yonge St, Toronto' }
+        ];
+
+        setStudents(sampleStudents);
+        setOrgs(sampleOrgs);
+        setRealStudentCount(sampleStudents.length);
+        setRealOrgCount(sampleOrgs.length);
+
+        // Load demo safety reports
+        const demoReports = JSON.parse(localStorage.getItem('demo_reports') || '[]');
+        setReports(demoReports);
+        setRealReportCount(demoReports.length);
+
+      } else {
+        // Fetch from real Firestore
+        let fbList: any[] = [];
+        try {
+          const fbSnap = await getDocs(query(collection(db, 'feedbacks'), limit(200)));
+          fbList = fbSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (dbErr) {
+          setConsoleNotice(
+            reportError('load feedback tickets', dbErr, "Couldn't load feedback tickets from the database."),
+          );
+        }
+
+        // No localStorage merge here.
+        //
+        // This is the REAL data branch, and it used to append demo_feedbacks
+        // and demo_reports to whatever Firestore returned. Two separate
+        // failures came out of that. Invented tickets and invented safety
+        // reports appeared in a live developer's queue, indistinguishable from
+        // real ones. And because the catches here only console.warn'd, a failed
+        // read left the localStorage copies as the ENTIRE list — so the console
+        // looked healthy and populated while every real report was invisible.
+        // A safety report nobody sees is the worst failure this app has, so
+        // both reads now say so out loud and show only what the database
+        // actually holds.
+        fbList.sort((a: any, b: any) => {
+          const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
+          const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
+          return tB - tA;
+        });
+
+        setFeedbacks(fbList);
+        setRealFeedbackCount(fbList.length);
+
+        // Fetch category interest requests ("Join List")
+        try {
+          const irSnap = await getDocs(query(collection(db, 'interestRequests'), limit(200)));
+          const irList = irSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+          irList.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+          setInterestRequests(irList);
+        } catch (dbErr) {
+          setConsoleNotice(
+            reportError('load interest requests', dbErr, "Couldn't load category interest requests."),
+          );
+        }
+
+        // Fetch safety reports
+        let repList: any[] = [];
+        try {
+          const repSnap = await getDocs(query(collection(db, 'reports'), limit(200)));
+          repList = repSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (dbErr) {
+          setConsoleNotice(
+            reportError('load safety reports', dbErr, "Couldn't load safety reports from the database."),
+          );
+        }
+        repList.sort((a: any, b: any) => {
+          const tA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt).getTime();
+          const tB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt).getTime();
+          return tB - tA;
+        });
+        setReports(repList);
+        setRealReportCount(repList.length);
+
+        // Via the server, which returns an allow-listed projection. Reading
+        // these documents directly pulled resumeUrl and passportUrl with them —
+        // base64 files, up to 400 KB each by the rules — so listing 200
+        // students streamed as much as 160 MB of minors' identity documents
+        // into this tab to render names and emails.
+        const studentToken = await user?.getIdToken();
+        const studentRes = await fetch(`${API_BASE_URL}/api/admin/students`, {
+          headers: studentToken ? { Authorization: `Bearer ${studentToken}` } : {},
+        });
+        if (!studentRes.ok) {
+          const body = await studentRes.json().catch(() => ({}));
+          throw new Error(body.error || `Could not load students (${studentRes.status}).`);
+        }
+        const { students: studentList } = await studentRes.json();
+        setStudents(studentList);
+        setRealStudentCount(studentList.length);
+
+        const orgSnap = await getDocs(query(collection(db, 'organizations'), limit(200)));
+        const orgList = orgSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
+        setOrgs(orgList);
+        setRealOrgCount(orgList.length);
+      }
+    } catch (err) {
+      // Was a bare console.error. This catch wraps the WHOLE admin load —
+      // students, organizations, the lot — so when it fired the developer got a
+      // dashboard of empty tables and no indication anything had gone wrong.
+      // An empty list and a failed list looked identical.
+      setConsoleNotice(
+        reportError(
+          'load developer admin lists',
+          err,
+          "Couldn't load the admin lists. They may be incomplete — refresh to try again.",
+        ),
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // ── Org Verification Queue ──
+  const loadPendingOrgs = async () => {
+    if (isDemoMode) {
+      setPendingOrgs([
+        { uid: 'demo-org-pending-1', organizationName: 'North York Youth Arts', craNumber: '119219814RR0001', contactEmail: 'arts@nyyouth.ca', verificationStatus: 'pending', address: '100 Sheppard Ave W' },
+        { uid: 'demo-org-pending-2', organizationName: 'Willowdale Food Bank', craNumber: '118833011RR0001', contactEmail: 'hello@wfoodbank.ca', verificationStatus: 'pending', address: '5000 Yonge St' },
+      ]);
+      return;
+    }
+    try {
+      const q = query(collection(db, 'organizations'), where('verificationStatus', '==', 'pending'), limit(200));
+      const snap = await getDocs(q);
+      setPendingOrgs(snap.docs.map(d => ({ ...d.data(), uid: d.id } as any)));
+    } catch (err) {
+      // console.error only meant pendingOrgs stayed empty and the tab read "No
+      // organizations pending verification." with no count badge and no
+      // spinner — so a failed read looked exactly like an empty queue, and
+      // charities waiting on CRA verification stayed invisible and unapproved.
+      setConsoleNotice(
+        reportError(
+          'load pending organizations',
+          err,
+          "Couldn't load the verification queue. Refresh before assuming it is empty.",
+        ),
+      );
+    }
+  };
+
+  useEffect(() => {
+    loadData();
+    loadPendingOrgs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode, user]);
+
+  return {
+    students, orgs, feedbacks, reports, interestRequests, pendingOrgs,
+    realStudentCount, realOrgCount, realFeedbackCount, realReportCount,
+    isLoading, consoleNotice, setConsoleNotice,
+    setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,
+    loadData, loadPendingOrgs,
+  };
+}
