@@ -108,6 +108,16 @@ export interface Opportunity {
     exclusiveBadges?: string[];
   }>;
   exclusives?: string[];
+  /**
+   * Minimum volunteer age this opportunity will accept.
+   *
+   * Toronto age floors genuinely range 14 to 19 — City recreation takes 14+,
+   * Daily Bread 18+, Second Harvest 19+ — so without this a student applies
+   * into a wall and finds out days later, if at all. Compared against an age
+   * FLOOR derived from grade (see src/lib/eligibility.ts); we deliberately do
+   * not hold a date of birth for a minor.
+   */
+  minAge?: number;
 }
 
 export interface Application {

@@ -263,6 +263,8 @@ service cloud.firestore {
              (absent(data, 'maxVolunteers') || (data.maxVolunteers is int && data.maxVolunteers >= 0 && data.maxVolunteers <= 10000)) &&
              (absent(data, 'skillsNeeded') || data.skillsNeeded is list) &&
              (absent(data, 'exclusives') || data.exclusives is list) &&
+             // Real Toronto floors run 14 to 19; the bound is generous but finite.
+             (absent(data, 'minAge') || (data.minAge is int && data.minAge >= 0 && data.minAge <= 120)) &&
              (absent(data, 'timeCommitment') || (data.timeCommitment is string && data.timeCommitment.size() <= 100)) &&
              (absent(data, 'isVirtual') || data.isVirtual is bool) &&
              // 'closed' stops new applications without deleting the posting.
@@ -630,11 +632,11 @@ service cloud.firestore {
     match /opportunities/{opportunityId} {
       allow read: if true; // Public access to browse
       allow create: if isApprovedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
-                      incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
+                      incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
       allow update: if isApprovedOrg() && isValidId(opportunityId) &&
                       existing().orgId == request.auth.uid && 
                       isValidOpportunity(incoming()) &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
       allow delete: if isOrgAccount() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 

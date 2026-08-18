@@ -917,3 +917,36 @@ test.describe('opportunity posting is gated on real verification', () => {
   });
 
 });
+
+// ───────────────── minAge, the new eligibility field ─────────────────
+
+test.describe('minAge on an opportunity', () => {
+  const opp = (extra: Record<string, unknown>) => ({
+    orgId: ORG, orgName: 'Org One', title: 'Age gated', description: 'd',
+    location: 'l', category: 'Environment', requirements: '', maxVolunteers: 5,
+    skillsNeeded: [], exclusives: [], timeCommitment: 'One-time', isVirtual: false,
+    dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(), ...extra,
+  });
+
+  test('a sensible minimum age is accepted, and absent is fine', async () => {
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_16'), opp({ minAge: 16 })));
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_none'), opp({})));
+  });
+
+  test('it must be a whole number in a sane range', async () => {
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_neg'), opp({ minAge: -1 })));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_huge'), opp({ minAge: 999 })));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_str'), opp({ minAge: '16' })));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_frac'), opp({ minAge: 16.5 })));
+  });
+
+  test('it can be changed later', async () => {
+    // The failure this guards against: a field added to the form but not to the
+    // update allowlist makes every edit fail with permission-denied. That has
+    // already happened twice in this file — with updatedAt, and with the
+    // 'reviewed' status — and both times it passed locally because demo mode
+    // never reaches Firestore.
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_edit'), opp({ minAge: 14 })));
+    await assertSucceeds(updateDoc(doc(asUser(ORG), 'opportunities', 'age_edit'), { minAge: 18 }));
+  });
+});

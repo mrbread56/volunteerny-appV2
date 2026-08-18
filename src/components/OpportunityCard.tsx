@@ -11,7 +11,9 @@ interface OpportunityCardProps {
   isSaved?: boolean;
   onSave?: (id: string) => void | Promise<void>;
   onShare?: (opp: Opportunity) => void;
-  studentInterests?: string[]; // Optional interests to calculate dynamic match percentages
+  /** Sentences from getMatchResult, in contribution order. */
+  matchReasons?: string[];
+  eligibility?: 'eligible' | 'likely-ineligible' | 'unknown';
   key?: React.Key;
 }
 
@@ -20,23 +22,10 @@ export default function OpportunityCard({
   isSaved, 
   onSave, 
   onShare,
-  studentInterests = []
+  matchReasons,
+  eligibility,
 }: OpportunityCardProps) {
   
-  // Calculate dynamic/motivating match percentage based on REAL overlapping skills/interests
-  const getMatchPercentage = (): number => {
-    if (studentInterests && studentInterests.length > 0 && opportunity.skillsNeeded && opportunity.skillsNeeded.length > 0) {
-      const overlap = opportunity.skillsNeeded.filter(skill => 
-        studentInterests.some(interest => interest.toLowerCase().includes(skill.toLowerCase()) || skill.toLowerCase().includes(interest.toLowerCase()))
-      );
-      if (overlap.length > 0) {
-        return Math.round((overlap.length / opportunity.skillsNeeded.length) * 100);
-      }
-    }
-    return 0;
-  };
-
-  const matchPercent = getMatchPercentage();
 
   return (
     <Card className="flex flex-col h-full bg-white rounded-xl border border-line/50 hover:border-blue-dark/30 hover:shadow-xl hover:-translate-y-1 transition-all duration-300 group overflow-hidden relative">
@@ -103,11 +92,28 @@ export default function OpportunityCard({
           </h3>
         </Link>
 
-        {/* Match Percentage Pill - Only show for actual logged in students with positive skills matching */}
-        {matchPercent > 0 && (
-          <div className="mb-4 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber/10 text-amber-dark border border-orange-100 text-xs font-bold w-fit shrink-0">
-             <Sparkles className="w-3.5 h-3.5 text-amber-dark animate-pulse" />
-             <span>{matchPercent}% SKILLS MATCH</span>
+        {/* Why this one is here.
+            This was a "% SKILLS MATCH" pill that compared the student's
+            INTERESTS against the opportunity's skillsNeeded — two different
+            vocabularies — so a student interested in "Technology" got no credit
+            for the skill "Computer & Tech", and the number shown was measuring
+            something nobody had asked for. These sentences come from the same
+            function that produced the ranking, so they cannot disagree with it.
+            Top two only: more turns an explanation into a wall. */}
+        {(matchReasons || []).length > 0 && (
+          <ul className="mb-4 space-y-1 shrink-0">
+            {(matchReasons || []).slice(0, 2).map((reason) => (
+              <li key={reason} className="flex items-start gap-1.5 text-xs text-ink-soft">
+                <Sparkles className="w-3.5 h-3.5 text-amber-dark shrink-0 mt-px" />
+                <span>{reason}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {eligibility === 'likely-ineligible' && (
+          <div className="mb-4 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-amber-50 text-amber-900 border border-amber-200 text-xs font-semibold w-fit shrink-0">
+            You may not qualify for this one
           </div>
         )}
 

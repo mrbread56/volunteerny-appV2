@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -17,6 +17,8 @@ import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { cn, copyToClipboard } from '../lib/utils';
 import { useGeolocation } from '../hooks/useGeolocation';
 import { COMMITMENTS } from '../lib/vocabularies';
+import { coordsForNeighborhood } from '../lib/neighborhoods';
+import { getMatchResult } from '../lib/matchScore';
 
 // Leaflet lives in src/components/OpportunitiesMap.tsx and is reached through
 // React.lazy below, so the 154 kB map bundle is fetched only when a student
@@ -31,45 +33,26 @@ export default function StudentOpportunities() {
   const { coords } = useGeolocation();
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
 
-  // Synchronize userCoords from GPS coordinates or student profile neighborhood
+  // Where to measure distance from: a live GPS fix if the student allowed it,
+  // otherwise the centre of the neighbourhood they told us.
+  //
+  // The neighbourhood lookup used to be a ten-branch if/else of
+  // `.includes(...)` tests that checked "york" BEFORE "north york" — so North
+  // York matched the York/Weston branch and measured every distance from about
+  // 8 km away — and covered ten spellings out of twenty-one, silently
+  // defaulting the rest. See src/lib/neighborhoods.ts.
   useEffect(() => {
     if (coords) {
-      setUserCoords(prev => {
-        if (prev?.lat === coords.latitude && prev?.lng === coords.longitude) return prev;
-        return { lat: coords.latitude, lng: coords.longitude };
-      });
+      setUserCoords((prev) =>
+        prev?.lat === coords.latitude && prev?.lng === coords.longitude
+          ? prev
+          : { lat: coords.latitude, lng: coords.longitude },
+      );
     } else {
-      const neighborhood = studentProfile?.neighborhood || "";
-      const lower = neighborhood.toLowerCase();
-      let lat = 43.7615;
-      let lng = -79.4111;
-      
-      if (lower.includes("willowdale")) {
-        lat = 43.7725; lng = -79.4124;
-      } else if (lower.includes("york mills")) {
-        lat = 43.7431; lng = -79.4053;
-      } else if (lower.includes("bayview")) {
-        lat = 43.7679; lng = -79.3791;
-      } else if (lower.includes("don mills")) {
-        lat = 43.7371; lng = -79.3431;
-      } else if (lower.includes("downtown")) {
-        lat = 43.6532; lng = -79.3832;
-      } else if (lower.includes("scarborough")) {
-        lat = 43.7764; lng = -79.2318;
-      } else if (lower.includes("etobicoke")) {
-        lat = 43.6205; lng = -79.5489;
-      } else if (lower.includes("east york")) {
-        lat = 43.6912; lng = -79.3417;
-      } else if (lower.includes("york")) {
-        lat = 43.6954; lng = -79.4503;
-      } else if (lower.includes("north york")) {
-        lat = 43.7615; lng = -79.4111;
-      }
-      
-      setUserCoords(prev => {
-        if (prev?.lat === lat && prev?.lng === lng) return prev;
-        return { lat, lng };
-      });
+      const centre = coordsForNeighborhood(studentProfile?.neighborhood);
+      setUserCoords((prev) =>
+        prev?.lat === centre.lat && prev?.lng === centre.lng ? prev : centre,
+      );
     }
   }, [coords, studentProfile?.neighborhood]);
 
@@ -90,12 +73,16 @@ export default function StudentOpportunities() {
   const closeShareDialog = useCallback(() => setSharingOpp(null), []);
   const shareDialogRef = useDialog(!!sharingOpp, closeShareDialog);
   const [saveError, setSaveError] = useState<string | null>(null);
+  /** Kilometres. 0 means "anywhere" — the default, so nothing is hidden by surprise. */
+  const [maxKm, setMaxKm] = useState(0);
+  /** Opt-in, because grade-to-age is a floor rather than a fact. */
+  const [hideIneligible, setHideIneligible] = useState(false);
 
   // Shared by the toolbar button and the empty state, so "clear filters" cannot
   // drift between the two places that offer it.
-  const hasActiveFilters = !!(searchTerm || category || exclusive || commitment || virtualOnly);
+  const hasActiveFilters = !!(searchTerm || category || exclusive || commitment || virtualOnly || maxKm || hideIneligible);
   const clearAllFilters = useCallback(() => {
-    setSearchTerm(''); setCategory(''); setExclusive(''); setCommitment(''); setVirtualOnly(false);
+    setSearchTerm(''); setCategory(''); setExclusive(''); setCommitment(''); setVirtualOnly(false); setMaxKm(0); setHideIneligible(false);
   }, []);
 
   useEffect(() => {
@@ -300,23 +287,53 @@ export default function StudentOpportunities() {
     }
   };
 
-  const filteredOpps = opportunities.filter(opp => {
-    const matchesSearch = opp.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          opp.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          opp.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          opp.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          (opp.skillsNeeded && opp.skillsNeeded.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())));
-    const matchesCategory = category === '' || opp.category === category;
-    const matchesExclusive = exclusive === '' || opp.exclusives?.includes(exclusive);
-    // Exact match. This was `.includes()`, which only worked because the two
-    // sides stored different strings — the org form saved
-    // 'Short-term (1-3 months)' while this filter looked for 'Short-term'. Both
-    // now come from the same list, so a substring match is no longer papering
-    // over anything and an exact comparison is what it should always have been.
-    const matchesCommitment = commitment === '' || opp.timeCommitment === commitment;
-    const matchesVirtual = !virtualOnly || opp.isVirtual;
-    return matchesSearch && matchesCategory && matchesExclusive && matchesCommitment && matchesVirtual;
-  });
+  /**
+   * Score every opportunity once, then filter and rank on the result.
+   *
+   * Scoring first means the distance filter and the ordering agree, and the
+   * "shown because…" line on a card is the same computation that put it there
+   * — not a second one that can drift.
+   */
+  const scored = useMemo(
+    () => opportunities.map((opp) => ({ opp, match: getMatchResult(opp, studentProfile, userCoords) })),
+    [opportunities, studentProfile, userCoords],
+  );
+
+  const ranked = useMemo(() => {
+    const kept = scored.filter(({ opp, match }) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch = !term
+        || opp.title.toLowerCase().includes(term)
+        || opp.description.toLowerCase().includes(term)
+        || opp.location.toLowerCase().includes(term)
+        || opp.category.toLowerCase().includes(term)
+        || (opp.skillsNeeded || []).some((skill) => skill.toLowerCase().includes(term));
+      const matchesCategory = category === '' || opp.category === category;
+      const matchesExclusive = exclusive === '' || opp.exclusives?.includes(exclusive);
+      // Exact match. This was `.includes()`, which only worked because the two
+      // sides stored different strings — the org form saved
+      // 'Short-term (1-3 months)' while this filter looked for 'Short-term'.
+      const matchesCommitment = commitment === '' || opp.timeCommitment === commitment;
+      const matchesVirtual = !virtualOnly || opp.isVirtual;
+      // A posting with no pin is never hidden by a distance filter: the
+      // organisation left the map blank, which is not the same as being far.
+      const matchesDistance = !maxKm || opp.isVirtual || match.distanceKm === null
+        || match.distanceKm <= maxKm;
+      const matchesEligibility = !hideIneligible || match.eligibility !== 'likely-ineligible';
+      return matchesSearch && matchesCategory && matchesExclusive && matchesCommitment
+        && matchesVirtual && matchesDistance && matchesEligibility;
+    });
+    // Best fit first. Ties fall back to the score's own recency term, so the
+    // order is total and stable.
+    return kept.sort((a, b) => b.match.score - a.match.score);
+  }, [scored, searchTerm, category, exclusive, commitment, virtualOnly, maxKm, hideIneligible]);
+
+  const filteredOpps = useMemo(() => ranked.map((r) => r.opp), [ranked]);
+  const matchById = useMemo(
+    () => Object.fromEntries(ranked.map((r) => [r.opp.id, r.match])),
+    [ranked],
+  );
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -424,6 +441,28 @@ export default function StudentOpportunities() {
         </div>
 
         <div className="flex flex-wrap gap-4 mt-6 pt-6 border-t border-line-light">
+           {/* Distance. Measured from a live position if the student allowed it,
+               otherwise from the centre of their neighbourhood. "Anywhere" is
+               the default so nothing is ever hidden by a filter they did not
+               set. */}
+           <div className="space-y-1.5">
+              <label htmlFor="max-distance" className="text-sm font-medium text-ink-soft block">
+                 Distance
+              </label>
+              <select
+                 id="max-distance"
+                 value={maxKm}
+                 onChange={(e) => setMaxKm(Number(e.target.value))}
+                 className="w-full h-12 rounded-lg border border-line bg-white px-4 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-blue-dark/30 focus:border-blue-dark transition-all"
+              >
+                 <option value={0}>Anywhere</option>
+                 <option value={2}>Within 2 km</option>
+                 <option value={5}>Within 5 km</option>
+                 <option value={10}>Within 10 km</option>
+                 <option value={20}>Within 20 km</option>
+              </select>
+           </div>
+
            <label className="flex items-center gap-3 cursor-pointer group">
               <input 
                  type="checkbox" 
@@ -432,6 +471,19 @@ export default function StudentOpportunities() {
                  className="w-5 h-5 rounded-lg text-blue-dark focus:ring-blue-dark border-line"
               />
               <span className="text-sm font-bold text-ink-muted group-hover:text-ink">Virtual / Remote Only</span>
+           </label>
+
+           {/* Opt-in, never automatic: grade gives an age FLOOR rather than a
+               fact, so hiding on it by default would make a posting invisible
+               to a student who actually qualifies. */}
+           <label className="flex items-center gap-3 cursor-pointer group">
+              <input
+                 type="checkbox"
+                 checked={hideIneligible}
+                 onChange={(e) => setHideIneligible(e.target.checked)}
+                 className="w-5 h-5 rounded-lg text-blue-dark focus:ring-blue-dark border-line"
+              />
+              <span className="text-sm font-bold text-ink-muted group-hover:text-ink">Hide ones I may not qualify for</span>
            </label>
         </div>
       </Card>
@@ -463,7 +515,8 @@ export default function StudentOpportunities() {
                 isSaved={savedIds.includes(opp.id)}
                 onSave={handleSave}
                 onShare={(o) => setSharingOpp(o)}
-                studentInterests={studentProfile?.interests || []}
+                matchReasons={matchById[opp.id]?.reasons}
+                eligibility={matchById[opp.id]?.eligibility}
               />
             ))
           ) : loadError ? (
