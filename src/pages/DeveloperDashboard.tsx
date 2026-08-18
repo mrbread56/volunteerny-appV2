@@ -38,7 +38,7 @@ import { useDeveloperDashboardData } from '../hooks/useDeveloperDashboardData';
 import UsersTab from './developerDashboard/UsersTab';
 
 export default function DeveloperDashboard() {
-  const { user, userProfile, isDemoMode } = useAuth();
+  const { user, userProfile, isDemoMode, enableDemoMode } = useAuth();
 
   /** Everything this console reads. Both loaders come back so an action can refresh what it changed. */
   const {
@@ -1079,6 +1079,42 @@ export default function DeveloperDashboard() {
     ) : activeTab === 'settings' ? (
       /* SYSTEM SETTINGS TAB */
       <div className="space-y-6 max-w-2xl animate-fadeIn">
+
+        {/* Demo mode entry — developer-only, and the ONLY door in.
+            The public "Just looking?" chips on the home page were removed once
+            real organizations began onboarding: a coordinator landing in a
+            dashboard of invented students, without realising it, had become a
+            liability rather than a feature. The fixtures and the isDemoMode
+            forks are unchanged; only entry moved. Entering swaps this real
+            session for a mock one, so getting back means signing in again. */}
+        <Card className="rounded-lg border border-amber-200 bg-amber-50/40 overflow-hidden">
+          <div className="p-6 md:p-8 space-y-4">
+            <div>
+              <p className="font-semibold text-ink text-sm">Demo mode</p>
+              <p className="text-xs text-ink-muted leading-relaxed mt-1">
+                Walk the site as a fictional student or organization, on local fixture
+                data. Nothing here reaches the real database. Entering ends your
+                developer session — you will need to sign back in afterwards.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={async () => { await enableDemoMode('student'); window.location.href = '/student/dashboard'; }}
+                className="h-11 px-5 rounded-lg border border-line bg-white text-sm font-semibold text-ink hover:border-blue-dark/40"
+              >
+                Enter as demo student
+              </button>
+              <button
+                type="button"
+                onClick={async () => { await enableDemoMode('organization'); window.location.href = '/org/dashboard'; }}
+                className="h-11 px-5 rounded-lg border border-line bg-white text-sm font-semibold text-ink hover:border-blue-dark/40"
+              >
+                Enter as demo organization
+              </button>
+            </div>
+          </div>
+        </Card>
         <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
           <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
             <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">

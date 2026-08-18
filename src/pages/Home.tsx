@@ -99,24 +99,13 @@ const NOTE_TILT = [-1.5, 1.1, -0.7, 1.6, -1.2, 0.8];
    HOME
    ═══════════════════════ */
 export default function Home() {
-  const { user, userProfile, enableDemoMode } = useAuth();
+  const { user, userProfile } = useAuth();
   const navigate = useNavigate();
   const facts = useCarousel(FACTS.length);
-  const [isDemoLoading, setIsDemoLoading] = useState<'student' | 'org' | null>(null);
   const heroRef = useRef(null);
   const { scrollYProgress } = useScroll({ target: heroRef, offset: ['start start', 'end start'] });
   const heroOpacity = useTransform(scrollYProgress, [0, 0.5], [1, 0]);
   const heroY = useTransform(scrollYProgress, [0, 0.5], [0, -40]);
-
-  const handleDemo = async (role: 'student' | 'organization') => {
-    setIsDemoLoading(role === 'student' ? 'student' : 'org');
-    try {
-      await enableDemoMode(role);
-      navigate(role === 'student' ? '/student/dashboard' : '/org/dashboard');
-    } catch {
-      setIsDemoLoading(null);
-    }
-  };
 
   const stagger = { hidden: {}, visible: { transition: { staggerChildren: 0.12, delayChildren: 0.15 } } };
   const fadeUp = { hidden: { opacity: 0, y: 24 }, visible: { opacity: 1, y: 0, transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] as const } } };
@@ -243,31 +232,12 @@ export default function Home() {
                   </Link>
                 </div>
 
-                {/* The demo pair. Previously two bare text buttons separated by a
-                    literal "|" character — a pipe is not a divider, and it left
-                    the two most-clicked links on the page looking like an
-                    afterthought. Now a labelled row of real chips. */}
-                {!user && (
-                  <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-2">
-                    <span className="text-[13px] text-ink-muted">Just looking?</span>
-                    <button
-                      onClick={() => handleDemo('student')}
-                      disabled={!!isDemoLoading}
-                      className="min-h-[44px] px-4 rounded-[10px] border border-line bg-white text-ink-soft hover:text-blue-dark hover:border-blue-dark/35 text-[14px] font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-50"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      {isDemoLoading === 'student' ? 'Loading…' : 'Demo as a student'}
-                    </button>
-                    <button
-                      onClick={() => handleDemo('organization')}
-                      disabled={!!isDemoLoading}
-                      className="min-h-[44px] px-4 rounded-[10px] border border-line bg-white text-ink-soft hover:text-blue-dark hover:border-blue-dark/35 text-[14px] font-medium inline-flex items-center gap-2 transition-colors disabled:opacity-50"
-                    >
-                      <Play className="w-3.5 h-3.5" />
-                      {isDemoLoading === 'org' ? 'Loading…' : 'Demo as an organization'}
-                    </button>
-                  </div>
-                )}
+                {/* Demo mode used to be enterable here by anyone ("Just
+                    looking?" chips). With real organizations onboarding, a
+                    public door into fake data stopped being a feature: a
+                    coordinator could land in a dashboard full of invented
+                    students without realising it. Entry now lives in the
+                    developer console only. */}
               </Reveal>
             </div>
           </div>
