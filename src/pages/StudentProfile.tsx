@@ -38,6 +38,8 @@ import { TORONTO_SCHOOLS, NEIGHBORHOODS } from "../constants";
 import { compressFile, decompressFile } from "../utils/compress";
 import { motion } from "motion/react";
 import { evaluateBadges } from "../utils/badges";
+import { SKILLS, AVAILABILITY, normalizeAvailability } from '../lib/vocabularies';
+import { OPPORTUNITY_CATEGORIES as INTERESTS } from '../constants';
 
 const GENDERS = [
   { value: "", label: "Select…" },
@@ -55,45 +57,8 @@ const GRADES = [
 
 
 
-const INTERESTS = [
-  "Animal Welfare",
-  "Arts & Culture",
-  "Children & Youth",
-  "Community Services",
-  "Education",
-  "Environment",
-  "Event Planning",
-  "Food Banks",
-  "Health & Hospitals",
-  "Seniors",
-  "Sports",
-  "Technology",
-  "Tutoring",
-  "Other",
-];
 
-const SKILLS = [
-  "Communication",
-  "Computer & Tech",
-  "Creative & Design",
-  "Event Support",
-  "Language Skills",
-  "Leadership",
-  "Organization",
-  "Physical Work",
-  "Research & Writing",
-  "Teaching",
-];
 
-const AVAILABILITY_OPTIONS = [
-  "Weekdays After School",
-  "Weekends (Saturday/Sunday)",
-  "Weekday Mornings",
-  "Weekday Afternoons",
-  "Summer Break",
-  "Winter/Spring Breaks",
-  "Flexible / On-Call",
-];
 
 export default function StudentProfile() {
   const { user, studentProfile, refreshProfile, isDemoMode, logout } = useAuth();
@@ -151,7 +116,7 @@ export default function StudentProfile() {
   );
   const [skills, setSkills] = useState<string[]>(studentProfile?.skills || []);
   const [availability, setAvailability] = useState<string[]>(
-    studentProfile?.availability || [],
+    normalizeAvailability(studentProfile?.availability),
   );
   const [previousExperience, setPreviousExperience] = useState(
     studentProfile?.previousExperience || "",
@@ -172,7 +137,7 @@ export default function StudentProfile() {
       setNeighborhood(studentProfile.neighborhood);
       setInterests(studentProfile.interests);
       setSkills(studentProfile.skills);
-      setAvailability(studentProfile.availability || []);
+      setAvailability(normalizeAvailability(studentProfile.availability));
       setPreviousExperience(studentProfile.previousExperience || "");
       setResumeUrl(decompressFile(studentProfile.resumeUrl || ""));
       setTrackerEnabled(studentProfile.trackerEnabled ?? true);
@@ -675,7 +640,7 @@ export default function StudentProfile() {
                   </p>
                 )}
                 <div className="flex flex-wrap gap-3">
-                  {AVAILABILITY_OPTIONS.map((slot) => (
+                  {AVAILABILITY.map((slot) => (
                     <button
                       key={slot}
                       type="button"

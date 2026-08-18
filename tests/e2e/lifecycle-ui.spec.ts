@@ -71,7 +71,7 @@ test.beforeAll(async () => {
     uid: ORG.uid, organizationName: 'Lifecycle UI Org', mission: 'm', organizationType: 'Other',
     address: 'North York', coordinates: { lat: 43.76, lng: -79.41 }, contactEmail: ORG.email,
     phone: '', northYorkConfirmed: true, websiteUrl: '', hasCra: 'no', craNumber: '',
-    craVerified: false, verificationStatus: 'unverified',
+    craVerified: false, verificationStatus: 'verified',
   });
 
   const oppRef = await db.collection('opportunities').add({

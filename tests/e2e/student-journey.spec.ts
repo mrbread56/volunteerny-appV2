@@ -70,7 +70,7 @@ test.beforeAll(async () => {
     uid: ORG.uid, organizationName: 'Journey Test Org', mission: 'Testing the journey.',
     contactEmail: ORG.email, northYorkConfirmed: true, organizationType: 'Other',
     address: '5100 Yonge St', phone: '', websiteUrl: '',
-    craVerified: false, verificationStatus: 'unverified',
+    craVerified: false, verificationStatus: 'verified',
   });
 
   const oppRef = await db.collection('opportunities').add({

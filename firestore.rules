@@ -77,10 +77,43 @@ service cloud.firestore {
       );
     }
 
-    function isVerifiedOrg() {
+    // "Is the caller an organization account in good standing?" — a ROLE check.
+    //
+    // The name has always overpromised: it never looked at verificationStatus,
+    // and reading it as "this organization has been verified" is exactly the
+    // mistake that left posting wide open. Kept under this name because several
+    // rules genuinely want the role check and nothing more, but the ones that
+    // gate what students can SEE now use isApprovedOrg() below.
+    function isOrgAccount() {
       return isSignedIn() && (
         isDeveloper() ||
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization' && isNotBanned() && mfaSatisfied())
+      );
+    }
+
+    // "Has a person actually approved this organization?"
+    //
+    // This is the gate on anything a student can be exposed to. Until now an
+    // account could register as an organization and publish an opportunity to
+    // minors in the same minute, with no human ever looking at it — which is
+    // trivially abusable by a teenager inventing a charity, and is the reason
+    // verification exists at all.
+    //
+    // Two document reads (users, then organizations). That is affordable here
+    // because the opportunity rules are single-document operations; it is NOT
+    // affordable on the applications list rule, which already spends the whole
+    // ten-access budget proving ownership through the opportunity. Do not add
+    // it there.
+    function isApprovedOrg() {
+      return isSignedIn() && (
+        isDeveloper() ||
+        (
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'organization' &&
+          isNotBanned() &&
+          mfaSatisfied() &&
+          get(/databases/$(database)/documents/organizations/$(request.auth.uid))
+            .data.get('verificationStatus', 'unverified') == 'verified'
+        )
       );
     }
 
@@ -473,7 +506,7 @@ service cloud.firestore {
     match /students/{uid} {
       // The student, and developers. NOT organizations.
       //
-      // isVerifiedOrg() used to be here, which meant any account with
+      // isOrgAccount() used to be here, which meant any account with
       // role == 'organization' could read ANY student document given a uid —
       // and these documents carry resumeUrl and passportUrl, whole identity
       // documents base64-encoded inline, for students who are mostly minors.
@@ -519,9 +552,9 @@ service cloud.firestore {
       // longer the organization either.
       //
       // There used to be an organization branch here guarded by
-      // isVerifiedOrg() && hasOnly(['loggedHours','hours']). hasOnly() restricts
+      // isOrgAccount() && hasOnly(['loggedHours','hours']). hasOnly() restricts
       // WHICH fields are written, never WHOSE document they are written to, and
-      // isVerifiedOrg() only checks that the caller's own users doc says
+      // isOrgAccount() only checks that the caller's own users doc says
       // role == 'organization' — which anyone gets, free and instantly, by
       // signing up. So any account could credit OR erase the volunteer hours of
       // any student whose uid it knew. Ontario requires 40
@@ -596,13 +629,13 @@ service cloud.firestore {
 
     match /opportunities/{opportunityId} {
       allow read: if true; // Public access to browse
-      allow create: if isVerifiedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
+      allow create: if isApprovedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
                       incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
-      allow update: if isVerifiedOrg() && isValidId(opportunityId) &&
+      allow update: if isApprovedOrg() && isValidId(opportunityId) &&
                       existing().orgId == request.auth.uid && 
                       isValidOpportunity(incoming()) &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
-      allow delete: if isVerifiedOrg() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
+      allow delete: if isOrgAccount() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 
     match /applications/{applicationId} {
@@ -823,7 +856,7 @@ service cloud.firestore {
     match /recommendations/{recId} {
       // The student it is about, and the org that wrote it. Nobody else.
       //
-      // There used to be a bare `isVerifiedOrg()` here as well. That only
+      // There used to be a bare `isOrgAccount()` here as well. That only
       // checks that the caller's own users doc says role == 'organization' —
       // which anyone gets, free and instantly, by signing up — so every
       // organization could read every reference written about every student on
@@ -860,10 +893,10 @@ service cloud.firestore {
       // (bypassing these rules by design) and is now the only door. Same
       // reasoning, and same shape, as hours: see the students/ block above.
       allow create: if false;
-      allow update: if isVerifiedOrg() && existing().orgId == request.auth.uid &&
+      allow update: if isOrgAccount() && existing().orgId == request.auth.uid &&
                        isValidRecommendation(incoming()) &&
                        incoming().diff(existing()).affectedKeys().hasOnly(['text', 'rating']);
-      allow delete: if isDeveloper() || (isVerifiedOrg() && existing().orgId == request.auth.uid);
+      allow delete: if isDeveloper() || (isOrgAccount() && existing().orgId == request.auth.uid);
     }
 
     // ── Student → Org ratings ──

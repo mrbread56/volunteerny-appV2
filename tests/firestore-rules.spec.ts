@@ -80,7 +80,7 @@ async function seedAccounts() {
     await setDoc(doc(db, 'students', STUDENT), { uid: STUDENT, fullName: 'S One', loggedHours: [] });
     await setDoc(doc(db, 'organizations', ORG), {
       uid: ORG, organizationName: 'Org One', contactEmail: 'o1@example.com',
-      northYorkConfirmed: true, verificationStatus: 'unverified', craVerified: false,
+      northYorkConfirmed: true, craVerified: false, verificationStatus: 'verified',
     });
     await setDoc(doc(db, 'opportunities', 'opp_1'), {
       orgId: ORG, orgName: 'Org One', title: 'Opp', description: 'd', location: 'l',
@@ -290,6 +290,13 @@ test.describe('organizations/{uid}', () => {
   });
 
   test('an organization cannot promote itself out of the queue', async () => {
+    // Start from unverified. The seed is 'verified' so that the rest of the
+    // suite can post opportunities — but writing 'verified' onto a document
+    // that already says 'verified' changes nothing, and the rule correctly
+    // permits a no-op. That would make this pass for the wrong reason.
+    await seed(async (db) => {
+      await updateDoc(doc(db, 'organizations', ORG), { verificationStatus: 'unverified' });
+    });
     await assertFails(updateDoc(doc(asUser(ORG), 'organizations', ORG), {
       verificationStatus: 'verified',
     }));
@@ -853,4 +860,60 @@ test.describe('organizationType and its "Other" free text', () => {
       organizationType: 'Other', organizationTypeOther: 'Neighbourhood tool library',
     }));
   });
+});
+
+// ───────── an organization must be approved before it can publish ─────────
+
+test.describe('opportunity posting is gated on real verification', () => {
+  const opp = (orgId: string) => ({
+    orgId, orgName: 'Org One', title: 'Beach cleanup', description: 'Pick up litter',
+    location: 'North York', category: 'Environment', requirements: '', maxVolunteers: 5,
+    skillsNeeded: [], exclusives: [], timeCommitment: 'One-time', isVirtual: false,
+    dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
+  });
+
+  const setStatus = (status: string) =>
+    seed(async (db) => { await updateDoc(doc(db, 'organizations', ORG), { verificationStatus: status }); });
+
+  test('an UNVERIFIED organization cannot publish', async () => {
+    // The hole this closes. isVerifiedOrg() checked role, ban status and MFA and
+    // never looked at verificationStatus, so anyone who registered as an
+    // organization could put an opportunity in front of minors within a minute
+    // of signing up, with no person ever reviewing it.
+    await setStatus('unverified');
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'unver_opp'), opp(ORG)));
+  });
+
+  test('an organization AWAITING review cannot publish yet', async () => {
+    await setStatus('pending');
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'pending_opp'), opp(ORG)));
+  });
+
+  test('a REJECTED organization cannot publish', async () => {
+    await setStatus('rejected');
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'rejected_opp'), opp(ORG)));
+  });
+
+  test('a VERIFIED organization can publish', async () => {
+    await setStatus('verified');
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'verified_opp'), opp(ORG)));
+  });
+
+  test('an organization that loses verification cannot keep editing a live posting', async () => {
+    await setStatus('verified');
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'live_opp'), opp(ORG)));
+    await setStatus('rejected');
+    await assertFails(updateDoc(doc(asUser(ORG), 'opportunities', 'live_opp'), { title: 'Edited after rejection' }));
+  });
+
+  test('...but it can still withdraw its own posting', async () => {
+    // Deleting is the one thing a rejected organization SHOULD be able to do:
+    // it removes their listing from in front of students, which is the outcome
+    // everyone wants. Blocking it would strand the posting.
+    await setStatus('verified');
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'withdraw_opp'), opp(ORG)));
+    await setStatus('rejected');
+    await assertSucceeds(deleteDoc(doc(asUser(ORG), 'opportunities', 'withdraw_opp')));
+  });
+
 });

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import SuccessAnimation from '../components/SuccessAnimation';
 import { db } from '../firebase/config';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
@@ -18,6 +18,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { Badge } from '../components/ui/Badge';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
+import { SKILLS, COMMITMENTS } from '../lib/vocabularies';
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -53,16 +54,7 @@ const customPinIcon = L.divIcon({
   iconAnchor: [16, 28],
 });
 
-const SKILLS = [
-  'Communication', 'Computer & Tech', 'Creative & Design', 'Event Support',
-  'Language Skills', 'Leadership', 'Organization', 'Physical Work', 'Research & Writing', 'Teaching'
-];
 
-const COMMITMENTS = [
-  { value: 'One-time', label: 'One-time' },
-  { value: 'Short-term (1-3 months)', label: 'Short-term (1-3 months)' },
-  { value: 'Long-term (6+ months)', label: 'Long-term (6+ months)' },
-];
 
 const SCHEDULE_TYPES = [
   { value: 'single', label: 'Single Event' },
@@ -370,6 +362,58 @@ export default function OrgOpportunityCreate() {
       setIsLoading(false);
     }
   };
+
+  // Posting is gated on a person having approved this organization.
+  //
+  // firestore.rules enforces it, so without this the form would submit and come
+  // back permission-denied — a dead end with no explanation. Say so before they
+  // spend ten minutes writing a posting, and tell them exactly what unblocks it.
+  const verification = orgProfile?.craVerified
+    ? 'verified'
+    : (orgProfile?.verificationStatus || 'unverified');
+
+  if (!isDemoMode && orgProfile && verification !== 'verified') {
+    const copy = {
+      pending: {
+        title: 'Your organization is being reviewed',
+        body: 'We check every organization before its opportunities reach students. This usually takes a day or two — we will email you the moment it is done, and you can post straight away.',
+        cta: null,
+      },
+      rejected: {
+        title: 'This organization was not approved',
+        body: 'We could not confirm this organization, so it cannot post opportunities. If you think that is a mistake, reply to the email we sent and we will take another look.',
+        cta: null,
+      },
+      unverified: {
+        title: 'Get verified before you post',
+        body: 'Students volunteer in person, often as minors, so a person checks every organization before its opportunities are shown. Add your details on your profile and ask for review — it usually takes a day or two.',
+        cta: { to: '/org/profile', label: 'Go to your profile' },
+      },
+    }[verification === 'pending' ? 'pending' : verification === 'rejected' ? 'rejected' : 'unverified'];
+
+    return (
+      <div className="max-w-2xl mx-auto py-16 px-4">
+        <button
+          onClick={() => navigate('/org/dashboard')}
+          className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-medium mb-8 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back to Dashboard
+        </button>
+        <div className="rounded-lg border border-line bg-white p-8 space-y-4">
+          <h1 className="text-2xl font-bold text-ink tracking-tight">{copy.title}</h1>
+          <p className="text-ink-soft leading-relaxed">{copy.body}</p>
+          {copy.cta && (
+            <Link
+              to={copy.cta.to}
+              className="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-blue-dark text-white font-semibold text-sm"
+            >
+              {copy.cta.label}
+            </Link>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">

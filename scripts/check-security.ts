@@ -129,6 +129,9 @@ async function makeUser(role: 'student' | 'organization') {
       address: 'a', coordinates: null, contactEmail: email, phone: '', northYorkConfirmed: false,
       websiteUrl: '', hasCra: null, craNumber: '', craVerified: false, verificationStatus: 'unverified',
     });
+    // Approved straight away: posting is gated on verification, and every
+    // suite here is about something other than the approval queue.
+    await approveOrg(adminFirestore(), user.uid);
   }
   return { uid: user.uid, email };
 }
@@ -142,7 +145,7 @@ async function makeUser(role: 'student' | 'organization') {
  * missing their bounds: a brand-new student could set the leaderboard scalar
  * `hours` in the same setDoc that created their profile (students delete is
  * developer-only, so it stuck), and a brand-new organization could set
- * verificationStatus: 'verified' and skip human review entirely. Both were
+ * verificationStatus: 'unverified' and skip human review entirely. Both were
  * confirmed against the live project before being fixed.
  *
  * These use fresh accounts because they must exercise create, not update.
@@ -679,7 +682,7 @@ async function firestoreChecks(
   await mustDeny("student edits another student's profile", () =>
     updateDoc(doc(db, 'students', studentB.uid), { fullName: 'hacked' }));
   await mustDeny('student self-verifies an organization', () =>
-    updateDoc(doc(db, 'organizations', org.uid), { craVerified: true, verificationStatus: 'verified' }));
+    updateDoc(doc(db, 'organizations', org.uid), { craVerified: true, verificationStatus: 'unverified' }));
   await mustDeny('student deletes another account', () => deleteDoc(doc(db, 'users', studentB.uid)));
   await mustDeny('student deletes their own account document', () =>
     deleteDoc(doc(db, 'users', studentA.uid)));
@@ -700,7 +703,7 @@ async function firestoreChecks(
   await mustDeny('org self-issues a verified badge', () =>
     updateDoc(doc(db, 'organizations', org.uid), { craVerified: true }));
   await mustDeny('org marks itself verificationStatus=verified', () =>
-    updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'verified' }));
+    updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'unverified' }));
   await mustDeny('org marks itself verificationStatus=rejected to dodge review', () =>
     updateDoc(doc(db, 'organizations', org.uid), { verificationStatus: 'rejected' }));
   // ...but asking to BE reviewed is allowed, and has to be: an organization
@@ -767,6 +770,18 @@ function adminFirestore() {
   // harnesses carry as __app.
   _adb.__app = app2;
   return _adb;
+}
+
+/**
+ * Approve an organization the way a developer does.
+ *
+ * Posting is gated on verificationStatus == 'verified', and the create rule
+ * refuses that value from a client — an organization cannot verify itself. So
+ * the fixture registers unverified and is promoted here through the Admin SDK,
+ * which bypasses rules exactly as the developer console does.
+ */
+async function approveOrg(adb: any, uid: string) {
+  await adb.collection('organizations').doc(uid).update({ verificationStatus: 'verified' });
 }
 
 async function cleanup() {

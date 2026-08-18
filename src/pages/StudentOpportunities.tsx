@@ -16,18 +16,13 @@ import { Badge } from '../components/ui/Badge';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { cn, copyToClipboard } from '../lib/utils';
 import { useGeolocation } from '../hooks/useGeolocation';
+import { COMMITMENTS } from '../lib/vocabularies';
 
 // Leaflet lives in src/components/OpportunitiesMap.tsx and is reached through
 // React.lazy below, so the 154 kB map bundle is fetched only when a student
 // actually switches to map view — not on every visit to the browse page.
 const OpportunitiesMap = lazy(() => import('../components/OpportunitiesMap'));
 
-const COMMITMENTS = [
-  { value: '', label: 'Any Commitment' },
-  { value: 'One-time', label: 'One-time' },
-  { value: 'Short-term', label: 'Short-term (1-3 months)' },
-  { value: 'Long-term', label: 'Long-term (6+ months)' },
-];
 
 export default function StudentOpportunities() {
   const { user, studentProfile, isDemoMode } = useAuth();
@@ -313,7 +308,12 @@ export default function StudentOpportunities() {
                           (opp.skillsNeeded && opp.skillsNeeded.some(skill => skill.toLowerCase().includes(searchTerm.toLowerCase())));
     const matchesCategory = category === '' || opp.category === category;
     const matchesExclusive = exclusive === '' || opp.exclusives?.includes(exclusive);
-    const matchesCommitment = commitment === '' || opp.timeCommitment.includes(commitment);
+    // Exact match. This was `.includes()`, which only worked because the two
+    // sides stored different strings — the org form saved
+    // 'Short-term (1-3 months)' while this filter looked for 'Short-term'. Both
+    // now come from the same list, so a substring match is no longer papering
+    // over anything and an exact comparison is what it should always have been.
+    const matchesCommitment = commitment === '' || opp.timeCommitment === commitment;
     const matchesVirtual = !virtualOnly || opp.isVirtual;
     return matchesSearch && matchesCategory && matchesExclusive && matchesCommitment && matchesVirtual;
   });

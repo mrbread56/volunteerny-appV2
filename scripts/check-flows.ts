@@ -86,6 +86,18 @@ function adminFirestore() {
   return adminDb;
 }
 
+/**
+ * Approve an organization the way a developer does.
+ *
+ * Posting is gated on verificationStatus == 'verified', and the create rule
+ * refuses that value from a client — an organization cannot verify itself. So
+ * the fixture registers unverified and is promoted here through the Admin SDK,
+ * which bypasses rules exactly as the developer console does.
+ */
+async function approveOrg(adb: any, uid: string) {
+  await adb.collection('organizations').doc(uid).update({ verificationStatus: 'verified' });
+}
+
 async function signUpAs(role: 'student' | 'organization', tag = '') {
   const email = `check_flows_${role}${tag ? '_' + tag : ''}_${stamp}@example.com`;
   const { user } = await createUserWithEmailAndPassword(auth, email, PASSWORD);
@@ -120,6 +132,9 @@ async function signUpAs(role: 'student' | 'organization', tag = '') {
       contactEmail: email, phone: '', northYorkConfirmed: true, websiteUrl: '',
       hasCra: null, craNumber: '', craVerified: false, verificationStatus: 'unverified',
     });
+    // Approved straight away: posting is gated on verification, and every
+    // suite here is about something other than the approval queue.
+    await approveOrg(adminFirestore(), user.uid);
   }
   return { uid: user.uid, email };
 }

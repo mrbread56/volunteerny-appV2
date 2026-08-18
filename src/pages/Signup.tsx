@@ -24,6 +24,8 @@ import { TORONTO_SCHOOLS, NEIGHBORHOODS, ORGANIZATION_TYPES } from "../constants
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";
+import { SKILLS, AVAILABILITY } from '../lib/vocabularies';
+import { OPPORTUNITY_CATEGORIES as INTERESTS } from '../constants';
 
 
 const GENDERS = [
@@ -40,22 +42,8 @@ const GRADES = [
   { value: "12", label: "Grade 12" },
 ];
 
-const INTERESTS = [
-  "Animal Welfare", "Arts & Culture", "Children & Youth", "Community Services",
-  "Education", "Environment", "Event Planning", "Food Banks",
-  "Health & Hospitals", "Seniors", "Sports", "Technology", "Tutoring", "Other",
-];
 
-const SKILLS = [
-  "Communication", "Computer & Tech", "Creative & Design", "Event Support",
-  "Language Skills", "Leadership", "Organization", "Physical Work",
-  "Research & Writing", "Teaching",
-];
 
-const AVAILABILITY = [
-  "Weekday Mornings", "Weekday Afternoons", "Weekday Evenings",
-  "Weekend Mornings", "Weekend Afternoons", "Weekend Evenings", "Flexible",
-];
 
 export default function Signup() {
   const [role, setRole] = useState<"student" | "organization" | null>(null);

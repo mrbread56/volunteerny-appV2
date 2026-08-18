@@ -87,6 +87,9 @@ async function run(role: 'student' | 'organization'): Promise<string> {
       craVerified: false,
       verificationStatus: 'unverified',
     });
+    // Approved straight away: posting is gated on verification, and every
+    // suite here is about something other than the approval queue.
+    await approveOrg(adminFirestore(), user.uid);
   }
 
   // The reported symptom: sign out, then sign back in with the same password.
@@ -175,6 +178,18 @@ function adminFirestore() {
   adminDb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
   adminDb.__app = adminApp;
   return adminDb;
+}
+
+/**
+ * Approve an organization the way a developer does.
+ *
+ * Posting is gated on verificationStatus == 'verified', and the create rule
+ * refuses that value from a client — an organization cannot verify itself. So
+ * the fixture registers unverified and is promoted here through the Admin SDK,
+ * which bypasses rules exactly as the developer console does.
+ */
+async function approveOrg(adb: any, uid: string) {
+  await adb.collection('organizations').doc(uid).update({ verificationStatus: 'verified' });
 }
 
 async function cleanup() {

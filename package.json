@@ -32,9 +32,10 @@
     "restore": "tsx scripts/restore.ts",
     "check:backup": "tsx scripts/check-backup.ts",
     "backfill:hours": "tsx scripts/backfill-hours.ts",
+    "backfill:availability": "tsx scripts/backfill-availability.ts",
     "repair:orphans": "tsx scripts/repair-orphaned-accounts.ts",
     "test": "playwright test",
-    "test:offline": "playwright test tests/property-fuzz.spec.ts tests/email-templates.spec.ts tests/opportunity-date.spec.ts tests/otp-store.spec.ts tests/format-date.spec.ts --project=chromium",
+    "test:offline": "playwright test tests/property-fuzz.spec.ts tests/email-templates.spec.ts tests/opportunity-date.spec.ts tests/otp-store.spec.ts tests/format-date.spec.ts tests/vocabularies.spec.ts --project=chromium",
     "test:tz": "tsx scripts/check-timezones.ts",
     "test:mutation": "tsx scripts/check-mutations.ts",
     "test:rules": "firebase emulators:exec --only firestore --project vny-rules-test \"playwright test --config playwright.rules.config.ts\""

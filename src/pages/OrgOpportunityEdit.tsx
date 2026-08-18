@@ -30,6 +30,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
 import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
+import { SKILLS } from '../lib/vocabularies';
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -65,10 +66,6 @@ const customPinIcon = L.divIcon({
   iconAnchor: [16, 28],
 });
 
-const SKILLS = [
-  'Communication', 'Computer & Tech', 'Creative & Design', 'Event Support',
-  'Language Skills', 'Leadership', 'Organization', 'Physical Work', 'Research & Writing', 'Teaching'
-];
 
 const COMMITMENTS = [
   { value: 'One-time', label: 'One-time' },

@@ -910,6 +910,51 @@ export default function OrgDashboard() {
       </div>
 
       {/* Stats Overview — visible on the overview tab */}
+      {/* What to do next, for an organization that cannot post yet.
+          Verification is now enforced in firestore.rules, so without this the
+          first thing a new organization does is click "Post New" and hit a wall.
+          Four stat cards reading zero explain nothing. */}
+      {activeTab === "overview" && !isDemoMode && orgProfile && (() => {
+        const status = orgProfile.craVerified
+          ? 'verified'
+          : (orgProfile.verificationStatus || 'unverified');
+        if (status === 'verified') return null;
+        const copy = {
+          unverified: {
+            tone: 'border-blue-dark/20 bg-blue-dark/5',
+            title: 'One step before you can post',
+            body: 'Students meet organizations in person, and most of them are under 18, so a person reviews every organization before its opportunities are shown. Add your details and ask for review — it usually takes a day or two.',
+            cta: { to: '/org/profile', label: 'Complete your profile' },
+          },
+          pending: {
+            tone: 'border-amber-200 bg-amber-50',
+            title: 'We are reviewing your organization',
+            body: 'Nothing more is needed from you. We will email you the moment it is done, and you can post straight away.',
+            cta: null,
+          },
+          rejected: {
+            tone: 'border-red-200 bg-red-50',
+            title: 'This organization was not approved',
+            body: 'It cannot post opportunities. If you believe that is a mistake, reply to the email we sent and we will take another look.',
+            cta: null,
+          },
+        }[status === 'pending' ? 'pending' : status === 'rejected' ? 'rejected' : 'unverified'];
+        return (
+          <div className={cn('rounded-lg border p-6 sm:p-8 space-y-3', copy.tone)}>
+            <h2 className="text-lg font-bold text-ink">{copy.title}</h2>
+            <p className="text-sm text-ink-soft leading-relaxed max-w-2xl">{copy.body}</p>
+            {copy.cta && (
+              <Link
+                to={copy.cta.to}
+                className="inline-flex items-center justify-center h-11 px-6 rounded-lg bg-blue-dark text-white font-semibold text-sm"
+              >
+                {copy.cta.label}
+              </Link>
+            )}
+          </div>
+        );
+      })()}
+
       {activeTab === "overview" && (
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card

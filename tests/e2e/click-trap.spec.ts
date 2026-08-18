@@ -81,7 +81,7 @@ test.beforeAll(async () => {
       await db.collection('organizations').doc(u.uid).set({
         uid: u.uid, organizationName: 'Trap Org', mission: 'Testing.', contactEmail: acct.email,
         northYorkConfirmed: true, organizationType: 'Other', address: '5100 Yonge St',
-        phone: '', websiteUrl: '', craVerified: false, verificationStatus: 'unverified',
+        phone: '', websiteUrl: '', craVerified: false, verificationStatus: 'verified',
       });
     }
   }
