@@ -32,6 +32,9 @@
     "singleProjectMode": true,
     "ui": {
       "enabled": false
+    },
+    "storage": {
+      "port": 9199
     }
   }
 }

@@ -3,8 +3,8 @@
   "private": true,
   "version": "0.9.0",
   "type": "module",
-  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down \u2014 a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
-  "//deps:firebase": "Do not bump firebase past 12.13 without running the FULL Playwright suite twice. 12.17.1 was tried on 18 Aug 2026: green alone, but under the full 142-test parallel run the same 5 failure-simulation specs (network-failure, otp-store, lifecycle-ui) failed deterministically both times \u2014 cross-file contention, likely the newer SDK holding aborted connections longer and starving the shared dev server. Rolled back rather than shipped, because a suite that is flaky under load can no longer prove anything. The npm audit moderates are transitive in firebase-admin (uuid buffer bounds needs an attacker-controlled buf we never pass; opentelemetry is server-side tracing) \u2014 documented, not exploitable here.",
+  "//check:esm": "The app's tsconfig uses moduleResolution 'bundler' for Vite, which permits extensionless relative imports. Vercel runs the server as real ESM (package.json type: module), where those throw ERR_MODULE_NOT_FOUND at load time and take the WHOLE API down — a 500 on every route, with a green tsc and a working local dev server. This re-checks the server entry points under nodenext, where the missing .js is a compile error. Do not remove it from lint.",
+  "//deps:firebase": "Do not bump firebase past 12.13 without running the FULL Playwright suite twice. 12.17.1 was tried on 18 Aug 2026: green alone, but under the full 142-test parallel run the same 5 failure-simulation specs (network-failure, otp-store, lifecycle-ui) failed deterministically both times — cross-file contention, likely the newer SDK holding aborted connections longer and starving the shared dev server. Rolled back rather than shipped, because a suite that is flaky under load can no longer prove anything. The npm audit moderates are transitive in firebase-admin (uuid buffer bounds needs an attacker-controlled buf we never pass; opentelemetry is server-side tracing) — documented, not exploitable here.",
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
@@ -43,7 +43,8 @@
     "test:offline": "playwright test tests/property-fuzz.spec.ts tests/email-templates.spec.ts tests/opportunity-date.spec.ts tests/otp-store.spec.ts tests/format-date.spec.ts tests/vocabularies.spec.ts tests/matching.spec.ts --project=chromium",
     "test:tz": "tsx scripts/check-timezones.ts",
     "test:mutation": "tsx scripts/check-mutations.ts",
-    "test:rules": "firebase emulators:exec --only firestore --project vny-rules-test \"playwright test --config playwright.rules.config.ts\""
+    "test:rules": "firebase emulators:exec --only firestore --project vny-rules-test \"playwright test --config playwright.rules.config.ts\"",
+    "test:storage-rules": "firebase emulators:exec --only storage,firestore \"playwright test tests/storage-rules.spec.ts --reporter=line\""
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
