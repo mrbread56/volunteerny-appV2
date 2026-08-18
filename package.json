@@ -31,6 +31,7 @@
     "sweep:console": "playwright test tests/e2e/console-sweep.spec.ts --reporter=line",
     "deploy:rules": "tsx scripts/deploy-rules.ts",
     "deploy:indexes": "tsx scripts/deploy-indexes.ts",
+    "enable:pitr": "tsx scripts/enable-pitr.ts",
     "backup": "tsx scripts/backup.ts",
     "restore": "tsx scripts/restore.ts",
     "check:backup": "tsx scripts/check-backup.ts",
