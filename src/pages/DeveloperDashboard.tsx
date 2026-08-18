@@ -27,12 +27,14 @@ import {
   Paperclip,
   Trash2,
   Settings,
+  TrendingUp,
   Mail
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import AttachmentPreview from '../components/AttachmentPreview';
 import EmailDeliveryNote from '../components/ui/EmailDeliveryNote';
 import ReportsTab from './developerDashboard/ReportsTab';
+import MetricsTab from './developerDashboard/MetricsTab';
 
 export default function DeveloperDashboard() {
   const { user, userProfile, isDemoMode } = useAuth();
@@ -145,13 +147,19 @@ export default function DeveloperDashboard() {
   const [orgs, setOrgs] = useState<any[]>([]);
   
   // Dashboard Interactive Creation / Click Toggles
-  const [isDashboardActive, setIsDashboardActive] = useState(false);
-  const [showStudentsList, setShowStudentsList] = useState(false);
-  const [showOrgsList, setShowOrgsList] = useState(false);
-  const [showReportsList, setShowReportsList] = useState(false);
+  // All four of these gated content that was ALREADY LOADED. loadData() runs on
+  // mount, so the splash screen, the "Click to Load" hints and the counters
+  // rendering a literal 0 next to real data in memory bought nothing at all —
+  // they were friction wearing the costume of a security control, and the first
+  // one hid the entire console behind a button labelled "Create Control Room
+  // Dashboard" for a dashboard that already existed.
+  const [isDashboardActive, setIsDashboardActive] = useState(true);
+  const [showStudentsList, setShowStudentsList] = useState(true);
+  const [showOrgsList, setShowOrgsList] = useState(true);
+  const [showReportsList, setShowReportsList] = useState(true);
 
   // General dashboard controls
-  const [activeTab, setActiveTab] = useState<'feedbacks' | 'reports' | 'interests' | 'users' | 'terminated' | 'settings' | 'verification'>('feedbacks');
+  const [activeTab, setActiveTab] = useState<'feedbacks' | 'reports' | 'interests' | 'users' | 'terminated' | 'settings' | 'verification' | 'metrics'>('feedbacks');
   const [reports, setReports] = useState<any[]>([]);
   // "Join List" requests. Students pick categories they want opportunities in
   // and get "Added to waitlist!" — and until this tab existed, nothing in the
@@ -931,6 +939,15 @@ export default function DeveloperDashboard() {
             <Lock className="w-4 h-4 text-red-600" /> Suspended List ({students.filter(s => s.isBanned).length + orgs.filter(o => o.isBanned).length})
           </button>
           <button
+            onClick={() => setActiveTab('metrics')}
+            className={cn(
+              "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
+              activeTab === 'metrics' ? "border-blue-dark text-ink" : "border-transparent text-ink-muted hover:text-ink-muted"
+            )}
+          >
+            <TrendingUp className="w-4 h-4 text-blue-dark" /> Metrics
+          </button>
+          <button
             onClick={() => setActiveTab('settings')}
             className={cn(
               "pb-4 px-6 text-sm font-semibold uppercase border-b-4 transition-all flex items-center gap-2",
@@ -1478,6 +1495,8 @@ export default function DeveloperDashboard() {
           </Card>
         </div>
       </div>
+    ) : activeTab === 'metrics' ? (
+      <MetricsTab />
     ) : activeTab === 'settings' ? (
       /* SYSTEM SETTINGS TAB */
       <div className="space-y-6 max-w-2xl animate-fadeIn">
