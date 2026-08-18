@@ -30,6 +30,41 @@ const firestoreDatabaseId = import.meta.env.VITE_FIREBASE_DATABASE_ID;
 
 export const app = initializeApp(firebaseConfig);
 
+/**
+ * App Check: proof that requests come from OUR web app, not from a script
+ * pointed at the project id.
+ *
+ * The Firestore rules are the authorization layer, and they are good — but
+ * they authorize ACCOUNTS, not CLIENTS. Anyone can read the public web config
+ * out of the bundle, sign up, and drive the database from curl or a bot at
+ * whatever rate they like. App Check adds a second requirement: a reCAPTCHA v3
+ * attestation that the caller is a real browser running this app.
+ *
+ * Gated on the env var, deliberately: with no site key set this whole block is
+ * inert, so nothing changes for local dev, tests, or CI until the key is
+ * provisioned in the console and added to the environment. Rollout order
+ * matters and is documented in docs/RUNBOOK.md — register the app, set the
+ * key, watch App Check metrics show legitimate traffic verifying, and only
+ * THEN enforce, service by service. Enforcing before the client ships tokens
+ * would lock every real user out.
+ */
+const appCheckSiteKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
+if (appCheckSiteKey) {
+  import('firebase/app-check')
+    .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(appCheckSiteKey),
+        isTokenAutoRefreshEnabled: true,
+      });
+    })
+    .catch((err) => {
+      // Never let attestation setup break the app: unenforced App Check failing
+      // to load costs nothing, and once enforcement is on, Firestore itself
+      // will say so far more clearly than a swallowed import error.
+      console.warn('[app-check] not initialised:', err?.message || err);
+    });
+}
+
 export const db = firestoreDatabaseId
   ? initializeFirestore(app, {}, firestoreDatabaseId)
   : initializeFirestore(app, {});

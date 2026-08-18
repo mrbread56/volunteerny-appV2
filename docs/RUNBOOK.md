@@ -323,3 +323,29 @@ npx playwright test tests/e2e/visual-sweep.spec.ts --reporter=line
 ```
 
 Check the generated `playwright-report/` or `test-results/` screenshots for desktop, tablet, and mobile layouts.
+
+
+## App Check rollout (staged — do not skip ahead)
+
+The client initialises App Check only when `VITE_APPCHECK_SITE_KEY` is set, so
+each step below is safe on its own and the dangerous one is clearly marked.
+
+1. **Register the app.** Firebase console → App Check → Apps → register
+   **Vounteer Searcher** (`…620a13da` — the app id in VITE_FIREBASE_APP_ID)
+   with the **reCAPTCHA v3** provider. The console creates the site key.
+   Ignore the leftover `ai-studio-applet-webapp` — nothing ships it.
+2. **Set the key.** Add `VITE_APPCHECK_SITE_KEY` to Vercel (Production env) and
+   to local `.env`, then redeploy. From this moment real browsers ATTACH
+   attestation tokens, but nothing checks them yet.
+3. **Watch, at least a few days.** App Check → Metrics. You want to see
+   verified requests climbing and unverified requests limited to bots/scripts.
+   If legitimate traffic shows as unverified, STOP — enforcing now would lock
+   real users out.
+4. **Enforce, service by service.** App Check → APIs → Cloud Firestore →
+   Enforce, then the same for Cloud Storage. ⚠️ This is the step that locks out
+   every client without a token — old tabs, scripts, and the check harnesses.
+   The `check:*` suites use the ADMIN SDK for setup but the CLIENT SDK for the
+   flows under test, so once enforcement is on they need a debug token:
+   App Check → Apps → the app → manage debug tokens, then export
+   `FIREBASE_APPCHECK_DEBUG_TOKEN` in the environment that runs them.
+5. **Rollback** is the same switch: Enforce → Unenforced, instant.
