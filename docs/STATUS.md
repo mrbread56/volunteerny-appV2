@@ -32,6 +32,8 @@ a suite that passes once may be passing by accident of ordering or timing.
 | `sweep:console` (every route, every role) | **0 unexpected** |
 | `test` (full Playwright suite, chromium + webkit) | **135/135** |
 | `test:rules` (emulator, per-field) | **83/83** |
+| `test:storage-rules` (emulator, incl. both size caps AT boundary) | **15/15, 5/5 mutants killed** |
+| soak: 11 live suites + full browser run, concurrently, 5 rounds | **~690 live assertions, holds** |
 | `check:concurrency` (200-way parallel) | **5/5** |
 | `test:tz` (5 timezones incl. UTC+14 and a half-hour zone) | **5/5** |
 | `test:mutation` (deliberate breakages caught) | **8/8 killed** |
