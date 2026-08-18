@@ -35,6 +35,31 @@ export default function MfaChallenge() {
   const navigate = useNavigate();
   const { user, userProfile, mfaVerified, loading, isDemoMode, setMfaVerified } = useAuth();
 
+  /**
+   * Where a verified session belongs.
+   *
+   * This screen used to send everyone to "/" — the marketing home page — after
+   * they had just proved their identity. It is not broken, since the nav is
+   * there, but it makes someone who has just cleared a security gate land on a
+   * page selling them the product they are already using, and then hunt for
+   * their own dashboard. An organisation recovering a locked-out account gets
+   * this worst: the moment they most need to see their applicants, they are
+   * looking at "Find where you belong".
+   *
+   * Login.tsx has always routed by role. This now matches it.
+   */
+  const destinationForRole = () => {
+    if (userProfile?.role === 'developer') return '/developer/dashboard';
+    if (userProfile?.role === 'organization') return '/org/dashboard';
+    if (userProfile?.role === 'student') return '/student/dashboard';
+    // Role not known yet. Return null so the caller WAITS rather than guessing:
+    // this effect runs the moment the claim lands, which is routinely before the
+    // profile read finishes, and navigating to "/" in that window was the whole
+    // bug — an organisation that had just recovered its account landed on the
+    // marketing page.
+    return null;
+  };
+
   useEffect(() => {
     if (loading) return;
 
@@ -43,7 +68,10 @@ export default function MfaChallenge() {
       return;
     }
     if (mfaVerified) {
-      navigate("/");
+      const to = destinationForRole();
+      // No destination yet means the profile is still in flight. Do nothing —
+      // userProfile is a dependency, so this re-runs the moment it arrives.
+      if (to) navigate(to, { replace: true });
       return;
     }
 
@@ -53,7 +81,7 @@ export default function MfaChallenge() {
     // There is no real account to protect in demo mode, so clear the gate.
     if (isDemoMode) {
       void setMfaVerified(true, user.uid);
-      navigate("/");
+      navigate(destinationForRole() || '/', { replace: true });
       return;
     }
 
@@ -62,7 +90,7 @@ export default function MfaChallenge() {
       void sendOTP();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, mfaVerified, navigate, hasSentOTP, loading, isDemoMode]);
+  }, [user, userProfile, mfaVerified, navigate, hasSentOTP, loading, isDemoMode]);
 
   // Auto-send OTP on mount, and reused directly by the Resend button so
   // resend is tied to the real request completing, not a fixed timeout.
@@ -154,7 +182,16 @@ export default function MfaChallenge() {
         })();
 
         if (claimLanded) {
-          window.location.href = "/";
+          // A full reload rather than a router navigation, deliberately: it
+          // guarantees every context re-reads the freshly minted token instead
+          // of holding a stale one.
+          //
+          // The DESTINATION was "/" for everyone, so a coordinator who had just
+          // recovered a locked-out account landed on the marketing page — the
+          // moment they most need their applicants, they get "Find where you
+          // belong" and have to go hunting. Route by role, the way Login always
+          // has.
+          window.location.href = destinationForRole() || "/";
         } else {
           setError(
             "Your code was correct, but the session could not be updated. Please request a new code and try again."
