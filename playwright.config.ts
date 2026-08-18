@@ -8,7 +8,7 @@ export default defineConfig({
   // test:rules` starts. Left in the default run it would fail with a connection
   // error on every machine that has not booted it, which reads as broken tests
   // rather than a missing service.
-  testIgnore: '**/firestore-rules.spec.ts',
+  testIgnore: ['**/firestore-rules.spec.ts', '**/storage-rules.spec.ts'],
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   /**
@@ -51,7 +51,7 @@ export default defineConfig({
       // A project-level testIgnore REPLACES the top-level one rather than
       // adding to it, so the emulator-only rules spec has to be repeated here
       // or it starts running under Chromium with no emulator behind it.
-      testIgnore: ['**/webkit-safari.spec.ts', '**/firestore-rules.spec.ts'],
+      testIgnore: ['**/webkit-safari.spec.ts', '**/firestore-rules.spec.ts', '**/storage-rules.spec.ts'],
     },
     {
       // Every browser on iOS is WebKit, including the one called Chrome, and

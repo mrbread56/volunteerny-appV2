@@ -43,8 +43,8 @@
     "test:offline": "playwright test tests/property-fuzz.spec.ts tests/email-templates.spec.ts tests/opportunity-date.spec.ts tests/otp-store.spec.ts tests/format-date.spec.ts tests/vocabularies.spec.ts tests/matching.spec.ts --project=chromium",
     "test:tz": "tsx scripts/check-timezones.ts",
     "test:mutation": "tsx scripts/check-mutations.ts",
-    "test:rules": "firebase emulators:exec --only firestore --project vny-rules-test \"playwright test --config playwright.rules.config.ts\"",
-    "test:storage-rules": "firebase emulators:exec --only storage,firestore \"playwright test tests/storage-rules.spec.ts --reporter=line\""
+    "test:rules": "firebase emulators:exec --only firestore \"playwright test --config=playwright.rules.config.ts tests/firestore-rules.spec.ts\"",
+    "test:storage-rules": "firebase emulators:exec --only storage,firestore \"playwright test --config=playwright.rules.config.ts tests/storage-rules.spec.ts\""
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
