@@ -136,6 +136,25 @@ test.describe('eligibility', () => {
     expect(checkAge(16, undefined)).toBe('unknown');     // no grade to compare
   });
 
+  test('the age comparison is pinned AT the boundary, not near it', async () => {
+    const { checkAge } = await import('../src/lib/eligibility');
+    // Found by mutation: `floor >= minAge` could be loosened to
+    // `floor >= minAge - 1` and every other test here still passed, because
+    // none of them sat on the boundary. A comparison is only really tested by
+    // the pair either side of it.
+    //
+    // Grade 11 has a floor of 15.
+    expect(checkAge(15, '11')).toBe('eligible');          // exactly meets it
+    expect(checkAge(16, '11')).toBe('likely-ineligible');  // one year short
+    // Grade 9 has a floor of 13.
+    expect(checkAge(13, '9')).toBe('eligible');
+    expect(checkAge(14, '9')).toBe('likely-ineligible');
+    // Grade 12 has a floor of 16 — the common "18+ only" case must be caught.
+    expect(checkAge(16, '12')).toBe('eligible');
+    expect(checkAge(17, '12')).toBe('likely-ineligible');
+    expect(checkAge(18, '12')).toBe('likely-ineligible');
+  });
+
   test('the grade exclusives that were never enforced now are', async () => {
     const { checkGradeExclusives } = await import('../src/lib/eligibility');
     // OPPORTUNITY_EXCLUSIVES has carried these all along and nothing ever

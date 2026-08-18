@@ -20,7 +20,7 @@ import {
 import { useAuth } from "../contexts/AuthContext";
 import { GraduationCap, Building2, AlertCircle } from "lucide-react";
 import { cn } from "../lib/utils";
-import { TORONTO_SCHOOLS, NEIGHBORHOODS, ORGANIZATION_TYPES } from "../constants";
+import { ORGANIZATION_TYPES } from "../constants";
 import { isPlausibleCraNumber, normalizeCraNumber } from "../lib/craValidation";
 import AddressMapsSelector from "../components/AddressMapsSelector";
 import { motion } from "motion/react";

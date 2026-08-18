@@ -20,6 +20,8 @@ dotenv.config();
 const a: any = (admin as any).default || admin;
 const stamp = Date.now();
 const EMAIL = `netfail_${stamp}@example.com`;
+const ORG_EMAIL = `netfail_org_${stamp}@example.com`;
+let orgUid = '';
 const PASSWORD = 'netFail!123';
 
 test.describe.configure({ mode: 'serial' });
@@ -34,6 +36,20 @@ test.beforeAll(async () => {
   );
   const db = adminApp.firestore();
   db.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+
+  const orgRec = await adminApp.auth().createUser({
+    email: ORG_EMAIL, password: PASSWORD, emailVerified: true,
+  });
+  orgUid = orgRec.uid;
+  await db.collection('users').doc(orgUid).set({
+    uid: orgUid, email: ORG_EMAIL, role: 'organization',
+    twoFactorEnabled: false, createdAt: new Date(),
+  });
+  await db.collection('organizations').doc(orgUid).set({
+    uid: orgUid, organizationName: 'Netfail Org', mission: 'm',
+    organizationType: 'Non-profit organization', contactEmail: ORG_EMAIL,
+    northYorkConfirmed: true, craVerified: false, verificationStatus: 'verified',
+  });
 
   const rec = await adminApp.auth().createUser({ email: EMAIL, password: PASSWORD, emailVerified: true });
   uid = rec.uid;
@@ -50,8 +66,18 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async () => {
-  if (!adminApp || !uid) return;
+  if (!adminApp) return;
+  // No settings() here: beforeAll already configured this instance, and
+  // Firestore permits that call exactly once.
   const db = adminApp.firestore();
+
+  if (orgUid) {
+    for (const c of ['users', 'organizations']) {
+      await db.collection(c).doc(orgUid).delete().catch(() => {});
+    }
+    await adminApp.auth().deleteUser(orgUid).catch(() => {});
+  }
+  if (!uid) return;
   for (const c of ['users', 'students']) await db.collection(c).doc(uid).delete().catch(() => {});
   await adminApp.auth().deleteUser(uid).catch(() => {});
 });
@@ -186,4 +212,49 @@ test('going fully offline never white-screens the app', async ({ page, context }
   ).not.toMatch(/is not a function|undefined is not an object|Cannot read propert/i);
 
   await context.setOffline(false);
+});
+
+
+test('a failed ORGANISATION dashboard read says so, instead of showing an empty console', async ({ page }) => {
+  test.setTimeout(120000);
+
+  // Every other failure test in this file targeted the student side, so an
+  // organisation losing its connection was untested entirely.
+  //
+  // What this covers is the AUTH-level failure — the profile read that the route
+  // guard waits on. It does NOT cover useOrgDashboardData's own catch, which
+  // fires when Firestore is reachable but one query is refused; simulating that
+  // needs a rules change rather than a blocked transport, and mutation testing
+  // confirms this test does not catch it. Said plainly rather than left for
+  // someone to assume otherwise.
+  await page.addInitScript(() => {
+    try { localStorage.setItem('storage_notice_seen', 'true'); } catch { /* blocked */ }
+  });
+  await page.goto('/login');
+  await page.waitForLoadState('domcontentloaded');
+  await page.locator('#login-email').waitFor({ timeout: 20000 });
+  await page.getByLabel('Email').fill(ORG_EMAIL);
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForURL(/\/org\//, { timeout: 40000 });
+
+  await page.route('**://firestore.googleapis.com/**', (route) => route.abort('failed'));
+  await page.goto('/org/dashboard');
+  await page.waitForLoadState('domcontentloaded');
+  // Long enough for the retry ladder to exhaust. getDocWithRetry allows three
+  // attempts at a 5s timeout with exponential backoff between them — about 16
+  // seconds — because the Firestore SDK retries a blocked transport
+  // indefinitely rather than rejecting, so without that ladder this would spin
+  // forever. Waiting 9s here tested the middle of the ladder and proved
+  // nothing.
+  await page.waitForTimeout(22000);
+
+  const text = await page.locator('body').innerText();
+  const claimsEmpty = EMPTINESS.test(text);
+  const admitsFailure = HONESTY.test(text);
+  expect(
+    !claimsEmpty || admitsFailure,
+    'the organisation dashboard reported emptiness after a failed read:' +
+      text.slice(0, 600),
+  ).toBe(true);
 });

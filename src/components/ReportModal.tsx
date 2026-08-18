@@ -11,7 +11,6 @@ import { Input } from './ui/Input';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/Card';
 import { 
   X, 
-  AlertOctagon, 
   UploadCloud, 
   Paperclip, 
   Trash2, 

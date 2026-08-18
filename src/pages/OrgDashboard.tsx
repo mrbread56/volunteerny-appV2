@@ -7,34 +7,25 @@ import {
   query,
   where,
   getDocs,
-  orderBy,
   updateDoc,
   doc,
-  getDoc,
   limit,
 } from "firebase/firestore";
-import { Opportunity, Application, StudentProfile } from "../types";
+import { Application, StudentProfile } from "../types";
 import {
   Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   PlusCircle,
-  Users,
   ClipboardList,
-  TrendingUp,
   CheckCircle,
   XCircle,
   Clock,
   Eye,
-  Mail,
   Calendar,
-  MessageCircle,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { motion, AnimatePresence } from "motion/react";

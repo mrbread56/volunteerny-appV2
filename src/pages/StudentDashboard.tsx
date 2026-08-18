@@ -1,5 +1,5 @@
 import { useDialog } from '../hooks/useDialog';
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
 import { DEMO_OPPORTUNITIES } from './studentDashboard/demoOpportunities';
@@ -19,7 +19,6 @@ import {
   where,
   getDocs,
   limit,
-  orderBy,
   doc,
   getDoc,
   addDoc,
@@ -30,14 +29,9 @@ import {
 } from "firebase/firestore";
 import {
   Application,
-  Opportunity,
-  SavedOpportunity,
-  InterestRequest,
 } from "../types";
 import {
   Card,
-  CardContent,
-  CardHeader,
   CardTitle,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
@@ -51,8 +45,6 @@ import {
   Star,
   ArrowRight,
   Sparkles,
-  TrendingUp,
-  CheckCircle2,
   Mail,
   Phone,
   Globe,
@@ -60,12 +52,9 @@ import {
   Send,
   X,
   Trophy,
-  Lock,
   Settings,
   Printer,
-  Plus,
   FileText,
-  Check,
   LayoutDashboard,
 } from "lucide-react";
 import { formatDate, cn } from "../lib/utils";

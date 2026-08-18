@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  collection, doc, getDoc, getDocs, limit, orderBy, query, where,
+  collection, getDocs, limit, orderBy, query, where,
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';

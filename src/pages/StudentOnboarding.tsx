@@ -9,9 +9,7 @@ import { Select } from '../components/ui/Select';
 import { FileUpload } from '../components/ui/FileUpload';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { 
-  GraduationCap, 
   School as SchoolIcon, 
-  MapPin, 
   Sparkles, 
   Calendar, 
   Award, 
@@ -19,7 +17,6 @@ import {
   Check, 
   ArrowRight,
   ShieldAlert,
-  FolderLock
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { TORONTO_SCHOOLS, NEIGHBORHOODS } from '../constants';

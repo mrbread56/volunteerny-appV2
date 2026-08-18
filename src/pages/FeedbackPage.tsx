@@ -12,10 +12,8 @@ import { compressFile } from '../utils/compress';
 import { uploadFileToStorage } from '../lib/storageUpload';
 import { 
   Send, 
-  Sparkles, 
   MessageSquare, 
   AlertTriangle, 
-  Lightbulb, 
   UploadCloud, 
   Paperclip, 
   CheckCircle2, 

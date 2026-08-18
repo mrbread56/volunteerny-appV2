@@ -7,7 +7,7 @@ import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { reportError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { collection, getDocs, doc, updateDoc, getDoc, query, where, serverTimestamp, writeBatch, limit } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -25,7 +25,6 @@ import {
   Plus,
   Compass,
   Paperclip,
-  Trash2,
   Settings,
   TrendingUp,
   Mail
@@ -43,10 +42,10 @@ export default function DeveloperDashboard() {
   /** Everything this console reads. Both loaders come back so an action can refresh what it changed. */
   const {
     students, orgs, feedbacks, reports, interestRequests, pendingOrgs,
-    realStudentCount, realOrgCount, realFeedbackCount, realReportCount,
+    realStudentCount, realOrgCount,
     isLoading, consoleNotice, setConsoleNotice,
     setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,
-    loadData, loadPendingOrgs,
+    loadData,
   } = useDeveloperDashboardData(user, isDemoMode);
 
   // Test Email Client States

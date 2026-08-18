@@ -7,30 +7,24 @@ import { db } from "../firebase/config";
 import {
   doc,
   getDoc,
-  setDoc,
   collection,
   query,
   where,
   getDocs,
   updateDoc,
-  addDoc,
   serverTimestamp
 } from "firebase/firestore";
 import { Application, Opportunity, StudentProfile } from "../types";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
 } from "../components/ui/Card";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import {
   ArrowLeft,
-  User,
   MessageSquare,
   CheckCircle,
-  XCircle,
   FileText,
   Eye,
   ShieldAlert,

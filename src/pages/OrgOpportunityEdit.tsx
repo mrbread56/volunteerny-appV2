@@ -4,14 +4,8 @@ import { db } from '../firebase/config';
 import {
   doc,
   getDoc,
-  setDoc,
-  deleteDoc,
   updateDoc,
   serverTimestamp,
-  collection,
-  query,
-  where,
-  getDocs,
 } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
