@@ -309,7 +309,7 @@ async function main() {
     report(
       WARN,
       'MAIL_FROM set',
-      'falling back to vny@volunteernorthyork.indevs.in',
+      'falling back to hello@volunteernorthyork.org',
       'If that domain is not verified in Resend every code is rejected. Set MAIL_FROM to a ' +
         'verified sender: https://resend.com/domains'
     );

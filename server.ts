@@ -53,7 +53,7 @@ if (!process.env.RESEND_API_KEY) {
  */
 const MAIL_CONFIG_ERROR: string | null = !process.env.MAIL_FROM
   ? 'MAIL_FROM is not set. Every org login needs an emailed 2FA code, and the ' +
-    'fallback sender "vny@volunteernorthyork.indevs.in" only works if that ' +
+    'fallback sender "hello@volunteernorthyork.org" only works if that ' +
     'domain is verified in Resend. Verify a domain at https://resend.com/domains ' +
     'and set MAIL_FROM (see .env.example).'
   : null;
@@ -1824,7 +1824,7 @@ app.use(express.json());
         return res.status(503).json({ error: 'Email delivery is not configured on this server.' });
       }
       const { error } = await resend.emails.send({
-        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+        from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
         to: [studentEmail],
         subject,
         html,
@@ -1938,7 +1938,7 @@ app.use(express.json());
             });
             if (!html) continue;
             const { error: sendErr } = await resend.emails.send({
-              from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+              from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
               to: [to],
               subject: `"${oppTitle}" has been withdrawn`,
               html,
@@ -2400,7 +2400,7 @@ app.use(express.json());
           });
           if (html) {
             const { error } = await resend.emails.send({
-              from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+              from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
               to: [studentEmail],
               subject: `${parsedHours} volunteer hours confirmed`,
               html,
@@ -2437,7 +2437,7 @@ app.use(express.json());
             });
             if (html) {
               const { error: mErr } = await resend.emails.send({
-                from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+                from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
                 to: [to],
                 subject: "You've reached 40 volunteer hours",
                 html,
@@ -2667,7 +2667,7 @@ app.use(express.json());
         });
       }
 
-      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>';
+      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>';
       const { error } = await resend.emails.send({
         from: fromAddress,
         to: authContext.email,
@@ -3441,7 +3441,7 @@ app.use(express.json());
       }
 
       const { error } = await resend.emails.send({
-        from: process.env.MAIL_FROM || 'Volunteer North York <vny@volunteernorthyork.indevs.in>',
+        from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
         to: recipients,
         subject,
         html,
