@@ -434,7 +434,7 @@ async function apiChecks(studentToken: string, orgToken: string, victimStudentId
       templateName: 'notification',
       templateData: {
         heading: 'Welcome', details: 'All set.', actionLabel: 'Open',
-        actionUrl: (process.env.APP_URL || 'https://volunteerny-app-v2.vercel.app') + '/org/profile',
+        actionUrl: (process.env.APP_URL || 'https://volunteernorthyork.org') + '/org/profile',
       },
     }),
   });

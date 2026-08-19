@@ -5,7 +5,7 @@ import fs from 'fs';
 import { GoogleGenAI, Type } from '@google/genai';
 import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
-import { appOrigin, CANONICAL_APP_ORIGIN } from './server/appUrl.js';
+import { appOrigin, CANONICAL_APP_ORIGIN, LEGACY_APP_ORIGINS } from './server/appUrl.js';
 import { totalLoggedHours } from './src/lib/hours.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
@@ -339,7 +339,21 @@ app.use(express.json());
     // Same wrong default as the email templates had: this allowed the
     // MAIL_FROM domain, which is not where the app is served from, and did not
     // allow the origin that actually calls this API. See server/appUrl.ts.
-    const allowedOrigin = process.env.NODE_ENV === 'production' ? appOrigin() : '*';
+    //
+    // Echo-from-allowlist rather than a single fixed value: the app is served
+    // from the real domain AND still from the vercel.app address every
+    // deployment keeps, and a single Allow-Origin header can only bless one of
+    // them — leaving the other a fully working site whose API calls all fail.
+    // The echo is limited to the allowlist, so this never becomes a wildcard,
+    // and Vary: Origin keeps shared caches from serving one origin's header to
+    // the other.
+    let allowedOrigin = '*';
+    if (process.env.NODE_ENV === 'production') {
+      const requestOrigin = String(req.headers.origin || '');
+      const allowlist = [appOrigin(), CANONICAL_APP_ORIGIN, ...LEGACY_APP_ORIGINS];
+      allowedOrigin = allowlist.includes(requestOrigin) ? requestOrigin : appOrigin();
+      res.setHeader('Vary', 'Origin');
+    }
     res.setHeader('Access-Control-Allow-Origin', allowedOrigin);
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -3154,7 +3168,7 @@ app.use(express.json());
     // rejecting genuine welcome and hours emails. Accepting the canonical
     // origin as well keeps real mail working through that misconfiguration
     // without widening this to anything an attacker controls.
-    const allowedOrigins = [appOrigin(), CANONICAL_APP_ORIGIN];
+    const allowedOrigins = [appOrigin(), CANONICAL_APP_ORIGIN, ...LEGACY_APP_ORIGINS];
     return allowedOrigins.some((o) => {
       try {
         const a = new URL(o);

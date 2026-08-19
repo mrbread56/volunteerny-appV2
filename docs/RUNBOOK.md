@@ -19,8 +19,8 @@ Verify what production actually uses by reading the deployed bundle, not by
 trusting the dashboard:
 
 ```bash
-BUNDLE=$(curl -s https://volunteerny-app-v2.vercel.app | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
-curl -s "https://volunteerny-app-v2.vercel.app${BUNDLE}" | grep -oE 'volunteerny' | head -1
+BUNDLE=$(curl -s https://volunteernorthyork.org | grep -oE '/assets/index-[A-Za-z0-9_-]+\.js' | head -1)
+curl -s "https://volunteernorthyork.org${BUNDLE}" | grep -oE 'volunteerny' | head -1
 ```
 
 `VITE_*` variables are baked in **at build time**, so changing one requires a
@@ -29,7 +29,7 @@ redeploy before it takes effect:
 ```bash
 npx vercel link --yes --project volunteerny-app-v2
 npx vercel env ls production
-npx vercel redeploy https://volunteerny-app-v2.vercel.app
+npx vercel redeploy https://volunteernorthyork.org
 ```
 
 Set on Vercel for Production and Preview:
@@ -47,7 +47,7 @@ Check the cron is actually armed:
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}
-' https://volunteerny-app-v2.vercel.app/api/leaderboard/refresh
+' https://volunteernorthyork.org/api/leaderboard/refresh
 ```
 
 `401` means configured and refusing anonymous callers, which is correct.

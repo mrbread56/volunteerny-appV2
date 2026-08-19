@@ -75,7 +75,7 @@ const fail = (m: string) => { console.error(`[FAIL] ${m}`); failed++; };
     {
       name: 'generic notification',
       subject: 'A notification',
-      html: emailTemplates.notification('Something happened', 'Here are the details.', 'Open', 'https://volunteerny-app-v2.vercel.app/student/dashboard'),
+      html: emailTemplates.notification('Something happened', 'Here are the details.', 'Open', 'https://volunteernorthyork.org/student/dashboard'),
     },
   ];
 

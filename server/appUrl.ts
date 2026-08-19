@@ -27,7 +27,19 @@
  * string is unavoidably duplicated; `npm run check:email` asserts they agree
  * rather than trusting anyone to remember.
  */
-export const CANONICAL_APP_ORIGIN = 'https://volunteerny-app-v2.vercel.app';
+export const CANONICAL_APP_ORIGIN = 'https://volunteernorthyork.org';
+
+/**
+ * Origins the app is ALSO legitimately served from, besides the canonical one.
+ *
+ * The vercel.app address did not stop existing when the real domain arrived —
+ * every deployment keeps it, old links point at it, and anyone who bookmarked
+ * it lands there and gets a fully working site. A working site whose API calls
+ * are then refused by CORS is worse than either redirecting or serving, so
+ * these origins stay allowed. Canonical is what goes IN emails and links;
+ * legacy is what is still ACCEPTED from a browser.
+ */
+export const LEGACY_APP_ORIGINS = ['https://volunteerny-app-v2.vercel.app'];
 
 let warned = false;
 

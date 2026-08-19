@@ -8,7 +8,7 @@ verify anything here that sounds load-bearing before acting on it.
 
 **Repo:** https://github.com/mrbread56/volunteerny-appV2
 **Local path:** `C:\Users\ASUS\Downloads\VNY_V14`
-**Live:** https://volunteerny-app-v2.vercel.app
+**Live:** https://volunteernorthyork.org
 **Last full update of this file:** commit `5153307`, 20 Aug 2026
 
 ---
