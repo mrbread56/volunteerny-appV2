@@ -71,6 +71,26 @@ end, `STATUS.md` shows no open P0 or P1.
 
 ---
 
+## Parked: inbound email at hello@volunteernorthyork.org (resumes ~16 Nov 2026)
+
+Outgoing mail from the domain works and is verified. INBOUND is deliberately
+parked: forwardemail.net's free tier blocks domains younger than 90 days (their
+abuse rule, learned by live test — it appears in no docs, only in the rejection
+email), and the ImprovMX attempt stalled in dashboard friction. Until then,
+outreach is sent from the founder's Gmail signed with the domain, and nothing
+printed carries an email address — the posters and PA scripts always pointed at
+the site.
+
+**On ~16 Nov 2026 (domain turns 90 days old), do this — 5 minutes, DNS only,
+no accounts:** in Vercel DNS for volunteernorthyork.org, DELETE the two
+improvmx.com MX records, ADD `MX @ mx1.forwardemail.net prio 10`,
+`MX @ mx2.forwardemail.net prio 10`, and
+`TXT @ forward-email=kiamehrmetanat@gmail.com`, then send a test to
+hello@volunteernorthyork.org and confirm it lands in Gmail. Two standing
+warnings: Resend's "Receiving / Enable" panel must NEVER be enabled (its
+priority-9 MX would hijack all inbound), and Resend showing "partially
+verified" is the correct permanent state, not an unfinished setup.
+
 ## v1.1. Maintainability
 
 **Goal:** a second developer can work on this without breaking it. Nothing here
