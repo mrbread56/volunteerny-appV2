@@ -39,7 +39,15 @@ export const CANONICAL_APP_ORIGIN = 'https://volunteernorthyork.org';
  * these origins stay allowed. Canonical is what goes IN emails and links;
  * legacy is what is still ACCEPTED from a browser.
  */
-export const LEGACY_APP_ORIGINS = ['https://volunteerny-app-v2.vercel.app'];
+export const LEGACY_APP_ORIGINS = [
+  'https://volunteerny-app-v2.vercel.app',
+  // Not legacy but an alias: Vercel is configured with www as the production
+  // domain and the apex 308s to it — so the Origin header a real browser sends
+  // is the www form. Discovered live: the API answered every www request with
+  // an apex Allow-Origin, which a browser treats as a block. Both spellings of
+  // the domain must be accepted no matter which one Vercel calls primary.
+  'https://www.volunteernorthyork.org',
+];
 
 let warned = false;
 
