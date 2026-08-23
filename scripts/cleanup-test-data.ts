@@ -26,6 +26,7 @@
 import './env';
 import * as admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
+import { TEST_PATTERNS, isTestAddress } from '../server/testAccounts';
 
 const a: any = (admin as any).default || admin;
 const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
@@ -55,31 +56,11 @@ const tooYoung = (creationTime?: string) => {
   return Date.now() - new Date(creationTime).getTime() < MIN_AGE_MINUTES * 60_000;
 };
 
-/** Every generator that writes to the live project. Keep in sync when a new
- *  check script starts seeding accounts. */
-const TEST_PATTERNS: RegExp[] = [
-  /^check_sec_/i,        // scripts/check-security.ts
-  /^check_storage_/i,    // scripts/check-storage.ts
-  /^check_credit_org_/i, // scripts/check-signup.ts
-  /^check_flow/i,        // scripts/check-flows.ts
-  /^sweep_(student|org|dev)_/i,  // tests/e2e/console-sweep.spec.ts
-  /^trap_(student|org|dev)_/i,   // tests/e2e/click-trap.spec.ts
-  /^testuser_\d+@/i,
-  /^check_lc_/i,         // scripts/check-lifecycle.ts
-  /^check_conc_/i,       // scripts/check-concurrency.ts
-  /^vf-[so]-/i,          // scripts/check-security.ts adversarial fixtures
-  /@example\.com$/i,     // reserved by RFC 2606 — never a real address
-  // .invalid is reserved by the SAME RFC and is just as safe to sweep. Missing
-  // it is why the adversarial fixture "Forged Total" — a students document
-  // carrying hours: 999999 at vf-s-…@volunteerny-check.invalid — survived every
-  // cleanup run. The leaderboard builder reads
-  // `students.orderBy('hours','desc')` and filters only on trackerEnabled, so
-  // that row was one cron rebuild away from sitting at #1 in front of every
-  // student on the platform.
-  /\.invalid$/i,
-];
-
-const isTestAddress = (email: string) => !!email && TEST_PATTERNS.some((p) => p.test(email));
+/** The patterns and the matcher now live in server/testAccounts.ts, because
+ *  the metrics code needs the same answer to "is this a fixture?" and two
+ *  hand-synced copies of a list like this drift the moment someone is in a
+ *  hurry. Add new check-script prefixes THERE, not here. */
+void TEST_PATTERNS; // re-exported for callers that import it from this module
 
 (async () => {
   // ── Auth identities ──

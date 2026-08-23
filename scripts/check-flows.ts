@@ -410,6 +410,12 @@ const as = async (email: string) => {
       // this endpoint is wrong or unreachable, every figure quoted about the
       // platform is invented.
       {
+        // What the public counter said before this pass, so the refresh can be
+        // proven rather than assumed.
+        const before: any = await fetch(`${apiBase}/api/metrics/public`)
+          .then((x) => x.json())
+          .catch(() => ({}));
+
         const devToken = await auth.currentUser!.getIdToken(true);
         const r = await fetch(`${apiBase}/api/metrics`, {
           headers: { Authorization: `Bearer ${devToken}` },
@@ -430,12 +436,23 @@ const as = async (email: string) => {
         console.log('[PASS] metrics: a developer reads real signal, not placeholders');
 
         // Reading the full set refreshes the public counters as a byproduct.
+        // Two things must hold, and they pull in opposite directions: the
+        // refresh has to happen, and the fixtures this suite just created must
+        // NOT survive into it. These figures are rendered on the public home
+        // page, and on 23 Aug 2026 a test run left the counter claiming three
+        // verified organizations at a moment when there were none. The
+        // dashboard above still sees every fixture, which is correct; only the
+        // public copy is filtered. See server/testAccounts.ts.
         const pub = await fetch(`${apiBase}/api/metrics/public`);
         assert.ok(pub.ok, `public counters unavailable (${pub.status})`);
         const p: any = await pub.json();
-        assert.ok(p.hoursConfirmed >= 3.5,
+        assert.ok(p.updatedAt && p.updatedAt !== before?.updatedAt,
           'the public counter was not refreshed by the developer read');
-        console.log('[PASS] metrics: the public counters refresh from the same pass');
+        assert.ok(!(p.hoursConfirmed >= 3.5),
+          `this suite's fixture hours reached the public counter (${p.hoursConfirmed})`);
+        assert.ok(!(p.verifiedOrganizations >= 1),
+          `this suite's fixture organization reached the public counter (${p.verifiedOrganizations})`);
+        console.log('[PASS] metrics: public counters refresh, and fixtures stay out of them');
       }
 
       // Anyone signed out can read the public figure, and nobody can read the

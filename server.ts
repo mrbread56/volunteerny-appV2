@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { Resend } from 'resend';
 import { emailTemplates } from './server/emailTemplates.js';
 import { appOrigin, CANONICAL_APP_ORIGIN, LEGACY_APP_ORIGINS } from './server/appUrl.js';
+import { isTestAddress } from './server/testAccounts.js';
 import { totalLoggedHours } from './src/lib/hours.js';
 import dotenv from 'dotenv';
 import * as admin from 'firebase-admin';
@@ -788,13 +789,14 @@ app.use(express.json());
   async function computeMetrics() {
     const dbAdmin = adminFirestore();
 
-    const [students, orgs, opps, apps, hours, reports] = await Promise.all([
+    const [students, orgs, opps, apps, hours, reports, users] = await Promise.all([
       dbAdmin.collection('students').get(),
       dbAdmin.collection('organizations').get(),
       dbAdmin.collection('opportunities').get(),
       dbAdmin.collection('applications').get(),
       dbAdmin.collection('hoursRequests').get(),
       dbAdmin.collection('reports').get(),
+      dbAdmin.collection('users').get(),
     ]);
 
     const orgsByStatus = { unverified: 0, pending: 0, verified: 0, rejected: 0 } as Record<string, number>;
@@ -857,8 +859,55 @@ app.use(express.json());
 
     const openReports = reports.docs.filter((d: any) => (d.data()?.status || 'pending') === 'pending').length;
 
+    // Everything above counts every document, because the developer dashboard
+    // is a debugging tool and hiding rows from the person debugging is how you
+    // get a developer who does not trust their own dashboard.
+    //
+    // The public impact counter is the opposite case. The check scripts seed
+    // real documents into this real project and delete them when they finish,
+    // so a metrics read that lands mid-run sees fixtures. On 23 Aug 2026 one
+    // did, and left the public counter claiming three verified organizations
+    // while the collection held none. Nobody saw a fabricated number only
+    // because the counter hides below 25 hours. So the public figures, and
+    // only those, are recomputed here with fixtures removed.
+    const fixtureUids = new Set<string>();
+    for (const d of users.docs) {
+      if (isTestAddress(d.data()?.email)) fixtureUids.add(d.id);
+    }
+
+    let publicHours = 0;
+    let publicStudentsWithHours = 0;
+    const publicPlacements = new Set<string>();
+    for (const d of students.docs) {
+      if (fixtureUids.has(d.id)) continue;
+      const logged: any[] = d.data()?.loggedHours || [];
+      const total = logged.reduce((sum, l) => {
+        const n = Number(l?.hours);
+        return sum + (Number.isFinite(n) ? n : 0);
+      }, 0);
+      if (total > 0) publicStudentsWithHours++;
+      publicHours += total;
+      for (const l of logged) {
+        if (l?.organization) publicPlacements.add(`${d.id}::${l.organization}`);
+      }
+    }
+
+    let publicVerifiedOrgs = 0;
+    for (const d of orgs.docs) {
+      if (fixtureUids.has(d.id)) continue;
+      const x = d.data();
+      if (x?.craVerified || x?.verificationStatus === 'verified') publicVerifiedOrgs++;
+    }
+
     return {
       generatedAt: new Date().toISOString(),
+      /** Safe to show the world: fixtures excluded. See the note above. */
+      publicCounters: {
+        hoursConfirmed: Math.round(publicHours * 10) / 10,
+        verifiedOrganizations: publicVerifiedOrgs,
+        studentsWithAnyHours: publicStudentsWithHours,
+        completedPlacements: publicPlacements.size,
+      },
       signal: {
         // Share of postings that produced at least one accepted applicant.
         placementRate: opps.size ? opportunitiesWithAnAccept.size / opps.size : 0,
@@ -1132,10 +1181,7 @@ app.use(express.json());
       // than a second job.
       try {
         await adminFirestore().collection('metrics').doc('public').set({
-          hoursConfirmed: metrics.signal.hoursConfirmed,
-          verifiedOrganizations: metrics.counts.orgsByStatus.verified || 0,
-          studentsWithAnyHours: metrics.signal.studentsWithAnyHours,
-          completedPlacements: metrics.signal.completedPlacements,
+          ...metrics.publicCounters,
           updatedAt: metrics.generatedAt,
         });
       } catch (writeErr: any) {
