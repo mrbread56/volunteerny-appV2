@@ -463,15 +463,29 @@ app.use(express.json());
   const RATE_WINDOW_MS = 10 * 60 * 1000;
   const RATE_MAX = 5;
 
-  async function isOtpRateLimited(uid: string): Promise<boolean> {
+  /**
+   * Parameterised so password reset can share it rather than grow a second copy.
+   *
+   * The defaults are the 2FA numbers this was written for, so both existing call
+   * sites behave exactly as before. The local Map is namespaced by collection:
+   * reset is keyed by EMAIL and OTP by UID, and an un-namespaced Map would let
+   * those two key spaces collide.
+   */
+  async function isOtpRateLimited(
+    uid: string,
+    collectionName = 'otp_rate_limits',
+    windowMs = RATE_WINDOW_MS,
+    maxAttempts = RATE_MAX,
+  ): Promise<boolean> {
     const now = Date.now();
-    const local = otpRateLimit.get(uid);
-    const localFresh = local && now - local.windowStart <= RATE_WINDOW_MS;
+    const localKey = `${collectionName}:${uid}`;
+    const local = otpRateLimit.get(localKey);
+    const localFresh = local && now - local.windowStart <= windowMs;
 
     let ref: any = null;
     try {
       const adminObj = getAdminObj();
-      if (adminObj) ref = adminFirestore().collection('otp_rate_limits').doc(uid);
+      if (adminObj) ref = adminFirestore().collection(collectionName).doc(uid);
     } catch {
       ref = null;
     }
@@ -479,11 +493,11 @@ app.use(express.json());
     if (!ref) {
       // No Firestore: fall back to the per-process counter.
       if (!localFresh) {
-        otpRateLimit.set(uid, { count: 1, windowStart: now });
+        otpRateLimit.set(localKey, { count: 1, windowStart: now });
         return false;
       }
       local!.count++;
-      return local!.count > RATE_MAX;
+      return local!.count > maxAttempts;
     }
 
     try {
@@ -494,28 +508,28 @@ app.use(express.json());
         const data = snap.exists ? snap.data() : null;
         const windowStart = typeof data?.windowStart === 'number' ? data.windowStart : 0;
 
-        if (!data || now - windowStart > RATE_WINDOW_MS) {
+        if (!data || now - windowStart > windowMs) {
           tx.set(ref, { count: 1, windowStart: now });
           return false;
         }
         const count = (typeof data.count === 'number' ? data.count : 0) + 1;
         tx.set(ref, { count, windowStart }, { merge: true });
-        return count > RATE_MAX;
+        return count > maxAttempts;
       });
 
-      otpRateLimit.set(uid, {
-        count: overLimit ? RATE_MAX + 1 : (localFresh ? local!.count + 1 : 1),
+      otpRateLimit.set(localKey, {
+        count: overLimit ? maxAttempts + 1 : (localFresh ? local!.count + 1 : 1),
         windowStart: localFresh ? local!.windowStart : now,
       });
       return overLimit;
     } catch (err: any) {
       console.warn('[otp] rate-limit transaction failed, using in-process counter:', err.message);
       if (!localFresh) {
-        otpRateLimit.set(uid, { count: 1, windowStart: now });
+        otpRateLimit.set(localKey, { count: 1, windowStart: now });
         return false;
       }
       local!.count++;
-      return local!.count > RATE_MAX;
+      return local!.count > maxAttempts;
     }
   }
 
@@ -2651,6 +2665,122 @@ app.use(express.json());
   });
 
   // ── SEND OTP ──
+  // ── PASSWORD RESET ──
+  /**
+   * Send a password reset link over OUR mail pipeline, not Firebase's.
+   *
+   * The client used to call the SDK's sendPasswordResetEmail directly. That
+   * works, in the sense that it returns without error — but delivery is handed
+   * to Google's mailer sending as noreply@<project>.firebaseapp.com, a domain
+   * this project has never authenticated and which is entirely separate from
+   * the Resend sender that carries the 2FA codes, the notifications and every
+   * other message the site produces successfully.
+   *
+   * On 27 Aug 2026 an organisation we had just onboarded used "Forgot
+   * password?", received nothing, and told us. Reproduced from our own account
+   * the same day: the request succeeds, the account exists, the link generates
+   * fine through the Admin SDK, and no email ever arrives. Every other message
+   * the site sends that day was delivered, because every other message goes out
+   * the other pipeline.
+   *
+   * So: generate the link with the Admin SDK, send it with Resend. Password
+   * reset now rides the sender that is actually verified, and there is one mail
+   * path to check instead of two.
+   *
+   * Two properties this endpoint has to keep:
+   *
+   *   1. The response is IDENTICAL whether or not the account exists. The old
+   *      client code was careful about this (it swallowed auth/user-not-found on
+   *      purpose) and moving the work to a server route would be an easy place
+   *      to lose it — a 404 here would turn the login page into a checker for
+   *      which addresses have accounts.
+   *
+   *   2. It is rate limited per address. Firebase applied its own limits when it
+   *      owned this; now that we send the mail, an unauthenticated endpoint that
+   *      emails anyone who is named in the body is ours to throttle. Five in ten
+   *      minutes matches the OTP ceiling.
+   */
+  app.post('/api/auth/password-reset', async (req, res) => {
+    // Said in every branch below, including the failures. See property 1.
+    const SAME_ANSWER = {
+      success: true,
+      message: 'If an account exists for that address, a password reset link is on its way.',
+    };
+
+    try {
+      const email = String(req.body?.email || '').trim().toLowerCase();
+      // A missing address is the one thing worth reporting honestly: nobody is
+      // enumerated by being told they left the box empty.
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ error: 'Enter your email address.' });
+      }
+
+      if (await isOtpRateLimited(email, 'password_reset_rate_limits')) {
+        console.warn(`[password-reset] rate limited: ${email}`);
+        // Deliberately the ordinary answer rather than a 429. A distinguishable
+        // response here would leak which addresses are worth hammering.
+        return res.json(SAME_ANSWER);
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) {
+        console.error('[password-reset] Firebase Admin not available');
+        return res.status(503).json({
+          error: 'Password reset is temporarily unavailable. Please try again shortly.',
+        });
+      }
+
+      let link: string;
+      try {
+        link = await adminObj.auth().generatePasswordResetLink(email);
+      } catch (err: any) {
+        // auth/user-not-found is the expected case for an address with no
+        // account, and it must look exactly like success. Anything else is a
+        // real fault worth logging, but still must not change the answer.
+        if (err?.code !== 'auth/user-not-found') {
+          console.error('[password-reset] link generation failed:', err?.code, err?.message);
+        }
+        return res.json(SAME_ANSWER);
+      }
+
+      if (!resend) {
+        console.error('[password-reset] RESEND_API_KEY is not configured — cannot deliver the link.');
+        return res.status(503).json({
+          error: 'Email delivery is not configured on this server. Please contact support.',
+        });
+      }
+
+      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>';
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: email,
+        subject: 'Reset your Volunteer North York password',
+        html: emailTemplates.password_reset(link),
+      });
+
+      if (error) {
+        // Logged in full, never shown: the sender domain and the raw provider
+        // message are diagnostics for whoever runs the server, not for the
+        // person locked out of their account.
+        console.error('[password-reset] Resend rejected the message:', {
+          message: error.message,
+          from: fromAddress,
+        });
+        return res.status(502).json({
+          error: 'We could not send the reset email just now. Please try again in a moment.',
+        });
+      }
+
+      console.log(`[password-reset] link sent to ${email}`);
+      return res.json(SAME_ANSWER);
+    } catch (err: any) {
+      console.error('[password-reset] Crash:', err);
+      return res.status(500).json({
+        error: 'Something went wrong sending your reset link. Please try again.',
+      });
+    }
+  });
+
   app.post('/api/auth/send-otp', async (req, res) => {
     if (mailUnavailable(res)) return;
     try {

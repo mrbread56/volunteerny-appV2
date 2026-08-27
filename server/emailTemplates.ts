@@ -292,6 +292,43 @@ function wrapBaseTemplate({ title, previewText = "", children }: BaseTemplatePro
  */
 export const emailTemplates = {
   /**
+   * 0. Password reset.
+   *
+   * Firebase can send this itself, and for a long time it did — which is why
+   * nobody noticed it was not arriving. sendPasswordResetEmail hands delivery to
+   * Google's mailer on a noreply@<project>.firebaseapp.com sender that this
+   * project never authenticated, a completely separate pipeline from the Resend
+   * domain that carries every other message the site sends. On 27 Aug 2026 an
+   * organisation reported the reset email never came, and the same request from
+   * our own account never arrived either.
+   *
+   * So the link is generated with the Admin SDK and delivered here instead, over
+   * the sender that is actually verified. One pipeline, one place to check.
+   */
+  password_reset: (link: string) => {
+    const title = "Reset your password";
+    const children = `
+      <h2 class="h2">Reset your password</h2>
+      <p>Someone asked to reset the password for this ${BRAND_NAME} account. If that was you, use the button below.</p>
+
+      <div style="text-align: center;">
+        <a href="${esc(link)}" class="btn">Choose a new password</a>
+      </div>
+
+      <div class="card">
+        <p><strong>This link works once and expires in about an hour.</strong></p>
+        <p>If the button does not work, copy this address into your browser:</p>
+        <p style="word-break: break-all; font-size: 12px;">${esc(link)}</p>
+      </div>
+
+      <p>If you did not ask for this, you can ignore this email — your password will not change unless you use the link above.</p>
+      <p>Already signed in? You can change your password from your profile page instead, without needing this email at all.</p>
+      <p>The ${BRAND_NAME} Team</p>
+    `;
+    return wrapBaseTemplate({ title, children, previewText: "A link to choose a new password." });
+  },
+
+  /**
    * 1. Student Welcome Email
    */
   welcome_student: (studentName: string) => {

@@ -18,6 +18,7 @@
     "check:mfa": "tsx scripts/check-mfa.ts",
     "check:recovery": "tsx scripts/check-recovery.ts",
     "check:password": "tsx scripts/check-password-change.ts",
+    "check:reset": "npm run build && tsx scripts/check-password-reset.ts",
     "cleanup:test-data": "tsx scripts/cleanup-test-data.ts",
     "check:security": "npm run build && tsx scripts/check-security.ts",
     "check:flows": "tsx scripts/check-flows.ts",

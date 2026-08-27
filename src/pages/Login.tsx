@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, deleteUser } from "firebase/auth";
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, deleteUser } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
+import { API_BASE_URL } from "../lib/config";
 import { useAuth } from "../contexts/AuthContext";
 import { verifyMfaClaim } from "../lib/mfa";
 import { toUserMessage } from "../lib/errors";
@@ -95,10 +96,21 @@ export default function Login() {
     }
   };
 
-  // There was previously no recovery path at all: a forgotten password locked
-  // the account permanently. The confirmation wording is deliberately identical
-  // whether or not the address exists, so this cannot be used to enumerate
-  // which emails are registered.
+  /*
+   * There was previously no recovery path at all: a forgotten password locked
+   * the account permanently. The confirmation wording is deliberately identical
+   * whether or not the address exists, so this cannot be used to enumerate
+   * which emails are registered.
+   *
+   * This used to call the SDK's sendPasswordResetEmail. It returned cleanly and
+   * delivered nothing: Firebase sends that message itself, as
+   * noreply@<project>.firebaseapp.com, a domain this project never
+   * authenticated and a pipeline entirely separate from the Resend sender that
+   * carries every other email the site manages to deliver. An organisation
+   * reported it on 27 Aug 2026 and it reproduced from our own account the same
+   * day. The server route generates the same link through the Admin SDK and
+   * sends it over the sender that works.
+   */
   const handlePasswordReset = async () => {
     const target = email.trim();
     setError("");
@@ -109,14 +121,24 @@ export default function Login() {
     }
     setIsResetting(true);
     try {
-      await sendPasswordResetEmail(auth, target);
-    } catch (err: any) {
-      // auth/user-not-found must not be surfaced, for the reason above.
-      if (err?.code && err.code !== "auth/user-not-found") {
-        setError(friendlyAuthError(err.code));
+      const res = await fetch(`${API_BASE_URL}/api/auth/password-reset`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: target }),
+      });
+      // The route answers identically for a real and an unknown address, so
+      // there is nothing to branch on here — only genuine faults (mail not
+      // configured, provider rejection) come back as a non-2xx.
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body?.error || "We could not send the reset email. Please try again.");
         setIsResetting(false);
         return;
       }
+    } catch {
+      setError("We could not reach the server. Please check your connection and try again.");
+      setIsResetting(false);
+      return;
     }
     setResetNotice(
       `If an account exists for ${target}, a password reset link is on its way. Check your spam folder if it doesn't arrive in a few minutes.`
