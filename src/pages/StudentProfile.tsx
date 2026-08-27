@@ -9,6 +9,7 @@ import { Select } from "../components/ui/Select";
 import { Badge } from "../components/ui/Badge";
 import { FileUpload } from "../components/ui/FileUpload";
 import { deleteOwnAccount } from "../lib/deleteAccount";
+import ChangePassword from "../components/ChangePassword";
 import {
   Card,
   CardContent,
@@ -897,6 +898,8 @@ export default function StudentProfile() {
                   Save Profile
                 </Button>
               )}
+
+              <ChangePassword />
 
               {!isDemoMode && (
                 <div className="border border-red-100 bg-red-50/20 p-4 rounded-lg space-y-3">

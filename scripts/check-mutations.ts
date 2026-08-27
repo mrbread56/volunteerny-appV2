@@ -35,6 +35,7 @@ type Mutation = {
 const FUZZ = 'tests/property-fuzz.spec.ts';
 const DATE = 'tests/opportunity-date.spec.ts';
 const MAIL = 'tests/email-templates.spec.ts';
+const PWD = 'tests/password-change.spec.ts';
 
 const MUTATIONS: Mutation[] = [
   {
@@ -92,6 +93,37 @@ const MUTATIONS: Mutation[] = [
     replace: '  if (value === null || value === undefined) return String(value);',
     what: 'email: render the literal words "null" and "undefined"',
     specs: [MAIL],
+  },
+  // ── the change-password validator ──────────────────────────────────────────
+  // This one gates a real security decision and a network round trip, so a
+  // silently-relaxed check here is expensive in both directions.
+  {
+    file: 'src/lib/passwordChange.ts',
+    find: '  if (next.length < FIREBASE_MIN_PASSWORD) {',
+    replace: '  if (next.length <= FIREBASE_MIN_PASSWORD) {',
+    what: 'off by one on the minimum length: a valid 6-character password is refused',
+    specs: [PWD],
+  },
+  {
+    file: 'src/lib/passwordChange.ts',
+    find: "  if (next !== confirm) return 'The two new passwords do not match.';",
+    replace: "  if (next === confirm) return 'The two new passwords do not match.';",
+    what: 'the confirmation comparison is inverted, so only typos are accepted',
+    specs: [PWD],
+  },
+  {
+    file: 'src/lib/passwordChange.ts',
+    find: "  if (next === current) return 'Your new password is the same as your current one.';",
+    replace: "  // guard deleted",
+    what: 'the reuse guard is dropped: "changing" to the same password reports success',
+    specs: [PWD],
+  },
+  {
+    file: 'src/lib/passwordChange.ts',
+    find: "  if (!current) return 'Enter your current password.';",
+    replace: "  // guard deleted",
+    what: 'an empty current password is no longer caught before the network call',
+    specs: [PWD],
   },
 ];
 

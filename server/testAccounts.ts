@@ -30,6 +30,7 @@ export const TEST_PATTERNS: RegExp[] = [
   /^testuser_\d+@/i,
   /^check_lc_/i,         // scripts/check-lifecycle.ts
   /^check_conc_/i,       // scripts/check-concurrency.ts
+  /^check_pwd_/i,        // scripts/check-password-change.ts
   /^vf-[so]-/i,          // scripts/check-security.ts adversarial fixtures
   /@example\.com$/i,     // reserved by RFC 2606 — never a real address
   // .invalid is reserved by the SAME RFC and is just as safe to sweep. Missing
