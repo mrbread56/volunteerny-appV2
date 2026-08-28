@@ -238,7 +238,25 @@ export function useDeveloperDashboardData(
       return;
     }
     try {
-      const q = query(collection(db, 'organizations'), where('verificationStatus', '==', 'pending'), limit(200));
+      /*
+       * Both states, not just 'pending'.
+       *
+       * Signup writes 'pending' when an organisation says it is a CRA
+       * registered charity and 'unverified' when it says it is not, and this
+       * query asked for 'pending' alone. firestore.rules requires 'verified'
+       * to post anything, and nothing anywhere promotes 'unverified' — so
+       * every non-charity that ever signed up could join, could never post,
+       * and could never be approved, because no reviewer could see them.
+       *
+       * Found on 28 Aug 2026 when a real clinic signed up on its own, sat
+       * invisible, and never came back. The signup form tells these
+       * organisations "You can join without one", and it has to be true.
+       */
+      const q = query(
+        collection(db, 'organizations'),
+        where('verificationStatus', 'in', ['pending', 'unverified']),
+        limit(200),
+      );
       const snap = await getDocs(q);
       setPendingOrgs(snap.docs.map(d => ({ ...d.data(), uid: d.id } as any)));
     } catch (err) {

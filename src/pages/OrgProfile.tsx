@@ -529,11 +529,29 @@ export default function OrgProfile() {
                   ? 'verified'
                   : (orgProfile?.verificationStatus || 'unverified');
                 const view = {
-                  verified: {
+                  /*
+                   * Two different approvals, and they must not claim the same
+                   * thing. craVerified means a CRA charity registration was
+                   * looked up; verificationStatus 'verified' only means a
+                   * person approved the organization.
+                   *
+                   * Non-charities could not reach the reviewer at all until
+                   * 28 Aug 2026, so every approved organization had a CRA
+                   * number and one wording covered both. Now a private clinic
+                   * can be approved, and telling it we checked a charity
+                   * registration it never had would be a plain untruth shown
+                   * on its own dashboard.
+                   */
+                  verified: orgProfile?.craVerified ? {
                     cls: 'bg-emerald-50 border-emerald-200 text-emerald-800',
                     icon: 'text-emerald-600',
                     label: 'Verified charity',
                     note: 'Your CRA registration has been checked by our team.',
+                  } : {
+                    cls: 'bg-emerald-50 border-emerald-200 text-emerald-800',
+                    icon: 'text-emerald-600',
+                    label: 'Verified organization',
+                    note: 'Your organization has been reviewed and approved by our team.',
                   },
                   pending: {
                     cls: 'bg-amber-50 border-amber-200 text-amber-900',

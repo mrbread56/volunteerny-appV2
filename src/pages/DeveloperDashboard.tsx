@@ -250,9 +250,22 @@ export default function DeveloperDashboard() {
         setVerifyingId(null);
         return;
       }
+      /*
+       * craVerified means "we checked their CRA charity registration", and it
+       * is what renders the badge reading "Verified charity — your CRA
+       * registration has been checked by our team".
+       *
+       * It used to be set from the decision alone. Now that non-charities
+       * reach this queue, that would tell a private clinic with no charity
+       * number that we had checked their charity number. Approval and charity
+       * status are two different facts and are recorded separately.
+       */
+      const submittedCra = !!String(
+        pendingOrgs.find(o => o.uid === orgUid)?.craNumber || ''
+      ).trim();
       await updateDoc(doc(db, 'organizations', orgUid), {
         verificationStatus: decision,
-        craVerified: decision === 'verified',
+        craVerified: decision === 'verified' && submittedCra,
         verifiedAt: serverTimestamp(),
         verifiedBy: user?.email || 'developer',
       });
@@ -1311,7 +1324,7 @@ export default function DeveloperDashboard() {
     ) : activeTab === 'verification' ? (
       <div className="space-y-6">
         <h3 className="text-lg font-semibold uppercase text-ink-soft">Pending Organization Verification</h3>
-        <p className="text-sm text-ink-muted">Organizations that submitted a CRA charity registration number. Verify each against the <a href="https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyBscSrch" target="_blank" rel="noopener noreferrer" className="text-blue-dark underline">CRA Charity Registry</a> before approving.</p>
+        <p className="text-sm text-ink-muted">Every organization waiting to be let in. Charities give a CRA number to check against the <a href="https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyBscSrch" target="_blank" rel="noopener noreferrer" className="text-blue-dark underline">CRA Charity Registry</a>; the rest have to be judged on their website and address. Nobody can post until you approve them.</p>
         {pendingOrgs.length === 0 ? (
           <div className="text-center py-16 text-ink-muted text-sm font-semibold">No organizations pending verification.</div>
         ) : (
@@ -1323,11 +1336,47 @@ export default function DeveloperDashboard() {
                     <h4 className="font-bold text-ink text-base">{org.organizationName}</h4>
                     <p className="text-xs text-ink-muted mt-1">{org.contactEmail} · {org.address || 'No address'}</p>
                   </div>
-                  <span className="text-xs font-semibold uppercase bg-amber-100 text-amber-700 px-2 py-1">Pending</span>
+                  <span className={`text-xs font-semibold uppercase px-2 py-1 ${
+                    org.craNumber ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                  }`}>{org.craNumber ? 'Charity' : 'No CRA'}</span>
                 </div>
-                <div className="bg-paper-2 p-3 font-mono text-sm tracking-wider text-ink-soft border border-line-light">
-                  CRA #: <strong>{org.craNumber || 'Not provided'}</strong>
-                </div>
+                {org.craNumber ? (
+                  <div className="bg-paper-2 p-3 border border-line-light space-y-1">
+                    <p className="font-mono text-sm tracking-wider text-ink-soft">
+                      CRA #: <strong>{org.craNumber}</strong>
+                    </p>
+                    <p className="text-xs text-ink-muted">
+                      Look this up in the CRA registry and check the name matches before approving.
+                    </p>
+                  </div>
+                ) : (
+                  /*
+                   * Not an error state. An organization can say it is not a registered
+                   * charity and still be entirely real — a clinic, a retirement home, a
+                   * BIA, a sports club. Before 28 Aug 2026 these never reached this queue
+                   * at all, so they could join and then do nothing, forever. There is
+                   * simply no CRA number to look up, so the check is a different one.
+                   */
+                  <div className="bg-paper-2 p-3 border border-line-light space-y-1">
+                    <p className="text-sm text-ink-soft">
+                      <strong>Not a registered charity.</strong> Nothing to look up in the CRA registry.
+                    </p>
+                    <p className="text-xs text-ink-muted">
+                      Check they are real another way: open their website, confirm the address is in
+                      or near North York, and see that the contact email matches their domain.
+                    </p>
+                    {org.websiteUrl && (
+                      <a href={org.websiteUrl} target="_blank" rel="noopener noreferrer"
+                         className="inline-block text-xs font-semibold text-blue-dark underline underline-offset-2">
+                        {org.websiteUrl}
+                      </a>
+                    )}
+                  </div>
+                )}
+                <p className="text-xs text-ink-muted">
+                  {org.organizationType || 'No type given'}
+                  {org.northYorkConfirmed ? ' · confirmed North York' : ' · did not confirm North York'}
+                </p>
                 {org.mission && <p className="text-sm text-ink-muted">{org.mission}</p>}
                 <div className="flex gap-3 pt-2">
                   <button
