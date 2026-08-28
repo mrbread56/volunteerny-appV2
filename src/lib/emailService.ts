@@ -13,6 +13,7 @@ export interface EmailPayload {
     | 'application_status'
     | 'hours_confirmation'
     | 'new_applicant'
+    | 'applicant_withdrew'
     // 'auth_verification' and 'admin_alert' are server-internal: the send
     // endpoint answers 403 for both, so listing them here would only let
     // TypeScript bless a call that always fails. See CLIENT_TEMPLATES in

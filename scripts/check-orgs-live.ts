@@ -47,13 +47,27 @@ const app = initializeApp({
 });
 const auth = getAuth(app);
 
-// The credentials that were actually emailed. If these stop matching, the two
-// organisations are locked out and nothing else in this file matters.
+/*
+ * The credentials that were actually emailed, and whether they should still
+ * open the account.
+ *
+ * `emailedPasswordWorks: false` is not a broken account — it is the desired
+ * end state. We hand an organisation a password we chose, and the first thing
+ * they should do is replace it. When they do, ours must stop working, and this
+ * suite asserts that it does: a password we picked for someone else, still
+ * live weeks later, is the failure.
+ *
+ * Tirgan flipped to false on 28 Aug 2026 when they wrote "I logged in and
+ * changed the password." Before that this file asserted our password still
+ * worked and reported a FAIL when they did exactly the right thing — the test
+ * was encoding a fact that was supposed to expire.
+ */
 const ORGS = [
   {
     label: 'Community Share Food Bank',
     email: 'contact@communitysharefoodbank.ca',
     password: 'Lantern-Juniper-2865!',
+    emailedPasswordWorks: true, // not signed in yet as of 28 Aug 2026
     expectListing: true,
     expectListingStatus: 'open',
   },
@@ -61,6 +75,7 @@ const ORGS = [
     label: 'Tirgan Centre for Art & Culture',
     email: 'info@tirgan.ca',
     password: 'Kestrel-Falcon-5728!',
+    emailedPasswordWorks: false, // they changed it themselves, 28 Aug 2026
     expectListing: true,
     expectListingStatus: 'closed', // still a draft, awaiting their schedule
   },
@@ -154,15 +169,26 @@ async function pastSends(store: any, email: string): Promise<number> {
       continue;
     }
 
-    // ── 2. the emailed password actually works ───────────────────────────────
+    // ── 2. the emailed password, and whether it should still open the door ───
     try {
       const cred = await signInWithEmailAndPassword(auth, org.email, org.password);
-      if (cred.user.uid === uid) pass('the emailed password signs in');
-      else fail('signed in but landed on a different uid');
+      if (!org.emailedPasswordWorks) {
+        // A password we chose for someone else, still working after they told
+        // us they had replaced it, would mean the change never took.
+        fail('the password we emailed STILL works after they changed it');
+      } else if (cred.user.uid === uid) {
+        pass('the emailed password signs in');
+      } else {
+        fail('signed in but landed on a different uid');
+      }
     } catch (err: any) {
-      fail(`the emailed password does NOT work (${err.code}) — they are locked out`);
-      await signOut(auth).catch(() => {});
-      continue;
+      if (!org.emailedPasswordWorks && err.code === 'auth/invalid-credential') {
+        pass('they replaced the password we sent, and ours no longer works');
+      } else if (org.emailedPasswordWorks) {
+        fail(`the emailed password does NOT work (${err.code}) — they are locked out`);
+        await signOut(auth).catch(() => {});
+        continue;
+      }
     }
 
     // ── 3. the users/ record decides where the app sends them ────────────────

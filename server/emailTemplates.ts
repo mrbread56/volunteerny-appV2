@@ -456,6 +456,43 @@ export const emailTemplates = {
   },
 
   /**
+   * A student pulled out before a decision was made.
+   *
+   * Withdrawal DELETES the application, because the document id is
+   * `${studentId}_${opportunityId}` and a tombstone would block the student
+   * from ever applying again. That is the right call for the record, but it
+   * meant the application simply vanished from the organisation's list with no
+   * word — they kept a place open for somebody who had already gone.
+   *
+   * Tirgan asked what happens in exactly this case on 28 Aug 2026, which is how
+   * it was found. The reason is optional and included only when given: a
+   * student is not obliged to explain, and an empty quotation mark block reads
+   * worse than no reason at all.
+   */
+  applicant_withdrew: (orgName: string, applicantName: string, oppTitle: string, reason?: string) => {
+    const title = "An applicant withdrew";
+    const children = `
+      <h2 class="h2">Hello ${esc(orgName)},</h2>
+      <p><strong>${esc(applicantName)}</strong> has withdrawn their application for
+         <strong>${esc(oppTitle)}</strong>. No decision had been made yet, so nothing is
+         needed from you.</p>
+
+      <div class="card">
+        <h3>What this means</h3>
+        <p>Their place is open again, and the posting is still live and taking applications.</p>
+        ${reason ? `<p class="applicant-message">"${esc(reason)}"</p>` : ""}
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${BRAND_URL()}/org/dashboard" class="btn">Open your dashboard</a>
+      </div>
+
+      <p>The ${BRAND_NAME} Team</p>
+    `;
+    return wrapBaseTemplate({ title, children, previewText: `${esc(applicantName)} withdrew their application.` });
+  },
+
+  /**
    * 5. Auth / Security Codes (Verification/Reset)
    */
   auth_verification: (userName: string, code: string, purpose: "verification" | "reset") => {

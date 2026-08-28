@@ -413,7 +413,20 @@ export default function StudentDashboard() {
    */
   const handleWithdrawApplication = async (app: any) => {
     if (!user) return;
-    if (!window.confirm(`Withdraw your application for "${app.opportunityTitle || 'this opportunity'}"? You can apply again afterwards.`)) return;
+    /*
+     * One dialog doing both jobs. Cancel means "do not withdraw", OK means
+     * withdraw with whatever was typed, including nothing. A separate confirm
+     * followed by a separate reason box is two interruptions for one decision.
+     */
+    const reason = window.prompt(
+      `Withdraw your application for "${app.opportunityTitle || 'this opportunity'}"?
+
+` +
+      `You can apply again afterwards. If you want, say why — it is sent to the ` +
+      `organization so they know. Leave it blank to withdraw without a reason.`,
+      '',
+    );
+    if (reason === null) return; // cancelled
     setWithdrawingId(app.id);
     try {
       if (isDemoMode) {
@@ -422,6 +435,44 @@ export default function StudentDashboard() {
           stored.filter((a: any) => a.id !== app.id),
         ));
       } else {
+        /*
+         * Tell the organization BEFORE the delete, not after.
+         *
+         * Withdrawal deletes the application (see the note above on why a
+         * tombstone would trap the student), so once it is gone there is
+         * nothing left to describe: not the posting title, not who applied.
+         * Sending first is the only ordering where the message can be built at
+         * all.
+         *
+         * Awaited rather than fired and forgotten, for the same reason. The
+         * delete would otherwise race the read of the organization document
+         * and win. A failure here must NOT block the withdrawal though — the
+         * student asked to leave, and an unreachable mailbox is not a reason to
+         * keep them attached to a placement.
+         */
+        try {
+          const orgId = app.orgId || (await getDoc(doc(db, "opportunities", app.opportunityId))).data()?.orgId;
+          if (orgId) {
+            const orgSnap = await getDoc(doc(db, "organizations", orgId));
+            const org: any = orgSnap.exists() ? orgSnap.data() : null;
+            if (org?.contactEmail) {
+              await sendTransactionalEmail({
+                to: org.contactEmail,
+                subject: `An applicant withdrew from "${app.opportunityTitle || 'your posting'}"`,
+                templateName: 'applicant_withdrew',
+                templateData: {
+                  orgName: org.organizationName || 'your organization',
+                  applicantName: studentProfile?.fullName || user.displayName || 'A student',
+                  oppTitle: app.opportunityTitle || 'your posting',
+                  reason: reason.trim() || undefined,
+                },
+              });
+            }
+          }
+        } catch (notifyErr) {
+          console.error('Could not tell the organization about a withdrawal:', notifyErr);
+        }
+
         await deleteDoc(doc(db, "applications", app.id));
       }
       setApplications((prev: any[]) => prev.filter((a) => a.id !== app.id));

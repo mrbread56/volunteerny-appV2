@@ -20,6 +20,7 @@
     "check:password": "tsx scripts/check-password-change.ts",
     "check:reset": "npm run build && tsx scripts/check-password-reset.ts",
     "check:orgs": "tsx scripts/check-orgs-live.ts",
+    "check:orgmail": "npm run build && tsx scripts/check-org-notifications.ts",
     "cleanup:test-data": "tsx scripts/cleanup-test-data.ts",
     "check:security": "npm run build && tsx scripts/check-security.ts",
     "check:flows": "tsx scripts/check-flows.ts",

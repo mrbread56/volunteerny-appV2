@@ -3375,6 +3375,9 @@ app.use(express.json());
     'application_status',
     'hours_confirmation',
     'new_applicant',
+    // Sent BY the student who is withdrawing, so it has to be callable by a
+    // student session, not just an organisation one.
+    'applicant_withdrew',
     'notification',
   ]);
 
@@ -3406,6 +3409,13 @@ app.use(express.json());
           d.applicantName || 'A student',
           d.oppTitle || 'Volunteer Opportunity',
           d.message
+        );
+      case 'applicant_withdrew':
+        return emailTemplates.applicant_withdrew(
+          d.orgName || 'Community Partner',
+          d.applicantName || 'A student',
+          d.oppTitle || 'Volunteer Opportunity',
+          d.reason
         );
       case 'auth_verification':
         return emailTemplates.auth_verification(

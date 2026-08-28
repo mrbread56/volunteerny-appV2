@@ -242,8 +242,40 @@ test('a student can withdraw an application from their dashboard', async ({ page
   const withdraw = page.getByRole('button', { name: /^withdraw$/i }).first();
   await expect(withdraw).toBeVisible({ timeout: 25000 });
 
+  /*
+   * Watch the wire, not the mailbox.
+   *
+   * Withdrawing now tells the organisation before it deletes the application,
+   * and that ordering is load-bearing: /api/email/send only permits recipients
+   * the caller has a relationship with, and for a student that relationship IS
+   * the application. Delete first and the very message announcing the
+   * withdrawal is refused — silently, because the send is deliberately
+   * non-blocking so an unreachable mailbox cannot trap a student in a
+   * placement. scripts/check-org-notifications.ts pins the server half; this
+   * pins that the button is actually wired to it.
+   *
+   * The request is asserted rather than the delivery because this fixture's
+   * organisation is on example.com, which the mail provider refuses by design.
+   */
+  const notified = page.waitForRequest(
+    (r) =>
+      r.url().includes('/api/email/send') &&
+      r.method() === 'POST' &&
+      (r.postData() || '').includes('applicant_withdrew'),
+    { timeout: 30000 },
+  );
+
+  // accept() on a prompt yields '' rather than null, so the withdrawal goes
+  // ahead with no reason given — which is the path a student takes when they
+  // would rather not explain, and it must work.
   page.once('dialog', (d) => d.accept());
   await withdraw.click();
+
+  const req = await notified;
+  const body = JSON.parse(req.postData() || '{}');
+  expect(body.to, 'the withdrawal notice went to the wrong address').toBe(ORG.email);
+  expect(body.templateData?.oppTitle).toBe(OPP.title);
+  expect(body.templateData?.applicantName).toBeTruthy();
 
   // DELETED, not tombstoned. A surviving document would keep the deterministic
   // id occupied and make re-applying impossible — see the note on
