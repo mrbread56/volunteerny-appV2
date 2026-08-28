@@ -75,6 +75,7 @@ test.beforeAll(async () => {
   });
 
   const oppRef = await db.collection('opportunities').add({
+    isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
     orgId: ORG.uid, orgName: 'Lifecycle UI Org', title: OPP.title,
     description: 'Seeded for the lifecycle UI spec.', location: 'North York',
     category: 'Environment', requirements: 'None', maxVolunteers: 1,

@@ -223,6 +223,7 @@ const as = async (email: string) => {
       await as(org.email);
       const oppRef = doc(db, 'opportunities', `conc_opp_${stamp}`);
       await setDoc(oppRef, {
+        isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
         orgId: org.uid, orgName: 'Conc Org hours', title: 'Concurrency Opportunity',
         description: 'd', location: 'l', category: 'Environment', requirements: '',
         maxVolunteers: 5, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
@@ -284,6 +285,7 @@ const as = async (email: string) => {
       await as(org.email);
       const oppRef = doc(db, 'opportunities', `conc_apply_${stamp}`);
       await setDoc(oppRef, {
+        isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
         orgId: org.uid, orgName: 'Conc Org apply', title: 'Race Opportunity',
         description: 'd', location: 'l', category: 'Environment', requirements: '',
         maxVolunteers: 3, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',

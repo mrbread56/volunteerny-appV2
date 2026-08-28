@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { isVisibleToStudents } from '../lib/visibleToStudents';
 import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -178,15 +179,14 @@ export default function StudentOpportunities() {
           limit(200),
         );
         const snap = await getDocs(oppsQuery);
-        // Closed postings are filtered HERE rather than with a
-        // where('status','==','open') clause, deliberately: Firestore omits
-        // documents that lack the field entirely, so a query filter would have
-        // hidden every opportunity created before `status` existed. Absent
-        // means open.
+        // Filtered HERE rather than with a where() clause, deliberately:
+        // Firestore omits documents that lack the field entirely, so a query
+        // filter would have hidden every opportunity created before the field
+        // existed. See isVisibleToStudents for what it excludes and why.
         setOpportunities(
           snap.docs
             .map(doc => ({ id: doc.id, ...doc.data() } as Opportunity))
-            .filter(o => o.status !== 'closed'),
+            .filter(isVisibleToStudents),
         );
 
         // Fetch saved status with local storage fallback mirror

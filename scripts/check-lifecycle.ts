@@ -170,6 +170,7 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
     const oppRef = doc(collection(db, 'opportunities'));
     oppId = oppRef.id;
     await setDoc(oppRef, {
+      isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
       orgId: org.uid, orgName: 'LC Org a', title: 'Lifecycle Opportunity',
       description: 'd', location: 'l', category: 'Environment', requirements: '',
       maxVolunteers: 1, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',

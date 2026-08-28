@@ -69,6 +69,7 @@ test.beforeAll(async () => {
   created.push({ col: 'organizations', id: ORG.uid });
 
   const oppRef = await db.collection('opportunities').add({
+    isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
     orgId: ORG.uid, orgName: 'Notif Org', title: 'Park Cleanup Crew',
     description: 'Testing notifications.', location: 'North York', category: 'Environment',
     // dateTime matters. Seeding without it once put a dateless opportunity in

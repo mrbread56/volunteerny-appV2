@@ -83,6 +83,7 @@ test.beforeAll(async () => {
   // who owns them — see notifications.spec.ts on why dateTime is always seeded.
   for (const [acct, title] of [[A, A_OPP], [B, B_OPP]] as const) {
     const oppRef = await db.collection('opportunities').add({
+      isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
       orgId: ORG.uid, orgName: 'Iso Org', title,
       description: 'Testing notification isolation.', location: 'North York', category: 'Environment',
       dateTime: new Date(Date.now() + 86400000 * 7),

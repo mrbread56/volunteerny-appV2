@@ -4,6 +4,7 @@ import {
 } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
+import { isVisibleToStudents } from '../lib/visibleToStudents';
 import { reportError } from '../lib/errors';
 import { DEMO_OPPORTUNITIES } from '../pages/studentDashboard/demoOpportunities';
 import type { Application, Opportunity, SavedOpportunity, StudentProfile } from '../types';
@@ -285,12 +286,13 @@ export function useStudentDashboardData(
             limit(50),
           );
           const recSnap = await getDocs(recQuery);
-          // Closed postings are dropped here, not in the query: Firestore omits
-          // documents missing the field, so filtering on status === 'open'
-          // would have hidden every opportunity created before it existed.
+          // Dropped here, not in the query: Firestore omits documents missing
+          // the field, so a where() clause would have hidden every opportunity
+          // created before it existed. Shared with the browse page so the two
+          // lists cannot disagree about what a student may see.
           fetchedOpps = recSnap.docs
             .map((doc) => ({ id: doc.id, ...doc.data() }) as Opportunity)
-            .filter((o) => o.status !== 'closed');
+            .filter(isVisibleToStudents);
         } catch (dbErr) {
           // Same as above: an empty list plus an honest message, never invented
           // listings. This is the recommendations feed — the most prominent

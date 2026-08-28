@@ -36,6 +36,7 @@ const FUZZ = 'tests/property-fuzz.spec.ts';
 const DATE = 'tests/opportunity-date.spec.ts';
 const MAIL = 'tests/email-templates.spec.ts';
 const PWD = 'tests/password-change.spec.ts';
+const VIS = 'tests/opportunity-visibility.spec.ts';
 
 const MUTATIONS: Mutation[] = [
   {
@@ -124,6 +125,31 @@ const MUTATIONS: Mutation[] = [
     replace: "  // guard deleted",
     what: 'an empty current password is no longer caught before the network call',
     specs: [PWD],
+  },
+  // ── who may see a posting ──────────────────────────────────────────────────
+  // Both halves of this rule have already failed in production once each: a
+  // closed posting is Tirgan's live draft, and the fixture half was added after
+  // a test organisation appeared in the public list beside a real food bank.
+  {
+    file: 'src/lib/visibleToStudents.ts',
+    find: "  o.status !== 'closed' && !o.isFixture;",
+    replace: "  o.status !== 'closed';",
+    what: 'the fixture guard is dropped: seeded test listings reach real students',
+    specs: [VIS],
+  },
+  {
+    file: 'src/lib/visibleToStudents.ts',
+    find: "  o.status !== 'closed' && !o.isFixture;",
+    replace: "  !o.isFixture;",
+    what: 'the closed guard is dropped: draft postings become visible',
+    specs: [VIS],
+  },
+  {
+    file: 'src/lib/visibleToStudents.ts',
+    find: "  o.status !== 'closed' && !o.isFixture;",
+    replace: "  o.status === 'open' && !o.isFixture;",
+    what: 'absent status stops meaning open, hiding every posting predating the field',
+    specs: [VIS],
   },
 ];
 

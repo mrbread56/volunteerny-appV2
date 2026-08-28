@@ -74,6 +74,7 @@ test.beforeAll(async () => {
   });
 
   const oppRef = await db.collection('opportunities').add({
+    isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
     orgId: ORG.uid,
     orgName: 'Journey Test Org',
     title: OPP.title,

@@ -94,6 +94,13 @@ export interface Opportunity {
    * field entirely, which would have hidden every existing posting overnight.
    */
   status?: 'open' | 'closed';
+  /**
+   * Seeded by a test suite, not by a real organisation.
+   *
+   * Set only by the check scripts and e2e specs, which write to the real
+   * project. Absent on every posting a person created.
+   */
+  isFixture?: boolean;
   createdAt: any;
   coordinates?: {
     lat: number;
