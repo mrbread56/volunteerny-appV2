@@ -15,6 +15,7 @@
  * Everything is created fresh and deleted afterwards, including on failure.
  */
 import './env';
+import { isTestAddress } from '../server/testAccounts';
 import { initializeApp } from 'firebase/app';
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import {
@@ -448,11 +449,41 @@ const as = async (email: string) => {
         const p: any = await pub.json();
         assert.ok(p.updatedAt && p.updatedAt !== before?.updatedAt,
           'the public counter was not refreshed by the developer read');
+        // The counter must exclude this suite's fixtures WITHOUT being pinned to
+        // an absolute number.
+        //
+        // The first version of this asserted verifiedOrganizations < 1, which
+        // was true only because the platform had no verified organisations the
+        // day it was written. Two real ones signed up on 27 Aug 2026 and the
+        // assertion started failing on a counter that was perfectly correct —
+        // a test that breaks when the business succeeds is a test nobody will
+        // keep. What actually has to hold is that the public figure matches the
+        // count of REAL verified organisations, whatever that count is.
+        const realVerifiedOrgs = await (async () => {
+          const [orgs, users] = await Promise.all([
+            adb.collection('organizations').get(),
+            adb.collection('users').get(),
+          ]);
+          const emailByUid = new Map<string, string>();
+          users.docs.forEach((d: any) => emailByUid.set(d.id, d.data()?.email || ''));
+          return orgs.docs.filter((d: any) => {
+            const o = d.data();
+            if (o?.verificationStatus !== 'verified') return false;
+            return !isTestAddress(o?.contactEmail || emailByUid.get(d.id) || '');
+          }).length;
+        })();
+
+        assert.strictEqual(p.verifiedOrganizations, realVerifiedOrgs,
+          `the public counter says ${p.verifiedOrganizations} verified organisations, ` +
+          `but ${realVerifiedOrgs} of them are real — the difference is fixtures`);
+
+        // Hours are still pinned, because this suite confirms exactly 3.5 of
+        // them on a fixture student and none of that may surface publicly.
         assert.ok(!(p.hoursConfirmed >= 3.5),
           `this suite's fixture hours reached the public counter (${p.hoursConfirmed})`);
-        assert.ok(!(p.verifiedOrganizations >= 1),
-          `this suite's fixture organization reached the public counter (${p.verifiedOrganizations})`);
-        console.log('[PASS] metrics: public counters refresh, and fixtures stay out of them');
+        console.log(
+          `[PASS] metrics: public counters refresh, fixtures stay out ` +
+          `(${p.verifiedOrganizations} real verified organisation(s))`);
       }
 
       // Anyone signed out can read the public figure, and nobody can read the

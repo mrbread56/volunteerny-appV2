@@ -68,6 +68,24 @@ function adminFirestore() {
 }
 
 /**
+ * Mark a posting as a fixture, out of band.
+ *
+ * It cannot go in the setDoc above. firestore.rules allowlists opportunity
+ * fields with hasOnly(), so a client write carrying an extra key is refused —
+ * and these scripts create postings exactly the way a real organisation does,
+ * which is the thing they exist to prove. Weakening the rule to let a test
+ * write a private field would make both the rule and the test worse.
+ *
+ * So the create stays honest and the Admin SDK, which bypasses rules, tags the
+ * document immediately afterwards. Without the tag the posting is visible to
+ * real students for as long as the run takes to clean up.
+ */
+async function markFixture(id: string): Promise<void> {
+  await adminFirestore().collection('opportunities').doc(id)
+    .set({ isFixture: true }, { merge: true });
+}
+
+/**
  * Approve an organization the way a developer does.
  *
  * Posting is gated on verificationStatus == 'verified', and the create rule
@@ -223,13 +241,13 @@ const as = async (email: string) => {
       await as(org.email);
       const oppRef = doc(db, 'opportunities', `conc_opp_${stamp}`);
       await setDoc(oppRef, {
-        isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
         orgId: org.uid, orgName: 'Conc Org hours', title: 'Concurrency Opportunity',
         description: 'd', location: 'l', category: 'Environment', requirements: '',
         maxVolunteers: 5, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
         isVirtual: false, coordinates: { lat: 43.7, lng: -79.4 },
         dateTime: new Date(Date.now() + 86400000), createdAt: serverTimestamp(),
       });
+      await markFixture(oppRef.id);
       await as(student.email);
       await setDoc(doc(db, 'applications', `${student.uid}_${oppRef.id}`), {
         opportunityId: oppRef.id, orgId: org.uid, studentId: student.uid, status: 'pending',
@@ -285,13 +303,13 @@ const as = async (email: string) => {
       await as(org.email);
       const oppRef = doc(db, 'opportunities', `conc_apply_${stamp}`);
       await setDoc(oppRef, {
-        isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
         orgId: org.uid, orgName: 'Conc Org apply', title: 'Race Opportunity',
         description: 'd', location: 'l', category: 'Environment', requirements: '',
         maxVolunteers: 3, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
         isVirtual: false, coordinates: { lat: 43.7, lng: -79.4 },
         dateTime: new Date(Date.now() + 86400000), createdAt: serverTimestamp(),
       });
+      await markFixture(oppRef.id);
 
       await as(student.email);
       const payload = {

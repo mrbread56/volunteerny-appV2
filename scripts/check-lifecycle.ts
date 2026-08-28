@@ -74,6 +74,24 @@ function adminFirestore() {
 }
 
 /**
+ * Mark a posting as a fixture, out of band.
+ *
+ * It cannot go in the setDoc above. firestore.rules allowlists opportunity
+ * fields with hasOnly(), so a client write carrying an extra key is refused —
+ * and these scripts create postings exactly the way a real organisation does,
+ * which is the thing they exist to prove. Weakening the rule to let a test
+ * write a private field would make both the rule and the test worse.
+ *
+ * So the create stays honest and the Admin SDK, which bypasses rules, tags the
+ * document immediately afterwards. Without the tag the posting is visible to
+ * real students for as long as the run takes to clean up.
+ */
+async function markFixture(id: string): Promise<void> {
+  await adminFirestore().collection('opportunities').doc(id)
+    .set({ isFixture: true }, { merge: true });
+}
+
+/**
  * Approve an organization the way a developer does.
  *
  * Posting is gated on verificationStatus == 'verified', and the create rule
@@ -170,13 +188,13 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
     const oppRef = doc(collection(db, 'opportunities'));
     oppId = oppRef.id;
     await setDoc(oppRef, {
-      isFixture: true, // never shown to students; see src/lib/visibleToStudents.ts
       orgId: org.uid, orgName: 'LC Org a', title: 'Lifecycle Opportunity',
       description: 'd', location: 'l', category: 'Environment', requirements: '',
       maxVolunteers: 1, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
       isVirtual: false, coordinates: { lat: 43.7, lng: -79.4 },
       dateTime: new Date(Date.now() + 86400000), createdAt: serverTimestamp(),
     });
+    await markFixture(oppId);
     pass('organization posted a one-place opportunity');
 
     // ── duplicate applications are structurally impossible ───────────────────
