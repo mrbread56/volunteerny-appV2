@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { collection, getDocs, limit, query, where } from 'firebase/firestore';
+import { collection, getDocs, limit, query, where, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 import { reportError } from '../lib/errors';
 import { API_BASE_URL } from '../lib/config';
@@ -174,8 +174,31 @@ export function useDeveloperDashboardData(
         // Fetch safety reports
         let repList: any[] = [];
         try {
-          const repSnap = await getDocs(query(collection(db, 'reports'), limit(200)));
+          /*
+           * orderBy, because without it the cap picks the WRONG 200.
+           *
+           * This was query(collection(db,'reports'), limit(200)) with no order,
+           * so Firestore returned the first 200 by document id — and report ids
+           * are `'report_' + Math.random().toString(36)`. Past 200 reports the
+           * console therefore showed the same arbitrary subset on every refresh
+           * and a newly filed safety report was simply never fetched: no error,
+           * no spinner, no indication. Resolved reports held their slots
+           * forever. The client-side sort below only reordered what had already
+           * arrived, which made the list look deliberate.
+           *
+           * createdAt is now required by firestore.rules, so nothing can be
+           * filed that this ordering would hide.
+           */
+          const repSnap = await getDocs(
+            query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(200)),
+          );
           repList = repSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          if (repSnap.size === 200) {
+            // Say so rather than letting a full page read as the whole queue.
+            setConsoleNotice(
+              'Showing the 200 most recent reports. There may be older ones not listed.',
+            );
+          }
         } catch (dbErr) {
           setConsoleNotice(
             reportError('load safety reports', dbErr, "Couldn't load safety reports from the database."),

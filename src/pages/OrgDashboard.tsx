@@ -169,6 +169,27 @@ export default function OrgDashboard() {
   // the retry. Cleared on success; see handleOrgLogSubmit.
   const logClientRef = useRef<string | null>(null);
 
+  /*
+   * Changing any field starts a NEW attempt.
+   *
+   * The idempotency key is what stops a retry after a failed post-commit tail
+   * from crediting the hours twice. But the coordinator is looking at an error
+   * message above a form that still holds everything they typed — and the
+   * obvious reason to press the button again is that they spotted a mistake.
+   * Reusing the key there would match the entry already written, discard the
+   * correction, and report "Successfully logged and authorized hours!" over a
+   * record that still says 8 when they meant 4. Silently, on a graduation
+   * record.
+   *
+   * So the key survives an unchanged retry, which is the case it exists for,
+   * and is abandoned the moment the submission is no longer the same
+   * submission.
+   */
+  const withNewAttempt = <T,>(setter: (v: T) => void) => (v: T) => {
+    logClientRef.current = null;
+    setter(v);
+  };
+
   // Verification request inbox states
   const [hoursRequests, setHoursRequests] = useState<any[]>([]);
   const [isApprovingId, setIsApprovingId] = useState<string | null>(null);
@@ -1022,13 +1043,13 @@ export default function OrgDashboard() {
           studentsList={studentsList}
           isSubmittingLog={isSubmittingLog}
           selectedStudentId={selectedStudentId}
-          setSelectedStudentId={setSelectedStudentId}
+          setSelectedStudentId={withNewAttempt(setSelectedStudentId)}
           logDate={logDate}
-          setLogDate={setLogDate}
+          setLogDate={withNewAttempt(setLogDate)}
           logHours={logHours}
-          setLogHours={setLogHours}
+          setLogHours={withNewAttempt(setLogHours)}
           logActivity={logActivity}
-          setLogActivity={setLogActivity}
+          setLogActivity={withNewAttempt(setLogActivity)}
           logResultStatus={logResultStatus}
           onLogSubmit={handleOrgLogSubmit}
         />

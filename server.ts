@@ -1586,8 +1586,59 @@ app.use(express.json());
     //   emailLog    the recipient address of everything ever sent to them
     // A deletion request that leaves those is not a deletion.
     await deleteWhere('feedbacks', 'userId', userId);
-    await deleteWhere('reports', 'reportingUserId', userId);
-    await deleteWhere('reports', 'reportedUserId', userId);
+    /*
+     * Safety reports are NOT deleted with the account. They are redacted.
+     *
+     * This was two deleteWhere calls, and the second one meant that the SUBJECT
+     * of a safety report could destroy every report about themselves simply by
+     * deleting their own account — a self-serve HTTP call, available while
+     * suspended, needing no moderator. An adult reported over their contact
+     * with a child could erase the accusation and register again with a new
+     * address. The first call was the mirror: deleting a reporter's account
+     * silently withdrew their accusations about third parties who are still
+     * here, and who were never reviewed.
+     *
+     * A report is not only the subject's personal data. It is another person's
+     * account of what happened to them, and on a platform whose users are
+     * minors it is a safety record. PIPEDA does not require erasing it on the
+     * subject's request; it requires not keeping more than is needed. So the
+     * identifying fields belonging to the departing account are cleared and the
+     * report itself survives, with a marker saying which side left.
+     *
+     * The description is written BY the reporter about the subject, so it is
+     * cleared only when the reporter leaves. When the subject leaves it is the
+     * substance of the record and stays.
+     */
+    const redactReports = async (field: 'reportingUserId' | 'reportedUserId') => {
+      let touched = 0;
+      for (;;) {
+        const snap = await adb.collection('reports').where(field, '==', userId).limit(300).get();
+        if (snap.empty) break;
+        const batch = adb.batch();
+        for (const d of snap.docs) {
+          if (field === 'reportingUserId') {
+            batch.update(d.ref, {
+              reportingUserId: 'deleted',
+              reportingUserEmail: '',
+              reportingUserName: 'Account deleted',
+              reporterAccountDeleted: true,
+            });
+          } else {
+            batch.update(d.ref, {
+              reportedUserId: `deleted_${userId}`,
+              reportedUserName: 'Account deleted',
+              subjectAccountDeleted: true,
+            });
+          }
+          touched++;
+        }
+        await batch.commit();
+        if (snap.size < 300) break;
+      }
+      if (touched) console.log(`[purge] redacted ${touched} report(s) on ${field}`);
+    };
+    await redactReports('reportingUserId');
+    await redactReports('reportedUserId');
     await deleteWhere('orgRatings', 'studentId', userId);
     await deleteWhere('orgRatings', 'orgId', userId);
     // emailLog is keyed by the recipient ADDRESS, not by uid.

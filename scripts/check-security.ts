@@ -757,13 +757,14 @@ async function firestoreChecks(
     getDocs(query(collection(db, 'opportunities'), fsLimit(1))));
 }
 
+const STAMP = Date.now();
 let _adb: any = null;
 function adminFirestore() {
   if (_adb) return _adb;
   const a: any = (admin as any).default || admin;
   const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
   if (!key) return null;
-  const app2 = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'sec-admin-' + Date.now());
+  const app2 = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'sec-admin-auth-' + STAMP);
   _adb = app2.firestore();
   _adb.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
   // grantMfaClaim needs auth(), not firestore() — same handle the other
@@ -833,7 +834,26 @@ async function bannedOrgChecks(adb: any) {
   await mustDeny('a SUSPENDED organisation cannot decide an application',
     () => updateDoc(doc(db, 'applications', afterId), { status: 'accepted', decidedAt: serverTimestamp() }));
 
-  await mustDeny('a SUSPENDED organisation cannot edit its public profile',
+  /*
+   * The MFA claim has to be granted for this one to mean anything.
+   *
+   * The organizations update branch requires mfaSatisfied() as well as
+   * isNotBanned(), and this suite signs in with a password only. So without
+   * this the assertion passed for the WRONG reason — it would have passed with
+   * isNotBanned() deleted from the rule entirely, proving nothing about the fix
+   * it was written to cover. Granting the second factor first makes the ban the
+   * only thing left that can deny the write.
+   */
+  const secAdmin: any = ((admin as any).default || admin).app('sec-admin-auth-' + STAMP);
+  const cred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  const decoded: any = await secAdmin.auth().verifyIdToken(await cred.user.getIdToken());
+  const claims = (await secAdmin.auth().getUser(org.uid)).customClaims || {};
+  await secAdmin.auth().setCustomUserClaims(org.uid, {
+    ...claims, mfaVerified: true, mfaVerifiedFor: decoded.auth_time,
+  });
+  await cred.user.getIdToken(true);
+
+  await mustDeny('a SUSPENDED organisation cannot edit its public profile (MFA satisfied)',
     () => updateDoc(doc(db, 'organizations', org.uid), { mission: 'still here' }));
 
   await signOut(auth);

@@ -216,7 +216,7 @@ export default function StudentOnboarding() {
               <CardContent className="p-5 sm:p-10 md:p-12 space-y-8">
                 <div className="space-y-2.5">
                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Full Name</label>
-                  <Input 
+                  <Input aria-label="Full Name" 
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Your legal first and last name"
@@ -227,7 +227,7 @@ export default function StudentOnboarding() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <div className="space-y-2.5">
                     <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Academic High School</label>
-                    <Select 
+                    <Select aria-label="Academic High School" 
                       value={school}
                       onChange={(e) => setSchool(e.target.value)}
                       options={[
@@ -240,7 +240,7 @@ export default function StudentOnboarding() {
 
                   <div className="space-y-2.5">
                     <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Grade Level</label>
-                    <Select 
+                    <Select aria-label="Grade Level" 
                       value={grade}
                       onChange={(e) => setGrade(e.target.value)}
                       options={[
@@ -254,7 +254,7 @@ export default function StudentOnboarding() {
 
                 <div className="space-y-2.5">
                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">Your Neighborhood</label>
-                  <Select 
+                  <Select aria-label="Your Neighborhood" 
                     value={neighborhood}
                     onChange={(e) => setNeighborhood(e.target.value)}
                     options={[

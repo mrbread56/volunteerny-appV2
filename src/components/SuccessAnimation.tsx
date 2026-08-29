@@ -8,6 +8,21 @@ interface SuccessAnimationProps {
   onClose?: () => void;
 }
 
+/*
+ * The backgrounds here are load bearing, not decoration.
+ *
+ * Three class strings had their bg-* utilities removed at some point and kept
+ * their text-white, leaving the gaps you can still see in git history: a Close
+ * button reading white-on-white at 1:1 contrast, an invisible tick, and an
+ * accent bar that rendered as nothing. The overlay is dismissed automatically
+ * after five seconds by its caller, so the only control a student had for
+ * keeping it on screen was one they could not see — while the panel carries the
+ * warning that their hours do NOT count yet.
+ *
+ * emerald-700 on the button, not 600: white text needs 4.5:1 and emerald-600
+ * measures 3.77:1, which is a fail dressed up as a fix. The tick keeps 600
+ * because a graphical object needs only 3:1.
+ */
 export default function SuccessAnimation({ message, note, onClose }: SuccessAnimationProps) {
   return (
     <motion.div
@@ -24,7 +39,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
         className="bg-white rounded-lg p-8 max-w-sm w-full text-center  border border-line-light flex flex-col items-center relative overflow-hidden"
       >
         {/* Colorful top sparkle lights banner */}
-        <div className="absolute top-0 inset-x-0 h-1.5   " />
+        <div className="absolute top-0 inset-x-0 h-1.5 bg-emerald-600" />
         
         <div className="relative w-20 h-20 mb-5 flex items-center justify-center">
           {/* Animated concentric soft green ripple rings */}
@@ -46,7 +61,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 220, damping: 14 }}
-            className="w-16 h-16    rounded-lg flex items-center justify-center  shadow-emerald-500/20 z-10"
+            className="w-16 h-16 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/20 z-10"
           >
             <svg
               className="w-8 h-8 text-white"
@@ -102,7 +117,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             onClick={onClose}
-            className="mt-6 px-8 py-3    hover:opacity-90 text-white rounded-lg text-xs font-semibold uppercase transition-all  shadow-emerald-500/10 cursor-pointer"
+            className="mt-6 px-8 py-3 bg-emerald-700 hover:opacity-90 text-white rounded-lg text-xs font-semibold uppercase transition-all shadow-lg shadow-emerald-500/10 cursor-pointer"
           >
             Close
           </motion.button>

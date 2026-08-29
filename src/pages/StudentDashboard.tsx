@@ -1,4 +1,5 @@
 import { useDialog } from '../hooks/useDialog';
+import { isMfaClaimCurrent } from '../lib/mfa';
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from '../lib/config';
 import { getMatchScore as scoreOpportunity } from '../lib/matchScore';
@@ -576,6 +577,32 @@ export default function StudentDashboard() {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body?.error || "That code was not accepted.");
+
+      /*
+       * Pick up the claim BEFORE the flag, or the student is thrown off this
+       * page the instant they succeed.
+       *
+       * verify-otp writes mfaVerified/mfaVerifiedFor onto the Auth user record,
+       * not onto the token already in this browser. refreshProfile() touches no
+       * token. So writing twoFactorEnabled first re-renders the guard with
+       * "2FA required" true and "2FA satisfied" still false, and PrivateRoute
+       * redirects to /mfa — demanding a second code seconds after the first,
+       * from a student whose RecoveryCodes panel is on the page they were just
+       * ejected from, and whose OTP send budget is five per ten minutes.
+       *
+       * Same poll as MfaChallenge, and for the reason its comment gives: a
+       * freshly written claim is not always visible on the first forced
+       * refresh.
+       */
+      for (let attempt = 0; attempt < 5; attempt++) {
+        try {
+          const refreshed = await user.getIdTokenResult(true);
+          if (isMfaClaimCurrent(refreshed)) break;
+        } catch (refreshErr) {
+          console.warn("Token refresh failed while enabling the passcode gate:", refreshErr);
+        }
+        await new Promise((r) => setTimeout(r, 400 * (attempt + 1)));
+      }
 
       await updateDoc(doc(db, "users", user.uid), { twoFactorEnabled: true });
       setTwoFaStage("idle");
