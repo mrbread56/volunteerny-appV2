@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
 import { Shield } from 'lucide-react';
 import { Button } from './ui/Button';
@@ -27,6 +27,17 @@ import { Link } from 'react-router-dom';
  * only for collection that is NOT integral to the service. Everything listed
  * below is integral. So this is a notice, and it says exactly what is stored.
  *
+ * The banner is `fixed`, so it floats OVER the page rather than displacing it,
+ * and on a phone it spans nearly the full width. Nothing reserved the space it
+ * covers, so on /signup it sat directly on top of "Already have an account?
+ * Sign in" — verified with document.elementFromPoint, which returned this
+ * component's own <p> at the centre of that link. A returning student tapping
+ * to sign in hit the notice instead, and short pages could not be scrolled far
+ * enough to escape it. That is the same defect as the invisible click trap
+ * described below, in its visible form: this component covering controls that
+ * belong to the page. The effect below reserves exactly the height it occupies
+ * for as long as it is on screen, and gives it back on dismissal.
+ *
  * Deliberately NOT wrapped in <AnimatePresence>. It used to be, with an exit
  * animation. Under `prefers-reduced-motion: reduce` that exit applied its styles
  * but never completed, so AnimatePresence kept the node mounted forever at
@@ -37,6 +48,32 @@ import { Link } from 'react-router-dom';
  */
 export default function CookieBanner() {
   const [isVisible, setIsVisible] = useState(false);
+  const bannerRef = useRef<HTMLDivElement | null>(null);
+
+  /**
+   * Reserve the space this notice covers, for as long as it covers it.
+   *
+   * Measured rather than hard-coded: the text wraps to different heights at
+   * different widths and font sizes, and a fixed guess would be wrong on the
+   * narrow phones that need it most. The ResizeObserver keeps it right through
+   * rotation and text reflow.
+   */
+  useEffect(() => {
+    if (!isVisible) return;
+    const el = bannerRef.current;
+    if (!el) return;
+    const apply = () => {
+      // + 24px so the content clears the notice rather than touching it.
+      document.body.style.paddingBottom = `${el.offsetHeight + 24}px`;
+    };
+    apply();
+    const observer = new ResizeObserver(apply);
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      document.body.style.paddingBottom = '';
+    };
+  }, [isVisible]);
 
   useEffect(() => {
     const seen = localStorage.getItem('storage_notice_seen');
@@ -60,6 +97,7 @@ export default function CookieBanner() {
     <>
       {isVisible && (
         <motion.div
+          ref={bannerRef}
           initial={{ y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           role="region"
