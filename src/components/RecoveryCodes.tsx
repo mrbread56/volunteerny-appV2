@@ -76,7 +76,7 @@ export default function RecoveryCodes() {
       '',
       'Each code works once. Use one in place of the emailed sign-in code if',
       'you cannot reach your email. Keep this somewhere safe and private —',
-      'anyone holding a code can sign in as this organisation.',
+      'anyone holding a code can sign in as this account.',
       '',
       ...codes.map((c, i) => `${String(i + 1).padStart(2, ' ')}.  ${c}`),
     ].join('\n');

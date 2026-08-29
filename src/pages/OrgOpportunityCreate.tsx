@@ -143,6 +143,7 @@ export default function OrgOpportunityCreate() {
   const [category, setCategory] = useState(OPPORTUNITY_CATEGORIES[0]);
   const [requirements, setRequirements] = useState('');
   const [maxVolunteers, setMaxVolunteers] = useState('5');
+  const [minAge, setMinAge] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedExclusives, setSelectedExclusives] = useState<string[]>([]);
   const [timeCommitment, setTimeCommitment] = useState(COMMITMENTS[0].value);
@@ -389,6 +390,9 @@ export default function OrgOpportunityCreate() {
       category,
       requirements,
       maxVolunteers: parseInt(maxVolunteers),
+      // Omitted entirely when blank: the rules and eligibility.ts both treat an
+      // absent minAge as "no minimum", and writing 0 would be a claim nobody made.
+      ...(minAge.trim() !== '' && Number.isFinite(Number(minAge)) ? { minAge: parseInt(minAge, 10) } : {}),
       skillsNeeded: selectedSkills,
       exclusives: selectedExclusives,
       timeCommitment,
@@ -545,6 +549,26 @@ export default function OrgOpportunityCreate() {
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input label="Number of Openings / Volunteers Needed" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
                   <Select label="Type of Schedule" value={scheduleType} onChange={(e) => setScheduleType(e.target.value as any)} options={SCHEDULE_TYPES} required />
+               </div>
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* minAge had every part except the input.
+                      It is in the Opportunity type, validated in firestore.rules,
+                      allow-listed on create and update, covered by the emulator
+                      suite, and drives the student-facing "This one asks for
+                      volunteers aged N+" warning in eligibility.ts — and neither
+                      form rendered a control, so it was always absent and that
+                      warning could never fire. The approval email meanwhile tells
+                      organisations to say "how many you can take, and any minimum
+                      age". Real Toronto floors run 14 to 19. */}
+                  <Input
+                    label="Minimum Age (optional)"
+                    type="number"
+                    min="0"
+                    max="120"
+                    placeholder="e.g. 16 — leave blank if there is no minimum"
+                    value={minAge}
+                    onChange={(e) => setMinAge(e.target.value)}
+                  />
                </div>
             </section>
 

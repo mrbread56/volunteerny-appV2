@@ -211,7 +211,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
           </div>
           <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Account Locked</h2>
           <p className="text-slate-600 text-sm leading-relaxed font-semibold">
-            This account has been flagged and suspended for violating the terms of service alignment of Volunteer North York.
+            Your account is locked while we look into a report. Email privacy@volunteernorthyork.indevs.in from this address and a person will reply.
           </p>
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-sm text-xs text-slate-600 font-medium space-y-1.5 leading-relaxed">
             <p className="font-bold text-slate-700">Appeal or Investigation:</p>

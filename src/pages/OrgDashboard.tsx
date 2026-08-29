@@ -900,8 +900,20 @@ export default function OrgDashboard() {
         setSelectedStudentId("");
         setSuccessMessage("Successfully logged and authorized hours!");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to log student hours:", err);
+      /*
+       * The server's own words, not a fixed string.
+       *
+       * approveStudentHours documents its contract: "Rejects with a message
+       * safe to show the organization — the caller is expected to surface it
+       * rather than swallow it, which is the mistake this codebase kept
+       * making." This site swallowed it into "Failed to save hours log. Please
+       * try again.", and the two failures it actually hits are both actionable:
+       * the relationship refusal, which explains what the coordinator has to do
+       * first, and "Hours must be a number between 0 and 24."
+       */
+      setErrorMessage(toUserMessage(err, "We couldn't log those hours. Please try again."));
       setLogResultStatus("error");
     } finally {
       setIsSubmittingLog(false);

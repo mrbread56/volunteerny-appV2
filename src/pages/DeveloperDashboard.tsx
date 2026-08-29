@@ -43,6 +43,7 @@ export default function DeveloperDashboard() {
   /** Everything this console reads. Both loaders come back so an action can refresh what it changed. */
   const {
     students, orgs, feedbacks, reports, interestRequests, pendingOrgs, pendingOrgsLoading,
+    bannedStudents, bannedOrgs,
     realStudentCount, realOrgCount,
     isLoading, consoleNotice, setConsoleNotice,
     setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,
@@ -319,7 +320,7 @@ export default function DeveloperDashboard() {
       orgs.find((o) => o.uid === userId)?.organizationName ||
       'this account';
     if (!isCurrentlyBanned && !window.confirm(
-      `Suspend ${target}? They will be locked out of Volunteer North York immediately until you lift it.`
+      `Suspend ${target}? They are locked out immediately, and every open opportunity they own is taken off the student list. Lifting the suspension does NOT put those postings back.`
     )) return;
 
     try {
@@ -398,6 +399,23 @@ export default function DeveloperDashboard() {
             }
           }
 
+        } else {
+          /*
+           * No users document, so nothing was written — and nothing said so.
+           *
+           * This `if` had no else at all: the handler fell straight through to
+           * loadData(), the button returned, the card still showed the account
+           * as active, and the moderator reasonably concluded the suspension
+           * had worked. It is reachable from the SAFETY queue by design:
+           * purgeAccount rewrites reportedUserId to `deleted_<uid>`, and the
+           * reports tab passes that value straight into this handler. So the
+           * one place where a silent no-op costs the most is the one place it
+           * happens.
+           */
+          setActionError(
+            'That account no longer exists, so nothing was changed. It may already have been deleted.',
+          );
+          return;
         }
       }
       loadData();
@@ -776,7 +794,9 @@ export default function DeveloperDashboard() {
               activeTab === 'reports' ? "border-red-600 text-red-600" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
-            <ShieldAlert className="w-4 h-4 text-red-600 animate-pulse" /> Safety Reports ({reports.length})
+            {/* OPEN reports. This counted every status, so the badge never fell and
+                said nothing about whether there was work waiting. */}
+            <ShieldAlert className="w-4 h-4 text-red-600 animate-pulse" /> Safety Reports ({reports.filter((r: any) => (r.status ?? 'pending') === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('interests')}
@@ -803,7 +823,7 @@ export default function DeveloperDashboard() {
               activeTab === 'terminated' ? "border-red-500 text-red-600" : "border-transparent text-ink-muted hover:text-ink-muted"
             )}
           >
-            <Lock className="w-4 h-4 text-red-600" /> Suspended List ({students.filter(s => s.isBanned).length + orgs.filter(o => o.isBanned).length})
+            <Lock className="w-4 h-4 text-red-600" /> Suspended List ({bannedStudents.length + bannedOrgs.length})
           </button>
           <button
             onClick={() => setActiveTab('metrics')}
@@ -1054,11 +1074,11 @@ export default function DeveloperDashboard() {
             <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
-                  <Users className="w-4 h-4 text-red-600" /> Suspended Students ({students.filter(s => s.isBanned).length})
+                  <Users className="w-4 h-4 text-red-600" /> Suspended Students ({bannedStudents.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 md:p-8 flex-1">
-                {students.filter(s => s.isBanned).length === 0 ? (
+                {bannedStudents.length === 0 ? (
                   <div className="py-12 text-center text-ink-muted space-y-3">
                     <ShieldCheck className="w-10 h-10 text-blue-dark mx-auto" />
                     <p className="text-xs font-semibold uppercase text-ink-soft">No Suspended Students</p>
@@ -1066,7 +1086,7 @@ export default function DeveloperDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4 divide-y divide-red-50/30">
-                    {students.filter(s => s.isBanned).map((st) => (
+                    {bannedStudents.map((st) => (
                       <div key={st.uid} className="pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-ink-soft">{st.fullName || st.name || 'Anonymous Student'}</p>
@@ -1094,11 +1114,11 @@ export default function DeveloperDashboard() {
             <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
-                  <Building2 className="w-4 h-4 text-red-600" /> Suspended Partners ({orgs.filter(o => o.isBanned).length})
+                  <Building2 className="w-4 h-4 text-red-600" /> Suspended Partners ({bannedOrgs.length})
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6 md:p-8 flex-1">
-                {orgs.filter(o => o.isBanned).length === 0 ? (
+                {bannedOrgs.length === 0 ? (
                   <div className="py-12 text-center text-ink-muted space-y-3">
                     <ShieldCheck className="w-10 h-10 text-blue-dark mx-auto" />
                     <p className="text-xs font-semibold uppercase text-ink-soft">No Suspended Partners</p>
@@ -1106,7 +1126,7 @@ export default function DeveloperDashboard() {
                   </div>
                 ) : (
                   <div className="space-y-4 divide-y divide-red-200/20">
-                    {orgs.filter(o => o.isBanned).map((org) => (
+                    {bannedOrgs.map((org) => (
                       <div key={org.uid} className="pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-ink-soft">{org.organizationName || 'Partner Agency'}</p>

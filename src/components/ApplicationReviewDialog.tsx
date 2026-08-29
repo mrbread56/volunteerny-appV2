@@ -178,7 +178,7 @@ export default function ApplicationReviewDialog({
                     <div className="space-y-2">
                       <h4 className="text-3xl font-semibold text-ink uppercase tracking-tight">Student accepted</h4>
                       <p className="text-sm text-ink-soft font-medium">
-                        Student is now officially enrolled. High school coordination logs have been locked for verification.
+                        Accepted. We have emailed the student, and their placement now shows in your applicants list.
                       </p>
                       {emailDispatched && (
                         <div className="text-left max-w-sm mx-auto pt-1">
@@ -211,7 +211,7 @@ export default function ApplicationReviewDialog({
                         </div>
                         <div>
                           <p className="text-xs font-bold text-ink-soft uppercase tracking-tight">Email to student</p>
-                          <p className="font-bold text-ink-soft mt-0.5">{emailDispatched ? "Sent" : "Direct Standard Failover"}</p>
+                          <p className="font-bold text-ink-soft mt-0.5">{emailDispatched ? "Sent" : "Not sent. Contact them yourself so they know they have a place."}</p>
                         </div>
                       </div>
                     </div>
@@ -272,14 +272,23 @@ export default function ApplicationReviewDialog({
                         </div>
                         <div className="min-w-0">
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'database' ? 'text-blue-dark' : dbVerified ? 'text-ink-soft' : 'text-ink-soft'}`}>
-                            1. Ledger Database Mutation
+                            1. Saving the decision
                           </p>
                           <p className="text-xs text-ink-soft font-medium">
-                            Mutating application candidate status key dynamically on firestore database.
+                            Recording that you accepted this applicant.
                           </p>
                         </div>
                       </div>
 
+                      {/* These three steps used to read "Ledger Database
+                          Mutation", "PDF Slip Generation ... with secure
+                          SHA-256 verification signature keys" and "Resend SMTP
+                          Transmission", to a volunteer coordinator at a small
+                          charity. Two of them were also false: no PDF is
+                          produced anywhere (the receipt is HTML rendered on
+                          demand) and the only SHA-256 in this codebase hashes
+                          MFA recovery codes. The accept path writes a status
+                          and a timestamp and sends an email. Say that. */}
                       {/* Step 2 */}
                       <div className="flex items-center gap-4">
                         <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center transition-all shrink-0 ${
@@ -293,10 +302,10 @@ export default function ApplicationReviewDialog({
                         </div>
                         <div className="min-w-0">
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'receipt' ? 'text-blue-dark' : receiptCompiled ? 'text-ink-soft' : 'text-ink-soft'}`}>
-                            2. PDF Slip Generation
+                            2. Preparing the receipt
                           </p>
                           <p className="text-xs text-ink-soft font-medium">
-                            Compiling digital check-in slip with secure SHA-256 verification signature keys.
+                            Getting the placement record ready to open or print.
                           </p>
                         </div>
                       </div>
@@ -314,10 +323,10 @@ export default function ApplicationReviewDialog({
                         </div>
                         <div className="min-w-0">
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'email' ? 'text-blue-dark' : emailDispatched ? 'text-ink-soft' : 'text-ink-soft'}`}>
-                            3. Resend SMTP Transmission
+                            3. Emailing the student
                           </p>
                           <p className="text-xs text-ink-soft font-medium font-sans">
-                            Delivering status email dispatch directly to student's contact coordinates.
+                            Sending the decision to the address on their account.
                           </p>
                         </div>
                       </div>

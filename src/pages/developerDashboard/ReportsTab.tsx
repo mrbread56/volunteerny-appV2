@@ -1,3 +1,4 @@
+import React from 'react';
 import { ShieldAlert, ShieldCheck, Sparkles, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -41,6 +42,20 @@ export default function ReportsTab({
   // Local alias so the moved markup needs no edits.
   const handleUpdateReportStatus = onUpdateReportStatus;
   const handleToggleBan = onToggleBan;
+
+  /*
+   * Open reports first, and by default the ONLY ones shown.
+   *
+   * This was a bare reports.map over every status, sorted newest-first — so one
+   * unactioned report from six weeks ago sat below every newer resolved one,
+   * and the tab badge counted resolved reports too, which meant it never fell
+   * and carried no signal about whether there was work. The feedback tab
+   * beside it has had a filter and a search box all along.
+   */
+  const [showAll, setShowAll] = React.useState(false);
+  const open = reports.filter((r: any) => (r.status ?? 'pending') === 'pending');
+  const shown = showAll ? reports : open;
+
   return (
     <>
       <div className="space-y-6">
@@ -53,19 +68,36 @@ export default function ReportsTab({
               Review and act on reported safe space violations from our students and organizations.
             </p>
           </div>
+          <button
+            type="button"
+            onClick={() => setShowAll((v) => !v)}
+            className="text-xs font-semibold tracking-wide px-4 py-2 rounded-lg border border-line hover:bg-paper-2 transition-colors shrink-0"
+          >
+            {showAll
+              ? `Showing all ${reports.length} — show only the ${open.length} open`
+              : `Showing the ${open.length} open — show all ${reports.length}`}
+          </button>
         </div>
 
-        {reports.length === 0 ? (
+        {shown.length === 0 ? (
           <Card className="p-16 text-center border-2 border-dashed border-line-light rounded-lg bg-white space-y-4">
             <ShieldCheck className="w-12 h-12 text-blue-dark mx-auto" />
-            <h3 className="text-base font-semibold text-ink uppercase">Secure Safe Space Guaranteed</h3>
+            {/* "Zero reports in the system" was said whenever the LIST was
+                empty, which now includes "every report has been dealt with".
+                And "Secure Safe Space Guaranteed" is a guarantee nobody can
+                make. Say which of the two states this is. */}
+            <h3 className="text-base font-semibold text-ink uppercase">
+              {reports.length === 0 ? 'No reports have been filed' : 'Nothing waiting'}
+            </h3>
             <p className="text-ink-muted text-xs font-semibold max-w-sm mx-auto leading-relaxed">
-              Zero safety reports or violations submitted in the system. The volunteering network remains highly secure.
+              {reports.length === 0
+                ? 'Nobody has filed a safety report yet.'
+                : `All ${reports.length} report${reports.length === 1 ? ' has' : 's have'} been resolved or dismissed. Use the button above to look back through them.`}
             </p>
           </Card>
         ) : (
           <div className="grid grid-cols-1 gap-6">
-            {reports.map((report) => {
+            {shown.map((report) => {
               const statusBadge = report.status === 'resolved' 
                 ? 'bg-blue-dark/5 text-blue-dark border-blue-dark/10' 
                 : report.status === 'dismissed'
@@ -169,7 +201,10 @@ export default function ReportsTab({
                                 ? 'bg-red-500/10 text-red-600 border border-red-200'
                                 : 'bg-blue-dark/10 text-blue-dark border border-blue-dark/20'
                             }`}>
-                              {report.aiOverview.urgency || 'HIGH RISK'}
+                              {/* No literal fallback. With no urgency value this printed the
+                                  words HIGH RISK inside the CALM blue pill, from no
+                                  data at all. */}
+                              {report.aiOverview.urgency || 'not rated'}
                             </span>
                           </div>
 

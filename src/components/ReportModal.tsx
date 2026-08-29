@@ -164,12 +164,17 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
       }
 
       // 1. Trigger robust background server-side AI Overview of this safety report using Gemini
-      let aiOverview = {
-        category: reason,
-        urgency: 'high',
-        summary: 'Under investigation by the administrators.',
-        suggestedFix: 'Immediate reviewer review is advised.',
-      };
+      /*
+       * null when triage does not run, not invented text.
+       *
+       * The fallback used to be a hardcoded object saying "Under investigation
+       * by the administrators" and "Immediate reviewer review is advised", and
+       * the moderation queue renders those under a heading reading "AI Trust &
+       * Safety Analysis". So a brand-new, unread report about an adult
+       * displayed a summary saying it was already being handled. The queue
+       * skips the block entirely when this is absent.
+       */
+      let aiOverview: any = null;
 
       try {
         // /api/feedback/analyze requires a bearer token. This request sent
@@ -208,7 +213,9 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
         reason,
         description,
         createdAt: new Date().toISOString(),
-        aiOverview,
+        // Omitted, not null: isValidReport requires `is map` when present, and
+        // absent is what tells the queue triage did not run.
+        ...(aiOverview ? { aiOverview } : {}),
         // Attachment. Real reports carry only the Storage URL; the bytes live
         // in Firebase Storage under reports/{uid}/... (see storage.rules).
         // Demo reports keep the inline compressed data because they never

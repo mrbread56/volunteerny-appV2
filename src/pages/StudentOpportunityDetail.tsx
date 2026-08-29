@@ -314,14 +314,17 @@ export default function StudentOpportunityDetail() {
 
     let determinedStatus = 'pending';
     let currentAcceptedCount = 0;
-    const maxVolunteers = opportunity.maxVolunteers || 10;
+    // 0 means uncapped, the same reading the sidebar and waitlistService use.
+    // This was `|| 10`, so a posting with no limit silently waitlisted the
+    // eleventh applicant while the sidebar called it Full from the first.
+    const maxVolunteers = Number(opportunity.maxVolunteers) || 0;
 
     if (isDemoMode) {
       setTimeout(() => {
         const storedApps2 = localStorage.getItem('demo_applications');
         const appsList2 = storedApps2 ? JSON.parse(storedApps2) : [];
         currentAcceptedCount = appsList2.filter((a: any) => a.opportunityId === id && a.status === 'accepted').length;
-        if (currentAcceptedCount >= maxVolunteers) {
+        if (maxVolunteers > 0 && currentAcceptedCount >= maxVolunteers) {
           determinedStatus = 'waitlist';
         }
 
@@ -366,7 +369,7 @@ export default function StudentOpportunityDetail() {
       // far cheaper than losing the application.
       try {
         currentAcceptedCount = await fetchAcceptedCount(id);
-        if (currentAcceptedCount >= maxVolunteers) {
+        if (maxVolunteers > 0 && currentAcceptedCount >= maxVolunteers) {
           determinedStatus = 'waitlist';
         }
       } catch (capacityErr) {
@@ -384,7 +387,37 @@ export default function StudentOpportunityDetail() {
       // second application impossible rather than merely unlikely: Firestore
       // then treats it as an update, and the update rule pins appliedAt, so it
       // is refused cleanly instead of silently duplicating.
-      await setDoc(doc(db, 'applications', `${user.uid}_${id}`), {
+      /*
+       * A finished application is CLEARED before re-applying.
+       *
+       * The id is the {uid}_{oppId} pair, so a rejected or terminated document
+       * still occupies it — and Firestore then treats the write below as an
+       * UPDATE, which the student branch of the update rule refuses (it pins
+       * appliedAt and permits three keys). Letting the Apply button come back
+       * after a rejection without this would have replaced a permanent
+       * "You've Applied!" with a button that always errors, which is worse.
+       *
+       * Deleting rather than reusing, for the same reason withdrawal deletes:
+       * the record belongs to the student, a fresh application deserves a fresh
+       * appliedAt, and the organisation should not see a resurrected row
+       * carrying an old decision on it.
+       */
+      const priorRef = doc(db, 'applications', `${user.uid}_${id}`);
+      try {
+        const prior = await getDoc(priorRef);
+        if (prior.exists()) {
+          const priorStatus = String(prior.data()?.status || '');
+          if (priorStatus === 'rejected' || priorStatus === 'terminated') {
+            await deleteDoc(priorRef);
+          }
+        }
+      } catch (priorErr) {
+        // Non-fatal: if this read or delete fails the setDoc below fails too,
+        // and the catch there reports it to the student.
+        console.warn('Could not clear a previous application before re-applying:', priorErr);
+      }
+
+      await setDoc(priorRef, {
         opportunityId: id,
         // Who the student actually volunteered for. Without this, "Rate this
         // organization" on the student dashboard built its rating document
@@ -662,12 +695,21 @@ export default function StudentOpportunityDetail() {
                         the decision to apply. */}
                     <div className="flex items-center justify-between text-sm">
                        <span className="text-ink-muted font-medium flex items-center gap-2"><Users className="w-4 h-4" /> Spots</span>
+                       {/* Blank or 0 means UNCAPPED, which is how the create
+                           form, waitlistService and capacityRefusal all read it.
+                           This tested `acceptedCount >= (maxVolunteers || 0)`,
+                           so with no cap the test was 0 >= 0 — always true —
+                           and a posting with zero accepted volunteers told every
+                           student it was Full. The apply handler 380 lines up
+                           used a THIRD reading, `|| 10`. One meaning now. */}
                        <span className="font-bold text-ink">
-                         {acceptedCount === null
-                           ? `${opportunity.maxVolunteers} total`
-                           : acceptedCount >= (opportunity.maxVolunteers || 0)
-                             ? 'Full — you can join the waitlist'
-                             : `${Math.max(0, (opportunity.maxVolunteers || 0) - acceptedCount)} of ${opportunity.maxVolunteers} left`}
+                         {(() => {
+                           const cap = Number(opportunity.maxVolunteers) || 0;
+                           if (cap <= 0) return 'Open to new volunteers';
+                           if (acceptedCount === null) return `${cap} place${cap === 1 ? '' : 's'} in total`;
+                           if (acceptedCount >= cap) return 'Full. You can join the waitlist.';
+                           return `${Math.max(0, cap - acceptedCount)} of ${cap} left`;
+                         })()}
                        </span>
                     </div>
                  </div>

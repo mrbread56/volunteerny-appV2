@@ -331,7 +331,7 @@ export default function StudentProfile() {
               variant="secondary"
               className="px-4 py-1.5 font-semibold text-xs tracking-widest bg-paper-2 border-line italic"
             >
-              High School verified
+              School on file
             </Badge>
           </div>
         </div>

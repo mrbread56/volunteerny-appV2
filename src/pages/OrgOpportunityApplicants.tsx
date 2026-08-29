@@ -925,7 +925,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                             <Button
                               variant="ghost"
                               className="w-12 h-12 rounded-lg text-blue-dark hover:bg-blue-dark/5"
-                              title="Official Enrollment Slip / Receipt"
+                              title="Placement receipt"
                               onClick={() => {
                                 setSelectedReceiptApp(app);
                                 setShowReceiptModal(true);

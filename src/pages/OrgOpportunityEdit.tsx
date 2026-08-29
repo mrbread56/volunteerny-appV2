@@ -178,6 +178,7 @@ export default function OrgOpportunityEdit() {
   const [category, setCategory] = useState(OPPORTUNITY_CATEGORIES[0]);
   const [requirements, setRequirements] = useState('');
   const [maxVolunteers, setMaxVolunteers] = useState('5');
+  const [minAge, setMinAge] = useState('');
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedExclusives, setSelectedExclusives] = useState<string[]>([]);
   const [timeCommitment, setTimeCommitment] = useState(COMMITMENTS[0].value);
@@ -315,6 +316,7 @@ export default function OrgOpportunityEdit() {
           setCategory(data.category || '');
           setRequirements(data.requirements || '');
           setMaxVolunteers(String(data.maxVolunteers ?? ''));
+          setMinAge(data.minAge === undefined || data.minAge === null ? '' : String(data.minAge));
           // Remembered so the save can tell a RAISE from a lowering and promote
           // the waitlist by the difference. Without it, adding places left every
           // waitlisted student exactly where they were.
@@ -434,6 +436,11 @@ export default function OrgOpportunityEdit() {
       category,
       requirements,
       maxVolunteers: parseInt(maxVolunteers),
+      // null, not omitted: on an UPDATE an omitted key leaves the stored value
+      // in place, so an organisation clearing the field could never remove a
+      // minimum age it had set. The rules accept absent; deleteField would need
+      // an extra import for one field, and null reads the same to eligibility.ts.
+      minAge: minAge.trim() !== '' && Number.isFinite(Number(minAge)) ? parseInt(minAge, 10) : null,
       skillsNeeded: selectedSkills,
       exclusives: selectedExclusives,
       timeCommitment,
@@ -600,6 +607,20 @@ export default function OrgOpportunityEdit() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                    <Input label="Number of Openings / Volunteers Needed" type="number" min="1" value={maxVolunteers} onChange={(e) => setMaxVolunteers(e.target.value)} required />
                    <Select label="Type of Schedule" value={scheduleType} onChange={(e) => setScheduleType(e.target.value as any)} options={SCHEDULE_TYPES} required />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   {/* See the note on the create form: minAge had a type, rules,
+                       an allowlist, emulator coverage and a student-facing
+                       eligibility warning, and no input anywhere. */}
+                   <Input
+                     label="Minimum Age (optional)"
+                     type="number"
+                     min="0"
+                     max="120"
+                     placeholder="e.g. 16 — leave blank if there is no minimum"
+                     value={minAge}
+                     onChange={(e) => setMinAge(e.target.value)}
+                   />
                 </div>
              </section>
 

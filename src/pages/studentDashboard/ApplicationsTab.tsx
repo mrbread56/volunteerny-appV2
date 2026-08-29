@@ -79,7 +79,7 @@ export default function ApplicationsTab({
                         <div className="flex flex-wrap items-center gap-2 self-start flex-shrink-0">
                           {app.status === "accepted" && (
                             <button
-                              title="Official Enrollment Slip"
+                              title="Placement receipt"
                               className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-white hover:bg-paper-3 text-ink border border-line rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200 whitespace-nowrap rounded-full shadow-sm"
                               onClick={() => onOpenReceipt(app)}
                             >
@@ -139,7 +139,7 @@ export default function ApplicationsTab({
                         {app.status === "pending" && "The organization has not opened your application yet."}
                         {app.status === "reviewed" && "The organization has read your application and has not decided yet."}
                         {app.status === "accepted" && "You have a place. Contact details are below."}
-                        {app.status === "waitlist" && "This opportunity was full when you applied. You are next in line if a place frees up, and we will email you."}
+                        {app.status === "waitlist" && "This opportunity was full when you applied. You are on the waitlist. If the organization frees a place, it goes to whoever has waited longest and we email them."}
                         {app.status === "rejected" && "The organization was not able to offer you a place this time. You can apply again if they post another opportunity."}
                         {app.status === "terminated" && "This placement was ended. If you did not withdraw it yourself, contact the organization to ask why."}
                       </p>

@@ -498,7 +498,15 @@ export default function StudentDashboard() {
             const orgSnap = await getDoc(doc(db, "organizations", orgId));
             const org: any = orgSnap.exists() ? orgSnap.data() : null;
             if (org?.contactEmail) {
-              await sendTransactionalEmail({
+              /*
+       * The RESOLVED value is checked. sendTransactionalEmail never rejects —
+       * its catch RETURNS { success: false }, and so does every non-2xx — so
+       * the surrounding try/catch could not see this fail. Telling the
+       * organisation an applicant has withdrawn is the entire point of this
+       * feature; without the check it failed in complete silence and the
+       * application was deleted anyway.
+       */
+      const withdrawMail = await sendTransactionalEmail({
                 to: org.contactEmail,
                 subject: `An applicant withdrew from "${app.opportunityTitle || 'your posting'}"`,
                 templateName: 'applicant_withdrew',
@@ -509,6 +517,15 @@ export default function StudentDashboard() {
                   reason: reason.trim() || undefined,
                 },
               });
+              if (!withdrawMail.success) {
+                // Recorded where an operator can see it. The withdrawal itself
+                // still goes ahead below — refusing to let a student withdraw
+                // because we could not send a courtesy email would be worse.
+                reportError(
+                  'tell an organization an applicant withdrew',
+                  new Error(withdrawMail.error || 'send failed'),
+                );
+              }
             }
           }
         } catch (notifyErr) {
@@ -1587,10 +1604,10 @@ export default function StudentDashboard() {
                       }}
                       className="w-full rounded-lg h-11 border border-line bg-white px-3 py-2 text-xs focus:ring-2 focus:ring-blue-dark font-bold text-ink-soft cursor-pointer mb-4"
                     >
-                      <option value="">-- Choose verified partner (Auto-Fills info) --</option>
+                      <option value="">-- Choose an organisation (fills in their contact details) --</option>
                       {allOrganizations.map((org) => (
                         <option key={org.id} value={org.id} className="text-ink">
-                          🛡️ {org.organizationName}
+                          {org.organizationName}
                         </option>
                       ))}
                       <option value="custom" className="font-bold text-amber-700">Other / Unlisted Organization (Enter Manually)...</option>

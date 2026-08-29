@@ -249,20 +249,18 @@ export function FileUpload({
             <AlertCircle className="w-5 h-5 flex-shrink-0" />
             <p className="text-xs font-semibold uppercase tracking-wider">File Size Limit Exceeded</p>
           </div>
+          {/* "Upload Anyway" is gone. storage.rules enforces the size
+              UNCONDITIONALLY — file type has nothing to do with it — so that
+              button could only ever fail, and it failed into the generic
+              "Upload failed. Please try again." which does not mention size.
+              Offering a way through that does not exist wastes the upload and
+              leaves the student with no idea what was wrong. */}
           <p className="text-xs text-ink-soft leading-relaxed max-w-sm font-semibold">
-            This file is larger than the {maxSizeMB}MB limit. Click below to upload it anyway (may be rejected by server rules depending on file type):
+            This file is {(pendingFile.size / (1024 * 1024)).toFixed(1)}MB and the limit is {maxSizeMB}MB.
+            Save it as a smaller PDF, or export at a lower quality, and try again.
           </p>
-          
+
           <div className="flex flex-wrap gap-2 justify-center w-full pt-1">
-            <Button 
-              type="button"
-              onClick={() => doUpload(pendingFile)}
-              className="px-5 text-xs bg-amber-600 hover:bg-amber-700 font-semibold uppercase rounded-lg tracking-wider gap-1.5 text-white h-9"
-              isLoading={uploading}
-            >
-              <Upload className="w-3.5 h-3.5" /> Upload Anyway
-            </Button>
-            
             <Button 
               type="button"
               variant="outline"

@@ -130,7 +130,15 @@ export default function UsersTab({
                           </Button>
                         ) : (
                           <div className="flex flex-col items-end gap-1 p-2 bg-red-50 border border-red-200 rounded-lg animate-fadeIn">
-                            <p className="text-xs text-red-700 font-bold">Purge doc data?</p>
+                            {/* Names the target and says what it does. "Purge doc data?" beside a
+                                plain "Purge!" link was a CHEAPER click than the
+                                reversible suspend action, which pops a confirm naming
+                                the person — and it deletes the Firebase Auth identity,
+                                every posting and application, four Storage prefixes,
+                                ratings, recommendations and feedback. No undo. */}
+                            <p className="text-xs text-red-700 font-bold text-right leading-relaxed max-w-[16rem]">
+                              Delete this account for good? Their sign-in, profile and files go permanently.
+                            </p>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => setDeleteTargetId(null)}
@@ -240,7 +248,15 @@ export default function UsersTab({
                           </Button>
                         ) : (
                           <div className="flex flex-col items-end gap-1 p-2 bg-red-50 border border-red-200 rounded-lg animate-fadeIn">
-                            <p className="text-xs text-red-700 font-bold">Purge doc data?</p>
+                            {/* Names the target and says what it does. "Purge doc data?" beside a
+                                plain "Purge!" link was a CHEAPER click than the
+                                reversible suspend action, which pops a confirm naming
+                                the person — and it deletes the Firebase Auth identity,
+                                every posting and application, four Storage prefixes,
+                                ratings, recommendations and feedback. No undo. */}
+                            <p className="text-xs text-red-700 font-bold text-right leading-relaxed max-w-[16rem]">
+                              Delete this account for good? Their sign-in, profile and files go permanently.
+                            </p>
                             <div className="flex gap-1.5">
                               <button
                                 onClick={() => setDeleteTargetId(null)}

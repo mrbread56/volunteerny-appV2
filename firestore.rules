@@ -195,8 +195,21 @@ service cloud.firestore {
         // denied the bootstrap outright. An account with no users document also
         // has no isBanned and no twoFactorEnabled to check.
         (
-          !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
-          (isNotBanned() && mfaSatisfied())
+          // With a users document: the normal gate. Without one — the bootstrap
+          // case, before any account carries role == 'developer' — a CURRENT
+          // MFA claim is still required, read straight off the token rather
+          // than through mfaSatisfied(), which cannot run without the document.
+          //
+          // The escape used to be unconditional, so an allowlisted Google
+          // session with no users document reached `allow list: if
+          // isDeveloper()` on /users — every student's name, email and school —
+          // with no second factor at all. That is the precise threat the MFA
+          // check was added to close, surviving in the one branch that skipped
+          // it. /api/auth/send-otp does not read the users document either, so
+          // a genuine bootstrap can still get a code.
+          exists(/databases/$(database)/documents/users/$(request.auth.uid))
+            ? (isNotBanned() && mfaSatisfied())
+            : (request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1))
         ) && (
         (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
@@ -1092,13 +1105,25 @@ service cloud.firestore {
           // documents are listable) and have their name, email, activity, hours
           // and date appear in that organisation's queue and notifications.
           //
-          // That is queue-poisoning and unsolicited disclosure, not hours
-          // fraud: POST /api/hours/approve authorises by identity
-          // (server.ts, route 2), so a request from a student an organisation
-          // never worked with still cannot be credited. Pinning it properly
-          // needs a relationship the rules cannot cheaply prove here, since an
-          // hours request deliberately covers work done OUTSIDE a posted
-          // opportunity. Tracked rather than claimed.
+          // That is queue-poisoning and unsolicited disclosure. It is NOT
+          // hours fraud, but the reason is narrower than it used to be and
+          // worth stating exactly: POST /api/hours/approve route 2 requires the
+          // organisation to have been APPROVED BY A PERSON
+          // (verificationStatus == 'verified') before it can credit anything,
+          // and it anchors the match to the CALLER's own uid and contactEmail —
+          // so organisation A can never approve a request pointing at
+          // organisation B. What a student can do is address a request at any
+          // approved organisation, which then sees their name and hours in its
+          // queue and could confirm them.
+          //
+          // An earlier version of this comment said route 2 "authorises by
+          // identity", which was true when the gate was the caller's LOGIN
+          // address — a value a student cannot look up. It now also accepts the
+          // organisation's PUBLIC contactEmail and orgId, both readable, which
+          // is what makes the legitimate clinic and care-home case work at all.
+          // Pinning it properly needs a relationship the rules cannot cheaply
+          // prove here, since an hours request deliberately covers work done
+          // OUTSIDE a posted opportunity. Tracked rather than claimed.
           (absent(incoming(), 'orgId') ||
            (incoming().orgId is string && incoming().orgId.size() <= 128)) &&
           incoming().keys().hasOnly(['id', 'studentId', 'studentName', 'studentEmail', 'activity',

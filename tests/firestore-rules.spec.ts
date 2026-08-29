@@ -648,10 +648,30 @@ test.describe('the developer bootstrap allowlist', () => {
   });
 
   test('an allowlisted address WITH a verified email is a developer', async () => {
+    /*
+     * The bootstrap branch requires a current MFA claim now.
+     *
+     * It used to be wholly exempt: an allowlisted session with no users
+     * document reached `allow list: if isDeveloper()` on /users — every
+     * student's name, email and school — with no second factor at all. That is
+     * the threat the developer MFA check exists to close, surviving in the one
+     * branch that skipped it. A claimless bootstrap is asserted below.
+     */
+    const AT = 1786700000;
     const real = env
-      .authenticatedContext('real_dev', { email: 'kiamehrmetanat@gmail.com', email_verified: true })
+      .authenticatedContext('real_dev', {
+        email: 'kiamehrmetanat@gmail.com', email_verified: true,
+        auth_time: AT, mfaVerified: true, mfaVerifiedFor: AT,
+      })
       .firestore() as any;
     await assertSucceeds(getDocs(collection(real, 'users')));
+  });
+
+  test('an allowlisted address with NO second factor is not a developer', async () => {
+    const bare = env
+      .authenticatedContext('bare_dev', { email: 'kiamehrmetanat@gmail.com', email_verified: true })
+      .firestore() as any;
+    await assertFails(getDocs(collection(bare, 'users')));
   });
 });
 
@@ -1170,6 +1190,25 @@ test.describe('keys that were permitted but never validated', () => {
     // what matters; the type is not worth locking those accounts out over.
     await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
     await assertSucceeds(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, hasCra: 'yes' }));
+
+    /*
+     * And the UPDATE path, which is the one that actually broke.
+     *
+     * isValidOrganization runs on update against the MERGED document, so a
+     * strict `is bool` was evaluated against the string every live organisation
+     * already stores and refused a one-field edit that never touched it. Both
+     * assertions above are creates on a document that does not exist, so
+     * re-tightening the rule would leave them green and break every profile
+     * edit in production again.
+     */
+    await seed(async (db) => {
+      await setDoc(doc(db, 'organizations', ORG), {
+        uid: ORG, organizationName: 'Org One', contactEmail: 'o1@example.com',
+        northYorkConfirmed: true, craVerified: false, verificationStatus: 'verified',
+        hasCra: 'no',
+      });
+    });
+    await assertSucceeds(updateDoc(doc(asOrg(), 'organizations', ORG), { mission: 'Still editable' }));
     await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
     await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, hasCra: 'x'.repeat(50) }));
     await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, description: 'd'.repeat(6000) }));

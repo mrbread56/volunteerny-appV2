@@ -25,6 +25,8 @@ export interface DeveloperDashboardData {
   interestRequests: any[];
   pendingOrgs: any[];
   pendingOrgsLoading: boolean;
+  bannedStudents: any[];
+  bannedOrgs: any[];
   realStudentCount: number;
   realOrgCount: number;
   realFeedbackCount: number;
@@ -53,6 +55,9 @@ export function useDeveloperDashboardData(
   const [reports, setReports] = useState<any[]>([]);
   const [interestRequests, setInterestRequests] = useState<any[]>([]);
   const [pendingOrgs, setPendingOrgs] = useState<any[]>([]);
+  // Queried directly rather than filtered out of the capped lists; see loadData.
+  const [bannedStudents, setBannedStudents] = useState<any[]>([]);
+  const [bannedOrgs, setBannedOrgs] = useState<any[]>([]);
   // Separate from isLoading, which loadData owns. See loadPendingOrgs.
   const [pendingOrgsLoading, setPendingOrgsLoading] = useState(true);
   const [realStudentCount, setRealStudentCount] = useState(0);
@@ -133,7 +138,17 @@ export function useDeveloperDashboardData(
         // Fetch from real Firestore
         let fbList: any[] = [];
         try {
-          const fbSnap = await getDocs(query(collection(db, 'feedbacks'), limit(200)));
+          const fbSnap = await getDocs(query(
+        collection(db, 'feedbacks'),
+        // orderBy, for the same reason the reports query below has it. An
+        // unordered limit(200) returns an ARBITRARY stable subset — and
+        // feedback ids are 'fb_' + Math.random(), so past 200 tickets Firestore
+        // hands back the same arbitrary 200 on every refresh and a new ticket
+        // is never fetched at all. Sorting the result afterwards only reorders
+        // what arrived.
+        orderBy('createdAt', 'desc'),
+        limit(200),
+      ));
           fbList = fbSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         } catch (dbErr) {
           setConsoleNotice(
@@ -164,7 +179,14 @@ export function useDeveloperDashboardData(
 
         // Fetch category interest requests ("Join List")
         try {
-          const irSnap = await getDocs(query(collection(db, 'interestRequests'), limit(200)));
+          const irSnap = await getDocs(query(
+        collection(db, 'interestRequests'),
+        // Same as feedbacks above. These students were told they were on a
+        // waiting list, so a request that never surfaces is a promise broken
+        // silently.
+        orderBy('createdAt', 'desc'),
+        limit(200),
+      ));
           const irList = irSnap.docs.map(d => ({ id: d.id, ...d.data() } as any));
           irList.sort((a: any, b: any) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
           setInterestRequests(irList);
@@ -236,6 +258,26 @@ export function useDeveloperDashboardData(
         const orgList = orgSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
         setOrgs(orgList);
         setRealOrgCount(orgList.length);
+
+        /*
+         * The suspension registry gets its OWN query.
+         *
+         * It was `students.filter(s => s.isBanned)` and `orgs.filter(...)` —
+         * a filter applied AFTER an unordered limit(200), which is the same
+         * shape as the reports bug this file already documents. Firebase uids
+         * are random, so past 200 accounts a suspended person can simply be
+         * absent from the only screen that can lift the suspension, and the
+         * count beside the tab is wrong the same way.
+         *
+         * Asking the database for the suspended ones makes the registry
+         * complete regardless of how many accounts exist.
+         */
+        const [bannedStuSnap, bannedOrgSnap] = await Promise.all([
+          getDocs(query(collection(db, 'students'), where('isBanned', '==', true), limit(200))),
+          getDocs(query(collection(db, 'organizations'), where('isBanned', '==', true), limit(200))),
+        ]);
+        setBannedStudents(bannedStuSnap.docs.map(d => ({ uid: d.id, ...d.data() })));
+        setBannedOrgs(bannedOrgSnap.docs.map(d => ({ uid: d.id, ...d.data() })));
       }
     } catch (err) {
       // Was a bare console.error. This catch wraps the WHOLE admin load —
@@ -328,6 +370,7 @@ export function useDeveloperDashboardData(
 
   return {
     students, orgs, feedbacks, reports, interestRequests, pendingOrgs, pendingOrgsLoading,
+    bannedStudents, bannedOrgs,
     realStudentCount, realOrgCount, realFeedbackCount, realReportCount,
     isLoading, consoleNotice, setConsoleNotice,
     setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,

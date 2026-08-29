@@ -759,6 +759,59 @@ app.use(express.json());
     return { ok: true };
   }
 
+  /**
+   * Mint or reuse a code, atomically.
+   *
+   * Same shape as verifyOtpAtomic: the whole read-decide-write happens inside a
+   * Firestore transaction so two simultaneous sends cannot each mint a code and
+   * overwrite one another. Falls back to the memory store when Firestore is
+   * unavailable, exactly as readOtp/writeOtp do — a single-instance race there
+   * is not reachable, since the fallback path has no concurrency to lose to.
+   */
+  async function issueOtpAtomic(
+    uid: string, now: number, ttlMs: number, burstMs: number,
+  ): Promise<OtpRecord> {
+    const fresh = (): OtpRecord => ({
+      otp: crypto.randomInt(100000, 999999).toString(),
+      expires: now + ttlMs,
+      attempts: 0,
+      issuedAt: now,
+    });
+
+    const ref = otpDocRef(uid);
+    const adb = adminFirestore();
+    if (!ref || !adb) {
+      const mem = memoryOtpStore.get(uid);
+      const record = mem && mem.expires > now && now - mem.issuedAt < burstMs
+        ? { ...mem, expires: now + ttlMs }
+        : fresh();
+      memoryOtpStore.set(uid, record);
+      return record;
+    }
+
+    try {
+      const record = await adb.runTransaction(async (tx: any) => {
+        const snap = await tx.get(ref);
+        const prev = snap.exists ? (snap.data() as OtpRecord) : null;
+        const reusable = !!prev && prev.expires > now && now - prev.issuedAt < burstMs;
+        // A reused code gets a FRESH deadline, so it is never handed over
+        // already half-expired.
+        const next: OtpRecord = reusable
+          ? { otp: prev!.otp, expires: now + ttlMs, attempts: prev!.attempts, issuedAt: prev!.issuedAt }
+          : fresh();
+        tx.set(ref, next);
+        return next;
+      });
+      memoryOtpStore.set(uid, record);
+      return record;
+    } catch (err: any) {
+      console.warn('[otp] transactional issue failed, falling back to memory:', err?.message || err);
+      const record = fresh();
+      memoryOtpStore.set(uid, record);
+      return record;
+    }
+  }
+
   /** Write to both stores. Firestore is best-effort; memory always succeeds. */
   async function writeOtp(uid: string, record: OtpRecord): Promise<void> {
     memoryOtpStore.set(uid, record);
@@ -830,7 +883,13 @@ app.use(express.json());
     const dbAdmin = adminFirestore();
 
     const [students, orgs, opps, apps, hours, reports, users] = await Promise.all([
-      dbAdmin.collection('students').get(),
+      // loggedHours only. A student document also carries resumeUrl and
+      // passportUrl as base64 capped at 400 000 characters EACH, and this
+      // function reads nothing but loggedHours off it — so the whole students
+      // collection was materialising in one invocation for a count.
+      // rebuildGlobalLeaderboard documents the same hazard and already uses
+      // select().
+      dbAdmin.collection('students').select('loggedHours').get(),
       dbAdmin.collection('organizations').get(),
       dbAdmin.collection('opportunities').get(),
       dbAdmin.collection('applications').get(),
@@ -1235,6 +1294,17 @@ app.use(express.json());
       // Same test the other privileged routes use: the ROLE first, then the
       // bootstrap allowlist. Allowlist-only would lock out a second developer
       // promoted the supported way, by setting their role.
+      // The second factor, like the three /api/admin/* routes. This returns
+      // platform-wide figures AND writes metrics/public, so a session that
+      // never completed the challenge could both read them and republish the
+      // numbers on the public home page.
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'metrics' });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before using developer tools.',
+        });
+      }
+
       const adb = adminFirestore();
       const callerSnap = await adb.collection('users').doc(authContext.uid).get();
       const caller = callerSnap.exists ? callerSnap.data() : null;
@@ -1485,6 +1555,42 @@ app.use(express.json());
       logEvent('org_verification_decided', { uid: authContext.uid, orgUid, decision });
 
       /*
+       * A REJECTION takes the postings down, the way a suspension does.
+       *
+       * Rejection wrote verificationStatus and nothing else, and opportunities
+       * are `allow read: if true` — so a turned-down organisation's listings
+       * stayed in front of students, who kept applying, while the same rejection
+       * removed the organisation's ability to accept, reject or even close them
+       * (every one of those goes through isApprovedOrg()). Students applied into
+       * a posting nobody on earth could act on, and the organisation could not
+       * withdraw it.
+       *
+       * Closed rather than deleted, and after the decision is committed rather
+       * than inside it: the postings and the applications under them are
+       * evidence, and a cleanup failure must never be able to undo the decision.
+       * Approving does NOT reopen them, for the same reason lifting a suspension
+       * does not: a person should decide what goes back in front of students.
+       */
+      let postingsClosed = 0;
+      if (decision === 'rejected') {
+        try {
+          for (;;) {
+            const live = await adb.collection('opportunities')
+              .where('orgId', '==', orgUid).where('status', '==', 'open').limit(300).get();
+            if (live.empty) break;
+            await Promise.all(live.docs.map((d: any) => d.ref.update({ status: 'closed' })));
+            postingsClosed += live.size;
+            if (live.size < 300) break;
+          }
+        } catch (closeErr: any) {
+          // Loud, and reported to the reviewer: the rejection stands, but
+          // students can still see the listings.
+          console.error('[verify-org] could not close postings for', orgUid, closeErr?.message || closeErr);
+          logEvent('org_rejection_postings_not_closed', { orgUid });
+        }
+      }
+
+      /*
        * The decision is committed above and is NOT undone by a mail failure.
        * The organisation's state in the database is the thing that matters; a
        * bounced address must not leave them unapproved. The response reports
@@ -1493,11 +1599,11 @@ app.use(express.json());
        */
       const to = String(org.contactEmail || '').trim();
       if (!to) {
-        return res.json({ success: true, emailSent: false, reason: 'no contact address on file' });
+        return res.json({ success: true, emailSent: false, postingsClosed, reason: 'no contact address on file' });
       }
       if (!resend) {
         console.error('[verify-org] RESEND_API_KEY is not configured — decision saved, nobody told.');
-        return res.json({ success: true, emailSent: false, reason: 'email is not configured' });
+        return res.json({ success: true, emailSent: false, postingsClosed, reason: 'email is not configured' });
       }
 
       const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>';
@@ -1515,7 +1621,7 @@ app.use(express.json());
       });
       if (error) {
         console.error('[verify-org] Resend rejected the message:', { message: error.message, from: fromAddress });
-        return res.json({ success: true, emailSent: false, reason: 'the email could not be delivered' });
+        return res.json({ success: true, emailSent: false, postingsClosed, reason: 'the email could not be delivered' });
       }
 
       recordEmailLog({
@@ -1525,7 +1631,7 @@ app.use(express.json());
         status: 'sent',
         sentBy: authContext.email || authContext.uid,
       });
-      return res.json({ success: true, emailSent: true });
+      return res.json({ success: true, emailSent: true, postingsClosed });
     } catch (err: any) {
       console.error('[verify-org] Crash:', err);
       return res.status(500).json({ error: 'Could not record that decision. Please try again.' });
@@ -1904,7 +2010,13 @@ app.use(express.json());
     // does NOT remove them from it. Their name and hours stayed visible to every
     // signed-in user until the next nightly rebuild — which is a disclosure of a
     // minor's data after they asked to be erased.
-    rebuildGlobalLeaderboard().catch((err: any) =>
+    // AWAITED. On Vercel an invocation can be frozen the moment the response is
+    // sent, so a fire-and-forget rebuild here — the one that exists specifically
+    // to scrub a deleted minor's name off a board every signed-in account can
+    // read — might simply never run. The in-process 15-minute timer that would
+    // otherwise catch it is disabled under VERCEL, and the daily cron is off
+    // when CRON_SECRET is unset, so this was the only backstop.
+    await rebuildGlobalLeaderboard().catch((err: any) =>
       console.error('[purgeAccount] leaderboard rebuild after deletion failed:', err?.message || err),
     );
 
@@ -3004,6 +3116,45 @@ app.use(express.json());
          * survives retries of that same attempt, so a replay is recognised and
          * returns the original entry instead of appending a second one.
          */
+        /*
+         * A SERVER-DERIVED fingerprint as well as the client's key.
+         *
+         * clientRef is a random UUID the browser mints into a useRef. It
+         * survives pressing the button again; it does NOT survive a page
+         * RELOAD — and a reload is the ordinary response to a request that
+         * hangs, which is exactly what happens when the invocation is killed in
+         * the post-commit tail above. The hours are already credited, the form
+         * is still filled because it clears only on success, the coordinator
+         * refreshes, retypes the same eight hours and submits: a fresh UUID, no
+         * match, a second entry, sixteen hours on a graduation record.
+         *
+         * The fingerprint is the facts of the credit — who, what, when, how
+         * many, approved by whom — so the same hours logged twice by the same
+         * organisation are recognised however the browser got there. A
+         * DIFFERENT credit (a corrected figure, a second genuine shift on the
+         * same day with a different activity) produces a different fingerprint
+         * and is written, which is the behaviour the clientRef design chose on
+         * purpose: editing any field must abandon the key.
+         *
+         * Only for the direct path. The request path is already serialised by
+         * re-reading the hoursRequest inside this transaction, and two separate
+         * requests for identical hours are two real claims.
+         */
+        const creditFingerprint = requestRef
+          ? ''
+          : [studentId, String(activity || ''), String(date || ''), String(parsedHours), authContext.uid]
+              .join('|')
+              .toLowerCase();
+
+        if (creditFingerprint) {
+          const dup = existing.find((e: any) => e && e.creditFingerprint === creditFingerprint);
+          if (dup) {
+            const settled = totalLoggedHours(existing);
+            replayedEntry = dup;
+            return { total: settled, entryId: dup.id, priorTotal: settled };
+          }
+        }
+
         if (clientRef) {
           const already = existing.find((e: any) => e && e.clientRef === clientRef);
           if (already) {
@@ -3021,6 +3172,9 @@ app.use(express.json());
           // Present only on the direct-credit path; the request path is already
           // idempotent through its own document.
           ...(clientRef ? { clientRef } : {}),
+          // Stored so the next attempt can recognise this credit even when the
+          // browser has lost its clientRef. See the note in the transaction.
+          ...(creditFingerprint ? { creditFingerprint } : {}),
           activity: String(activity || 'Volunteer Activity').slice(0, 200),
           hours: parsedHours,
           date: String(date || new Date().toISOString().slice(0, 10)).slice(0, 32),
@@ -3603,17 +3757,25 @@ app.use(express.json());
       // code kept its original deadline and could expire seconds after arriving.
       const BURST_MS = 60 * 1000;
 
-      const existing = await readOtp(authContext.uid);
-      const reuse = !!existing && existing.expires > now && now - existing.issuedAt < BURST_MS;
-
-      const otp = reuse ? existing!.otp : crypto.randomInt(100000, 999999).toString();
-      const record: OtpRecord = {
-        otp,
-        expires: now + TTL_MS,
-        attempts: reuse ? existing!.attempts : 0,
-        issuedAt: reuse ? existing!.issuedAt : now,
-      };
-      await writeOtp(authContext.uid, record);
+      /*
+       * Read, decide and write in ONE transaction.
+       *
+       * This was readOtp -> decide -> writeOtp, and writeOtp is a plain set().
+       * Two sends arriving together both read null, both miss the burst-reuse
+       * window above, both mint a code, and the second overwrites the first —
+       * so two live codes are emailed and only the later one verifies. The user
+       * types whichever arrived first, is told "Incorrect code", and burns one
+       * of five attempts doing it. For an organisation that is a two-factor
+       * lockout, which blocks the hours approvals students are waiting on.
+       *
+       * The burst-reuse window this sits inside exists precisely to stop a
+       * double-send producing two codes; it could not, because the check and
+       * the write were not atomic. verifyOtpAtomic beside it has been a real
+       * transaction all along.
+       */
+      const record = await issueOtpAtomic(authContext.uid, now, TTL_MS, BURST_MS);
+      const otp = record.otp;
+      const reuse = record.issuedAt !== now;
       console.log(`[send-otp] ${reuse ? 'Reusing' : 'Generated'} OTP for ${authContext.email}`);
 
       // Never print codes in production logs — anyone with log access could
@@ -3899,9 +4061,20 @@ app.use(express.json());
         return res.status(400).json({ error: 'Enter one of your recovery codes.' });
       }
 
-      // Same limiter as the emailed code, so recovery codes cannot be used to
-      // sidestep the attempt cap by brute force.
-      const limited = await isOtpRateLimited(authContext.uid);
+      /*
+       * Its OWN bucket, not the send-otp one.
+       *
+       * This shared 'otp_rate_limits' with send-otp, so pressing Resend five
+       * times — the thing a person does precisely BECAUSE the code is not
+       * arriving — used up the allowance and then answered 429 to "use a
+       * recovery code". The behaviour that leads someone to need recovery
+       * switched recovery off for ten minutes.
+       *
+       * The intent behind sharing was that codes cannot be brute-forced past
+       * the attempt cap; a separate bucket keeps that, since this one is still
+       * limited on its own.
+       */
+      const limited = await isOtpRateLimited(authContext.uid, 'backup_code_rate_limits');
       if (limited) {
         return res.status(429).json({ error: 'Too many attempts. Please wait a few minutes and try again.' });
       }
@@ -4633,12 +4806,15 @@ app.use(express.json());
       // array cannot be trusted on serverless. Old entries are pruned here
       // rather than on the send path: this route is developer-only and rare, so
       // the cost lands where nobody is waiting on it.
-      try {
-        // The second factor, like the three /api/admin/* routes. This returns the
+      // The second factor, like the three /api/admin/* routes. This returns the
       // emailLog collection — the recipient address of every message this
       // platform has ever sent, which is the email address of every student on
       // it. It was the one developer-only route reading personal data with no
       // MFA gate.
+      //
+      // ABOVE the try, not inside it: pasted into the Firestore try/catch, the
+      // gate sat in a block whose fall-through is the in-process history, so a
+      // future throw ahead of it would have served the recipient log ungated.
       if (!authContext.isDemo && !hasPassedMfa(authContext)) {
         logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'email/history' });
         return res.status(403).json({
@@ -4646,6 +4822,7 @@ app.use(express.json());
         });
       }
 
+      try {
       const adb = adminFirestore();
         const snap = await adb.collection('emailLog')
           .orderBy('at', 'desc').limit(EMAIL_HISTORY_LIMIT).get();
