@@ -359,8 +359,15 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                 </div>
               )}
               <div>
-                <label className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Violation Classification *</label>
+                {/* htmlFor + id. These two labels were siblings of their
+                    controls and wrapped nothing, so they named nothing: a
+                    screen reader announced "combo box" and "edit text, blank"
+                    on the form a student uses to report an adult. The suite
+                    runs axe on every route but never opens a dialog, so no
+                    check covered it. */}
+                <label htmlFor="report-reason" className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Violation Classification *</label>
                 <select
+                  id="report-reason"
                   value={reason}
                   onChange={(e) => setReason(e.target.value)}
                   className="w-full text-xs rounded-lg border border-line px-3.5 py-3 font-semibold bg-white cursor-pointer focus:ring-2 focus:ring-red-500"
@@ -375,8 +382,9 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
               </div>
 
               <div>
-                <label className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Detailed Account of Incident *</label>
+                <label htmlFor="report-description" className="text-xs font-bold text-ink-soft text-ink-muted block mb-1.5 uppercase tracking-wide">Detailed Account of Incident *</label>
                 <textarea
+                  id="report-description"
                   rows={4}
                   placeholder="Provide precise details, e.g., date of occurrence, specific dialogues, or no-show patterns of this member..."
                   className="w-full rounded-lg border border-line p-4 text-xs focus:ring-2 focus:ring-red-500 font-semibold leading-relaxed"
@@ -451,6 +459,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                     </div>
 
                     <Input
+                      aria-label="Brief context for the attached screenshot"
                       placeholder="Brief context for screenshot (e.g., chat log snapshot)..."
                       value={fileDescription}
                       onChange={(e) => setFileDescription(e.target.value)}

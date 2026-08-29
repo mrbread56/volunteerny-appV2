@@ -235,14 +235,32 @@ service cloud.firestore {
       return data.uid == request.auth.uid &&
              data.organizationName is string && data.organizationName.size() <= 100 &&
              (absent(data, 'mission') || (data.mission is string && data.mission.size() <= 2000)) &&
-             data.contactEmail is string &&
+             data.contactEmail is string && data.contactEmail.size() <= 254 &&
              data.northYorkConfirmed is bool &&
-             (absent(data, 'phone') || data.phone is string) &&
-             (absent(data, 'websiteUrl') || data.websiteUrl is string) &&
+             // Four keys sat in the hasOnly allowlists below and were named by
+             // no validator, which is the difference between PERMITTED and
+             // VALIDATED: hasOnly bounds WHICH keys may be written, never what
+             // may be put in them. All four accepted any type at any size, up
+             // to the 1 MiB document ceiling.
+             //
+             // craNumber is the one that bites hardest. The reviewer's queue
+             // renders it directly — DeveloperDashboard.tsx:1402 does
+             // {org.craNumber} inside a <strong> — and React throws on a raw
+             // object child, so a single organisation writing craNumber: {}
+             // took down the ENTIRE verification queue behind the
+             // ErrorBoundary, for every organisation waiting in it. 40 is
+             // generous for a 15-character CRA number.
+             (absent(data, 'description') || (data.description is string && data.description.size() <= 5000)) &&
+             (absent(data, 'hasCra') || data.hasCra is bool) &&
+             (absent(data, 'craNumber') || (data.craNumber is string && data.craNumber.size() <= 40)) &&
+             // OrgProfile writes exactly three: twitter, instagram, linkedin.
+             (absent(data, 'socialLinks') || (data.socialLinks is map && data.socialLinks.size() <= 10)) &&
+             (absent(data, 'phone') || (data.phone is string && data.phone.size() <= 40)) &&
+             (absent(data, 'websiteUrl') || (data.websiteUrl is string && data.websiteUrl.size() <= 500)) &&
              (absent(data, 'organizationType') || (data.organizationType is string && data.organizationType.size() <= 80)) &&
              // Free text, so it is capped like every other free-text field.
              (absent(data, 'organizationTypeOther') || (data.organizationTypeOther is string && data.organizationTypeOther.size() <= 80)) &&
-             (absent(data, 'address') || data.address is string) &&
+             (absent(data, 'address') || (data.address is string && data.address.size() <= 300)) &&
              (absent(data, 'isBanned') || data.isBanned is bool) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number));
     }
@@ -261,8 +279,11 @@ service cloud.firestore {
              // Capacity drives the waitlist. A negative value was accepted and
              // makes "places remaining" nonsense.
              (absent(data, 'maxVolunteers') || (data.maxVolunteers is int && data.maxVolunteers >= 0 && data.maxVolunteers <= 10000)) &&
-             (absent(data, 'skillsNeeded') || data.skillsNeeded is list) &&
-             (absent(data, 'exclusives') || data.exclusives is list) &&
+             // Uncapped lists on a collection that is `allow read: if true`
+             // are downloaded by every unauthenticated visitor to the browse
+             // page, the same reason title and description are capped above.
+             (absent(data, 'skillsNeeded') || (data.skillsNeeded is list && data.skillsNeeded.size() <= 50)) &&
+             (absent(data, 'exclusives') || (data.exclusives is list && data.exclusives.size() <= 50)) &&
              // Real Toronto floors run 14 to 19; the bound is generous but finite.
              (absent(data, 'minAge') || (data.minAge is int && data.minAge >= 0 && data.minAge <= 120)) &&
              (absent(data, 'timeCommitment') || (data.timeCommitment is string && data.timeCommitment.size() <= 100)) &&
@@ -271,12 +292,16 @@ service cloud.firestore {
              // Absent means open, so every opportunity created before this
              // field existed keeps working with no backfill.
              (absent(data, 'status') || data.status in ['open', 'closed']) &&
-             // 'closed' stops new applications without deleting the posting.
-             // Absent means open, so every opportunity created before this
-             // field existed keeps working with no backfill.
-             (absent(data, 'status') || data.status in ['open', 'closed']) &&
-             (absent(data, 'scheduleType') || data.scheduleType is string) &&
-             (absent(data, 'shifts') || data.shifts is list) &&
+             (absent(data, 'scheduleType') || data.scheduleType in ['single', 'multiple', 'recurring']) &&
+             (absent(data, 'shifts') || (data.shifts is list && data.shifts.size() <= 50)) &&
+             // dateTime was in BOTH hasOnly allowlists and named by nothing
+             // here, so the one field the browse page sorts and filters on
+             // accepted any type at any size on a publicly readable
+             // collection. Both writers (OrgOpportunityCreate and
+             // OrgOpportunityEdit) pass it through resolveOpportunityDate,
+             // which always returns a Date, so this is what the app already
+             // sends on every create and every save.
+             (absent(data, 'dateTime') || data.dateTime is timestamp) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number)) &&
              // OrgOpportunityEdit writes this on every save. It was in neither
              // this validator nor the update hasOnly below, so hasOnly saw an
@@ -289,7 +314,13 @@ service cloud.firestore {
 
     function isValidApplication(data) {
        return data.studentId == (resource == null ? request.auth.uid : resource.data.studentId) &&
-              data.opportunityId is string &&
+              data.opportunityId is string && data.opportunityId.size() <= 128 &&
+              // orgId decides which adult organisation receives this minor's
+              // name, school, neighbourhood and resume. It was in the create
+              // allowlist and named by no validator, so it accepted any type
+              // at any size. The create rule additionally pins it to the
+              // opportunity's real owner; see the note there.
+              (absent(data, 'orgId') || (data.orgId is string && data.orgId.size() <= 128)) &&
               // 'reviewed' is in the Application type and OrgOpportunityApplicants
              // writes it, but it was missing here, so every "Mark as reviewed"
              // click was rejected with permission-denied. It passed in demo mode
@@ -674,18 +705,45 @@ service cloud.firestore {
     }
 
     match /applications/{applicationId} {
+      // isNotBanned() on the ORGANISATION branch, which had no status check of
+      // any kind: it asked only "does the parent opportunity name me as owner".
+      //
+      // Suspending an organisation writes isBanned to users/ and organizations/
+      // and closes its postings. It does NOT disable the Firebase Auth user and
+      // does NOT revoke refresh tokens, and src/routes/guards.tsx runs on the
+      // suspended party's own machine — so a suspended organisation kept a
+      // valid session and could read straight from the SDK:
+      //
+      //   getDocs(query(collection(db,'applications'),
+      //                 where('opportunityId','==','<its own posting>')))
+      //
+      // returning every applicant's name, message, previous experience and
+      // resume link. An organisation is suspended precisely when it has been
+      // judged unsafe around children, and that was the moment it kept the most
+      // sensitive read in the app.
       allow get: if isSignedIn() && isValidId(applicationId) && (
         resource.data.studentId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)) &&
+        (isNotBanned() &&
+         exists(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)) &&
          get(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)).data.orgId == request.auth.uid) ||
         isDeveloper()
       );
       // Same ownership constraint, minus isValidId — see the note on that
       // function. Students list their own applications; an org lists the
       // applications to opportunities it owns.
+      //
+      // isNotBanned() here too, and it is what forced the client's `in` chunk
+      // from five opportunity ids down to three. This rule spends exists() +
+      // get() PER ID in the chunk, and the ban check adds users/{uid} on top;
+      // at five that is eleven document accesses and Firestore DENIES the whole
+      // query past ten, which is the failure this file already records ("every
+      // real applicant vanished behind an error"). Three ids costs seven.
+      // src/hooks/useOrgDashboardData.ts and src/lib/notifications.ts chunk to
+      // match; raising either without re-counting here breaks applicant lists.
       allow list: if isSignedIn() && (
         resource.data.studentId == request.auth.uid ||
-        (exists(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)) &&
+        (isNotBanned() &&
+         exists(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)) &&
          get(/databases/$(database)/documents/opportunities/$(resource.data.opportunityId)).data.orgId == request.auth.uid) ||
         isDeveloper()
       );
@@ -697,8 +755,23 @@ service cloud.firestore {
       // ids unconstrained, a student could create unlimited applications each
       // padded with an unnamed key toward the 1 MiB ceiling. Same reasoning as
       // /users and /students.
+      //
+      // orgId is pinned to the opportunity's actual owner rather than trusted
+      // from the client. It is the routing key: the organisation branch of
+      // `allow list` below returns applications by orgId, so whatever a student
+      // writes here decides which adult account receives their name, school,
+      // neighbourhood and resume. StudentOpportunityDetail.tsx:360 already
+      // sends opportunity.orgId, so this pins what the app does anyway, and it
+      // stops a hand-rolled request planting an applicant in the queue of an
+      // organisation that never posted anything they applied to.
+      //
+      // Two unique document reads on this path (users/{uid} via
+      // isVerifiedStudent, then the opportunity), well inside the ten-access
+      // budget. A deleted opportunity denies, which is the right answer: the
+      // alternative is an application orphaned at birth.
       allow create: if isVerifiedStudent() && isValidId(applicationId) && isValidApplication(incoming()) &&
                     incoming().keys().hasOnly(['opportunityId', 'orgId', 'studentId', 'status', 'appliedAt', 'message', 'opportunityTitle', 'studentName', 'previousExperience', 'resumeUrl']) &&
+                    incoming().orgId == get(/databases/$(database)/documents/opportunities/$(incoming().opportunityId)).data.orgId &&
                     (incoming().status == 'pending' || incoming().status == 'waitlist');
                     
       allow update: if isSignedIn() && isValidId(applicationId) && isValidApplication(incoming()) && (
@@ -841,8 +914,11 @@ service cloud.firestore {
         // meant that the moment an organisation changed its PUBLIC contact email
         // — a required field OrgProfile invites them to edit — every request to
         // them became invisible, silently, on both sides.
-        (resource.data.get('orgId', '') == request.auth.uid) ||
-        (resource.data.coordinatorContact == request.auth.token.email &&
+        // isNotBanned() on both coordinator routes, for the same reason as the
+        // applications rules above: these rows carry a student's name, email,
+        // activity, hours and dates, and a suspension left them readable.
+        (isNotBanned() && resource.data.get('orgId', '') == request.auth.uid) ||
+        (isNotBanned() && resource.data.coordinatorContact == request.auth.token.email &&
          request.auth.token.email_verified == true) ||
         isDeveloper()
       );
@@ -881,9 +957,21 @@ service cloud.firestore {
           // check:flows, not by the emulator suite, whose fixture did not
           // match the real write.
           // orgId routes the request to an account rather than to a string.
-          // Pinned to a real organisation the student actually applied to, so a
-          // student cannot address a request at an organisation they have never
-          // worked with just by naming its uid.
+          //
+          // It is type- and size-checked and NOTHING MORE. An earlier version
+          // of this comment claimed it was "pinned to a real organisation the
+          // student actually applied to"; it never was, and an emulator probe
+          // confirmed a student can name any organisation's uid (organisation
+          // documents are listable) and have their name, email, activity, hours
+          // and date appear in that organisation's queue and notifications.
+          //
+          // That is queue-poisoning and unsolicited disclosure, not hours
+          // fraud: POST /api/hours/approve authorises by identity
+          // (server.ts, route 2), so a request from a student an organisation
+          // never worked with still cannot be credited. Pinning it properly
+          // needs a relationship the rules cannot cheaply prove here, since an
+          // hours request deliberately covers work done OUTSIDE a posted
+          // opportunity. Tracked rather than claimed.
           (absent(incoming(), 'orgId') ||
            (incoming().orgId is string && incoming().orgId.size() <= 128)) &&
           incoming().keys().hasOnly(['id', 'studentId', 'studentName', 'studentEmail', 'activity',
@@ -924,8 +1012,12 @@ service cloud.firestore {
     match /interestRequests/{reqId} {
       allow get: if isSignedIn() && (resource.data.studentId == request.auth.uid || isDeveloper()) && isValidId(reqId);
       allow list: if isSignedIn() && (resource.data.studentId == request.auth.uid || isDeveloper());
+      // isNotBanned(), like every other create in this file. Without it a
+      // suspended account kept one working write: it could keep filing
+      // interest requests into the queue a developer reads, which is the one
+      // channel a banned user had left to reach a person.
       allow create: if isSignedIn() && isValidId(reqId) && (
-        (incoming().studentId == request.auth.uid && isValidInterestRequest(incoming()) && incoming().keys().hasOnly(['studentId', 'studentName', 'email', 'categories', 'description', 'createdAt', 'status'])) || 
+        (incoming().studentId == request.auth.uid && isNotBanned() && isValidInterestRequest(incoming()) && incoming().keys().hasOnly(['studentId', 'studentName', 'email', 'categories', 'description', 'createdAt', 'status'])) || 
         isDeveloper()
       );
       allow update: if isSignedIn() && isValidId(reqId) && (

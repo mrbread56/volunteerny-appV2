@@ -557,7 +557,8 @@ export default function ApplicationReviewDialog({
                 {application.status === 'pending' && onReview && (
                   <Button 
                     variant="outline"
-                    className="flex-1 rounded-lg h-14 font-semibold uppercase text-xs tracking-widest text-amber-600 border-amber-200 hover:bg-amber-50 hover:border-amber-300 transition-all"
+                    /* amber-700: #E17100 measured 3.11:1 here, and this is 12px text. */
+                    className="flex-1 rounded-lg h-14 font-semibold uppercase text-xs tracking-widest text-amber-700 border-amber-200 hover:bg-amber-50 hover:border-amber-300 transition-all"
                     onClick={() => {
                       onReview(application.id);
                       onClose();

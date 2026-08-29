@@ -24,6 +24,7 @@ export interface DeveloperDashboardData {
   reports: any[];
   interestRequests: any[];
   pendingOrgs: any[];
+  pendingOrgsLoading: boolean;
   realStudentCount: number;
   realOrgCount: number;
   realFeedbackCount: number;
@@ -52,6 +53,8 @@ export function useDeveloperDashboardData(
   const [reports, setReports] = useState<any[]>([]);
   const [interestRequests, setInterestRequests] = useState<any[]>([]);
   const [pendingOrgs, setPendingOrgs] = useState<any[]>([]);
+  // Separate from isLoading, which loadData owns. See loadPendingOrgs.
+  const [pendingOrgsLoading, setPendingOrgsLoading] = useState(true);
   const [realStudentCount, setRealStudentCount] = useState(0);
   const [realOrgCount, setRealOrgCount] = useState(0);
   const [realFeedbackCount, setRealFeedbackCount] = useState(0);
@@ -252,7 +255,27 @@ export function useDeveloperDashboardData(
   };
 
   // ── Org Verification Queue ──
+  /*
+   * Its own loading flag.
+   *
+   * `isLoading` is owned entirely by loadData, which never touches this query,
+   * so the queue rendered "No organizations pending verification." while its own
+   * read was still in flight. That is the one tab in the console that must never
+   * look empty by accident: a charity that has been waiting is indistinguishable
+   * from nothing to do, and the reviewer closes the page. The catch below
+   * already says exactly this about a FAILED read; an in-flight one looked the
+   * same and had no message at all.
+   */
   const loadPendingOrgs = async () => {
+    setPendingOrgsLoading(true);
+    try {
+      await loadPendingOrgsInner();
+    } finally {
+      setPendingOrgsLoading(false);
+    }
+  };
+
+  const loadPendingOrgsInner = async () => {
     if (isDemoMode) {
       setPendingOrgs([
         { uid: 'demo-org-pending-1', organizationName: 'North York Youth Arts', craNumber: '119219814RR0001', contactEmail: 'arts@nyyouth.ca', verificationStatus: 'pending', address: '100 Sheppard Ave W' },
@@ -304,7 +327,7 @@ export function useDeveloperDashboardData(
   }, [isDemoMode, user]);
 
   return {
-    students, orgs, feedbacks, reports, interestRequests, pendingOrgs,
+    students, orgs, feedbacks, reports, interestRequests, pendingOrgs, pendingOrgsLoading,
     realStudentCount, realOrgCount, realFeedbackCount, realReportCount,
     isLoading, consoleNotice, setConsoleNotice,
     setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,

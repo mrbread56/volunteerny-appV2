@@ -355,16 +355,25 @@ export default function FeedbackPage() {
                         }`}
                         onClick={() => document.getElementById('file-uploader-element')?.click()}
                       >
+                        {/* sr-only, not hidden, and a real <label> rather than
+                            a <span>. className="hidden" is display:none, which
+                            makes an input UNFOCUSABLE, and the surrounding div
+                            has no role, tabIndex or key handler — so there was
+                            no keyboard path to attach a file at all. The report
+                            modal already fixes this exact bug the same way. */}
                         <input
                           id="file-uploader-element"
                           type="file"
-                          className="hidden"
+                          className="sr-only"
                           onChange={handleFileChange}
                           accept="image/*,application/pdf"
                         />
                         <UploadCloud className="w-8 h-8 text-ink-soft animate-pulse" />
                         <p className="text-xs font-bold text-ink-soft">
-                          Drag and drop file here, or <span className="text-blue-dark underline">browse computer</span>
+                          Drag and drop file here, or{' '}
+                          <label htmlFor="file-uploader-element" className="text-blue-dark underline cursor-pointer">
+                            browse computer
+                          </label>
                         </p>
                         <p className="text-xs text-ink-soft">Supports PNG, JPG, or PDF up to 5MB</p>
                       </div>
@@ -392,6 +401,7 @@ export default function FeedbackPage() {
                         <div className="space-y-1 text-left">
                           <label className="text-xs font-semibold text-ink-soft tracking-wide uppercase">File Description</label>
                           <Input
+                            aria-label="File Description"
                             placeholder="Brief description of the snapshot/document context..."
                             value={fileDescription}
                             onChange={(e) => setFileDescription(e.target.value)}
@@ -403,7 +413,7 @@ export default function FeedbackPage() {
                   </div>
 
                   {error && (
-                    <div className="p-4 rounded-lg bg-red-50 text-red-600 text-xs font-bold border border-red-100">
+                    <div role="alert" aria-live="assertive" className="p-4 rounded-lg bg-red-50 text-red-700 text-xs font-bold border border-red-100">
                       {error}
                     </div>
                   )}

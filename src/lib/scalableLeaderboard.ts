@@ -3,7 +3,10 @@ import { auth, db } from '../firebase/config';
 import { API_BASE_URL } from './config';
 
 export interface LeaderboardEntry {
-  userId: string;
+  // null for a student who set trackerAnonymous. See rebuildGlobalLeaderboard
+  // in server.ts: publishing the uid beside "Anonymous Student" let anyone
+  // holding a uid -> name map undo the anonymity.
+  userId: string | null;
   name: string;
   score: number;
   updatedAt: any;

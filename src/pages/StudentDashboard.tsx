@@ -61,6 +61,7 @@ import ReceiptModal from "../components/ReceiptModal";
 import { sendTransactionalEmail } from "../lib/emailService";
 import { Award, Zap, BookOpen, Briefcase, Heart, ShieldCheck } from "lucide-react";
 import DashboardLayout from "../components/layout/DashboardLayout";
+import { reportError } from '../lib/errors';
 import { useStudentDashboardData } from '../hooks/useStudentDashboardData';
 import ApplicationsTab from './studentDashboard/ApplicationsTab';
 import HoursTracker from './studentDashboard/HoursTracker';
@@ -251,6 +252,16 @@ export default function StudentDashboard() {
   // True when the leaderboard document could not be read. Rendered as an
   // honest error instead of fabricated peers.
   const [leaderboardError, setLeaderboardError] = useState(false);
+  /*
+   * Has the board actually answered yet?
+   *
+   * There was no third state: leaderboard starts [] and arrives over an
+   * onSnapshot, so for the length of one Firestore round trip -- longer on a
+   * phone or a cold connection -- every student was told "No verified hours
+   * have been ranked yet", with the podium reading --- and -- underneath, which
+   * looks like confirmation rather than like loading.
+   */
+  const [leaderboardReady, setLeaderboardReady] = useState(false);
 
   const handleLogSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -281,8 +292,12 @@ export default function StudentDashboard() {
       // the other. Scope it to the user and add randomness.
       id: `req-${user.uid}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       studentId: user.uid,
-      studentName: studentProfile?.fullName || "Alex Volunteer",
-      studentEmail: user.email || "student@example.com",
+      // No invented identity on a record a coordinator has to recognise. This
+      // was `|| "Alex Volunteer"` and `|| "student@example.com"`, so a student
+      // with no saved profile name arrived in the queue as a fictional person
+      // at a sandbox address, and the confirmation mail went nowhere.
+      studentName: studentProfile?.fullName || user.displayName || "",
+      studentEmail: user.email || "",
       activity: logActivity,
       organization: logOrg,
       hours: parsedHours,
@@ -648,7 +663,19 @@ export default function StudentDashboard() {
         const map: Record<string, boolean> = {};
         snap.docs.forEach(d => { map[`${d.data().orgId}_${d.data().opportunityId}`] = true; });
         setExistingRatings(map);
-      } catch (err) { console.error('Failed to load existing ratings:', err); }
+      } catch (err) {
+        // Not console-only. existingRatings is the SOLE gate on the Rate
+        // button, so a failed read leaves it {} and every accepted placement
+        // offers Rate again, including ones the student already reviewed. They
+        // write a second review and it overwrites the first, with nothing
+        // anywhere saying the list simply did not load.
+        console.error('Failed to load existing ratings:', err);
+        setErrorMessage(reportError(
+          'load your ratings',
+          err,
+          "We couldn't load which placements you have already rated, so you may be offered one twice. Please refresh.",
+        ));
+      }
     };
     fetchRatings();
   }, [user, isDemoMode]);
@@ -759,8 +786,10 @@ export default function StudentDashboard() {
             (a, b) => b.hours - a.hours,
           );
           setLeaderboard(combined);
+          setLeaderboardReady(true);
         } else {
           setLeaderboard(demoPeers);
+          setLeaderboardReady(true);
         }
         setLeaderboardError(false);
         return;
@@ -769,15 +798,32 @@ export default function StudentDashboard() {
       try {
         unsubscribe = subscribeToScalableLeaderboard(
           (entries) => {
-            let mapped = entries.map((entry) => ({
-              id: entry.userId,
+            let mapped = entries.map((entry, i) => ({
+              // Anonymous rows carry userId: null, so they need a synthetic key
+              // for React. Rank position is stable within one snapshot, which is
+              // all a key has to be.
+              id: entry.userId || `anon-${i}`,
               name: entry.name,
               hours: entry.score,
-              isSelf: entry.userId === user?.uid,
+              // Guard the null: `null === undefined` is false, but a signed-out
+              // viewer has user?.uid undefined and two nulls would match.
+              isSelf: !!entry.userId && entry.userId === user?.uid,
             }));
 
             const hasSelf = mapped.some((item) => item.isSelf);
-            if (!hasSelf && (studentProfile?.trackerEnabled ?? true)) {
+            /*
+             * An anonymous student carries userId: null on the public board —
+             * that is what makes it anonymous — so isSelf can never match them
+             * and the append below would list them a second time, once in rank
+             * order and once at the bottom, both reading "Anonymous Student".
+             * Their own score is the only handle left, which is the price of
+             * not publishing an identifier anyone can join on.
+             */
+            const anonSelfAlreadyRanked =
+              (studentProfile?.trackerAnonymous ?? false) &&
+              entries.some((e) => !e.userId && Math.abs(Number(e.score) - totalCompletedHours) < 0.01);
+
+            if (!hasSelf && !anonSelfAlreadyRanked && (studentProfile?.trackerEnabled ?? true)) {
               mapped.push({
                 id: user?.uid || "self",
                 name: studentProfile?.trackerAnonymous
@@ -790,6 +836,7 @@ export default function StudentDashboard() {
 
             mapped.sort((a, b) => b.hours - a.hours);
             setLeaderboard(mapped.slice(0, 5));
+            setLeaderboardReady(true);
             setLeaderboardError(false);
           },
           (err) => {
@@ -798,12 +845,14 @@ export default function StudentDashboard() {
             // B17: these are graduation records and a public ranking.
             console.error("Scalable leaderboard read failed:", err);
             setLeaderboard([]);
+            setLeaderboardReady(true);
             setLeaderboardError(true);
           }
         );
       } catch (err) {
         console.error("Error subscribing to scalable leaderboard:", err);
         setLeaderboard([]);
+        setLeaderboardReady(true);
         setLeaderboardError(true);
       }
     };
@@ -1090,12 +1139,22 @@ export default function StudentDashboard() {
               onOpenReceipt={(app) => {
                 // The receipt shows the student's identity, which the tab does
                 // not hold — enrich here, where the profile lives.
+                /* Omitted, not invented.
+                 *
+                 * These were `|| "Alex Volunteer"`, `|| "York Region College"`
+                 * and `|| "12"`. ReceiptModal already guards school and grade
+                 * and renders them only when present -- and these fallbacks
+                 * made them ALWAYS present, so the guard never fired and the
+                 * receipt stated that the student attends a college they have
+                 * never heard of, in a grade nobody entered. That is invented
+                 * identity data on a document a student forwards to a guidance
+                 * office. An empty row is honest; a wrong row is not. */
                 setSelectedReceiptApp({
                   ...app,
-                  studentName: studentProfile?.fullName || user?.displayName || "Alex Volunteer",
+                  studentName: studentProfile?.fullName || user?.displayName || "",
                   studentEmail: user?.email || "",
-                  studentSchool: studentProfile?.school || "York Region College",
-                  studentGrade: studentProfile?.grade || "12",
+                  studentSchool: studentProfile?.school || "",
+                  studentGrade: studentProfile?.grade || "",
                 });
                 setShowReceiptModal(true);
               }}
@@ -1272,7 +1331,7 @@ export default function StudentDashboard() {
           </motion.div>
           )} 
                 {activeTab === "leaderboard" && (
-                  <LeaderboardTab leaderboard={leaderboard} studentProfile={studentProfile} loadError={leaderboardError} />
+                  <LeaderboardTab leaderboard={leaderboard} studentProfile={studentProfile} loadError={leaderboardError} isReady={leaderboardReady} />
                 )}
           {activeTab === "settings" && (
             <SettingsTab
@@ -1301,7 +1360,16 @@ export default function StudentDashboard() {
             setSelectedReceiptApp(null);
           }}
           application={selectedReceiptApp}
-          organizationName="York Region Community Partner"
+          /* Was the literal string "York Region Community Partner", an
+             organisation that does not exist, printed on every receipt and sent
+             in the confirmation email. The real name is on the application, or
+             on the organisation document the dashboard already loads. */
+          organizationName={
+            (selectedReceiptApp as any)?.organizationName ||
+            (selectedReceiptApp as any)?.orgName ||
+            (allOrganizations || []).find((o: any) => (o.uid ?? o.id) === (selectedReceiptApp as any)?.orgId)?.organizationName ||
+            'the organization'
+          }
         />
       )}
 
@@ -1342,7 +1410,10 @@ export default function StudentDashboard() {
                 </button>
               ))}
             </div>
+            {/* Placeholder-only, so a screen reader announced "edit text, blank".
+                A placeholder is not a label: it disappears the moment you type. */}
             <textarea
+              aria-label="Share your experience with this organization (optional)"
               value={ratingComment}
               onChange={e => setRatingComment(e.target.value)}
               placeholder="Optional: share your experience (500 char max)"
@@ -1428,6 +1499,7 @@ export default function StudentDashboard() {
               <div className="space-y-1">
                 <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Select Previous Volunteer Role</label>
                 <select
+                      aria-label="Select Previous Volunteer Role"
                   value={selectedVolunteeringId}
                   onChange={(e) => {
                     const val = e.target.value;
@@ -1476,6 +1548,7 @@ export default function StudentDashboard() {
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Select Registered Volunteer Site / Organization</label>
                     <select
+                      aria-label="Select Registered Volunteer Site / Organization"
                       value={selectedPartnerId}
                       onChange={(e) => {
                         const val = e.target.value;
@@ -1507,7 +1580,8 @@ export default function StudentDashboard() {
 
                   <div className="space-y-1">
                     <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Activity Name / Event</label>
-                    <Input 
+                    <Input
+                      aria-label="Activity Name / Event" 
                       value={logActivity}
                       onChange={(e) => setLogActivity(e.target.value)}
                       placeholder="e.g. Teen Tech Tutoring Session"
@@ -1519,7 +1593,8 @@ export default function StudentDashboard() {
                   {(!selectedPartnerId || selectedPartnerId === "custom") && (
                     <div className="space-y-1">
                       <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Community Organization Name</label>
-                      <Input 
+                      <Input
+                      aria-label="Community Organization Name" 
                         value={logOrg}
                         onChange={(e) => setLogOrg(e.target.value)}
                         placeholder="e.g. North York Public Library"
@@ -1549,7 +1624,8 @@ export default function StudentDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Volunteer Hours</label>
-                  <Input 
+                  <Input
+                      aria-label="Volunteer Hours" 
                     type="number"
                     step="0.5"
                     min="0.5"
@@ -1562,7 +1638,8 @@ export default function StudentDashboard() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Service Date</label>
-                  <Input 
+                  <Input
+                      aria-label="Service Date" 
                     type="date"
                     value={logDate}
                     onChange={(e) => setLogDate(e.target.value)}
@@ -1575,7 +1652,8 @@ export default function StudentDashboard() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Coordinator Name</label>
-                  <Input 
+                  <Input
+                      aria-label="Coordinator Name" 
                     value={logCoordinator}
                     onChange={(e) => setLogCoordinator(e.target.value)}
                     placeholder="e.g. Jane Doe"
@@ -1584,7 +1662,8 @@ export default function StudentDashboard() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-semibold text-ink-soft tracking-wide ml-1">Coordinator Email</label>
-                  <Input 
+                  <Input
+                      aria-label="Coordinator Email" 
                     type="email"
                     value={logContact}
                     onChange={(e) => setLogContact(e.target.value)}
@@ -1619,9 +1698,16 @@ export default function StudentDashboard() {
           </Card>
         </div>
       )}
+      {/* "we emailed your coordinator" was asserted BEFORE the send, and the
+          send is fire-and-forget with a console-only catch. The demo branch
+          sets the same success flag and deliberately sends nothing. This file
+          already fixed the identical pattern on the reminder button, which used
+          to claim a coordinator had been reminded when nothing went out. Claim
+          the submission, which is true; point at the reminder for the part that
+          might not have happened. */}
       {logSuccess && (
         <SuccessAnimation
-          message="Your hours request was submitted and we emailed your coordinator for verification."
+          message="Your hours request was submitted. We are asking your coordinator to confirm it. If you do not hear back, send a reminder from Submitted Claims."
           note={
             <div className="space-y-2">
               <p className="text-[11px] leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
@@ -1661,7 +1747,7 @@ export default function StudentDashboard() {
 
             {/* Student Info Box */}
             <div className="bg-paper-2/70 border border-line p-6 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div><strong>Student Name:</strong> <span className="text-ink font-bold">{studentProfile?.fullName || "Alex Volunteer"}</span></div>
+              <div><strong>Student Name:</strong> <span className="text-ink font-bold">{studentProfile?.fullName || "Name not set"}</span></div>
               <div><strong>Academic School:</strong> <span className="text-ink font-bold">{studentProfile?.school || "Toronto Secondary"}</span></div>
               <div><strong>Grade:</strong> <span className="text-ink font-bold">Grade {studentProfile?.grade || "11"}</span></div>
               <div><strong>Toronto Neighborhood:</strong> <span className="text-ink font-bold">{studentProfile?.neighborhood || "North York"}</span></div>
@@ -1691,7 +1777,9 @@ export default function StudentDashboard() {
                         <td className="p-4 font-semibold text-blue-dark text-center">{lh.hours} hrs</td>
                         <td className="p-4 text-ink-soft ">{lh.date}</td>
                         <td className="p-4 text-ink-soft">{lh.coordinatorName} ({lh.coordinatorContact})</td>
-                        <td className="p-4 text-right text-emerald-600 font-semibold tracking-wide uppercase text-xs">Verified Check</td>
+                        {/* emerald-700, not 600. #009966 on white measures 3.67:1 and this is
+                            12px text, so it needed 4.5:1. emerald-700 gives 5.37:1. */}
+                        <td className="p-4 text-right text-emerald-700 font-semibold tracking-wide uppercase text-xs">Verified Check</td>
                       </tr>
                     ))
                   )}

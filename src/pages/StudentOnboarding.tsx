@@ -454,8 +454,13 @@ export default function StudentOnboarding() {
               </Button>
             ) : (
               <div className="flex items-center gap-3">
+                {/* disabled while submitting, like its sibling below.
+                    handleSubmit(_, true) writes previousExperience: '' and
+                    resumeUrl: '', so pressing this while "Complete Onboarding"
+                    is still in flight erases the resume just uploaded. */}
                 <Button 
                   onClick={(e) => handleSubmit(e as any, true)}
+                  disabled={isSubmitting}
                   variant="outline" 
                   className="h-12 px-6 rounded-lg font-bold uppercase text-xs tracking-widest text-ink-muted hover:bg-paper-2 border border-line cursor-pointer animate-pulse"
                 >

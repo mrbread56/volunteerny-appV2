@@ -979,10 +979,23 @@ app.use(express.json());
 
     const entries = snap.docs
       .map((d: any) => ({ id: d.id, data: d.data() || {} }))
-      .filter(({ data }: any) => data.trackerEnabled !== false)
+      // === true, not !== false. Absent meant INCLUDED, and Signup never writes
+      // this field at all — only StudentOnboarding does, where the checkbox
+      // starts unticked and is a real opt-in. So a student who signed up and
+      // skipped onboarding was published on a board readable by every signed-in
+      // account, by name, with their hours, having never been asked. Never
+      // asked is not consent.
+      .filter(({ data }: any) => data.trackerEnabled === true)
       .slice(0, LEADERBOARD_TOP_N)
       .map(({ id, data }: any) => ({
-        userId: id,
+        // NULL for an anonymous student, because the uid alone undoes the
+        // anonymity. This document is `allow read: if isSignedIn()`, and any
+        // organisation holds a studentId -> studentName map built from its own
+        // applications, so it could join on this field and put a real name back
+        // on every "Anonymous Student" row, learning the hour totals of exactly
+        // the students who asked not to be named. Hiding the name while
+        // publishing the identifier is not anonymity.
+        userId: data.trackerAnonymous ? null : id,
         // Honour the anonymity toggle here, server-side. Sending the real name
         // and letting the client hide it would leak it to every viewer.
         name: data.trackerAnonymous ? 'Anonymous Student' : (data.fullName || 'Anonymous Student'),
@@ -1530,7 +1543,29 @@ app.use(express.json());
    */
   async function purgeAccount(adb: any, adminObj: any, userId: string) {
     const userSnap = await adb.collection('users').doc(userId).get();
-    const role = userSnap.exists ? userSnap.data()?.role : null;
+    let role = userSnap.exists ? userSnap.data()?.role : null;
+
+    /*
+     * If users/{id} is already gone, recover the role from the profile document.
+     *
+     * The header above says a partial purge is fine because "a repeat call
+     * clears anyway". It did not. The role that selects the branch below is read
+     * from users/{id}, and this function DELETES users/{id} near the end, so a
+     * second call read role = null, entered neither branch, and returned having
+     * cleaned nothing. Every role-specific remnant of a half-finished purge was
+     * therefore permanent, and the documented remedy was the thing that could
+     * not work.
+     *
+     * Two reads, only on the path where the first one came back empty.
+     */
+    if (!role) {
+      const [studentSnap, orgSnap] = await Promise.all([
+        adb.collection('students').doc(userId).get(),
+        adb.collection('organizations').doc(userId).get(),
+      ]);
+      if (studentSnap.exists) role = 'student';
+      else if (orgSnap.exists) role = 'organization';
+    }
     // Read before anything is deleted — emailLog is keyed by ADDRESS, and once
     // the account document is gone there is no way back to it.
     const userEmail = userSnap.exists ? String(userSnap.data()?.email || '') : '';
@@ -1563,11 +1598,56 @@ app.use(express.json());
     if (role === 'organization') {
       // Applications point at an opportunity, so clear them before the
       // opportunity that identifies them disappears.
-      const opps = await adb.collection('opportunities').where('orgId', '==', userId).limit(300).get();
-      for (const opp of opps.docs) {
-        await deleteWhere('applications', 'opportunityId', opp.id);
-        await deleteWhere('savedOpportunities', 'opportunityId', opp.id);
-        await opp.ref.delete();
+      //
+      // Paginated, like deleteWhere. This was a single `.limit(300)` with
+      // nothing after it, so an organisation with more than 300 postings kept
+      // the remainder FOREVER: world-readable listings for an account that no
+      // longer exists, which students go on finding and applying to with nobody
+      // able to accept them. deleteWhere on the same page already loops; this
+      // one query did not.
+      for (;;) {
+        const opps = await adb.collection('opportunities').where('orgId', '==', userId).limit(300).get();
+        if (opps.empty) break;
+        for (const opp of opps.docs) {
+          await deleteWhere('applications', 'opportunityId', opp.id);
+          await deleteWhere('savedOpportunities', 'opportunityId', opp.id);
+          await opp.ref.delete();
+        }
+        if (opps.size < 300) break;
+      }
+      // Applications whose opportunity was already gone before this ran. They
+      // are addressed by orgId and the loop above can only reach them through a
+      // posting, so without this they survive as orphans.
+      await deleteWhere('applications', 'orgId', userId);
+
+      /*
+       * Hours requests addressed to this organisation are SETTLED, not deleted.
+       *
+       * The org branch cleared nothing here, and hoursRequests carry orgId, so a
+       * student's pending claim outlived the account it was addressed to. It
+       * could then never be approved by anyone: POST /api/hours/approve
+       * authorises either through an accepted application to one of this org's
+       * opportunities (deleted above) or through a verified org named as the
+       * coordinator (the account is gone). The request sat "pending" on the
+       * student's dashboard permanently, and those are graduation hours they
+       * actually worked.
+       *
+       * Deleting them would be worse: it is the student's own record of a claim
+       * they made, and it would vanish with no explanation. Declining with a
+       * stated cause leaves them a true account of what happened and a reason to
+       * re-file the hours another way.
+       */
+      for (;;) {
+        const pending = await adb.collection('hoursRequests')
+          .where('orgId', '==', userId).where('status', '==', 'pending').limit(300).get();
+        if (pending.empty) break;
+        await Promise.all(pending.docs.map((d: any) => d.ref.update({
+          status: 'declined',
+          declinedReason: 'The organization closed its account before confirming these hours.',
+          decidedAt: new Date().toISOString(),
+          declinedAt: new Date().toISOString(),
+        })));
+        if (pending.size < 300) break;
       }
     } else if (role === 'student') {
       await deleteWhere('applications', 'studentId', userId);
@@ -2150,10 +2230,34 @@ app.use(express.json());
       }
       const oppTitle = oppSnap.data()?.title || 'a volunteer opportunity';
 
-      const appsSnap = await adb.collection('applications')
-        .where('opportunityId', '==', opportunityId).limit(500).get();
-      const savedSnap = await adb.collection('savedOpportunities')
-        .where('opportunityId', '==', opportunityId).limit(500).get();
+      /*
+       * Paginated, both of them.
+       *
+       * These were single `.limit(500)` reads with nothing after them, so a
+       * posting with more than 500 applications lost the tail -- and
+       * oppRef.delete() below still ran, leaving applications pointing at an
+       * opportunity that no longer exists. That is precisely the invariant
+       * scripts/check-integrity.ts was written to DETECT, and that script is
+       * explicitly read-only: it reports and never repairs. deleteWhere() in
+       * purgeAccount already loops for the same reason.
+       */
+      const readAll = async (coll: string) => {
+        const docs: any[] = [];
+        let cursor: any = null;
+        for (;;) {
+          let q = adb.collection(coll).where('opportunityId', '==', opportunityId)
+            .orderBy('__name__').limit(300);
+          if (cursor) q = q.startAfter(cursor);
+          const page = await q.get();
+          if (page.empty) break;
+          docs.push(...page.docs);
+          cursor = page.docs[page.docs.length - 1];
+          if (page.size < 300) break;
+        }
+        return docs;
+      };
+      const appDocs = await readAll('applications');
+      const savedDocs = await readAll('savedOpportunities');
 
       // Who to tell — captured BEFORE the delete, sent AFTER it.
       //
@@ -2166,16 +2270,36 @@ app.use(express.json());
       // emailing those sixty a second time. Deleting first means the state is
       // correct even if the mail never goes out, which is the safe direction.
       const LIVE = ['pending', 'reviewed', 'accepted', 'waitlist'];
-      const recipients: { name: string; studentId: string }[] = appsSnap.docs
+      const recipients: { name: string; studentId: string }[] = appDocs
         .map((d: any) => d.data() || {})
         .filter((a: any) => LIVE.includes(a.status))
         .slice(0, 100)
         .map((a: any) => ({ name: a.studentName || 'Student', studentId: String(a.studentId || '') }));
 
-      await Promise.all([
-        ...appsSnap.docs.map((d: any) => d.ref.delete()),
-        ...savedSnap.docs.map((d: any) => d.ref.delete()),
+      /*
+       * allSettled, and the opportunity is deleted whether or not every
+       * dependent went.
+       *
+       * With Promise.all, one failed delete rejected the whole thing while the
+       * deletes that had already resolved stayed committed, and oppRef.delete()
+       * never ran -- so the handler returned 500 and the organisation pressed
+       * Delete again. On that retry the query re-read only the SURVIVORS, so the
+       * students whose applications went in the failed first pass were absent
+       * from `recipients` and were never emailed at all. Their placement simply
+       * disappeared from their dashboard with no message. The comment above
+       * explains that the ordering was chosen so "the state is correct even if
+       * the mail never goes out"; the retry path was quietly breaking that
+       * guarantee.
+       */
+      const results = await Promise.allSettled([
+        ...appDocs.map((d: any) => d.ref.delete()),
+        ...savedDocs.map((d: any) => d.ref.delete()),
       ]);
+      const failedDeletes = results.filter((r) => r.status === 'rejected').length;
+      if (failedDeletes) {
+        console.error(`[opportunities/delete] ${failedDeletes} dependent document(s) could not be deleted for ${opportunityId}`);
+        logEvent('opportunity_delete_incomplete', { target: opportunityId, failures: failedDeletes });
+      }
       await oppRef.delete();
 
       if (resend && recipients.length) {
@@ -2211,7 +2335,7 @@ app.use(express.json());
         }
       }
 
-      return res.json({ success: true, applicationsRemoved: appsSnap.size });
+      return res.json({ success: true, applicationsRemoved: appDocs.length, deleteFailures: failedDeletes });
     } catch (err: any) {
       console.error('[opportunities/delete] failed:', err);
       return res.status(500).json({ error: 'Could not delete the opportunity. Please try again.' });
@@ -2268,6 +2392,19 @@ app.use(express.json());
       if (!oppSnap.exists) return res.status(404).json({ error: 'Opportunity not found.' });
       if (oppSnap.data()?.orgId !== authContext.uid) {
         return res.status(403).json({ error: 'You do not own this opportunity.' });
+      }
+
+      // Owning the posting is not enough. This returns the EMAIL ADDRESS of
+      // every minor who applied to it, and rejection previously took away the
+      // ability to post while leaving this untouched.
+      const approval = await orgApprovalStatus(authContext.uid);
+      if (approval === 'not-approved') {
+        return res.status(403).json({
+          error: 'Your organization is not approved, so applicant contact details are not available.',
+        });
+      }
+      if (approval === 'unknown') {
+        return res.status(503).json({ error: 'We could not verify your organization just now. Please try again shortly.' });
       }
 
       const appsSnap = await adb.collection('applications')
@@ -2606,16 +2743,41 @@ app.use(express.json());
         if (!requestRef) {
           return res.status(400).json({ error: 'Declining requires the hours request to decline.' });
         }
-        await requestRef.update({
-          status: 'declined',
-          // Read by the student's notification bell. Without a decision stamp
-          // it fell back to requestedAt — when the STUDENT submitted — so a
-          // decision made after they last opened the bell always compared as
-          // already-seen and the unread badge never appeared.
-          decidedAt: new Date().toISOString(),
-          declinedBy: authContext.uid,
-          declinedAt: new Date().toISOString(),
+        /*
+         * In a transaction, with the status re-read inside it.
+         *
+         * This was a blind update whose only status check sat far upstream,
+         * outside any transaction, while the APPROVE path beside it deliberately
+         * re-reads and throws ALREADY_SETTLED. Two coordinators on the same
+         * account, or one racing their own in-flight approve, could therefore
+         * have the approve transaction commit -- crediting loggedHours and
+         * recomputing the student's total -- and then have this overwrite the
+         * request as declined. The hours are on the student's record, the
+         * request says declined, both people see a decline, and nothing
+         * reconciles the two.
+         */
+        const settled = await adb.runTransaction(async (tx: any) => {
+          const live = await tx.get(requestRef);
+          if (!live.exists) return 'missing';
+          if (live.data()?.status !== 'pending') return 'already';
+          tx.update(requestRef, {
+            status: 'declined',
+            // Read by the student's notification bell. Without a decision stamp
+            // it fell back to requestedAt — when the STUDENT submitted — so a
+            // decision made after they last opened the bell always compared as
+            // already-seen and the unread badge never appeared.
+            decidedAt: new Date().toISOString(),
+            declinedBy: authContext.uid,
+            declinedAt: new Date().toISOString(),
+          });
+          return 'ok';
         });
+        if (settled === 'missing') {
+          return res.status(404).json({ error: 'That hours request no longer exists.' });
+        }
+        if (settled === 'already') {
+          return res.status(409).json({ error: 'That hours request has already been settled.' });
+        }
         return res.json({ success: true, declined: true });
       }
 
@@ -2905,6 +3067,22 @@ app.use(express.json());
         isAllowlistedDeveloper(authContext);
       if (!isDeveloperCaller && caller?.role !== 'organization') {
         return res.status(403).json({ error: 'Forbidden' });
+      }
+
+      // Same gate as applicant-contacts. This route returns a minor's full
+      // name, school, grade, neighbourhood, interests, skills, availability,
+      // previous experience and resume link; an organisation a reviewer has
+      // turned down has no business holding any of it.
+      if (!isDeveloperCaller) {
+        const approval = await orgApprovalStatus(authContext.uid);
+        if (approval === 'not-approved') {
+          return res.status(403).json({
+            error: 'Your organization is not approved, so applicant profiles are not available.',
+          });
+        }
+        if (approval === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your organization just now. Please try again shortly.' });
+        }
       }
 
       let authorised = isDeveloperCaller;
@@ -3389,6 +3567,38 @@ app.use(express.json());
   }
 
   /**
+   * Is this organisation actually APPROVED right now?
+   *
+   * Mirrors isApprovedOrg() in firestore.rules, which gates everything a
+   * student can be exposed to. The rules used it for WRITES only, and this tier
+   * checked nothing equivalent, so rejection was a one-way door that closed
+   * half of itself: POST /api/admin/verify-org writes verificationStatus:
+   * 'rejected' and nothing else, and every READ route kept working.
+   *
+   * An organisation a reviewer had looked at and TURNED DOWN could still pull
+   * any applicant's full name, school, grade, neighbourhood, interests, skills,
+   * availability, previous experience and resume link, plus their email
+   * address, for as long as it held a token. Losing the ability to post while
+   * keeping the ability to read the children who already applied is exactly
+   * backwards.
+   *
+   * Three-state for the same reason callerStatus is: an infrastructure failure
+   * must not be reported to a healthy organisation as a rejection.
+   */
+  async function orgApprovalStatus(uid: string): Promise<'approved' | 'not-approved' | 'unknown'> {
+    try {
+      const adb = adminFirestore();
+      if (!adb) return 'unknown';
+      const snap = await adb.collection('organizations').doc(uid).get();
+      if (!snap.exists) return 'unknown';
+      return snap.data()?.verificationStatus === 'verified' ? 'approved' : 'not-approved';
+    } catch (err: any) {
+      console.error('[guard] could not read organisation approval:', err?.message || err);
+      return 'unknown';
+    }
+  }
+
+  /**
    * Has this caller actually passed the second factor on THIS sign-in?
    *
    * Mirrors mfaSatisfied() in firestore.rules: the claim must be pinned to the
@@ -3508,34 +3718,72 @@ app.use(express.json());
 
       // A transaction, so two tabs submitting the same code cannot both spend
       // it — the same race the OTP attempt counter had before it was rewritten.
-      const outcome = await adb.runTransaction(async (tx: any) => {
+      // The index comes back so the code can be GIVEN BACK if the step after
+      // this one fails. See below.
+      const outcome: { result: string; idx: number } = await adb.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
-        if (!snap.exists) return 'none';
+        if (!snap.exists) return { result: 'none', idx: -1 };
         const hashes: any[] = snap.data()?.hashes || [];
         const idx = hashes.findIndex((h) => h.hash === wanted && !h.usedAt);
-        if (idx === -1) return 'invalid';
+        if (idx === -1) return { result: 'invalid', idx: -1 };
         hashes[idx] = { ...hashes[idx], usedAt: new Date().toISOString() };
         tx.update(ref, { hashes });
-        return 'ok';
+        return { result: 'ok', idx };
       });
 
-      if (outcome === 'none') {
+      if (outcome.result === 'none') {
         return res.status(400).json({ error: 'This account has no recovery codes. Contact support.' });
       }
-      if (outcome === 'invalid') {
+      if (outcome.result === 'invalid') {
         logEvent('backup_code_rejected', { uid: authContext.uid });
         return res.status(400).json({ error: 'That code is not valid, or has already been used.' });
       }
 
       const adminObj = getAdminObj();
       if (!adminObj) return res.status(500).json({ error: 'Server configuration error.' });
-      const userRecord = await adminObj.auth().getUser(authContext.uid);
-      await adminObj.auth().setCustomUserClaims(authContext.uid, {
-        ...(userRecord.customClaims || {}),
-        mfaVerified: true,
-        mfaVerifiedFor: authContext.authTime,
-        mfaVerifiedAt: Date.now(),
-      });
+
+      /*
+       * The code is spent inside the transaction and the claim is granted
+       * outside it, so a failure between the two burns a single-use code and
+       * still leaves the person locked out. Recovery codes are a FINITE set
+       * printed once, and this is the path someone reaches only when they have
+       * already lost their second factor: each failed attempt would cost them
+       * one of the few ways back in, and repeated attempts would exhaust them.
+       *
+       * Granting the claim first is not the answer -- that would grant MFA
+       * before the code was proven valid. So the spend is compensated instead:
+       * if the claim write throws, the code is handed back before the error is
+       * reported, and the person can simply try again.
+       */
+      try {
+        const userRecord = await adminObj.auth().getUser(authContext.uid);
+        await adminObj.auth().setCustomUserClaims(authContext.uid, {
+          ...(userRecord.customClaims || {}),
+          mfaVerified: true,
+          mfaVerifiedFor: authContext.authTime,
+          mfaVerifiedAt: Date.now(),
+        });
+      } catch (claimErr: any) {
+        try {
+          await adb.runTransaction(async (tx: any) => {
+            const snap = await tx.get(ref);
+            const hashes: any[] = snap.data()?.hashes || [];
+            // Guarded by the hash as well as the index, so a concurrent
+            // regeneration cannot have its fresh code un-spent by mistake.
+            if (hashes[outcome.idx]?.hash === wanted) {
+              hashes[outcome.idx] = { ...hashes[outcome.idx], usedAt: null };
+              tx.update(ref, { hashes });
+            }
+          });
+          logEvent('backup_code_refunded', { uid: authContext.uid });
+        } catch (refundErr: any) {
+          // Loud: the person is now down one code with nothing to show for it,
+          // and only an operator can put it back. RUNBOOK covers reissuing.
+          console.error('[backup-code] SPENT BUT NOT REFUNDED for', authContext.uid, refundErr?.message || refundErr);
+          logEvent('backup_code_refund_failed', { uid: authContext.uid });
+        }
+        throw claimErr;
+      }
 
       const remaining = await ref.get().then((s: any) =>
         (s.data()?.hashes || []).filter((h: any) => !h.usedAt).length);

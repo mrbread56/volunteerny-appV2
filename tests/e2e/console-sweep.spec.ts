@@ -218,6 +218,20 @@ test('sweep every route as every role and report console output', async ({ page 
     await page.getByRole('button', { name: 'Sign In' }).click();
     await page.waitForTimeout(6000);
 
+    /*
+     * Assert the sign-in WORKED before walking the role's routes.
+     *
+     * Without this the sweep gets cleaner the more broken the app is. If login
+     * fails, every role stays on /login, each page.goto below redirects
+     * straight back, no role-specific code ever runs, no console errors are
+     * recorded, and the collected list is empty — so the assertion at the end
+     * passes and the report says "nothing unexpected". This is the second half
+     * of the defect this file was rewritten to fix; adding the final assertion
+     * alone did not close it.
+     */
+    await expect(page, `${role} could not sign in, so nothing below was really swept`)
+      .not.toHaveURL(/\/login/);
+
     for (const r of routes) {
       route = `[${role}] ${r}`;
       await page.goto(r);

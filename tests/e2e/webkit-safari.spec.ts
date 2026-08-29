@@ -129,8 +129,12 @@ test.describe('WebKit / Safari', () => {
     // `overflow-x-hidden` on the public layout once broke the navbar app-wide.
     // WebKit computes containing blocks differently enough to be worth pinning.
     await page.goto('/');
-    await page.waitForLoadState('domcontentloaded');
-    await page.waitForTimeout(1000);
+    // Wait for the navbar to exist rather than for a fixed second. This is a
+    // React SPA, so domcontentloaded fires before anything is mounted, and the
+    // old `waitForTimeout(1000)` was a bet that React would finish inside that
+    // second. Under a loaded machine it sometimes did not, and the test failed
+    // with "no <nav> found" against a page whose navbar was perfectly fine.
+    await page.waitForSelector('nav', { state: 'attached' });
     const nav = await page.evaluate(() => {
       const el = document.querySelector('nav');
       if (!el) return null;

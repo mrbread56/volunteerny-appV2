@@ -339,8 +339,13 @@ export const emailTemplates = {
       
       <div class="card">
         <h3>🚀 Get Started in 3 Steps:</h3>
-        <p><strong>1. Complete Your Interests:</strong> Choose your favorite community causes on your dashboard so we can match you perfectly.</p>
-        <p><strong>2. Apply to Placements:</strong> Apply directly to organizations from your dashboard.</p>
+        <!-- Both of these named the wrong page. Interests live on the PROFILE
+             (and were already chosen during signup), and applying happens on an
+             opportunity's own page, reached from Browse. A new student following
+             either instruction landed somewhere the thing they were told to do
+             is not. -->
+        <p><strong>1. Check your interests:</strong> You picked some when you signed up. Update them any time on your profile and we will match you better.</p>
+        <p><strong>2. Apply to placements:</strong> Browse opportunities and apply from any listing that suits you.</p>
         <p><strong>3. Hour logbook:</strong> Submit your hours after each shift and the organization confirms them here, so you always have a running record. You will still need your school board's own form signed as well.</p>
       </div>
 
@@ -348,7 +353,9 @@ export const emailTemplates = {
         <a href="${BRAND_URL()}/login" class="btn">Sign in to your account</a>
       </div>
 
-      <p>If you have any questions or need helper tips on eligible shifts, reply directly to this email or read our guidelines at the Local High School Hub.</p>
+      <!-- "the Local High School Hub" appeared exactly once in this codebase:
+           in this sentence. No route, no page, no document, nothing to link. -->
+      <p>If you have questions about which shifts count, reply to this email.</p>
       <p>Best regards,<br>The ${BRAND_NAME} Team</p>
     `;
     return wrapBaseTemplate({ title, children, previewText: "Kickstart your high school volunteering journey today!" });
@@ -540,8 +547,12 @@ export const emailTemplates = {
         <h3>What happens next</h3>
         <p><strong>1. Post a position.</strong> Say what students would be doing, the
            days and hours, how many you can take, and any minimum age.</p>
+        <!-- Was "with a link straight to their application". The new_applicant
+             button is hardcoded to /org/dashboard: the caller does build the
+             per-applicant URL, but renderTemplate for that template never passes
+             it through. Describe the link that actually arrives. -->
         <p><strong>2. Review who applies.</strong> You will get an email each time a
-           student applies, with a link straight to their application.</p>
+           student applies, with a link to your dashboard.</p>
         <p><strong>3. Confirm their hours.</strong> After they volunteer, they log
            their hours and you confirm them. Students still need their school
            board's own form signed, so please sign that too if they ask — what
@@ -629,7 +640,9 @@ export const emailTemplates = {
       <div style="text-align: center; margin: 32px 0;">
         <p class="auth-subtitle">${headText}</p>
         <div class="auth-box">${esc(code)}</div>
-        <p style="font-size: 12px; color: #94a3b8; margin-top: 12px;">This security code is active for 15 minutes.</p>
+        <!-- 10, not 15. TTL_MS in server.ts is 10 * 60 * 1000, and the inline
+             HTML the OTP route actually sends already says 10. -->
+        <p style="font-size: 12px; color: #94a3b8; margin-top: 12px;">This security code is active for 10 minutes.</p>
       </div>
 
       <p>For your security, never share this code with anyone. Our support desk will never ask for your verification credentials.</p>

@@ -29,11 +29,14 @@ export default function LeaderboardTab({
   leaderboard,
   studentProfile,
   loadError = false,
+  isReady = true,
 }: {
   leaderboard: LeaderboardEntry[];
   studentProfile: Partial<StudentProfile> | null | undefined;
   /** The materialised leaderboard document could not be read. */
   loadError?: boolean;
+  /** The board has answered. Empty before this is unknown, not empty. */
+  isReady?: boolean;
 }) {
   // A failed read renders as a failure. The previous behaviour substituted four
   // fabricated students, so a broken read was indistinguishable from a healthy
@@ -178,7 +181,15 @@ export default function LeaderboardTab({
               <h3 className="text-xs font-semibold tracking-wide text-ink-soft ">
                 Complete Standings
               </h3>
-              {leaderboard.length === 0 && (
+              {/* "Nobody is ranked" is a claim about the data, so it waits
+                  until the data has arrived. Before that the honest answer is
+                  that we are still asking. */}
+              {!isReady && (
+                <p className="text-xs text-ink-soft font-semibold text-center py-6">
+                  Loading the standings...
+                </p>
+              )}
+              {isReady && leaderboard.length === 0 && (
                 <p className="text-xs text-ink-soft font-semibold text-center py-6">
                   No verified hours have been ranked yet. When an organization
                   approves logged hours, those students appear here.

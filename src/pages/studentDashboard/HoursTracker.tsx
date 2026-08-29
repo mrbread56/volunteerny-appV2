@@ -217,6 +217,18 @@ export default function HoursTracker({
                               </Button>
                             )}
                           </div>
+
+                          {/* Why it was declined, when there is a stated reason.
+                              A bare "Declined" reads as the coordinator having
+                              turned the hours down, which is not what happened
+                              when the organisation simply closed its account.
+                              The student needs the real cause to know the hours
+                              are still theirs to claim another way. */}
+                          {req.status === "declined" && (req as any).declinedReason && (
+                            <p className="text-xs text-ink-muted leading-relaxed pt-2">
+                              {(req as any).declinedReason}
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>

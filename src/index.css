@@ -330,6 +330,32 @@ svg {
   }
 }
 
+/*
+ * iOS Safari zooms the entire page whenever a focused form control computes to
+ * a font-size below 16px, and it does not zoom back out. Every control in this
+ * app was under that line: the shared Input and Select are text-[14px], the
+ * apply modal's textarea is text-sm, and the SAFETY REPORT form -- the one a
+ * frightened student fills in -- is text-xs, which is 12px. So on an iPhone,
+ * tapping any field zoomed the layout in and the student had to pinch back out
+ * before they could reach the next one. Once per field, on every form.
+ *
+ * This is a viewport behaviour, not a design decision, so it belongs here
+ * rather than in twenty-five className strings where the next new field would
+ * miss it. It applies only below the tablet breakpoint, so desktop typography
+ * is untouched, and 16px is the threshold itself -- not a size bump, just the
+ * point at which the browser stops interfering.
+ *
+ * !important is load-bearing: Tailwind's text-* utilities are class selectors
+ * and would otherwise win against a bare element selector.
+ */
+@media (max-width: 767px) {
+  input:not([type='checkbox']):not([type='radio']),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 
 /* ══════════════════════════════════════════════════════════════════════
  * PRINT

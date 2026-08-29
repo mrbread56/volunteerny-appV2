@@ -238,7 +238,8 @@ export default function MfaChallenge() {
             <div className="mx-auto w-16 h-16 bg-blue-dark rounded-lg flex items-center justify-center mb-6 shadow-blue-200">
               <ShieldAlert className="w-8 h-8 text-white" />
             </div>
-            <CardTitle className="text-3xl font-semibold tracking-tight text-ink">Security Check</CardTitle>
+            {/* as="h1": this card IS the page, and without it the outline starts at h3. */}
+            <CardTitle as="h1" className="text-3xl font-semibold tracking-tight text-ink">Security Check</CardTitle>
             <p className="text-ink-muted font-medium mt-3 px-4">
               We just sent a 6-digit security code to <strong>{user?.email}</strong>.
             </p>
@@ -247,8 +248,9 @@ export default function MfaChallenge() {
             </div>
           </CardHeader>
           <CardContent className="space-y-6 pt-6 pb-10">
+            {/* role="alert" + aria-live. Without them a screen-reader user gets no announcement at all when this appears, so the form looks like it simply did nothing. Signup and StudentOnboarding already do this correctly. */}
             {error && (
-              <div className="bg-red-50 text-red-600 p-4 rounded-lg text-xs border border-red-100 flex items-start gap-2">
+              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-4 rounded-lg text-xs border border-red-100 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="font-semibold leading-relaxed">{error}</p>
               </div>

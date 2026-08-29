@@ -42,7 +42,7 @@ export default function DeveloperDashboard() {
 
   /** Everything this console reads. Both loaders come back so an action can refresh what it changed. */
   const {
-    students, orgs, feedbacks, reports, interestRequests, pendingOrgs,
+    students, orgs, feedbacks, reports, interestRequests, pendingOrgs, pendingOrgsLoading,
     realStudentCount, realOrgCount,
     isLoading, consoleNotice, setConsoleNotice,
     setStudents, setOrgs, setFeedbacks, setReports, setPendingOrgs,
@@ -1220,6 +1220,7 @@ export default function DeveloperDashboard() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">Target Email Address</label>
                   <input
+                    aria-label="Target Email Address"
                     type="email"
                     value={testEmailTo}
                     onChange={(e) => setTestEmailTo(e.target.value)}
@@ -1230,6 +1231,7 @@ export default function DeveloperDashboard() {
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-ink-muted uppercase tracking-wider block">Email Template</label>
                   <select
+                    aria-label="Email Template"
                     value={testEmailTemplate}
                     onChange={(e) => setTestEmailTemplate(e.target.value)}
                     className="w-full border border-line bg-white rounded-lg px-3 py-2 text-xs focus:ring-1 focus:ring-amber font-bold"
@@ -1381,7 +1383,14 @@ export default function DeveloperDashboard() {
       <div className="space-y-6">
         <h3 className="text-lg font-semibold uppercase text-ink-soft">Pending Organization Verification</h3>
         <p className="text-sm text-ink-muted">Every organization waiting to be let in. Charities give a CRA number to check against the <a href="https://apps.cra-arc.gc.ca/ebci/hacc/srch/pub/dsplyBscSrch" target="_blank" rel="noopener noreferrer" className="text-blue-dark underline">CRA Charity Registry</a>; the rest have to be judged on their website and address. Nobody can post until you approve them.</p>
-        {pendingOrgs.length === 0 ? (
+        {/* The loading state comes FIRST. "No organizations pending
+            verification." while the query is still running is the one message
+            this tab must never show by mistake: an organisation that has been
+            waiting looks identical to nothing to do, and the reviewer closes
+            the page. */}
+        {pendingOrgsLoading ? (
+          <div className="text-center py-16 text-ink-muted text-sm font-semibold">Loading the verification queue...</div>
+        ) : pendingOrgs.length === 0 ? (
           <div className="text-center py-16 text-ink-muted text-sm font-semibold">No organizations pending verification.</div>
         ) : (
           <div className="space-y-4">

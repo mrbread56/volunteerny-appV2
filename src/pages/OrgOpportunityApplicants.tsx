@@ -44,6 +44,7 @@ import ReceiptModal from "../components/ReceiptModal";
 import { notifyApplicant, fetchApplicantContacts, type ApplicantContact } from "../lib/emailService";
 import { buildMailtoLink } from "../lib/mailto";
 import { toUserMessage } from "../lib/errors";
+import { capacityRefusal } from '../lib/opportunityCapacity';
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 
 export default function OrgOpportunityApplicants() {
@@ -481,6 +482,21 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
         }
 
         try {
+          // Capacity, before the write and not after it. See capacityRefusal:
+          // maxVolunteers was displayed on this very page and enforced on no
+          // accept path in the app, and the Accept button below is rendered for
+          // waitlisted rows too, so promoting by hand was the easiest way to
+          // overfill a posting and freeze its waitlist for good.
+          if (status === 'accepted' && id) {
+            const refusal = await capacityRefusal(id, opportunity?.maxVolunteers);
+            if (refusal) {
+              setApplicants(prev => prev.map(a => a.id === appId ? currentState : a));
+              setErrorMessage(refusal);
+              resolve({ success: false, emailSent: false, receiptGenerated: false, error: refusal });
+              return;
+            }
+          }
+
           // decidedAt: see the note on the bulk-reject payload above.
           const updates: any = { status, decidedAt: serverTimestamp() };
           if (status === "rejected" && rejectionData) {
@@ -495,8 +511,21 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
           const appsSnapshot = [...updatedApps];
           await dispatchEmailNotification(appsSnapshot, status, rejectionData);
 
+          // The return value is USED. promoteWaitlistedApplicant reports
+          // whether the promoted student was actually emailed, its own comment
+          // says "reported so the caller can surface it", and both callers threw
+          // it away. A student was moved off the waitlist into an accepted
+          // placement, the mail failed, and the only record was a console line
+          // nobody reads: they held a place they were never told about and
+          // missed the shift.
           if (id && (status === "rejected" || status === "terminated")) {
-            await promoteWaitlistedApplicant(id, orgProfile?.organizationName || "Verified Organization");
+            const promoted: any = await promoteWaitlistedApplicant(id, orgProfile?.organizationName || "Verified Organization");
+            if (promoted && promoted.emailSent === false) {
+              setErrorMessage(
+                `${promoted.studentName || 'A waitlisted student'} was moved off the waitlist and accepted, ` +
+                'but we could not email them. Please contact them directly so they know they have a place.',
+              );
+            }
           }
 
           resolve({ success: true, emailSent, receiptGenerated: status === "accepted" });

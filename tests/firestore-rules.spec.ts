@@ -1001,3 +1001,136 @@ test.describe('mfaBackupCodes', () => {
     await assertFails(setDoc(doc(asUser(DEV), 'mfaBackupCodes', STUDENT), { hashes: [] }));
   });
 });
+
+// ───────── what wave 6 closed, so it cannot quietly reopen ─────────
+
+test.describe('a suspended organisation loses its READS, not just its writes', () => {
+  /*
+   * Suspension writes isBanned to users/ and organizations/ and closes the
+   * postings. It does NOT disable the Firebase Auth user and does not revoke
+   * refresh tokens, and the React guard runs on the suspended party's own
+   * machine, so the session already in their browser keeps working until it
+   * expires. The organisation branch of these rules asked only "does the parent
+   * opportunity name me as owner", which stays true forever.
+   */
+  test('it cannot read the applications to its own opportunity', async () => {
+    await seedAccounts();
+    const appId = `${STUDENT}_opp_1`;
+    await seed(async (db) => {
+      await setDoc(doc(db, 'applications', appId), {
+        opportunityId: 'opp_1', orgId: ORG, studentId: STUDENT, status: 'pending',
+        appliedAt: new Date('2026-02-01T00:00:00Z'), message: '', opportunityTitle: 'Opp',
+        studentName: 'S One', previousExperience: '', resumeUrl: '',
+      });
+    });
+
+    // The ALLOW case first, so a later blanket denial cannot masquerade as this
+    // test passing.
+    await assertSucceeds(getDoc(doc(asUser(ORG), 'applications', appId)));
+
+    await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
+    await assertFails(getDoc(doc(asUser(ORG), 'applications', appId)));
+    // The student it is about keeps their own copy either way.
+    await assertSucceeds(getDoc(doc(asUser(STUDENT), 'applications', appId)));
+  });
+
+  test('it cannot read the hours requests addressed to it', async () => {
+    await seedAccounts();
+    await seed(async (db) => {
+      await setDoc(doc(db, 'hoursRequests', 'hr_ban_1'), {
+        studentId: STUDENT, studentName: 'S One', studentEmail: `${STUDENT}@example.com`,
+        activity: 'Shelving', organization: 'Org One', hours: 2, date: '2026-02-01',
+        coordinatorName: 'Coord', coordinatorContact: `${ORG}@example.com`,
+        orgId: ORG, status: 'pending', requestedAt: '2026-02-01T00:00:00Z',
+      });
+    });
+    await assertSucceeds(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
+
+    await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
+    await assertFails(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
+  });
+});
+
+test.describe('an application cannot be addressed to an organisation that did not post it', () => {
+  test('orgId is pinned to the opportunity, not taken from the client', async () => {
+    await seedAccounts();
+    const good = {
+      opportunityId: 'opp_1', orgId: ORG, studentId: STUDENT, status: 'pending',
+      appliedAt: serverTimestamp(), message: '', opportunityTitle: 'Opp',
+      studentName: 'S One', previousExperience: '', resumeUrl: '',
+    };
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'applications', `${STUDENT}_opp_1`), good));
+
+    // Organisation documents are listable by any signed-in account, so a uid is
+    // not a secret. Naming ORG2 here would have put this student's name, school
+    // and resume link into ORG2's applicant queue.
+    await assertFails(setDoc(doc(asUser(STUDENT2), 'applications', `${STUDENT2}_opp_1`), {
+      ...good, studentId: STUDENT2, orgId: ORG2,
+    }));
+
+    // And an opportunity that does not exist cannot be applied to at all,
+    // rather than producing an application orphaned at birth.
+    await assertFails(setDoc(doc(asUser(STUDENT), 'applications', `${STUDENT}_ghost`), {
+      ...good, opportunityId: 'no_such_opportunity',
+    }));
+  });
+});
+
+test.describe('keys that were permitted but never validated', () => {
+  test('craNumber has to be a string, and a short one', async () => {
+    await seedAccounts();
+    const base = {
+      uid: ORG2, organizationName: 'Org Two', contactEmail: 'o2@example.com',
+      northYorkConfirmed: true, verificationStatus: 'pending',
+    };
+    await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
+    await assertSucceeds(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: '119219814RR0001' }));
+
+    // The developer console renders {org.craNumber} straight into JSX. React
+    // throws on a raw object child, so one organisation writing this took the
+    // ENTIRE verification queue down behind the ErrorBoundary, for every other
+    // organisation waiting in it.
+    await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
+    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: { evil: true } }));
+    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: 'x'.repeat(500) }));
+    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, hasCra: 'yes' }));
+    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, description: 'd'.repeat(6000) }));
+  });
+
+  test('dateTime has to be a timestamp on a publicly readable collection', async () => {
+    await seedAccounts();
+    const base = {
+      orgId: ORG, orgName: 'Org One', title: 'T', description: 'd', location: 'l',
+      category: 'Environment', requirements: '', maxVolunteers: 5, skillsNeeded: [],
+      exclusives: [], timeCommitment: 'One-time', isVirtual: false,
+      createdAt: serverTimestamp(),
+    };
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'dt_ok'), {
+      ...base, dateTime: new Date('2026-09-01T13:00:00Z'),
+    }));
+    // opportunities is `allow read: if true`, so anything unbounded here is
+    // downloaded by every signed-out visitor to the browse page.
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'dt_string'), {
+      ...base, dateTime: 'x'.repeat(100000),
+    }));
+    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'dt_list'), {
+      ...base, dateTime: new Date('2026-09-01T13:00:00Z'),
+      skillsNeeded: Array.from({ length: 200 }, (_, i) => `skill-${i}`),
+    }));
+  });
+
+  test('a suspended student cannot file an interest request', async () => {
+    await seedAccounts();
+    const req = {
+      studentId: STUDENT, studentName: 'S One', email: `${STUDENT}@example.com`,
+      categories: ['Environment'], description: 'Looking for weekend work',
+      createdAt: serverTimestamp(), status: 'pending',
+    };
+    await assertSucceeds(setDoc(doc(asUser(STUDENT), 'interestRequests', 'ir_ok'), req));
+
+    // This was the one write a suspended account still had, and it lands in the
+    // queue a developer reads.
+    await seed(async (db) => { await updateDoc(doc(db, 'users', STUDENT), { isBanned: true }); });
+    await assertFails(setDoc(doc(asUser(STUDENT), 'interestRequests', 'ir_banned'), req));
+  });
+});

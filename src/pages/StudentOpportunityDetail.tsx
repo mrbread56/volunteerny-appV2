@@ -685,8 +685,20 @@ export default function StudentOpportunityDetail() {
           restore, so a keyboard user could tab straight past it into the page
           behind with no way to close it. */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowApplyModal(false)} />
+        /* The outer layer scrolls, and the centring lives on an inner wrapper
+           with min-h-full. Before this the modal was a fixed, non-scrolling
+           box centred with `flex items-center` and no height cap, so on any
+           viewport shorter than the dialog the top and bottom were simply cut
+           off by the edges of the screen with nothing to scroll -- and the
+           Send Application button is the last element in it. On a 320x568
+           phone a student could read the form and had no way to submit it.
+           min-h-full keeps it centred whenever it does fit, so nothing
+           changes on a normal screen. */
+        <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain">
+          {/* fixed, not absolute: the backdrop must cover the viewport rather
+              than the first screenful of a scrolling container. */}
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowApplyModal(false)} />
+          <div className="relative flex min-h-full items-center justify-center p-4">
           {/* The ref and dialog semantics live on this wrapper: Card is a plain
               function component that neither forwards a ref nor accepts ARIA
               props, and widening its signature for one caller is a bigger
@@ -706,11 +718,11 @@ export default function StudentOpportunityDetail() {
             >
               <X className="w-5 h-5" />
             </button>
-            <CardHeader className="px-10 pt-12 pb-6">
+            <CardHeader className="px-6 sm:px-10 pt-10 sm:pt-12 pb-6">
                <CardTitle className="text-2xl font-bold text-ink uppercase tracking-tight">Express Interest</CardTitle>
                <p className="text-ink-muted text-sm">Apply for <strong>{opportunity.title}</strong></p>
             </CardHeader>
-            <CardContent className="px-10 pb-12">
+            <CardContent className="px-6 sm:px-10 pb-10 sm:pb-12">
                <form onSubmit={handleApply} className="space-y-6">
                   {applyError && (
                      <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200">
@@ -757,6 +769,7 @@ export default function StudentOpportunityDetail() {
                </form>
             </CardContent>
           </Card>
+          </div>
           </div>
         </div>
       )}

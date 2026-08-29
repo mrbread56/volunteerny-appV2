@@ -22,6 +22,7 @@ import { Badge } from '../components/ui/Badge';
 import { useGeolocation } from '../hooks/useGeolocation';
 
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
+import { promoteWaitlistedApplicant } from '../lib/waitlistService';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
 import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
 import { SKILLS } from '../lib/vocabularies';
@@ -99,6 +100,13 @@ export default function OrgOpportunityEdit() {
   const navigate = useNavigate();
   const { coords: userCoords } = useGeolocation();
   const [isLoading, setIsLoading] = useState(true);
+  // The posting could not be read. Distinct from isLoading, because the failure
+  // mode being prevented is rendering an editable form over a document whose
+  // real contents are unknown.
+  const [loadFailed, setLoadFailed] = useState(false);
+  // maxVolunteers as it was when the page loaded, so the save can promote the
+  // waitlist when the coordinator raises it.
+  const loadedMaxRef = useRef<number>(0);
   const [isSaving, setIsSaving] = useState(false);
   // What the date field held when the opportunity was loaded, so an edit that
   // does not touch the date is never rejected for being in the past.
@@ -200,7 +208,14 @@ export default function OrgOpportunityEdit() {
 
       try {
         const snap = await getDoc(doc(db, 'opportunities', id));
-        if (snap.exists()) {
+        if (!snap.exists()) {
+          // Was a bare `if (snap.exists())` with no else. See the note on the
+          // catch below: falling through here renders an empty form over a real
+          // document id.
+          setLoadFailed(true);
+          return;
+        }
+        {
           const data = snap.data() as Opportunity;
           if (data.orgId !== user?.uid) {
              navigate('/org/dashboard');
@@ -233,6 +248,10 @@ export default function OrgOpportunityEdit() {
           setCategory(data.category || '');
           setRequirements(data.requirements || '');
           setMaxVolunteers(String(data.maxVolunteers ?? ''));
+          // Remembered so the save can tell a RAISE from a lowering and promote
+          // the waitlist by the difference. Without it, adding places left every
+          // waitlisted student exactly where they were.
+          loadedMaxRef.current = Number(data.maxVolunteers) || 0;
           setSelectedSkills(data.skillsNeeded || []);
           setSelectedExclusives(data.exclusives || []);
           setTimeCommitment(data.timeCommitment || '');
@@ -242,7 +261,25 @@ export default function OrgOpportunityEdit() {
           if (data.shifts) setShifts(data.shifts);
         }
       } catch (err) {
+        /*
+         * A failed read must NOT fall through to the form.
+         *
+         * This was `console.error` and nothing else, and neither this nor the
+         * missing-document branch set any flag, so both paths landed on the
+         * fully rendered "Edit Opportunity" form with every field at its
+         * useState default. The required fields are visibly empty, so an
+         * organisation retypes them and presses Update -- and handleSubmit
+         * writes the WHOLE document from component state, silently replacing
+         * everything that is not required: skillsNeeded and exclusives become
+         * [], coordinates jump to the generic North York centre, isVirtual
+         * becomes false, and a recurring three-shift posting becomes a single
+         * one-off 09:00-12:00. Then it navigates away on success.
+         *
+         * Both sibling pages already do this correctly
+         * (OrgOpportunityApplicants and StudentOpportunityDetail).
+         */
         console.error('Error fetching opp:', err);
+        setLoadFailed(true);
       } finally {
         setIsLoading(false);
       }
@@ -363,7 +400,27 @@ export default function OrgOpportunityEdit() {
     try {
       await updateDoc(doc(db, 'opportunities', id), opportunityData);
 
-
+      /*
+       * Raising the volunteer limit frees places, and nothing promoted anyone.
+       *
+       * Promotion was reachable from exactly two places, both of them a
+       * rejection or a termination, so a coordinator who secured more capacity
+       * and edited the posting from 3 to 6 left every waitlisted student
+       * waitlisted until some unrelated applicant happened to be turned down.
+       *
+       * Promoted one at a time up to the number of new places, because
+       * promoteWaitlistedApplicant re-counts the accepted total on each call and
+       * returns null once the posting is full or the waitlist is empty, so it is
+       * safe to ask for more than exist.
+       */
+      const newMax = Number(maxVolunteers) || 0;
+      const added = newMax - loadedMaxRef.current;
+      if (newMax > 0 && added > 0) {
+        for (let i = 0; i < added; i++) {
+          const promoted = await promoteWaitlistedApplicant(id, orgProfile?.organizationName || 'Verified Organization');
+          if (!promoted) break;
+        }
+      }
 
       navigate('/org/dashboard');
     } catch (err: any) {
@@ -411,6 +468,27 @@ export default function OrgOpportunityEdit() {
 
   if (isLoading) return <div className="p-20 text-center text-ink-muted font-bold uppercase tracking-widest text-xs">Loading Opportunity...</div>;
 
+  // Never the form. Saving a form filled from useState defaults overwrites the
+  // real posting with them.
+  if (loadFailed) {
+    return (
+      <div className="max-w-2xl mx-auto py-20 px-4 text-center">
+        <h1 className="text-2xl font-bold text-ink mb-3">We could not open this opportunity</h1>
+        <p className="text-ink-muted text-sm leading-relaxed mb-8">
+          It may have been deleted, or the connection dropped while it was loading.
+          Nothing has been changed. Go back and try again, and if it keeps happening
+          the posting may no longer exist.
+        </p>
+        <button
+          onClick={() => navigate('/org/dashboard')}
+          className="bg-blue-dark text-white font-bold uppercase text-xs tracking-widest px-6 py-3 rounded-lg hover:bg-[#153343] transition-colors"
+        >
+          Back to Dashboard
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-4xl mx-auto py-10 px-4">
       <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-bold uppercase text-xs tracking-widest mb-8 transition-colors">
@@ -419,7 +497,8 @@ export default function OrgOpportunityEdit() {
 
       <Card className="border-none rounded-lg overflow-hidden">
         <CardHeader className="bg-blue-dark text-white p-10 border-none">
-          <CardTitle className="text-3xl font-bold uppercase tracking-tight text-white">Edit Opportunity</CardTitle>
+          {/* as="h1": this card IS the page, and without it the outline starts at h3. */}
+          <CardTitle as="h1" className="text-3xl font-bold uppercase tracking-tight text-white">Edit Opportunity</CardTitle>
           <p className="text-blue-100 mt-2 font-medium">Keep your volunteer posting up to date.</p>
         </CardHeader>
         <CardContent className="p-10">
@@ -463,12 +542,14 @@ export default function OrgOpportunityEdit() {
                                {scheduleType === 'multiple' ? (
                                   <div className="flex-1 space-y-2">
                                      <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Shift Date</label>
-                                     <Input type="date" value={shift.date || ''} onChange={(e) => updateShift(index, { date: e.target.value })} required />
+                                     <Input
+                                       aria-label="Shift Date" type="date" value={shift.date || ''} onChange={(e) => updateShift(index, { date: e.target.value })} required />
                                   </div>
                                ) : (
                                   <div className="flex-1 space-y-2">
                                      <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Weekly Day</label>
-                                     <select className="w-full h-10 px-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark font-bold" value={shift.day || ''} onChange={(e) => updateShift(index, { day: e.target.value })} required>
+                                     <select
+                                       aria-label="Weekly Day" className="w-full h-10 px-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark font-bold" value={shift.day || ''} onChange={(e) => updateShift(index, { day: e.target.value })} required>
                                         <option value="">Select Day</option>
                                         {DAYS.map(d => <option key={d} value={d}>{d}</option>)}
                                      </select>
@@ -476,11 +557,13 @@ export default function OrgOpportunityEdit() {
                                )}
                                <div className="flex-[0.5] space-y-2">
                                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Starts</label>
-                                  <Input type="time" value={shift.startTime} onChange={(e) => updateShift(index, { startTime: e.target.value })} required />
+                                  <Input
+                                    aria-label="Starts" type="time" value={shift.startTime} onChange={(e) => updateShift(index, { startTime: e.target.value })} required />
                                </div>
                                <div className="flex-[0.5] space-y-2">
                                   <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Ends</label>
-                                  <Input type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} required />
+                                  <Input
+                                    aria-label="Ends" type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} required />
                                </div>
                                <button type="button" onClick={() => removeShift(index)} className="p-3 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-colors" disabled={shifts.length <= 1}>
                                   <Trash2 className="w-4 h-4" />

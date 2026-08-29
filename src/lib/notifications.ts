@@ -266,32 +266,54 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
     }
   }
 
-  // Students waiting on this coordinator to confirm hours. The rules let a
-  // coordinator list requests addressed to their email, which is exactly this.
-  // Filtered in JS rather than a second `where` so no composite index is needed.
-  if (email) {
-    // Isolated, because this one query can legitimately be denied.
-    //
-    // The rule behind it requires request.auth.token.email_verified, and
-    // nothing in the app forces an organization to click its verification link
-    // before using the dashboard. An unverified organization therefore gets
-    // permission-denied here — and this used to reject the whole
-    // fetchNotifications call, so ONE unclickable email killed every other
-    // notification kind and the bell rendered "Couldn't load your
-    // notifications" with nothing in it.
-    //
-    // The other sources are unaffected by that state, so they must still be
-    // returned. The dashboard tells the organization to verify its address
-    // separately; the bell's job is to show what it can.
-    //
-    // Lowercased to match: OrgDashboard queries the same field lowercased,
-    // students store it lowercased, and the two used to disagree.
-    try {
-      const reqs = await getDocs(
-        query(collection(db, 'hoursRequests'),
-          where('coordinatorContact', '==', email.trim().toLowerCase()), limit(50)),
-      );
-      for (const d of reqs.docs) {
+  /*
+   * Students waiting on this coordinator to confirm hours.
+   *
+   * BY orgId AND BY EMAIL, merged — the same pair OrgDashboard runs, and it has
+   * to be the same pair. The drift that caused this was recorded in
+   * OrgDashboard as breaking three places: the dashboard, the RULES, and this
+   * bell. The first two were fixed and this one was not, which left the worse
+   * half of the bug: an organisation whose public contact email differs from
+   * its login email (a field the profile page invites them to change) saw the
+   * request in the dashboard queue and was never notified it had arrived.
+   *
+   * orgId is identity and cannot drift. The email query stays for rows written
+   * before orgId existed, and for the "Other / Unlisted" branch where there is
+   * no account behind the address. Merged by document id so a row matching both
+   * is not shown twice.
+   *
+   * Both are isolated, because the email one can legitimately be denied: its
+   * rule requires request.auth.token.email_verified and nothing forces an
+   * organisation to click its verification link before using the dashboard.
+   * That used to reject the whole fetchNotifications call, so one unclickable
+   * link killed every other notification kind. The orgId query carries no such
+   * requirement, so the bell now still works for an unverified organisation.
+   *
+   * Status is filtered in JS rather than a second `where` so no composite index
+   * is needed. Lowercased to match how students store the address.
+   */
+  {
+    const seen = new Set<string>();
+    const byId = await getDocs(
+      query(collection(db, 'hoursRequests'), where('orgId', '==', uid), limit(50)),
+    ).catch((err) => {
+      console.warn('[notifications] hours requests by orgId unavailable:', err);
+      return null;
+    });
+    const byEmail = email
+      ? await getDocs(
+          query(collection(db, 'hoursRequests'),
+            where('coordinatorContact', '==', email.trim().toLowerCase()), limit(50)),
+        ).catch((err) => {
+          console.warn('[notifications] hours requests by email unavailable (verify your address):', err);
+          return null;
+        })
+      : null;
+
+    for (const snapshot of [byId, byEmail]) {
+      for (const d of snapshot?.docs || []) {
+        if (seen.has(d.id)) continue;
+        seen.add(d.id);
         const h: any = d.data();
         if (h.status !== 'pending') continue;
         extra.push({
@@ -301,8 +323,6 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
           at: toDate(h.requestedAt), href: '/org/dashboard?tab=hours',
         });
       }
-    } catch (err) {
-      console.warn('[notifications] hours requests unavailable (verify your email address):', err);
     }
   }
 
@@ -347,7 +367,11 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
   // bell can render — the last sequential hop left after the rest of this file
   // was parallelised. Nothing in one chunk's result feeds another.
   const chunks: string[][] = [];
-  for (let i = 0; i < ids.length; i += 5) chunks.push(ids.slice(i, i + 5));
+  // Three, not five. The applications `list` rule spends exists() + get() per
+  // id in the chunk and now also isNotBanned(); at five that is eleven document
+  // accesses and Firestore denies the whole query past ten. See the note on
+  // that rule in firestore.rules before raising this.
+  for (let i = 0; i < ids.length; i += 3) chunks.push(ids.slice(i, i + 3));
   const results = await Promise.all(
     chunks.map((chunk) =>
       getDocs(query(collection(db, 'applications'), where('opportunityId', 'in', chunk), limit(50))),

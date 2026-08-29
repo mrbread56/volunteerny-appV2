@@ -258,6 +258,12 @@ export default function Signup() {
             skills: selectedSkills,
             availability: selectedAvailability,
             resumeUrl: "",
+            // Written explicitly so the state is legible rather than inferred.
+            // Signup does not ask about the leaderboard; StudentOnboarding does,
+            // with a checkbox that starts unticked. Leaving the field absent
+            // here meant a student who never reached onboarding had no recorded
+            // answer at all, which the board's filter then read as a yes.
+            trackerEnabled: false,
           });
         } else {
           await setDoc(doc(db, "organizations", account.uid), {
@@ -352,7 +358,13 @@ export default function Signup() {
           templateName: "notification",
           templateData: {
             heading: `Welcome, ${orgName}`,
-            details: `Your organization account has been created. A member of our team reviews new organizations before opportunities go live, so you may not appear in search results right away. In the meantime you can finish your profile and draft your first opportunity.`,
+            // "draft your first opportunity" was an instruction into a wall.
+            // OrgOpportunityCreate returns a block screen before the form
+            // renders for any organisation that is not yet verified, and
+            // isApprovedOrg() in firestore.rules refuses the write anyway. A new
+            // account is 'pending', so the very first thing this email asked
+            // them to do was the one thing they could not do.
+            details: `Your organization account has been created. A member of our team reviews new organizations before opportunities go live, so you may not appear in search results right away. In the meantime you can finish your profile. Posting opens as soon as you are approved.`,
             actionLabel: "Complete your profile",
             actionUrl: `${window.location.origin}/org/profile`
           }
@@ -379,7 +391,8 @@ export default function Signup() {
       >
         <Card className="w-full overflow-hidden">
           <CardHeader className="text-center pb-2 pt-10">
-            <CardTitle className="text-[1.5rem] font-semibold tracking-[-0.02em] text-ink">
+            {/* as="h1": this card IS the page, and without it the outline starts at h3. */}
+            <CardTitle as="h1" className="text-[1.5rem] font-semibold tracking-[-0.02em] text-ink">
               {completingExistingAccount ? "Finish setting up your account" : "Create an Account"}
             </CardTitle>
             <p className="text-ink-soft text-[14px] mt-2">

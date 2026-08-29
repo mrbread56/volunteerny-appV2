@@ -55,20 +55,43 @@ export default function AttachmentPreview({
         Attachment Preview:
       </p>
       {looksLikeImage ? (
-        <img
-          src={resolved}
-          alt={fileName}
-          loading="lazy"
-          width={800}
-          height={600}
-          className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
-          onClick={triggerDownload}
-        />
+        /* An <a download>, like the two branches below. This was a bare <img
+           onClick> with no role, tabIndex or key handler, so it was mouse-only
+           — and it renders in the developer console's safety-report evidence
+           viewer, which meant a moderator navigating by keyboard could not open
+           the screenshot attached to a report about an adult. The siblings had
+           the right pattern all along. */
+        <a
+          href={resolved}
+          download={fileName}
+          target={isUrl ? '_blank' : undefined}
+          rel={isUrl ? 'noopener noreferrer' : undefined}
+          onClick={(e) => { if (!isUrl) { e.preventDefault(); triggerDownload(); } }}
+          className="block rounded-lg"
+          aria-label={`Open attachment ${fileName}`}
+        >
+          <img
+            src={resolved}
+            alt={fileName}
+            loading="lazy"
+            width={800}
+            height={600}
+            className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
+          />
+        </a>
       ) : looksLikePdf ? (
         <div className="space-y-2">
+          {/* sandbox, because this frame renders a file an untrusted account
+              uploaded. looksLikePdf accepts any Storage URL whose stored
+              attachmentName merely ENDS in .pdf, and that name is client-written
+              free text — so the bytes need not be a PDF at all. allow-same-origin
+              without allow-scripts keeps the browser's PDF viewer working while
+              denying script execution and top-level navigation. */}
           <iframe
             src={resolved}
             title={fileName}
+            sandbox="allow-same-origin"
+            referrerPolicy="no-referrer"
             className="w-full h-64 rounded-lg border border-line bg-paper-2"
           />
           <a

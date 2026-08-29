@@ -937,8 +937,12 @@ export default function StudentProfile() {
                         <label className="block text-xs font-semibold uppercase text-ink-soft mb-1">
                           Type email to confirm ({user?.email})
                         </label>
+                        {/* Named explicitly: the visible label carries a JSX expression, so it
+                            was skipped by the sweep that fixed the plain-text ones.
+                            This is the confirmation gate on permanent account deletion. */}
                         <Input
                           type="text"
+                          aria-label="Type your email address to confirm account deletion"
                           value={deleteConfirmEmail}
                           onChange={(e) => setDeleteConfirmEmail(e.target.value)}
                           placeholder={user?.email || "Email address"}

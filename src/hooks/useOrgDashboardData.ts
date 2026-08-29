@@ -140,7 +140,14 @@ export function useOrgDashboardData(
             // vanished. Do not raise this back towards 30: the 'in' limit
             // permits it and the rules do not. If the ownership check in the
             // rules ever costs more or fewer accesses, this number moves with it.
-            const chunkSize = 5;
+            // Three, not five. The applications `list` rule spends exists() +
+            // get() per id in the chunk, and it now also spends isNotBanned()
+            // so a suspended organisation cannot read its applicants. At five
+            // that totals eleven document accesses and Firestore DENIES the
+            // whole query past ten, which is the "every real applicant vanished
+            // behind an error" failure this block already records. Re-count
+            // against firestore.rules before raising it.
+            const chunkSize = 3;
             const chunks: string[][] = [];
             for (let i = 0; i < oppIds.length; i += chunkSize) {
               chunks.push(oppIds.slice(i, i + chunkSize));

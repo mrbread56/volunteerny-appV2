@@ -110,7 +110,21 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
         : new Date(application.appliedAt).toLocaleDateString(undefined, { dateStyle: 'long' }))
     : new Date().toLocaleDateString(undefined, { dateStyle: 'long' });
 
-  const generatedSerial = `YVR-${application.id.substr(0, 6).toUpperCase()}-${(application.studentName || 'VOL').substring(0, 3).toUpperCase()}-${new Date().getFullYear()}`;
+  /*
+   * The application id, presented as what it is.
+   *
+   * This was `YVR-<id>-<NAME>-<year>`, generated fresh at render, stored
+   * nowhere and checkable by nobody, and it was labelled "Reference number" on
+   * a document badged "Verified & Secured" and emailed as a "Verification
+   * Receipt". server/emailTemplates.ts records the identical invention being
+   * deleted from the hours email for exactly this reason: a trust claim the
+   * system cannot back is worse than no claim at all.
+   *
+   * The id is real and does identify the record, so it stays. What goes is the
+   * costume: no invented prefix, no fake year suffix, and no language implying
+   * anyone can verify it.
+   */
+  const applicationRef = application.id;
 
   const handleSendEmailReceipt = async () => {
     // No placeholder recipient.
@@ -138,7 +152,12 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
           oppTitle: application.opportunityTitle || 'Community Service Participation',
           orgName: organizationName,
           status: 'accepted',
-          note: `Verification Receipt. Reference number: ${generatedSerial}. Verification Date: ${formattedDate}. Verified & Secured.`
+          // No "Verified & Secured", and no "Verification Receipt". Nothing
+          // verifies this and nothing can: there is no lookup, no signature and
+          // no record of the reference anywhere. It is a confirmation that the
+          // placement was accepted, which is true and is enough.
+          note: `Placement confirmation. Reference: ${applicationRef}. Accepted on ${formattedDate}. `
+            + `This is not an official school document. You still need your school board's own community involvement form, signed by your supervisor.`
         }
       });
       if (res.success) {
@@ -256,23 +275,34 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
                   <p className="text-ink-soft font-bold">{formattedDate}</p>
                 </div>
                 <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Reference number</span>
-                  <p className="text-ink-soft font-mono font-bold leading-none">{generatedSerial}</p>
+                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Reference</span>
+                  <p className="text-ink-soft font-mono font-bold leading-none break-all">{applicationRef}</p>
                 </div>
               </div>
             </div>
 
-            {/* Security Barcode */}
-            <div className="pt-4 border-t-2 border-line/50 text-center space-y-1">
-              {/* Decorative. A screen reader reads this pipe art aloud character
-                  by character, which is a full sentence of noise in the middle of
-                  a receipt. It also implies a scannable code that does not exist. */}
-              <div aria-hidden="true" className="font-mono text-xl tracking-wide font-light text-ink-soft flex justify-center h-8 select-none overflow-hidden">
-                |||||| | |||||||| |||| || | || ||||| | |||
-              </div>
-              <span className="font-mono text-xs tracking-widest text-ink-soft text-ink-soft">
-                Reference: {application.id.toUpperCase()}
+            {/*
+              * The pipe art that used to sit here is gone.
+              *
+              * It was labelled "Security Barcode" and drew a fixed, hardcoded
+              * row of bars that encoded nothing and scanned as nothing. On a
+              * document a student hands to a guidance office, a barcode is a
+              * claim that someone can check this — and nobody can. Marking it
+              * aria-hidden fixed the screen-reader noise and left the visual
+              * lie in place for everybody else.
+              *
+              * What replaces it is the sentence the printed hours transcript
+              * already carries, and which this receipt did not.
+              */}
+            <div className="pt-4 border-t-2 border-line/50 text-center space-y-2">
+              <span className="font-mono text-xs tracking-widest text-ink-soft block">
+                Reference: {applicationRef}
               </span>
+              <p className="text-[11px] text-ink-muted leading-relaxed max-w-sm mx-auto">
+                This is a record of an accepted placement. It is not an official
+                school document. You still need your school board's own community
+                involvement form, signed by your supervisor.
+              </p>
             </div>
           </div>
         </div>

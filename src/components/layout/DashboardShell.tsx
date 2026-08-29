@@ -8,6 +8,7 @@ import {
   Menu, X, Shield, HelpCircle, Send,
 } from 'lucide-react';
 import React, { useState } from 'react';
+import { useDialog } from '../../hooks/useDialog';
 
 interface NavItem {
   to: string;
@@ -119,6 +120,11 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   };
 
   const closeMobile = () => setMobileOpen(false);
+  // The mobile drawer was the one overlay in the app that did not use this:
+  // no Escape, no focus move into it, no focus restore to the hamburger, and a
+  // backdrop whose only dismissal was a mouse click. Every dialog in the app
+  // already goes through the same hook.
+  const drawerRef = useDialog(mobileOpen, closeMobile);
 
   const sidebar = (
     <div className="flex flex-col h-full bg-[#FAFAF8]">
@@ -228,7 +234,20 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {mobileOpen && (
         <>
           <div className="lg:hidden fixed inset-0 bg-black/20 z-40" onClick={closeMobile} />
-          <aside className="lg:hidden fixed top-0 left-0 w-[280px] h-screen z-50 shadow-xl">
+          {/* 100dvh, not h-screen. h-screen is 100vh, which on mobile Safari
+              and Chrome is the viewport with the browser toolbars treated as
+              absent -- so the drawer was taller than the visible area and its
+              last block ran underneath the toolbar. That block is the user
+              card and Sign out, and it sits OUTSIDE the scrolling <nav>, so
+              there was no way to scroll to it: on a phone, signing out of this
+              app was unreachable. dvh tracks the toolbars as they collapse. */}
+          <aside
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Main navigation"
+            className="lg:hidden fixed top-0 left-0 w-[280px] h-[100dvh] z-50 shadow-xl"
+          >
             {sidebar}
           </aside>
         </>

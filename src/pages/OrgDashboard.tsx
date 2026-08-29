@@ -33,6 +33,7 @@ import RejectionDialog from "../components/RejectionDialog";
 import ApplicationReviewDialog from "../components/ApplicationReviewDialog";
 import { serverTimestamp } from "firebase/firestore";
 import { sendTransactionalEmail, notifyApplicant } from "../lib/emailService";
+import { capacityRefusal } from '../lib/opportunityCapacity';
 import { promoteWaitlistedApplicant } from "../lib/waitlistService";
 import { requestLeaderboardRebuild } from "../lib/scalableLeaderboard";
 import { reportError } from "../lib/errors";
@@ -42,6 +43,50 @@ import { toUserMessage } from "../lib/errors";
 import HoursTab from './orgDashboard/HoursTab';
 import { useOrgDashboardData } from '../hooks/useOrgDashboardData';
 import OrgApplicationsTab from './orgDashboard/OrgApplicationsTab';
+
+/**
+ * Turn a failed hours read into something the coordinator can act on.
+ *
+ * Shared by the total-failure catch and the partial-failure branch, because
+ * both have the same one real cause and the same one real remedy, and the
+ * partial case is the more dangerous of the two: it renders a SHORT list that
+ * is indistinguishable from a complete one.
+ *
+ * permission-denied here means the coordinatorContact rule refused the read,
+ * and that rule requires a VERIFIED address. It is what stops anyone
+ * registering a coordinator's address and reading every student's hours
+ * submitted to it. Nothing forces an organisation to click its verification
+ * link before reaching this page, and "please refresh" is useless against that,
+ * so say what will actually work.
+ */
+function describeHoursReadFailure(err: any, partial: boolean): { message: string; needsVerification: boolean } {
+  const needsVerification =
+    err?.code === 'permission-denied' && auth.currentUser?.emailVerified === false;
+
+  if (needsVerification) {
+    // The old copy was "We sent a link when you signed up, open it." That link
+    // went out over Firebase's unauthenticated mailer, the one already found to
+    // deliver nothing, and there was no way to ask for another. The banner this
+    // message points at offers to send one over the pipeline that works.
+    return {
+      needsVerification: true,
+      message: partial
+        ? "Some hours requests are hidden until you confirm your email address, so this list is incomplete. Use the button below to send yourself a new link, then sign out and back in."
+        : "Confirm your email address before you can see hours awaiting approval. Use the button below to send yourself a new link, then sign out and back in.",
+    };
+  }
+
+  return {
+    needsVerification: false,
+    message: reportError(
+      'load hours requests',
+      err,
+      partial
+        ? "Part of your hours queue could not be loaded, so this list may be incomplete. Please refresh to try again."
+        : "We couldn't load the hours awaiting your approval. Please refresh to try again.",
+    ),
+  };
+}
 
 export default function OrgDashboard() {
   const {
@@ -237,16 +282,28 @@ export default function OrgDashboard() {
        * document id so a row matching both is not counted twice.
        */
       const base = [where("status", "==", "pending"), limit(300)] as const;
+      /*
+       * The errors are CAPTURED, not discarded.
+       *
+       * These two were `.catch(() => null)` and the failure below threw a bare
+       * `new Error('both hours queries failed')`. A plain Error has no `.code`,
+       * so the permission-denied branch in the catch could never match, and the
+       * "Send me a new link" button that branch renders became unreachable the
+       * moment it was written. Swallowing an error to keep a sibling query
+       * alive is right; swallowing which error it was is not.
+       */
+      let idErr: any = null;
+      let emailErr: any = null;
       const [byId, byEmail] = await Promise.all([
         getDocs(query(collection(db, "hoursRequests"), where("orgId", "==", user.uid), ...base))
-          .catch(() => null),
+          .catch((err) => { idErr = err; return null; }),
         getDocs(query(
           collection(db, "hoursRequests"),
           where("coordinatorContact", "==", (user.email || "").trim().toLowerCase()),
           ...base,
-        )).catch(() => null),
+        )).catch((err) => { emailErr = err; return null; }),
       ]);
-      if (!byId && !byEmail) throw new Error('both hours queries failed');
+      if (!byId && !byEmail) throw idErr || emailErr;
       const merged = new Map<string, any>();
       for (const snapshot of [byId, byEmail]) {
         for (const d of snapshot?.docs || []) merged.set(d.id, d);
@@ -257,35 +314,33 @@ export default function OrgDashboard() {
         ...doc.data()
       }));
       setHoursRequests(list);
+
+      /*
+       * One query answered and the other did not, so this queue is INCOMPLETE
+       * and looks exactly like a short one.
+       *
+       * This is the realistic case, not an edge: the orgId rule deliberately
+       * carries no email_verified requirement (a uid cannot be spoofed) while
+       * the coordinatorContact rule requires one, so an organisation that has
+       * not confirmed its address is ALLOWED on the first query and DENIED on
+       * the second. Every legacy row and every "Other / Unlisted" row silently
+       * disappears from the list. Rendering that as a normal result is the same
+       * failure this block was written to stop, one layer further in.
+       */
+      const partialErr = idErr || emailErr;
+      if (partialErr) {
+        const { message, needsVerification } = describeHoursReadFailure(partialErr, true);
+        setErrorMessage(message);
+        setNeedsEmailVerification(needsVerification);
+      } else {
+        setNeedsEmailVerification(false);
+      }
     } catch (e: any) {
       // Deliberately no demo-fixture fallback. An organization seeing invented
       // pending requests, or an empty queue that is really a failed read, both
       // lead to a real student's hours going unapproved.
-      //
-      // permission-denied here has exactly one cause, and a generic "please
-      // refresh" is useless against it: the rule requires a VERIFIED email
-      // address (it is what stops anyone registering a coordinator's address
-      // and reading every student's hours submitted to it), and nothing forces
-      // an organization to click its verification link before reaching this
-      // page. Refreshing will never fix that, so say what will.
-      const needsVerification =
-        e?.code === 'permission-denied' && auth.currentUser?.emailVerified === false;
-      setErrorMessage(
-        needsVerification
-          // Was: "We sent a link when you signed up, open it." That link went
-          // out over Firebase's unauthenticated mailer, the one already found
-          // to deliver nothing, and there was no way to request another —
-          // sendEmailVerification appeared once in the whole codebase, inside
-          // signup. So an organisation whose link never arrived was told to
-          // open a message that did not exist, forever, on the screen that
-          // gates the core loop. The banner now offers to send one.
-          ? "Confirm your email address before you can see hours awaiting approval. Use the button below to send yourself a new link, then sign out and back in."
-          : reportError(
-              'load hours requests',
-              e,
-              "We couldn't load the hours awaiting your approval. Please refresh to try again.",
-            ),
-      );
+      const { message, needsVerification } = describeHoursReadFailure(e, false);
+      setErrorMessage(message);
       setNeedsEmailVerification(needsVerification);
       setHoursRequests([]);
     }
@@ -399,7 +454,15 @@ export default function OrgDashboard() {
         templateData: approved
           ? {
               heading: "Your volunteer hours were approved",
-              details: `${orgProfile?.organizationName || "The organization"} approved the ${req.hours} hours you submitted for "${req.activity}". They now count toward your graduation total — check your dashboard for the updated number and your official transcript.`,
+              // No "official transcript" and no "count toward your graduation
+              // total". That is the sentence emailTemplates.ts removed from
+              // hours_confirmation for being false: nothing here is a
+              // transcript, and the app's own printed record says in its footer
+              // that the student still needs their school board's form. It
+              // survived here only because the approved branch selects
+              // hours_confirmation, which ignores `details` -- one template
+              // switch from shipping.
+              details: `${orgProfile?.organizationName || "The organization"} confirmed the ${req.hours} hours you submitted for "${req.activity}". Your running total on the dashboard has been updated. You still need your school board's own community involvement form signed.`,
               studentName: req.studentName,
               oppTitle: req.activity,
               hours: req.hours,
@@ -543,6 +606,22 @@ export default function OrgDashboard() {
       return { success: true, emailSent, receiptGenerated };
     }
     try {
+      // Capacity, before the write. The same guard runs on the applicants page;
+      // this is the second of the two places a coordinator clicks Accept, and
+      // neither one checked maxVolunteers against the accepted count. See
+      // capacityRefusal for why it fails closed.
+      if (newStatus === "accepted") {
+        const app = recentApplications.find((a) => a.id === appId);
+        const oppForCap = opportunities.find((o: any) => o.id === app?.opportunityId);
+        if (app?.opportunityId) {
+          const refusal = await capacityRefusal(app.opportunityId, oppForCap?.maxVolunteers);
+          if (refusal) {
+            setErrorMessage(refusal);
+            return { success: false, emailSent: false, receiptGenerated: false };
+          }
+        }
+      }
+
       const updates: any = {
         status: newStatus,
         // When the decision was made, so the student's notification bell can
@@ -596,8 +675,21 @@ export default function OrgDashboard() {
       const targetApp = recentApplications.find((a) => a.id === appId) ||
         (isDemoMode ? JSON.parse(localStorage.getItem("demo_applications") || "[]").find((a: any) => a.id === appId) : null);
       const oppId = targetApp?.opportunityId;
+          // The return value is USED. promoteWaitlistedApplicant reports
+          // whether the promoted student was actually emailed, its own comment
+          // says "reported so the caller can surface it", and both callers threw
+          // it away. A student was moved off the waitlist into an accepted
+          // placement, the mail failed, and the only record was a console line
+          // nobody reads: they held a place they were never told about and
+          // missed the shift.
       if (oppId && (newStatus === "rejected" || newStatus === "terminated")) {
-        await promoteWaitlistedApplicant(oppId, orgProfile?.organizationName || "Verified Organization");
+        const promoted: any = await promoteWaitlistedApplicant(oppId, orgProfile?.organizationName || "Verified Organization");
+        if (promoted && promoted.emailSent === false) {
+          setErrorMessage(
+            `${promoted.studentName || 'A waitlisted student'} was moved off the waitlist and accepted, ` +
+            'but we could not email them. Please contact them directly so they know they have a place.',
+          );
+        }
       }
 
       return { success: true, emailSent, receiptGenerated };

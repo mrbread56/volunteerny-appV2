@@ -511,12 +511,14 @@ export default function OrgOpportunityCreate() {
                               {scheduleType === 'multiple' ? (
                                  <div className="flex-1 space-y-2">
                                     <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Shift Date</label>
-                                    <Input type="date" value={shift.date || ''} onChange={(e) => updateShift(index, { date: e.target.value })} required />
+                                    <Input
+                                      aria-label="Shift Date" type="date" value={shift.date || ''} onChange={(e) => updateShift(index, { date: e.target.value })} required />
                                  </div>
                               ) : (
                                  <div className="flex-1 space-y-2 text-left">
                                     <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Weekly Day</label>
-                                    <select 
+                                    <select
+                                      aria-label="Weekly Day" 
                                        className="w-full h-10 px-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark font-bold"
                                        value={shift.day || ''}
                                        onChange={(e) => updateShift(index, { day: e.target.value })}
@@ -530,12 +532,14 @@ export default function OrgOpportunityCreate() {
 
                               <div className="flex-[0.5] space-y-2">
                                  <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Starts</label>
-                                 <Input type="time" value={shift.startTime} onChange={(e) => updateShift(index, { startTime: e.target.value })} required />
+                                 <Input
+                                   aria-label="Starts" type="time" value={shift.startTime} onChange={(e) => updateShift(index, { startTime: e.target.value })} required />
                               </div>
 
                               <div className="flex-[0.5] space-y-2">
                                  <label className="text-xs font-bold text-ink-muted uppercase tracking-widest leading-none">Ends</label>
-                                 <Input type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} required />
+                                 <Input
+                                   aria-label="Ends" type="time" value={shift.endTime} onChange={(e) => updateShift(index, { endTime: e.target.value })} required />
                               </div>
 
                               <button 

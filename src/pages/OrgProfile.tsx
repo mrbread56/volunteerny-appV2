@@ -295,7 +295,7 @@ export default function OrgProfile() {
             </CardHeader>
             <CardContent className="space-y-6 pt-6">
               {error && (
-                <div className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-bold font-sans">
+                <div role="alert" aria-live="assertive" className="p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg text-xs font-bold font-sans">
                   ⚠️ {error}
                 </div>
               )}
@@ -667,8 +667,12 @@ export default function OrgProfile() {
                         <label className="block text-xs font-semibold uppercase text-red-700 mb-1">
                           Type email to confirm ({user?.email})
                         </label>
+                        {/* Named explicitly: the visible label carries a JSX expression, so it
+                            was skipped by the sweep that fixed the plain-text ones.
+                            This is the confirmation gate on permanent account deletion. */}
                         <Input
                           type="text"
+                          aria-label="Type your email address to confirm account deletion"
                           value={deleteConfirmEmail}
                           onChange={(e) => setDeleteConfirmEmail(e.target.value)}
                           placeholder={user?.email || "Email address"}

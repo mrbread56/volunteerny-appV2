@@ -327,16 +327,26 @@ Check the generated `playwright-report/` or `test-results/` screenshots for desk
 
 ## App Check rollout (staged — do not skip ahead)
 
-The client initialises App Check only when `VITE_APPCHECK_SITE_KEY` is set, so
-each step below is safe on its own and the dangerous one is clearly marked.
+The client initialises App Check only when **BOTH** `VITE_APPCHECK_SITE_KEY`
+**and** `VITE_APPCHECK_ENABLED=true` are set, so each step below is safe on its
+own and the dangerous one is clearly marked.
+
+Two variables, not one, because the key alone was already set in production and
+minting nothing: reCAPTCHA loaded on every page for every visitor including
+signed-out minors, and no request to `firebaseappcheck.googleapis.com` was ever
+made. Step 4 against that state locks out every user. The flag is what proves
+someone has actually watched step 3.
 
 1. **Register the app.** Firebase console → App Check → Apps → register
    **Vounteer Searcher** (`…620a13da` — the app id in VITE_FIREBASE_APP_ID)
    with the **reCAPTCHA v3** provider. The console creates the site key.
    Ignore the leftover `ai-studio-applet-webapp` — nothing ships it.
-2. **Set the key.** Add `VITE_APPCHECK_SITE_KEY` to Vercel (Production env) and
-   to local `.env`, then redeploy. From this moment real browsers ATTACH
-   attestation tokens, but nothing checks them yet.
+2. **Set the key AND the flag.** Add `VITE_APPCHECK_SITE_KEY` **and**
+   `VITE_APPCHECK_ENABLED=true` to Vercel (Production env) and to local `.env`,
+   then redeploy. Both, or the client does not initialise App Check at all.
+   From this moment real browsers ATTACH attestation tokens, but nothing checks
+   them yet. Confirm in devtools that requests to
+   `firebaseappcheck.googleapis.com` are actually firing before going on.
 3. **Watch, at least a few days.** App Check → Metrics. You want to see
    verified requests climbing and unverified requests limited to bots/scripts.
    If legitimate traffic shows as unverified, STOP — enforcing now would lock
