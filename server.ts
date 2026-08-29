@@ -2240,6 +2240,16 @@ app.use(express.json());
 
       const adb = adminFirestore();
       const { studentId, requestId, activity, hours, date } = req.body || {};
+      /*
+       * An idempotency key for the direct-credit path, minted per submission
+       * attempt by the browser. Optional and length-bounded: an older client
+       * that does not send one still behaves exactly as before, it simply keeps
+       * the double-credit exposure until that tab reloads.
+       */
+      const clientRef =
+        typeof req.body?.clientRef === 'string' && req.body.clientRef.trim().length <= 64
+          ? req.body.clientRef.trim()
+          : null;
       // Declining is a status transition on the same document, gated by the
       // same relationship check. It used to be a direct client updateDoc, which
       // forced firestore.rules to carry a "the coordinator may set status"
@@ -2285,6 +2295,10 @@ app.use(express.json());
       // So a coordinator email match is now only ever a *tie-break* for which
       // request to settle — never the reason the write is allowed.
       let authorised = isDeveloperCaller;
+      // Set inside the transaction when clientRef matches an entry already
+      // credited, so the handler can answer with the original result rather
+      // than crediting a second time.
+      let replayedEntry: any = null;
       let requestRef: FirebaseFirestore.DocumentReference | undefined;
       let requestData: any = null;
 
@@ -2382,9 +2396,46 @@ app.use(express.json());
         const snap = await tx.get(studentRef);
         if (!snap.exists) throw new Error('STUDENT_NOT_FOUND');
         const existing = Array.isArray(snap.data().loggedHours) ? snap.data().loggedHours : [];
+
+        /*
+         * The same guard, for the path that had none.
+         *
+         * The check above protects the request path by re-reading the request
+         * inside the transaction: a settled request cannot be settled twice.
+         * The DIRECT-credit path — an organisation logging hours by hand, with
+         * no hoursRequest behind it — passed straight through, because there
+         * was no document to re-read.
+         *
+         * That path can genuinely be submitted twice. The transaction commits,
+         * and only then does the handler do three more reads and up to two
+         * mail sends; anything failing in that tail rejects the client's
+         * promise AFTER the hours are already credited. OrgDashboard clears
+         * the form only on success, so the coordinator is looking at an error
+         * message above their own still-filled form, and pressing the button
+         * again is the reasonable thing to do. Eight hours becomes sixteen on a
+         * record a guidance counsellor will read as fact.
+         *
+         * clientRef is minted once per submission attempt by the browser and
+         * survives retries of that same attempt, so a replay is recognised and
+         * returns the original entry instead of appending a second one.
+         */
+        if (clientRef) {
+          const already = existing.find((e: any) => e && e.clientRef === clientRef);
+          if (already) {
+            // Same shape as the credit path, so nothing downstream has to know
+            // this was a replay. priorTotal equals total because no hours moved.
+            const settled = totalLoggedHours(existing);
+            replayedEntry = already;
+            return { total: settled, entryId: already.id, priorTotal: settled };
+          }
+        }
+
         if (existing.length >= 500) throw new Error('TOO_MANY_ENTRIES');
         const entry = {
           id: 'log_' + crypto.randomBytes(6).toString('hex'),
+          // Present only on the direct-credit path; the request path is already
+          // idempotent through its own document.
+          ...(clientRef ? { clientRef } : {}),
           activity: String(activity || 'Volunteer Activity').slice(0, 200),
           hours: parsedHours,
           date: String(date || new Date().toISOString().slice(0, 10)).slice(0, 32),
@@ -2440,6 +2491,19 @@ app.use(express.json());
         if (requestRef) tx.update(requestRef, { status: 'approved', decidedAt: new Date().toISOString() });
         return { total, entryId: entry.id, priorTotal };
       });
+
+      /*
+       * A replayed submission is finished here.
+       *
+       * The hours were credited by the original attempt, and the student was
+       * already told about them. Falling through would send a second identical
+       * "your hours were approved" email for hours that did not move, which is
+       * how an idempotency fix turns into a mail bug.
+       */
+      if (replayedEntry) {
+        logEvent('hours_replay_ignored', { uid: authContext.uid, entryId: replayedEntry.id });
+        return res.json({ hours: result.total, entryId: result.entryId, replayed: true });
+      }
 
       // Tell the student their hours were credited.
       //

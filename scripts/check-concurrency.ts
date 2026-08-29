@@ -295,6 +295,86 @@ const as = async (email: string) => {
       else fail(`the request is still ${settled?.status} after a successful approval`);
     }
 
+    /*
+     * ── 2b. the DIRECT-credit path, retried ───────────────────────────────
+     *
+     * Case 2 above proves the request path cannot be settled twice, because the
+     * transaction re-reads the request. The direct path — an organisation
+     * logging hours by hand, with no hoursRequest — had no such document and so
+     * no guard at all.
+     *
+     * It is genuinely retried in practice. The transaction commits, then the
+     * handler does three more reads and up to two mail sends; anything failing
+     * in that tail rejects the browser's promise AFTER the hours are on the
+     * record, and OrgDashboard clears the form only on success. The coordinator
+     * sees an error above their own still-filled form and presses the button
+     * again. Eight hours became sixteen on a graduation record.
+     */
+    {
+      const org = await makeUser('organization', 'direct');
+      const student = await makeUser('student', 'direct');
+      await approveOrg(adb, org.uid);
+
+      // Seeded with the Admin SDK: this case is about the approval handler, not
+      // about how the posting was created, and the client path is already
+      // covered by case 2 above.
+      const oppRef = await adb.collection('opportunities').add({
+        isFixture: true,
+        orgId: org.uid, orgName: 'Conc Org direct', title: 'Direct Credit Opportunity',
+        description: 'd', location: 'l', category: 'Environment', requirements: '',
+        maxVolunteers: 5, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
+        isVirtual: false, status: 'open',
+      });
+      await adb.collection('applications').doc(`${student.uid}_${oppRef.id}`).set({
+        opportunityId: oppRef.id, orgId: org.uid, studentId: student.uid,
+        status: 'accepted', appliedAt: new Date().toISOString(),
+        opportunityTitle: 'Direct Credit Opportunity', studentName: 'Conc direct',
+      });
+
+      const orgToken = await as(org.email);
+      const ref = `attempt_${stamp}_direct`;
+      const send = () =>
+        fetch(`${apiBase}/api/hours/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${orgToken}` },
+          body: JSON.stringify({
+            studentId: student.uid, hours: 8, activity: 'Sorting', date: '2026-08-20',
+            clientRef: ref,
+          }),
+        }).then((r) => r.status).catch(() => 0);
+
+      // The retry: same attempt, same key, sent twice.
+      const first = await send();
+      const second = await send();
+
+      const prof = (await adb.collection('students').doc(student.uid).get()).data() || {};
+      const entries = (prof.loggedHours || []).length;
+      const total = (prof.loggedHours || []).reduce((n: number, l: any) => n + (Number(l.hours) || 0), 0);
+
+      if (first === 200 && second === 200 && entries === 1 && total === 8) {
+        pass('retrying a direct credit with the same key credits 8 hours once, not 16');
+      } else {
+        fail(`direct credit double-counted: statuses ${first}/${second}, ${entries} entries, ${total} hours (expected 200/200 / 1 / 8)`);
+      }
+
+      // A genuinely separate logging must still go through.
+      const other = await fetch(`${apiBase}/api/hours/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${orgToken}` },
+        body: JSON.stringify({
+          studentId: student.uid, hours: 3, activity: 'Sorting', date: '2026-08-21',
+          clientRef: `attempt_${stamp}_direct_2`,
+        }),
+      }).then((r) => r.status).catch(() => 0);
+      const after = (await adb.collection('students').doc(student.uid).get()).data() || {};
+      const total2 = (after.loggedHours || []).reduce((n: number, l: any) => n + (Number(l.hours) || 0), 0);
+      if (other === 200 && total2 === 11) {
+        pass('a different attempt still credits normally (11 hours across 2 entries)');
+      } else {
+        fail(`a new attempt was wrongly suppressed: status ${other}, total ${total2} (expected 200 / 11)`);
+      }
+    }
+
     // ── 3. two tabs applying at the same instant ──────────────────────────
     {
       const org = await makeUser('organization', 'apply');

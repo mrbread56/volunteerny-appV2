@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useDialog } from "../hooks/useDialog";
 import { useAuth } from "../contexts/AuthContext";
 import { db, auth } from "../firebase/config";
@@ -164,6 +164,10 @@ export default function OrgDashboard() {
   const [logActivity, setLogActivity] = useState("");
   const [isSubmittingLog, setIsSubmittingLog] = useState(false);
   const [logResultStatus, setLogResultStatus] = useState<string | null>(null);
+  // Survives re-renders and the failed attempt itself, which a state value
+  // would too — but a ref avoids re-rendering the form on every keystroke of
+  // the retry. Cleared on success; see handleOrgLogSubmit.
+  const logClientRef = useRef<string | null>(null);
 
   // Verification request inbox states
   const [hoursRequests, setHoursRequests] = useState<any[]>([]);
@@ -653,12 +657,34 @@ export default function OrgDashboard() {
         // actually volunteered with us. A student the organization has no
         // accepted application for is refused with a clear message instead of
         // being silently credited.
+        /*
+         * One key per submission ATTEMPT, reused across retries of that attempt.
+         *
+         * The credit commits in a transaction, and only then does the server do
+         * three more reads and up to two mail sends. Anything failing in that
+         * tail rejects this promise after the hours are already on the record —
+         * and the catch below sets "error" while the form keeps every value the
+         * coordinator typed, so pressing the button again is the obvious thing
+         * to do. That second press used to append a second entry: eight hours
+         * became sixteen on a graduation record.
+         *
+         * The key is cleared on success, so a genuine second logging of the
+         * same activity still goes through as its own entry.
+         */
+        if (!logClientRef.current) {
+          logClientRef.current =
+            typeof crypto !== 'undefined' && 'randomUUID' in crypto
+              ? crypto.randomUUID()
+              : `ref_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        }
         await approveStudentHours({
           studentId: selectedStudentId,
           hours: Number(logHours),
           activity: newLogItem.activity,
           date: logDate,
+          clientRef: logClientRef.current,
         });
+        logClientRef.current = null;
         setLogResultStatus("success");
         // Direct credit logging also moves the student's total.
         void requestLeaderboardRebuild();

@@ -24,6 +24,12 @@ export async function approveStudentHours(input: {
   date?: string;
   /** Set when approving a pending hoursRequest, so the server can settle it in the same transaction. */
   requestId?: string;
+  /**
+   * Idempotency key for the DIRECT-credit path, minted once per submission
+   * attempt and reused if that attempt is retried. Without it, a retry after a
+   * failure in the handler's post-commit tail credits the hours a second time.
+   */
+  clientRef?: string;
   /** false declines the request instead of crediting it. Requires requestId. */
   approved?: boolean;
 }): Promise<{ hours: number; entryId?: string; demo?: boolean }> {
