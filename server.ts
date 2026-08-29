@@ -1355,6 +1355,118 @@ app.use(express.json());
    * the console only ever renders its length, and 200 students x up to 500
    * entries is its own payload problem.
    */
+  // ── ORGANISATION VERIFICATION ──
+  /**
+   * Approve or reject an organisation, and actually tell them.
+   *
+   * This was a client-side updateDoc in the developer console and nothing else.
+   * Meanwhile OrgDashboard promised "We will email you the moment it is done",
+   * OrgOpportunityCreate said the same, and the rejection banner told them to
+   * "reply to the email we sent". No message was ever sent by anything. The
+   * only signal was an in-app notification, which requires the coordinator to
+   * log back in and notice a bell — and these are people who check the site
+   * once a fortnight, having been told to expect an email.
+   *
+   * It lives on the server rather than in the browser for two reasons. The
+   * decision is privileged, so the developer check belongs somewhere a client
+   * cannot skip; and /api/email/send deliberately refuses recipients the caller
+   * has no relationship with, which is correct and which a developer emailing
+   * an arbitrary organisation would trip over. The Admin SDK has neither
+   * problem.
+   *
+   * craVerified is set only when a CRA number was actually submitted. It renders
+   * the badge reading "Verified charity — your CRA registration has been checked
+   * by our team", and approving a private clinic must not make that claim.
+   */
+  app.post('/api/admin/verify-org', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.json({ success: true, emailSent: false, mode: 'demo' });
+      }
+
+      const adb = adminFirestore();
+      const callerSnap = await adb.collection('users').doc(authContext.uid).get();
+      const caller = callerSnap.exists ? callerSnap.data() : null;
+      const isDeveloperCaller =
+        caller?.role === 'developer' || isAllowlistedDeveloper(authContext);
+      if (!isDeveloperCaller) {
+        return res.status(403).json({ error: 'Only a developer can verify an organization.' });
+      }
+
+      const { orgUid, decision } = req.body || {};
+      if (typeof orgUid !== 'string' || !orgUid.trim() || orgUid.length > 128) {
+        return res.status(400).json({ error: 'orgUid is required.' });
+      }
+      if (decision !== 'verified' && decision !== 'rejected') {
+        return res.status(400).json({ error: "decision must be 'verified' or 'rejected'." });
+      }
+
+      const orgRef = adb.collection('organizations').doc(orgUid);
+      const orgSnap = await orgRef.get();
+      if (!orgSnap.exists) return res.status(404).json({ error: 'Organization not found.' });
+      const org = orgSnap.data() || {};
+
+      const submittedCra = !!String(org.craNumber || '').trim();
+      await orgRef.update({
+        verificationStatus: decision,
+        craVerified: decision === 'verified' && submittedCra,
+        verifiedAt: new Date().toISOString(),
+        verifiedBy: authContext.email || authContext.uid,
+      });
+      logEvent('org_verification_decided', { uid: authContext.uid, orgUid, decision });
+
+      /*
+       * The decision is committed above and is NOT undone by a mail failure.
+       * The organisation's state in the database is the thing that matters; a
+       * bounced address must not leave them unapproved. The response reports
+       * whether the message went, so the console can say so honestly rather
+       * than implying an email that did not send.
+       */
+      const to = String(org.contactEmail || '').trim();
+      if (!to) {
+        return res.json({ success: true, emailSent: false, reason: 'no contact address on file' });
+      }
+      if (!resend) {
+        console.error('[verify-org] RESEND_API_KEY is not configured — decision saved, nobody told.');
+        return res.json({ success: true, emailSent: false, reason: 'email is not configured' });
+      }
+
+      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>';
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to,
+        subject:
+          decision === 'verified'
+            ? 'Your organization is approved on Volunteer North York'
+            : 'About your Volunteer North York application',
+        html: emailTemplates.organization_verification(
+          String(org.organizationName || 'there'),
+          decision,
+        ),
+      });
+      if (error) {
+        console.error('[verify-org] Resend rejected the message:', { message: error.message, from: fromAddress });
+        return res.json({ success: true, emailSent: false, reason: 'the email could not be delivered' });
+      }
+
+      recordEmailLog({
+        to,
+        subject: `Organization ${decision}`,
+        templateName: 'organization_verification',
+        status: 'sent',
+        sentBy: authContext.email || authContext.uid,
+      });
+      return res.json({ success: true, emailSent: true });
+    } catch (err: any) {
+      console.error('[verify-org] Crash:', err);
+      return res.status(500).json({ error: 'Could not record that decision. Please try again.' });
+    }
+  });
+
   app.get('/api/admin/students', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);

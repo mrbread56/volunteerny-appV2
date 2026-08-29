@@ -1,4 +1,5 @@
 import { motion } from 'motion/react';
+import RecoveryCodes from '../../components/RecoveryCodes';
 import { ShieldCheck } from 'lucide-react';
 import { Card } from '../../components/ui/Card';
 import { cn } from '../../lib/utils';
@@ -23,6 +24,12 @@ export default function SettingsTab({
   onToggleCompetitiveness,
   onToggleAnonymity,
   onToggle2FA,
+  twoFaStage,
+  twoFaCode,
+  twoFaError,
+  onTwoFaCodeChange,
+  onConfirm2FA,
+  onCancel2FA,
 }: {
   studentProfile: Partial<StudentProfile> | null | undefined;
   userProfile: Partial<UserProfile> | null | undefined;
@@ -32,6 +39,21 @@ export default function SettingsTab({
   onToggleAnonymity: () => void;
   /** Two-factor is optional for students; the toggle writes users/{uid}.twoFactorEnabled. */
   onToggle2FA: () => void;
+  /**
+   * Enabling is a two-step confirmation, not a switch.
+   *
+   * The panel below has always promised "Turning this on asks for a code right
+   * away, so you can confirm you can receive it". It did not, and a student
+   * whose mail never arrives has no recovery codes to fall back on — that
+   * component renders only for organisations. So the flag is written only after
+   * a code has actually been received and accepted.
+   */
+  twoFaStage: "idle" | "sending" | "awaiting" | "verifying";
+  twoFaCode: string;
+  twoFaError: string | null;
+  onTwoFaCodeChange: (v: string) => void;
+  onConfirm2FA: () => void;
+  onCancel2FA: () => void;
 }) {
   // Local aliases so the moved markup needs no edits.
   const handleToggleCompetitiveness = onToggleCompetitiveness;
@@ -181,6 +203,73 @@ export default function SettingsTab({
                 Turning this on asks for a code right away, so you can confirm you
                 can receive it before your account starts depending on it.
               </p>
+
+              {twoFaStage === "sending" && (
+                <p role="status" className="text-xs font-semibold text-ink-soft">
+                  Sending a test code to {user?.email}…
+                </p>
+              )}
+
+              {(twoFaStage === "awaiting" || twoFaStage === "verifying") && (
+                <div className="space-y-2 border-t border-line-light pt-3">
+                  <label htmlFor="twofa-confirm" className="block text-xs font-semibold text-ink">
+                    Enter the 6-digit code we just emailed you
+                  </label>
+                  <p className="text-xs text-ink-muted">
+                    The passcode gate stays off until you do. If it does not arrive,
+                    check your spam folder.
+                  </p>
+                  <input
+                    id="twofa-confirm"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={twoFaCode}
+                    onChange={(e) => onTwoFaCodeChange(e.target.value.replace(/\D/g, ""))}
+                    className="w-32 h-11 px-3 rounded-lg border border-line text-center tracking-[0.3em] font-mono text-base"
+                  />
+                  <div className="flex items-center gap-3 pt-1">
+                    <button
+                      type="button"
+                      onClick={onConfirm2FA}
+                      disabled={twoFaStage === "verifying"}
+                      className="h-10 px-4 rounded-lg bg-blue-dark text-white text-xs font-semibold disabled:opacity-50"
+                    >
+                      {twoFaStage === "verifying" ? "Checking…" : "Confirm and turn on"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={onCancel2FA}
+                      className="h-10 px-3 rounded-lg border border-line bg-white text-xs font-semibold text-ink"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {twoFaError && (
+                <p role="alert" className="text-xs font-semibold text-red-600">
+                  {twoFaError}
+                </p>
+              )}
+
+              {/*
+                * The way back when the email stops arriving.
+                *
+                * This component existed but rendered only in OrgProfile, so a
+                * student who turned the gate on and later lost access to that
+                * mailbox — a changed school address, a full inbox, a spam rule —
+                * had no route to their own hours record at all. Organisations
+                * were given this exact escape hatch for exactly that reason.
+                *
+                * Shown only once the gate is actually on, because codes are
+                * useless until something is gating you, and generating them
+                * requires having passed the second factor.
+                */}
+              {(userProfile?.twoFactorEnabled ?? false) && !isDemoMode && (
+                <RecoveryCodes />
+              )}
             </div>
           </div>
         </Card>

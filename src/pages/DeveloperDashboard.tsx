@@ -251,24 +251,38 @@ export default function DeveloperDashboard() {
         return;
       }
       /*
-       * craVerified means "we checked their CRA charity registration", and it
-       * is what renders the badge reading "Verified charity — your CRA
-       * registration has been checked by our team".
+       * Server-side, because the decision has to reach the organisation.
        *
-       * It used to be set from the decision alone. Now that non-charities
-       * reach this queue, that would tell a private clinic with no charity
-       * number that we had checked their charity number. Approval and charity
-       * status are two different facts and are recorded separately.
+       * This was a bare updateDoc from the browser and nothing else, while
+       * OrgDashboard promised "We will email you the moment it is done" and the
+       * rejection banner told them to "reply to the email we sent". Nothing
+       * sent anything. A coordinator who checks the site once a fortnight was
+       * told to wait for an email, so they waited.
+       *
+       * /api/admin/verify-org re-checks the developer role (a client-side gate
+       * on a privileged action is not a gate), writes the same fields, and
+       * sends the message over the same Resend pipeline as everything else.
+       * craVerified is still set only when a CRA number was actually submitted,
+       * so approving a non-charity does not claim we checked a registration
+       * they never had.
        */
-      const submittedCra = !!String(
-        pendingOrgs.find(o => o.uid === orgUid)?.craNumber || ''
-      ).trim();
-      await updateDoc(doc(db, 'organizations', orgUid), {
-        verificationStatus: decision,
-        craVerified: decision === 'verified' && submittedCra,
-        verifiedAt: serverTimestamp(),
-        verifiedBy: user?.email || 'developer',
+      const token = await user?.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/admin/verify-org`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgUid, decision }),
       });
+      const body = await res.json().catch(() => ({} as any));
+      if (!res.ok) throw new Error(body?.error || `Request failed (${res.status})`);
+
+      // Say so when the decision landed but the message did not, rather than
+      // letting the reviewer believe the organisation was told.
+      if (body?.emailSent === false && body?.reason) {
+        setConsoleNotice(
+          `Decision saved, but the organization was NOT emailed: ${body.reason}. They may still be waiting.`,
+        );
+      }
+
       setPendingOrgs(prev => prev.filter(o => o.uid !== orgUid));
     } catch (err: any) {
       console.error('Verify org failed:', err);

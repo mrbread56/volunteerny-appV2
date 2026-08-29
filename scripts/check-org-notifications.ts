@@ -264,6 +264,94 @@ const send = (token: string, body: unknown) =>
     } else {
       fail(`after deleting the application the send returned ${afterDelete.status}, expected 403`);
     }
+    /*
+     * ── the verification decision, and whether it reaches anybody ───────────
+     *
+     * Approving an organisation used to be a client-side updateDoc and nothing
+     * more, while three org-facing screens promised an email and the rejection
+     * banner told them to "reply to the email we sent". Nothing sent anything.
+     * For a coordinator who checks the site once a fortnight, that is the most
+     * likely way a real organisation was lost.
+     */
+    const devEmail = `check_orgmail_dev_${stamp}@example.com`;
+    const dev = await adminHandle().auth().createUser({
+      email: devEmail, password: PASSWORD, emailVerified: true,
+    });
+    uids.push(dev.uid);
+    await store.collection('users').doc(dev.uid).set({
+      uid: dev.uid, email: devEmail, role: 'developer', twoFactorEnabled: false,
+    });
+
+    // An organisation awaiting a decision, reachable at the delivery sink.
+    const pendingEmail = `check_orgmail_pending_${stamp}@example.com`;
+    const pending = await adminHandle().auth().createUser({
+      email: pendingEmail, password: PASSWORD, emailVerified: true,
+    });
+    uids.push(pending.uid);
+    await store.collection('users').doc(pending.uid).set({
+      uid: pending.uid, email: pendingEmail, role: 'organization', twoFactorEnabled: true,
+    });
+    await store.collection('organizations').doc(pending.uid).set({
+      uid: pending.uid, organizationName: 'Pending Clinic', contactEmail: ORG_INBOX,
+      craNumber: '', verificationStatus: 'unverified', craVerified: false,
+    });
+
+    const verifyAs = (tok: string, orgUid: string, decision: string) =>
+      fetch(`${apiBase}/api/admin/verify-org`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${tok}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgUid, decision }),
+      });
+
+    // A student must not be able to approve organisations.
+    const asStudent = await verifyAs(await cred.user.getIdToken(), pending.uid, 'verified');
+    if (asStudent.status === 403) pass('a non-developer cannot verify an organization');
+    else fail(`a student verifying an org returned ${asStudent.status}, expected 403`);
+
+    const devCred = await signInWithEmailAndPassword(auth, devEmail, PASSWORD);
+    const devToken = await devCred.user.getIdToken();
+
+    const approved = await verifyAs(devToken, pending.uid, 'verified');
+    const approvedBody: any = await approved.json().catch(() => ({}));
+    if (approved.status === 200 && approvedBody?.emailSent === true) {
+      pass('approving an organization sends them an email');
+    } else {
+      fail(`approval returned ${approved.status}: ${JSON.stringify(approvedBody)}`);
+    }
+
+    const afterDoc = (await store.collection('organizations').doc(pending.uid).get()).data() || {};
+    if (afterDoc.verificationStatus === 'verified') pass('the decision is recorded on the organization');
+    else fail(`verificationStatus is ${afterDoc.verificationStatus}, expected verified`);
+
+    // The badge reads "Verified charity — your CRA registration has been
+    // checked". Approving an organisation that never gave a number must not
+    // make that claim.
+    if (afterDoc.craVerified === false) {
+      pass('approving without a CRA number does not claim a charity registration');
+    } else {
+      fail('craVerified was set true for an organization that submitted no CRA number');
+    }
+
+    // Read the templates the way a person does: tags stripped and whitespace
+    // collapsed. Asserting against raw HTML matches a phrase only when the
+    // source happens not to wrap mid-sentence, which is a property of the
+    // formatting rather than of what the email says.
+    const readable = (html: string) => html.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+
+    const both = readable(emailTemplates.organization_verification('Pending Clinic', 'verified'));
+    if (both.includes('Pending Clinic') && both.includes('post volunteer positions')) {
+      pass('the approval email names them and says what they can now do');
+    } else {
+      fail('the approval email is missing the name or the next step');
+    }
+    const no = readable(emailTemplates.organization_verification('Pending Clinic', 'rejected'));
+    if (no.includes('reply to this email')) pass('the rejection email offers a real way to reply');
+    else fail('the rejection email gives them no route back');
+
+    const bogus = await verifyAs(devToken, pending.uid, 'approved');
+    if (bogus.status === 400) pass('an unrecognised decision is refused');
+    else fail(`decision 'approved' returned ${bogus.status}, expected 400`);
+
   } catch (err: any) {
     fail(`suite crashed: ${err?.stack || err?.message || err}`);
   } finally {
@@ -276,6 +364,7 @@ const send = (token: string, body: unknown) =>
         await store.collection('applications').doc(`${uids[0]}_${oppId}`).delete().catch(() => {});
       }
       for (const uid of uids) await store.collection('organizations').doc(uid).delete().catch(() => {});
+      for (const uid of uids) await store.collection('users').doc(uid).delete().catch(() => {});
       for (const uid of uids) {
         for (const c of ['users', 'students']) await store.collection(c).doc(uid).delete().catch(() => {});
         await adminHandle().auth().deleteUser(uid).catch(() => {});

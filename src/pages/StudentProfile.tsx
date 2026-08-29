@@ -164,7 +164,24 @@ export default function StudentProfile() {
       newErrors.fullName = "Full name is required.";
     } else if (fullName.trim().length < 2) {
       newErrors.fullName = "Full name must be at least 2 characters long.";
-    } else if (!/^[A-Za-z\s'\-]+$/.test(fullName.trim())) {
+    } else if (!/^[\p{L}\p{M}\s'’.\-]+$/u.test(fullName.trim())) {
+      /*
+       * \p{L} is "a letter in any script", not "a letter in English".
+       *
+       * This was /^[A-Za-z\s'-]+$/, which rejects José, Nguyễn, Оля, 李 and
+       * roughly every name outside Western Europe. Signup and onboarding
+       * validate the name not at all, so those students got in, got greeted by
+       * name on their own dashboard, and were then permanently unable to save
+       * ANY profile change — a new skill, an availability update, a resume —
+       * because validateForm() fails on a field they never touched and cannot
+       * fix without anglicising their own name. In North York, where over half
+       * of residents were born outside Canada, that is most of the intended
+       * users.
+       *
+       * \p{M} keeps combining marks, so a decomposed é survives. U+2019 is the
+       * curly apostrophe phones insert automatically in O'Brien. The full stop
+       * is for initials.
+       */
       newErrors.fullName = "Full name can only contain letters, spaces, hyphens, and apostrophes.";
     }
 

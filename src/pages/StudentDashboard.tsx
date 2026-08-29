@@ -110,6 +110,11 @@ export default function StudentDashboard() {
   >({});
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
+  // The passcode gate is not switched on until a code has actually arrived.
+  const [twoFaStage, setTwoFaStage] = useState<"idle" | "sending" | "awaiting" | "verifying">("idle");
+  const [twoFaCode, setTwoFaCode] = useState("");
+  const [twoFaError, setTwoFaError] = useState<string | null>(null);
+
   // Receipt Modal State
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   // Rating state
@@ -485,6 +490,27 @@ export default function StudentDashboard() {
     }
   };
 
+  /*
+   * Turning the passcode gate ON now costs a code the student has actually
+   * received, which is what the panel beside it has always promised.
+   *
+   * It used to write twoFactorEnabled and refresh, nothing else. The copy said
+   * "Turning this on asks for a code right away, so you can confirm you can
+   * receive it before your account starts depending on it." Nothing asked, and
+   * nothing was confirmed.
+   *
+   * That gap is the whole risk. Students default to the gate OFF, so only
+   * someone who deliberately opts in is exposed, and they find out whether mail
+   * reaches them at their NEXT sign-in, when they are already standing behind
+   * /mfa. Recovery codes, which exist and would rescue them, render only in
+   * OrgProfile: a locked-out student has no route back to their own hours
+   * record at all. We have already watched a real organisation fail to receive
+   * a password reset from this project, so "the address on file works" is not
+   * an assumption worth betting a graduation record on.
+   *
+   * Turning it OFF is deliberately unguarded. Requiring a code to REMOVE a
+   * protection is how someone who cannot receive codes stays trapped by it.
+   */
   const handleToggle2FA = async () => {
     if (!user) return;
     const newVal = !(userProfile?.twoFactorEnabled ?? false);
@@ -493,21 +519,80 @@ export default function StudentDashboard() {
       await refreshProfile();
       return;
     }
+
+    if (!newVal) {
+      try {
+        await updateDoc(doc(db, "users", user.uid), { twoFactorEnabled: false });
+        setTwoFaStage("idle");
+        setTwoFaCode("");
+        setTwoFaError(null);
+        await refreshProfile();
+      } catch (err) {
+        console.error("Error turning two-factor off", err);
+        setErrorMessage("Couldn't turn off two-factor authentication. Please try again.");
+      }
+      return;
+    }
+
+    setTwoFaError(null);
+    setTwoFaStage("sending");
     try {
-      await updateDoc(doc(db, "users", user.uid), {
-        twoFactorEnabled: newVal,
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-otp`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: "{}",
       });
-      await refreshProfile();
-    } catch (err) {
-      // Worth being loud about: silently failing to turn two-factor ON is a
-      // security setting the student believes they changed.
-      console.error("Error updating twoFactorEnabled", err);
-      setErrorMessage(
-        newVal
-          ? "Two-factor authentication was NOT turned on. Please try again."
-          : "Couldn't turn off two-factor authentication. Please try again."
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "We could not send a code.");
+      setTwoFaStage("awaiting");
+    } catch (err: any) {
+      // The flag is untouched, which is the point: a student who cannot be
+      // reached does not end up behind a gate they cannot pass.
+      setTwoFaStage("idle");
+      setTwoFaError(
+        err?.message ||
+          "We could not send a test code to your email, so the passcode gate was left off."
       );
     }
+  };
+
+  /** The code came back, so the address demonstrably works. Now enable it. */
+  const handleConfirm2FA = async () => {
+    if (!user) return;
+    const code = twoFaCode.trim();
+    if (!/^\d{6}$/.test(code)) {
+      setTwoFaError("Enter the 6-digit code from your email.");
+      return;
+    }
+    setTwoFaError(null);
+    setTwoFaStage("verifying");
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ code }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "That code was not accepted.");
+
+      await updateDoc(doc(db, "users", user.uid), { twoFactorEnabled: true });
+      setTwoFaStage("idle");
+      setTwoFaCode("");
+      // No banner needed: the status chip beside the switch flips to
+      // "Shield Enabled" the moment the profile refreshes.
+      await refreshProfile();
+    } catch (err: any) {
+      setTwoFaStage("awaiting");
+      setTwoFaError(err?.message || "That code was not accepted. Please check and try again.");
+    }
+  };
+
+  const handleCancel2FA = () => {
+    setTwoFaStage("idle");
+    setTwoFaCode("");
+    setTwoFaError(null);
   };
 
   // Load which orgs the student has already rated so we don't show the button twice
@@ -1152,6 +1237,12 @@ export default function StudentDashboard() {
               onToggleCompetitiveness={handleToggleCompetitiveness}
               onToggleAnonymity={handleToggleAnonymity}
               onToggle2FA={handleToggle2FA}
+              twoFaStage={twoFaStage}
+              twoFaCode={twoFaCode}
+              twoFaError={twoFaError}
+              onTwoFaCodeChange={setTwoFaCode}
+              onConfirm2FA={handleConfirm2FA}
+              onCancel2FA={handleCancel2FA}
             />
           )}
       </AnimatePresence>

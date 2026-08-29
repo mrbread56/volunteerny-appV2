@@ -493,6 +493,72 @@ export const emailTemplates = {
   },
 
   /**
+   * The decision on an organisation's application to join.
+   *
+   * Three screens told organisations "We will email you the moment it is done",
+   * and the rejection banner went further: "reply to the email we sent". No such
+   * message existed. Approving wrote four fields to Firestore and returned; the
+   * only signal was an in-app notification, visible solely to someone who
+   * happened to log back in and look at a bell.
+   *
+   * The people on the other side of this are volunteer coordinators who check
+   * the site once a fortnight. Told to wait for an email, they waited. That is
+   * the most likely way a real organisation was lost, and it looked like
+   * disinterest rather than a missing send.
+   */
+  organization_verification: (orgName: string, decision: "verified" | "rejected") => {
+    const approved = decision === "verified";
+    const title = approved ? "Your organization is approved" : "About your organization's application";
+    const children = approved
+      ? `
+      <h2 class="h2">You're approved, ${esc(orgName)}</h2>
+      <p>A person has reviewed your organization and you can now post volunteer
+         positions on <strong>${BRAND_NAME}</strong>. Students will be able to find
+         them and apply straight away.</p>
+
+      <div class="card">
+        <h3>What happens next</h3>
+        <p><strong>1. Post a position.</strong> Say what students would be doing, the
+           days and hours, how many you can take, and any minimum age.</p>
+        <p><strong>2. Review who applies.</strong> You will get an email each time a
+           student applies, with a link straight to their application.</p>
+        <p><strong>3. Approve their hours.</strong> After they volunteer, they log
+           their hours and you confirm them. That record is what counts toward the
+           40 hours Ontario students need to graduate.</p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${BRAND_URL()}/org/opportunities/new" class="btn">Post your first position</a>
+      </div>
+
+      <p>If anything is unclear, reply to this email and a person will read it.</p>
+      <p>The ${BRAND_NAME} Team</p>
+    `
+      : `
+      <h2 class="h2">Hello ${esc(orgName)},</h2>
+      <p>Thank you for applying to join <strong>${BRAND_NAME}</strong>. We are not able
+         to approve your organization at this time, so you will not be able to post
+         volunteer positions.</p>
+
+      <div class="card">
+        <p>This is often something straightforward, such as details we could not
+           confirm from a website or a public listing. If you think we have this
+           wrong, or you can point us to something that would help, please reply to
+           this email. A person reads every reply.</p>
+      </div>
+
+      <p>The ${BRAND_NAME} Team</p>
+    `;
+    return wrapBaseTemplate({
+      title,
+      children,
+      previewText: approved
+        ? "You can now post volunteer positions."
+        : "About your application to join.",
+    });
+  },
+
+  /**
    * 5. Auth / Security Codes (Verification/Reset)
    */
   auth_verification: (userName: string, code: string, purpose: "verification" | "reset") => {
