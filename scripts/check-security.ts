@@ -780,6 +780,68 @@ function adminFirestore() {
  * the fixture registers unverified and is promoted here through the Admin SDK,
  * which bypasses rules exactly as the developer console does.
  */
+/**
+ * A suspended organisation must stop being able to act on minors.
+ *
+ * Suspension writes isBanned to users/ and organizations/ from the developer
+ * console. Every collection's rules checked it EXCEPT the one branch that
+ * decides who a student actually meets in person: the organisation branch of
+ * the applications update proved only that the caller owned the posting. A
+ * token issued before the ban stays valid, so an organisation suspended after a
+ * safety report kept accepting and rejecting applicants, through the SDK, with
+ * nothing in the rules able to see it.
+ *
+ * There was no assertion anywhere in this suite about a banned account, which
+ * is why the gap was invisible. The allow case is asserted first so this cannot
+ * pass by denying everything.
+ */
+async function bannedOrgChecks(adb: any) {
+  const org = await makeUser('organization');
+  const student = await makeUser('student');
+  await approveOrg(adb, org.uid);
+
+  const opp = await adb.collection('opportunities').add({
+    isFixture: true,
+    orgId: org.uid, orgName: 'Sec Check Org', title: 'Ban Check Opportunity',
+    description: 'd', location: 'l', category: 'Environment', requirements: '',
+    maxVolunteers: 5, skillsNeeded: [], exclusives: [], timeCommitment: 'One-time',
+    isVirtual: false, status: 'open',
+  });
+  const mkApp = async (suffix: string) => {
+    const id = `${student.uid}_${opp.id}_${suffix}`;
+    await adb.collection('applications').doc(id).set({
+      opportunityId: opp.id, orgId: org.uid, studentId: student.uid, status: 'pending',
+      appliedAt: new Date(), message: '', opportunityTitle: 'Ban Check Opportunity',
+      studentName: 'Sec Check', previousExperience: '', resumeUrl: '',
+    });
+    return id;
+  };
+
+  const beforeId = await mkApp('before');
+  const afterId = await mkApp('after');
+
+  await signOut(auth);
+  await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+
+  await mustAllow('an approved organisation can decide an application',
+    () => updateDoc(doc(db, 'applications', beforeId), { status: 'accepted', decidedAt: serverTimestamp() }));
+
+  // Suspend exactly the way the developer console does.
+  await adb.collection('users').doc(org.uid).update({ isBanned: true });
+  await adb.collection('organizations').doc(org.uid).update({ isBanned: true });
+
+  await mustDeny('a SUSPENDED organisation cannot decide an application',
+    () => updateDoc(doc(db, 'applications', afterId), { status: 'accepted', decidedAt: serverTimestamp() }));
+
+  await mustDeny('a SUSPENDED organisation cannot edit its public profile',
+    () => updateDoc(doc(db, 'organizations', org.uid), { mission: 'still here' }));
+
+  await signOut(auth);
+  await adb.collection('applications').doc(beforeId).delete().catch(() => {});
+  await adb.collection('applications').doc(afterId).delete().catch(() => {});
+  await adb.collection('opportunities').doc(opp.id).delete().catch(() => {});
+}
+
 async function approveOrg(adb: any, uid: string) {
   await adb.collection('organizations').doc(uid).update({ verificationStatus: 'verified' });
 }
@@ -827,6 +889,8 @@ async function cleanup() {
     await firestoreChecks(studentA, studentB, org);
     console.log('STAGE: create-path checks');
     await createPathChecks();
+    console.log('STAGE: suspended-account checks');
+    await bannedOrgChecks(adminFirestore());
   } catch (err: any) {
     fail(`suite crashed: ${err?.message || err}`);
   } finally {

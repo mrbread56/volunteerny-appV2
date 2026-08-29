@@ -574,7 +574,7 @@ service cloud.firestore {
       // Deliberately no organization branch below. Adding one back re-opens the
       // hole; scripts/check-security.ts asserts it stays shut.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (isOwner(uid) && mfaSatisfied() && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
+        (isOwner(uid) && isNotBanned() && mfaSatisfied() && isValidStudent(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'school', 'grade', 'gender', 'neighborhood', 'interests', 'skills', 'availability', 'previousExperience', 'resumeUrl', 'trackerEnabled', 'trackerAnonymous'])) ||
         isDeveloper()
       );
       allow delete: if isDeveloper();
@@ -619,7 +619,7 @@ service cloud.firestore {
       // this profile before any code has been sent, so gating create would make
       // registering an organization impossible.
       allow update: if isSignedIn() && isValidId(uid) && (
-        (request.auth.uid == uid && mfaSatisfied() && isValidOrganization(incoming()) &&
+        (request.auth.uid == uid && isNotBanned() && mfaSatisfied() && isValidOrganization(incoming()) &&
          incoming().diff(existing()).affectedKeys().hasOnly(['organizationName', 'mission', 'description', 'hasCra', 'craNumber', 'organizationType', 'organizationTypeOther', 'contactEmail', 'phone', 'address', 'coordinates', 'northYorkConfirmed', 'websiteUrl', 'socialLinks', 'verificationStatus']) &&
          incoming().get('craVerified', false) == existing().get('craVerified', false) &&
          (incoming().get('verificationStatus', '') == existing().get('verificationStatus', '') ||
@@ -682,7 +682,16 @@ service cloud.firestore {
         // never appeared for an acceptance, a rejection, or a waitlist move.
         // appliedAt cannot be reused: it is pinned on create and never changes,
         // which is correct. So the decision needs its own stamp.
-        (exists(/databases/$(database)/documents/opportunities/$(existing().opportunityId)) &&
+        //
+        // isNotBanned() is here because it was not, and the omission was load
+        // bearing. This branch proved only that the caller owns the posting, so
+        // an organisation suspended after a safety report kept its valid token
+        // and kept accepting and rejecting minors. Suspension wrote isBanned to
+        // users/ and organizations/ and changed nothing this rule could see.
+        // The sibling collections below check it; this one, which decides who
+        // meets a child in person, did not.
+        (isNotBanned() &&
+         exists(/databases/$(database)/documents/opportunities/$(existing().opportunityId)) &&
          get(/databases/$(database)/documents/opportunities/$(existing().opportunityId)).data.orgId == request.auth.uid &&
          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectionNote', 'decidedAt'])) ||
         isDeveloper()
