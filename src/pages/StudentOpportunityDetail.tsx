@@ -719,7 +719,8 @@ export default function StudentOpportunityDetail() {
                   )}
                   <div className="space-y-3">
                      <p className="text-xs text-ink-muted bg-blue-dark/5 p-4 rounded-lg italic">
-                        Your profile description and previous experience will automatically be shared with the organization.
+                        Applying shares your name, school, grade, neighbourhood, interests, skills,
+                availability, previous experience, and your resume if you uploaded one.
                      </p>
                   </div>
 

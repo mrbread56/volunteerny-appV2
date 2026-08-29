@@ -321,7 +321,20 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
             </div>
             <h3 className="text-xl font-bold text-ink uppercase tracking-tight">Report Logged Safely</h3>
             <p className="text-ink-muted text-xs font-semibold leading-relaxed max-w-xs mx-auto">
-              Your safety report has been transmitted to administrators. We use smart AI overview analysis to queue the urgency, and a real human reviewer is assigned. Rest assured York region maintains zero tolerance for unsafe behavior.
+              {/*
+                * Every clause of the previous version except "transmitted" was
+                * unbacked: there is no assignee field in the schema, no alert,
+                * no page, no email — the report waits in a queue until someone
+                * opens the console. "York region" is a municipality with no
+                * relationship to this platform. A minor reporting an unsafe
+                * adult was told a named human was already on it, which is
+                * exactly the reassurance that stops someone escalating to a
+                * person who could actually help tonight.
+                */}
+              Your report has been saved and is in the moderation queue. A person reviews
+              these by hand, so it may take a little time. If you or someone else is in
+              immediate danger, do not wait for us: call 911, or Kids Help Phone on
+              1-800-668-6868.
             </p>
           </div>
         ) : (

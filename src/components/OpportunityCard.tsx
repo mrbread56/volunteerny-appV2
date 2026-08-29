@@ -2,7 +2,7 @@ import React from 'react';
 import { Opportunity } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { MapPin, Calendar, Clock, Bookmark, Share2, BadgeCheck, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Clock, Bookmark, Share2, Sparkles } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Link } from 'react-router-dom';
 
@@ -79,10 +79,23 @@ export default function OpportunityCard({
           <span className="text-xs font-bold text-ink-soft uppercase tracking-wide truncate max-w-[150px]">
             {opportunity.orgName || 'Community Partner'}
           </span>
-          <div className="flex items-center gap-0.5 bg-blue-dark/5 text-blue-dark px-1.5 py-0.5 rounded-full border border-blue-dark/10 text-[8px] font-bold tracking-widest shrink-0">
-             <BadgeCheck className="w-2.5 h-2.5" />
-             <span>VETTED</span>
-          </div>
+          {/*
+            * The VETTED pill used to render here unconditionally.
+            *
+            * It carried no verification field, because neither
+            * OpportunityCardProps nor Opportunity has one — it was a literal
+            * that appeared beside every organisation's name on every card. A
+            * posting can only be CREATED by an approved organisation, but
+            * nothing revoked the badge afterwards, so it stayed at its most
+            * confident on exactly the organisations a student most needed
+            * warning about: the ones suspended after a safety report.
+            *
+            * Suspension now closes an organisation's postings, so a visible
+            * card genuinely does come from a currently-approved organisation.
+            * The claim is still not made on the card, because the card cannot
+            * check it and a trust signal a component cannot verify is the kind
+            * of thing that quietly becomes false again.
+            */}
         </div>
 
         {/* Title */}

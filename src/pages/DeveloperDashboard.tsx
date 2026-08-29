@@ -7,7 +7,7 @@ import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { reportError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, getDoc, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { doc, updateDoc, getDoc, serverTimestamp, writeBatch, getDocs, query, collection, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -355,6 +355,31 @@ export default function DeveloperDashboard() {
           } else if (uData.role === 'organization') {
             batch.update(doc(db, 'organizations', userId), { isBanned: !isCurrentlyBanned });
           }
+          /*
+           * Suspending an organisation must take its postings down too.
+           *
+           * isBanned stopped the account writing, and left everything it had
+           * already published in front of students. Nothing filters the browse
+           * list by organisation status: isVisibleToStudents checks only
+           * `status !== 'closed'` and the fixture flag. So an organisation
+           * suspended after a safety report kept its listings live, kept
+           * collecting applications from minors, and every card kept rendering
+           * the VETTED badge beside its name.
+           *
+           * Closing rather than deleting: the postings, and the applications
+           * pointing at them, are evidence. Lifting the suspension deliberately
+           * does NOT reopen them, because a person should decide what goes back
+           * in front of students.
+           */
+          if (!isCurrentlyBanned && uData.role === 'organization') {
+            const theirs = await getDocs(
+              query(collection(db, 'opportunities'), where('orgId', '==', userId)),
+            );
+            for (const d of theirs.docs) {
+              if (d.data()?.status !== 'closed') batch.update(d.ref, { status: 'closed' });
+            }
+          }
+
           await batch.commit();
         }
       }

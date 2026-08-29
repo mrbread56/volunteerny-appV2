@@ -525,6 +525,7 @@ export default function OrgProfile() {
                   had already told them "Your organization is verified" and
                   linked them here. It now reads the actual state. */}
               {(() => {
+                const hasCraNumber = !!String(orgProfile?.craNumber || '').trim();
                 const status = orgProfile?.craVerified
                   ? 'verified'
                   : (orgProfile?.verificationStatus || 'unverified');
@@ -553,23 +554,40 @@ export default function OrgProfile() {
                     label: 'Verified organization',
                     note: 'Your organization has been reviewed and approved by our team.',
                   },
+                  /*
+                   * These three branches assumed every organisation is a
+                   * charity. Non-charities have been admissible since 28 Aug
+                   * 2026, and the reviewer's own screen says so: "Not a
+                   * registered charity. Nothing to look up in the CRA
+                   * registry." A clinic that was rejected was told to fix a
+                   * number it never entered and cannot find, and never learned
+                   * the real reason — an unconfirmable website, an address
+                   * outside North York, a contact address that does not match
+                   * the domain. The one actionable path was hidden behind a
+                   * fabricated one. There is also no CRA lookup in this
+                   * codebase at all; craValidation.ts is a format check.
+                   */
                   pending: {
                     cls: 'bg-amber-50 border-amber-200 text-amber-900',
                     icon: 'text-amber-600',
                     label: 'Awaiting review',
-                    note: 'We are checking your CRA registration. This usually takes a few days.',
+                    note: hasCraNumber
+                      ? 'A person is checking your CRA registration against the public registry. This usually takes a few days.'
+                      : 'A person is reviewing your organization. They check your website, your address, and that your contact email matches your domain. This usually takes a few days.',
                   },
                   rejected: {
                     cls: 'bg-red-50 border-red-200 text-red-800',
                     icon: 'text-red-600',
                     label: 'Could not be verified',
-                    note: 'We could not match your CRA registration number. Please check it below and contact us if it is correct.',
+                    note: hasCraNumber
+                      ? 'We could not match your CRA registration number. Please check it below, and reply to our email if you think it is correct.'
+                      : 'We could not confirm your organization from the details we have. Adding a website, and making sure your address and contact email match it, is usually what helps. Reply to our email and a person will look again.',
                   },
                   unverified: {
                     cls: 'bg-paper-2 border-line-light text-ink',
                     icon: 'text-ink-muted',
                     label: 'Standard account',
-                    note: 'Registered charities can be verified and shown a badge. Add your CRA number below to request it.',
+                    note: 'A person reviews every organization before it can post. If you are a registered charity, adding your CRA number below is the fastest route; if you are not, we check your website and address instead.',
                   },
                 }[status as 'verified' | 'pending' | 'rejected' | 'unverified'] ?? {
                   cls: 'bg-paper-2 border-line-light text-ink',

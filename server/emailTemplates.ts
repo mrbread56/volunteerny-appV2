@@ -321,7 +321,7 @@ export const emailTemplates = {
         <p style="word-break: break-all; font-size: 12px;">${esc(link)}</p>
       </div>
 
-      <p>If you did not ask for this, you can ignore this email — your password will not change unless you use the link above.</p>
+      <p>If you did not ask for this, you can ignore this email. Your password will not change unless you use the link above.</p>
       <p>Already signed in? You can change your password from your profile page instead, without needing this email at all.</p>
       <p>The ${BRAND_NAME} Team</p>
     `;
@@ -341,7 +341,7 @@ export const emailTemplates = {
         <h3>🚀 Get Started in 3 Steps:</h3>
         <p><strong>1. Complete Your Interests:</strong> Choose your favorite community causes on your dashboard so we can match you perfectly.</p>
         <p><strong>2. Apply to Placements:</strong> Apply directly to organizations from your dashboard.</p>
-        <p><strong>3. Dynamic Hour Logbook:</strong> Submit claims after your volunteer service. Your site supervisors sign off Digitally—no paper forms to lose!</p>
+        <p><strong>3. Hour logbook:</strong> Submit your hours after each shift and the organization confirms them here, so you always have a running record. You will still need your school board's own form signed as well.</p>
       </div>
 
       <div style="text-align: center;">
@@ -395,11 +395,28 @@ export const emailTemplates = {
   /**
    * 3. Hours Verified / Completion Confirmation
    */
+  /*
+   * What this email may and may not claim about a student's hours.
+   *
+   * It used to say the hours were "Digitally Signed and Verified" and that the
+   * student could export an "official community hours transcript PDF ... for
+   * graduation submission". No signing exists — the note further down records
+   * that a fabricated VERIFIED-VNY-… code was removed for that reason, and the
+   * sentence claiming the same thing in words survived the removal. And the
+   * document the app prints says the opposite in its own footer: "This is not
+   * an official school document. You still need your school board's own
+   * community involvement form, signed by your supervisor."
+   *
+   * The app disclaims this correctly in four places in the interface. The email
+   * overrode all four, and the email is the artefact a student forwards to a
+   * parent or a guidance office. A student who believes it stops chasing the
+   * paper form, and by then the hours cannot be recovered.
+   */
   hours_confirmation: (studentName: string, hours: number, oppTitle: string, orgName: string, supervisorName: string) => {
     const title = "📝 Community Hours Logged & Signed!";
     const children = `
       <h2 class="h2">Splendid job, ${esc(studentName)}! 🌟</h2>
-      <p>Congratulations! Your completed hours have been Digitally Signed and Verified by your host supervisor.</p>
+      <p>Your supervisor has confirmed these hours.</p>
       
       <div class="card verified-card">
         <h3>Verified Hours Entry</h3>
@@ -417,7 +434,10 @@ export const emailTemplates = {
         <p><strong>Confirmed on:</strong> ${esc(new Date().toISOString().slice(0, 10))}</p>
       </div>
 
-      <p>These hours have been automatically added to your dynamic progress dashboard. You can export your official community hours transcript PDF directly from your profile dashboard for graduation submission.</p>
+      <p>These hours are now on your dashboard, and you can print a summary of them
+         from the hours tracker. That summary is a record to work from. It is not
+         an official school document, so you still need your school board's own
+         community involvement form, signed by your supervisor.</p>
 
       <div style="text-align: center;">
         <a href="${BRAND_URL()}/student/dashboard" class="btn">View Hour Logbook</a>
@@ -522,9 +542,10 @@ export const emailTemplates = {
            days and hours, how many you can take, and any minimum age.</p>
         <p><strong>2. Review who applies.</strong> You will get an email each time a
            student applies, with a link straight to their application.</p>
-        <p><strong>3. Approve their hours.</strong> After they volunteer, they log
-           their hours and you confirm them. That record is what counts toward the
-           40 hours Ontario students need to graduate.</p>
+        <p><strong>3. Confirm their hours.</strong> After they volunteer, they log
+           their hours and you confirm them. Students still need their school
+           board's own form signed, so please sign that too if they ask — what
+           you confirm here is the running record you both work from.</p>
       </div>
 
       <div style="text-align: center;">
