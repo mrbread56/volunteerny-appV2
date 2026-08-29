@@ -133,7 +133,7 @@ export default function DeveloperDashboard() {
         const body = await res.json().catch(() => ({}) as any);
         setTestEmailStatus({
           success: false,
-          message: `${res.status}: ${body.error || 'The email API returned a failure.'}${body.details ? ` — ${body.details}` : ''}`
+          message: `${res.status}: ${body.error || 'The email API returned a failure.'}${body.details ? `. ${body.details}` : ''}`
         });
       }
     } catch (err: any) {

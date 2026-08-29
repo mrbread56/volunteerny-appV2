@@ -69,7 +69,7 @@ export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDe
     {
       id: "elite",
       name: "Elite Citizen",
-      description: "Reaching the prestigious high school graduation volunteer milestone!",
+      description: "You have logged 40 confirmed hours here. Get them onto your school board's own form to count them toward graduation.",
       requirement: "Log 40 hours of community service",
       iconName: "trophy",
       category: "milestone",
@@ -86,18 +86,18 @@ export function evaluateBadges(profile: StudentProfile | null): { badge: BadgeDe
     },
     {
       id: "scholar",
-      name: "Academic Scholar",
-      description: "Account attached to a verified Toronto/York region community high school.",
-      requirement: "Complete verified academic high school enrollment details",
+      name: "School Added",
+      description: "Your school and grade are on your profile, so organizations know who they are meeting.",
+      requirement: "Add your school and grade",
       iconName: "book",
       category: "profile",
-      unlockedAt: "School Verified"
+      unlockedAt: "School Added"
     },
     {
       id: "resume",
       name: "Resume Ready",
-      description: "Ready to apply immediately with documents that standing out to coordinators.",
-      requirement: "Upload a compressed resume on your profile",
+      description: "Organizations can see your resume the moment you apply.",
+      requirement: "Upload a resume on your profile",
       iconName: "briefcase",
       category: "profile",
       unlockedAt: "Resume Document Attached"

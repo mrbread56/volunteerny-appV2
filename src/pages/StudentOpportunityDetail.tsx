@@ -238,7 +238,7 @@ export default function StudentOpportunityDetail() {
       // which "check your connection" would misdescribe entirely.
       const message =
         err?.code === 'permission-denied'
-          ? "Your account can't save opportunities yet. Make sure your student profile is complete — sign out and back in to finish setup if you're prompted."
+          ? "Your account can't save opportunities yet. Make sure your student profile is complete. Sign out and back in to finish setup if you're prompted."
           : 'Could not update your bookmark. Please check your connection and try again.';
       setNotice({ kind: 'error', text: reportError('toggle bookmark', err, message) });
     } finally {
@@ -403,21 +403,19 @@ export default function StudentOpportunityDetail() {
        * carrying an old decision on it.
        */
       const priorRef = doc(db, 'applications', `${user.uid}_${id}`);
-      try {
-        const prior = await getDoc(priorRef);
-        if (prior.exists()) {
-          const priorStatus = String(prior.data()?.status || '');
-          if (priorStatus === 'rejected' || priorStatus === 'terminated') {
-            await deleteDoc(priorRef);
-          }
-        }
-      } catch (priorErr) {
-        // Non-fatal: if this read or delete fails the setDoc below fails too,
-        // and the catch there reports it to the student.
-        console.warn('Could not clear a previous application before re-applying:', priorErr);
-      }
-
-      await setDoc(priorRef, {
+      /*
+       * WRITE FIRST, delete only if the write is refused.
+       *
+       * Clearing the old document up front is destructive before an operation
+       * that can fail: `allow delete` needs only ownership, while `create`
+       * needs isVerifiedStudent() (ban + MFA) and dereferences the parent
+       * opportunity — so a suspended student, or one whose posting was deleted
+       * between page load and Apply, would have lost their record and gained
+       * nothing. Trying the write first means the only path that deletes is one
+       * where the write has already proved it will be accepted once the id is
+       * free.
+       */
+      const applicationPayload = {
         opportunityId: id,
         // Who the student actually volunteered for. Without this, "Rate this
         // organization" on the student dashboard built its rating document
@@ -432,7 +430,22 @@ export default function StudentOpportunityDetail() {
         studentName: studentProfile?.fullName || user.displayName || 'Student',
         previousExperience: studentProfile?.previousExperience || '',
         resumeUrl: studentProfile?.resumeUrl || ''
-      });
+      };
+
+      try {
+        await setDoc(priorRef, applicationPayload);
+      } catch (writeErr: any) {
+        // A finished application still occupies the {student, opportunity} id,
+        // so Firestore treats this as an update and the student branch of the
+        // update rule refuses it. Clear that one and try once more; anything
+        // else is a real failure and is rethrown to the catch below.
+        if (writeErr?.code !== 'permission-denied') throw writeErr;
+        const prior = await getDoc(priorRef);
+        const priorStatus = prior.exists() ? String(prior.data()?.status || '') : '';
+        if (priorStatus !== 'rejected' && priorStatus !== 'terminated') throw writeErr;
+        await deleteDoc(priorRef);
+        await setDoc(priorRef, applicationPayload);
+      }
 
       setHasApplied(true);
       setShowApplyModal(false);

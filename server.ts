@@ -778,13 +778,25 @@ app.use(express.json());
       issuedAt: now,
     });
 
+    /*
+     * `consumed` is the reason this cannot be a plain "is it recent" test.
+     *
+     * verifyOtpAtomic tombstones a SUCCESSFUL code in place — same otp, same
+     * issuedAt, same expires, plus consumed: true and attempts: 5 — precisely
+     * so a stale in-process Map on another instance cannot resurrect it.
+     * Reusing that tombstone re-emails an already-spent code and stores
+     * attempts at the cap, so the user types a code they have never got wrong
+     * and is told "Too many incorrect attempts". MfaChallenge auto-sends on
+     * mount, so a reload or a second tab inside the burst window is enough.
+     */
+    const reusableRecord = (prev: OtpRecord | null | undefined) =>
+      !!prev && !(prev as any).consumed && prev.expires > now && now - prev.issuedAt < burstMs;
+
     const ref = otpDocRef(uid);
     const adb = adminFirestore();
     if (!ref || !adb) {
       const mem = memoryOtpStore.get(uid);
-      const record = mem && mem.expires > now && now - mem.issuedAt < burstMs
-        ? { ...mem, expires: now + ttlMs }
-        : fresh();
+      const record = reusableRecord(mem) ? { ...mem!, expires: now + ttlMs } : fresh();
       memoryOtpStore.set(uid, record);
       return record;
     }
@@ -793,10 +805,9 @@ app.use(express.json());
       const record = await adb.runTransaction(async (tx: any) => {
         const snap = await tx.get(ref);
         const prev = snap.exists ? (snap.data() as OtpRecord) : null;
-        const reusable = !!prev && prev.expires > now && now - prev.issuedAt < burstMs;
         // A reused code gets a FRESH deadline, so it is never handed over
         // already half-expired.
-        const next: OtpRecord = reusable
+        const next: OtpRecord = reusableRecord(prev)
           ? { otp: prev!.otp, expires: now + ttlMs, attempts: prev!.attempts, issuedAt: prev!.issuedAt }
           : fresh();
         tx.set(ref, next);
@@ -805,9 +816,19 @@ app.use(express.json());
       memoryOtpStore.set(uid, record);
       return record;
     } catch (err: any) {
-      console.warn('[otp] transactional issue failed, falling back to memory:', err?.message || err);
+      /*
+       * Persisted through writeOtp, not left in memory alone.
+       *
+       * verifyOtpAtomic treats Firestore as authoritative whenever a ref
+       * exists, and fails closed on error — so a code written only to memory
+       * cannot verify, and every attempt burns an attempt against the OLD
+       * document. runTransaction aborts under contention, and contention here
+       * is exactly the double-send this function exists to serialise, so the
+       * failure path was reproducing the bug the function fixes.
+       */
+      console.warn('[otp] transactional issue failed, writing directly:', err?.message || err);
       const record = fresh();
-      memoryOtpStore.set(uid, record);
+      await writeOtp(uid, record);
       return record;
     }
   }
@@ -995,7 +1016,12 @@ app.use(express.json());
     for (const d of orgs.docs) {
       if (fixtureUids.has(d.id)) continue;
       const x = d.data();
-      if (x?.craVerified || x?.verificationStatus === 'verified') publicVerifiedOrgs++;
+      // A suspended organisation is not a verified one. Suspension writes only
+      // isBanned, so without this it kept counting toward the trust figure on
+      // the public landing page — the same shape as the VETTED badge that was
+      // removed for being at its most confident about exactly the organisations
+      // students most needed warning about.
+      if (x?.isBanned !== true && (x?.craVerified || x?.verificationStatus === 'verified')) publicVerifiedOrgs++;
     }
 
     return {
@@ -1574,13 +1600,30 @@ app.use(express.json());
       let postingsClosed = 0;
       if (decision === 'rejected') {
         try {
+          let cursor: any = null;
           for (;;) {
-            const live = await adb.collection('opportunities')
-              .where('orgId', '==', orgUid).where('status', '==', 'open').limit(300).get();
-            if (live.empty) break;
-            await Promise.all(live.docs.map((d: any) => d.ref.update({ status: 'closed' })));
-            postingsClosed += live.size;
-            if (live.size < 300) break;
+            // Filtered IN MEMORY, not by `where('status','==','open')`.
+            // Firestore omits documents that lack the field, and this codebase
+            // states twice that an ABSENT status means open — the rules say
+            // "absent means open, so every opportunity created before this field
+            // existed keeps working with no backfill", and isVisibleToStudents
+            // is `status !== 'closed'`. So the equality filter skipped exactly
+            // the postings students can still see. The suspension path does it
+            // this way already.
+            //
+            // A CURSOR, not a re-query: filtering in memory means a page can
+            // update nothing, so re-running the same query would spin forever
+            // on a page of already-closed postings.
+            let q = adb.collection('opportunities')
+              .where('orgId', '==', orgUid).orderBy('__name__').limit(300);
+            if (cursor) q = q.startAfter(cursor);
+            const page = await q.get();
+            if (page.empty) break;
+            const live = page.docs.filter((d: any) => d.data()?.status !== 'closed');
+            await Promise.all(live.map((d: any) => d.ref.update({ status: 'closed' })));
+            postingsClosed += live.length;
+            cursor = page.docs[page.docs.length - 1];
+            if (page.size < 300) break;
           }
         } catch (closeErr: any) {
           // Loud, and reported to the reviewer: the rejection stands, but
@@ -3142,12 +3185,41 @@ app.use(express.json());
          */
         const creditFingerprint = requestRef
           ? ''
-          : [studentId, String(activity || ''), String(date || ''), String(parsedHours), authContext.uid]
+          : [
+              studentId,
+              // Sliced to the SAME bounds the stored entry uses below. This was
+              // the one client-derived string on the entry with no cap, written
+              // into a student document that already carries a 400 000-character
+              // resumeUrl and up to 500 entries against a 1 MiB ceiling.
+              String(activity || '').slice(0, 200),
+              String(date || '').slice(0, 32),
+              String(parsedHours),
+              authContext.uid,
+            ]
               .join('|')
               .toLowerCase();
 
+        /*
+         * Bounded in TIME, because identical facts are not always a duplicate.
+         *
+         * A student can genuinely work a morning and an afternoon shift at the
+         * same place on the same day, same activity name, same hours. Matching
+         * on the facts alone returned the second as a replay: the coordinator
+         * saw "Successfully logged and authorized hours!", the form cleared, and
+         * three hours were credited instead of six, permanently, on the record
+         * that decides graduation — with no window after which it could ever be
+         * logged, because the fingerprint is stored forever.
+         *
+         * Ten minutes covers the retry-after-a-reload case this exists for
+         * (which is seconds, not hours) and lets a real second shift through.
+         */
+        const REPLAY_WINDOW_MS = 10 * 60 * 1000;
         if (creditFingerprint) {
-          const dup = existing.find((e: any) => e && e.creditFingerprint === creditFingerprint);
+          const dup = existing.find((e: any) => {
+            if (!e || e.creditFingerprint !== creditFingerprint) return false;
+            const at = Date.parse(e.approvedAt || '');
+            return Number.isFinite(at) && Date.now() - at < REPLAY_WINDOW_MS;
+          });
           if (dup) {
             const settled = totalLoggedHours(existing);
             replayedEntry = dup;

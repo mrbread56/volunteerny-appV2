@@ -168,6 +168,12 @@ test('the storage notice itself meets WCAG 2.1 AA', async ({ page }) => {
   // visitor sees and it carries the only link to the privacy policy shown
   // before sign-up.
   await page.goto('/');
+  // The banner renders once and remembers: CookieBanner reads
+  // storage_notice_seen and stays hidden after the first dismissal. A shared
+  // browser context therefore hides it from this test, which is why asserting
+  // its presence needs a clean slate rather than a longer wait.
+  await page.evaluate(() => { try { localStorage.clear(); } catch { /* blocked */ } });
+  await page.reload();
   await page.waitForLoadState('domcontentloaded');
 
   /*
@@ -178,7 +184,9 @@ test('the storage notice itself meets WCAG 2.1 AA', async ({ page }) => {
    * already covers. So deleting the storage notice entirely left this test
    * green, still named "the storage notice itself meets WCAG 2.1 AA".
    */
-  const notice = page.locator('text=/cookie|consent|storage/i').first();
+  // Matches the real heading, "What this site stores". The old regex looked
+  // for cookie/consent/storage and this banner says none of those words.
+  const notice = page.getByRole('region', { name: /what this site stores/i });
   await expect(notice, 'no storage notice rendered, so nothing was audited').toBeVisible({ timeout: 15000 });
   await page.waitForTimeout(1500);
 

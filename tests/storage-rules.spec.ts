@@ -125,36 +125,16 @@ test.describe('students/{uid} — resumes, the most sensitive files here', () =>
   });
 });
 
-// ─────────────────────── organizations/ ───────────────────────
-
-test.describe('organizations/{uid} — public logos', () => {
-  test('an organization can upload its own logo, capped at 2MB', async () => {
-    await assertSucceeds(uploadBytes(ref(asUser(ORG), `organizations/${ORG}/logo.png`), PNG, {
-      contentType: 'image/png',
-    }));
-    const over = new Uint8Array(2 * 1024 * 1024 + 1);
-    over.set(PNG);
-    await assertFails(uploadBytes(ref(asUser(ORG), `organizations/${ORG}/big.png`), over, {
-      contentType: 'image/png',
-    }));
-  });
-
-  test('logos are world-readable — that is their job', async () => {
-    await assertSucceeds(getBytes(ref(asAnon(), `organizations/${ORG}/logo.png`)));
-  });
-
-  test('but a logo cannot be a PDF, and cannot be an SVG', async () => {
-    // Public read is exactly why the type gate matters most here: whatever
-    // lands in this folder is a permanent, publicly addressable URL under our
-    // bucket's name.
-    await assertFails(uploadBytes(ref(asUser(ORG), `organizations/${ORG}/logo.pdf`), PDF, {
-      contentType: 'application/pdf',
-    }));
-    await assertFails(uploadBytes(ref(asUser(ORG), `organizations/${ORG}/logo.svg`), PNG, {
-      contentType: 'image/svg+xml',
-    }));
-  });
-});
+/*
+ * The organizations/ logo tests are gone with the rule they covered.
+ *
+ * storage.rules granted `allow read: if true` on organizations/{uid}/ for a
+ * path NOTHING writes: there is no logo upload anywhere in the app and no logo
+ * field on the organisation profile. Three tests proving a world-readable grant
+ * behaves correctly, guarding a feature that does not exist, is coverage that
+ * makes a standing public grant look intentional. Restore both from git history
+ * together if a logo feature is ever built.
+ */
 
 // ───────────────────── reports/ and feedbacks/ ─────────────────────
 

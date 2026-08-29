@@ -242,13 +242,17 @@ for (const vp of VIEWPORTS) {
           await page.waitForLoadState('domcontentloaded');
           // If the demo session did not survive the full page load, report it
           // once and stop — every later route would fail the same way.
-          if (page.url().includes('/login')) {
-            testInfo.annotations.push({
-              type: 'warning',
-              description: `${role} session was lost navigating to ${route}; remaining ${role} routes were not swept`,
-            });
-            return;
-          }
+          /*
+           * A FAILURE, not an annotation.
+           *
+           * The annotate-and-return shape is exactly what made six of these
+           * tests unable to fail for as long as they existed: losing the
+           * session on the FIRST route means auditRoute never runs and the test
+           * passes having asserted nothing. Sign-in is asserted above, so a
+           * session lost mid-sweep is a real defect worth failing on.
+           */
+          expect(page, `${role} session was lost navigating to ${route}, so the rest was not swept`)
+            .not.toHaveURL(/\/login/);
           await auditRoute(page, testInfo, `${vp.name} [${role}] ${route}`);
         }
       });

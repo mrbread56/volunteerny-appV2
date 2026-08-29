@@ -494,7 +494,7 @@ export default function OrgDashboard() {
               oppTitle: req.activity,
               hours: req.hours,
               activity: req.activity,
-              orgName: orgProfile?.organizationName || "Verified Organization",
+              orgName: orgProfile?.organizationName || "The organization",
               supervisorName: req.coordinatorName || "Site Supervisor",
               subject: "Volunteer Hours Approved",
             }
@@ -505,7 +505,7 @@ export default function OrgDashboard() {
               oppTitle: req.activity,
               hours: req.hours,
               activity: req.activity,
-              orgName: orgProfile?.organizationName || "Verified Organization",
+              orgName: orgProfile?.organizationName || "The organization",
               supervisorName: req.coordinatorName || "Site Supervisor",
               subject: "Volunteer Hours Update",
             }
@@ -717,7 +717,7 @@ export default function OrgDashboard() {
           // nobody reads: they held a place they were never told about and
           // missed the shift.
       if (oppId && (newStatus === "rejected" || newStatus === "terminated")) {
-        const promoted: any = await promoteWaitlistedApplicant(oppId, orgProfile?.organizationName || "Verified Organization");
+        const promoted: any = await promoteWaitlistedApplicant(oppId, orgProfile?.organizationName || "The organization");
         if (promoted && promoted.emailSent === false) {
           setErrorMessage(
             `${promoted.studentName || 'A waitlisted student'} was moved off the waitlist and accepted, ` +
@@ -794,12 +794,19 @@ export default function OrgDashboard() {
     const parsedHours = Number(parseFloat(logHours).toFixed(1));
     const newLogItem = {
       id: `log-org-${user?.uid || "org"}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      activity:
-        logActivity + ` (${orgProfile?.organizationName || "Verified Org"})`,
+      // The suffix only when there is a real name to put in it. This was
+      // `|| "Verified Org"`, and this string is sent to /api/hours/approve and
+      // written verbatim into the student's permanent loggedHours entry, which
+      // the printed transcript renders — so a null orgProfile put a fictional
+      // organisation on a graduation record. An empty bracket pair is worse
+      // than none, so the whole suffix goes when the name is missing.
+      activity: orgProfile?.organizationName
+        ? `${logActivity} (${orgProfile.organizationName})`
+        : logActivity,
       hours: parsedHours,
       date: logDate,
-      coordinatorName: orgProfile?.organizationName || "Verified Organization",
-      coordinatorContact: user?.email || "Registered Org",
+      coordinatorName: orgProfile?.organizationName || "The organization",
+      coordinatorContact: user?.email || "",
       approved: true, // Officially verified from organizations
     };
 

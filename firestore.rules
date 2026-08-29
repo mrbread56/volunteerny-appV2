@@ -209,7 +209,16 @@ service cloud.firestore {
           // a genuine bootstrap can still get a code.
           exists(/databases/$(database)/documents/users/$(request.auth.uid))
             ? (isNotBanned() && mfaSatisfied())
-            : (request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1))
+            : (
+                // The support grace window, honoured HERE TOO. mfaSatisfied()
+                // has three satisfying clauses and this branch copied only the
+                // claim comparison, so a bootstrap developer unlocked by
+                // scripts/grant-mfa.ts — RUNBOOK step 3 — was still refused.
+                // The comment beside that clause says a grant the rules ignore
+                // is a recovery tool that recovers nothing.
+                request.auth.token.get('auth_time', 0) < request.auth.token.get('mfaGraceUntil', 0) ||
+                request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1)
+              )
         ) && (
         (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&

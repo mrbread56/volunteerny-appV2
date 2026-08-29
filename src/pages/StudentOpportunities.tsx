@@ -571,7 +571,7 @@ export default function StudentOpportunities() {
                ) : (
                  <>
                    <p className="text-xl font-bold text-ink tracking-tight leading-none">No volunteer opportunities yet.</p>
-                   <p className="text-ink-muted">New postings appear here as organizations add them — check back soon.</p>
+                   <p className="text-ink-muted">New postings appear here as organizations add them. Check back soon.</p>
                  </>
                )}
             </div>

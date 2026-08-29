@@ -1,5 +1,5 @@
 {
-  "//": "Composite indexes required by this app. Firestore auto-creates single-field indexes, but any query combining an equality filter with an orderBy on a different field — or two equality filters — needs an entry here. Without this file those queries throw 'The query requires an index' the first time they run against real data (demo mode never hits Firestore, which is why they pass locally). Deploy with: firebase deploy --only firestore:indexes",
+  "//": "Composite indexes required by this app. Firestore auto-creates single-field indexes, and serves an equality-only conjunction by MERGING them, so two equality filters need no entry here — an earlier version of this note said they did, which is why hoursRequests (coordinatorContact, status) is provisioned while its sibling (orgId, status) in the same Promise.all is not, and both work. What genuinely needs an entry is an equality filter combined with an orderBy on a DIFFERENT field. Without those, the query throws 'The query requires an index' the first time it runs against real data (demo mode never hits Firestore, which is why they pass locally). Deploy with: firebase deploy --only firestore:indexes",
   "indexes": [
     {
       "//": "StudentDashboard: applications where studentId == uid, ordered by appliedAt desc, limit 50",

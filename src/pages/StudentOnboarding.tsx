@@ -34,7 +34,7 @@ const GRADES = [
 
 
 export default function StudentOnboarding() {
-  const { user, studentProfile, refreshProfile, isDemoMode } = useAuth();
+  const { user, studentProfile, refreshProfile, isDemoMode, logout } = useAuth();
   const navigate = useNavigate();
   
   const [step, setStep] = useState(1);
@@ -149,6 +149,25 @@ export default function StudentOnboarding() {
 
   return (
     <div className="min-h-screen bg-paper-2 py-12 px-6 flex flex-col justify-center items-center">
+      {/* A way OUT. This route is wrapped in no layout at all — no navbar, no
+          sidebar, no sign out, no links — and all four steps are mandatory, so
+          a student whose save kept failing sat on a page with nothing but the
+          browser URL bar, and the dashboard sends them straight back here. */}
+      <div className="w-full max-w-3xl flex justify-end mb-4 gap-4 text-xs">
+        <a
+          href="mailto:privacy@volunteernorthyork.indevs.in"
+          className="text-ink-muted hover:text-ink underline underline-offset-2"
+        >
+          Get help
+        </a>
+        <button
+          type="button"
+          onClick={() => { void logout(); }}
+          className="text-ink-muted hover:text-ink underline underline-offset-2"
+        >
+          Sign out
+        </button>
+      </div>
       <div className="w-full max-w-3xl space-y-8 animate-fadeIn">
         <div className="text-center space-y-3">
           <span className="text-xs font-bold tracking-widest uppercase text-blue-dark bg-blue-dark/5 px-3.5 py-1.5 rounded-lg border border-blue-dark/10">
@@ -158,7 +177,7 @@ export default function StudentOnboarding() {
             Complete Your Student Profile
           </h1>
           <p className="text-ink-muted font-medium text-sm max-w-md mx-auto leading-relaxed">
-            Let's gather the academic, cause alignment, and verification details needed to safely match you with registered community programs.
+            Tell us your school, what you are interested in, and when you are free. We use it to sort opportunities so the ones near you and close to your interests come first.
           </p>
         </div>
 

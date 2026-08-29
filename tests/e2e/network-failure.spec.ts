@@ -37,10 +37,16 @@ test.beforeAll(async () => {
   const db = adminApp.firestore();
   db.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
 
+  // A real organisation session carries an MFA claim: two-factor is mandatory
+  // for organisations, so a fixture without one parks on /mfa and never reaches
+  // the dashboard this test is about. Same grace claim console-sweep uses.
   const orgRec = await adminApp.auth().createUser({
     email: ORG_EMAIL, password: PASSWORD, emailVerified: true,
   });
   orgUid = orgRec.uid;
+  await adminApp.auth().setCustomUserClaims(orgUid, {
+    mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600,
+  });
   await db.collection('users').doc(orgUid).set({
     uid: orgUid, email: ORG_EMAIL, role: 'organization',
     twoFactorEnabled: false, createdAt: new Date(),

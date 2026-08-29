@@ -357,6 +357,33 @@ const as = async (email: string) => {
         fail(`direct credit double-counted: statuses ${first}/${second}, ${entries} entries, ${total} hours (expected 200/200 / 1 / 8)`);
       }
 
+      /*
+       * The RELOAD case, which the clientRef test above cannot reach.
+       *
+       * clientRef lives in a useRef and dies with the page. A coordinator whose
+       * request hangs refreshes, retypes the same hours and submits: same
+       * facts, a BRAND NEW key. Nothing above exercises that, so deleting the
+       * server-side fingerprint would leave every assertion here green while
+       * eight hours silently became sixteen on a graduation record.
+       */
+      const reload = await fetch(`${apiBase}/api/hours/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${orgToken}` },
+        body: JSON.stringify({
+          studentId: student.uid, hours: 8, activity: 'Sorting', date: '2026-08-20',
+          clientRef: `attempt_${stamp}_after_reload`,
+        }),
+      }).then((r) => r.status).catch(() => 0);
+      const afterReload = (await adb.collection('students').doc(student.uid).get()).data() || {};
+      const reloadEntries = (afterReload.loggedHours || []).length;
+      const reloadTotal = (afterReload.loggedHours || [])
+        .reduce((n: number, l: any) => n + (Number(l.hours) || 0), 0);
+      if (reload === 200 && reloadEntries === 1 && reloadTotal === 8) {
+        pass('resubmitting identical hours with a FRESH key after a reload still credits 8 once');
+      } else {
+        fail(`reload double-credited: status ${reload}, ${reloadEntries} entries, ${reloadTotal} hours (expected 200 / 1 / 8)`);
+      }
+
       // A genuinely separate logging must still go through.
       const other = await fetch(`${apiBase}/api/hours/approve`, {
         method: 'POST',

@@ -843,6 +843,36 @@ async function bannedOrgChecks(adb: any) {
   await mustAllow('an approved organisation can decide an application',
     () => updateDoc(doc(db, 'applications', beforeId), { status: 'accepted', decidedAt: serverTimestamp() }));
 
+  /*
+   * The ALLOW direction first, on the same five routes.
+   *
+   * Five deny assertions with no paired allow can all pass because something
+   * unrelated started answering 403 — a new gate, a broken fixture, a bad
+   * token. This file already applies that rule everywhere else (mustAllow
+   * exists for it); the server tier added later did not carry it over. What is
+   * asserted here is only "not 403": these routes legitimately answer 400, 404
+   * or 422 to a synthetic body, and what matters is that they are not refusing
+   * the ACCOUNT.
+   */
+  const healthyToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken(true);
+  const probeRoutes: [string, string, any][] = [
+    ['POST', '/api/hours/approve', { studentId: student.uid, hours: 4, activity: 'x', date: '2026-08-01', clientRef: `ok_${STAMP}` }],
+    ['POST', '/api/applications/notify', { applicationId: beforeId, status: 'accepted' }],
+    ['POST', '/api/ratings/create', { studentId: student.uid, opportunityId: opp.id, rating: 5 }],
+    ['GET', `/api/students/${student.uid}/review-profile`, null],
+    ['GET', `/api/opportunities/${opp.id}/applicant-contacts`, null],
+  ];
+  for (const [method, path, body] of probeRoutes) {
+    const r = await fetch(`${BASE}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${healthyToken}`, 'Content-Type': 'application/json' },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }).catch(() => null);
+    if (r && r.status !== 403) pass(`a healthy organisation is NOT refused by ${path} (${r.status})`);
+    else fail(`${path} answered ${r ? r.status : 'network error'} to a HEALTHY organisation — the deny tests below prove nothing`);
+  }
+  await signOut(auth);
+
   // Suspend exactly the way the developer console does.
   await adb.collection('users').doc(org.uid).update({ isBanned: true });
   await adb.collection('organizations').doc(org.uid).update({ isBanned: true });

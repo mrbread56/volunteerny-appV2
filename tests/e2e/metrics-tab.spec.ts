@@ -37,6 +37,18 @@ test.beforeAll(async () => {
 
   const rec = await adminApp.auth().createUser({ email: DEV.email, password: PASSWORD, emailVerified: true });
   DEV.uid = rec.uid;
+  /*
+   * A real developer session carries an MFA claim.
+   *
+   * Two-factor is mandatory for developers — the client forces it regardless of
+   * what the document says, and firestore.rules and the /api/admin/* routes all
+   * require the claim — so a fixture with twoFactorEnabled:false and no claim
+   * is an account that cannot exist, and it now parks on /mfa instead of the
+   * console. Same grace claim console-sweep uses.
+   */
+  await adminApp.auth().setCustomUserClaims(rec.uid, {
+    mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600,
+  });
   await db.collection('users').doc(DEV.uid).set({
     uid: DEV.uid, email: DEV.email, role: 'developer',
     twoFactorEnabled: false, createdAt: new Date(),

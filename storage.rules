@@ -77,13 +77,20 @@ service firebase.storage {
                    && isSafeSize(5);
     }
     
-    // Organizations can upload logos (max 2MB, images only)
-    match /organizations/{userId}/{fileName} {
-      allow read: if true; // Public logos
-      allow write: if isSignedIn() && request.auth.uid == userId 
-                   && isValidImage() 
-                   && isSafeSize(2);
-    }
+    /*
+     * The organizations/ block is deleted, not commented out.
+     *
+     * It granted `allow read: if true` — world-readable, signed-out included —
+     * on a path NOTHING writes. There is no logo upload anywhere in the app and
+     * no logo field on the organisation profile; the only three
+     * uploadFileToStorage call sites write students/, reports/ and feedbacks/.
+     * A standing public grant on a live bucket, guarding a feature that does
+     * not exist, is worth removing rather than leaving for someone to trip over.
+     *
+     * purgeAccount still sweeps the organizations/{uid}/ prefix, which is
+     * correct: legacy objects may exist, and deleting them needs no rule.
+     * Restore this block from git history if a logo feature is ever built.
+     */
     
     // chat_attachments had rules but the chat feature has zero application
     // code; its Firestore-side rules were already deleted for the same reason

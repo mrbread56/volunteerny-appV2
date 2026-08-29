@@ -1598,7 +1598,13 @@ export default function StudentDashboard() {
                           if (org) {
                             setLogOrg(org.organizationName || "");
                             setLogContact(org.contactEmail || org.email || "");
-                            setLogCoordinator(org.contactName || "Site Supervisor");
+                            // No literal. `contactName` is in NO organizations allowlist and exists in
+                        // this repo only in demo fixtures, so in production it is always
+                        // undefined and "Site Supervisor" was always what landed in the
+                        // field, then in coordinatorName, then on the printed transcript
+                        // under "Coordinator Supervisor Details". Changing the write to
+                        // `|| ""` guarded a field that was already poisoned here.
+                        setLogCoordinator((org as any).contactName || "");
                           }
                         }
                       }}
@@ -1777,7 +1783,7 @@ export default function StudentDashboard() {
             
             {/* Certificate Header */}
             <div className="border-b-4 border-blue-dark pb-5 text-center sm:text-left">
-              <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Community Involvement Hours — Personal Record</h2>
+              <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Community Involvement Hours: Personal Record</h2>
               <p className="text-xs text-ink-soft mt-1">A summary of hours confirmed on Volunteer North York. Not an official school document.</p>
             </div>
 
