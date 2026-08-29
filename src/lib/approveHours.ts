@@ -32,7 +32,11 @@ export async function approveStudentHours(input: {
   clientRef?: string;
   /** false declines the request instead of crediting it. Requires requestId. */
   approved?: boolean;
-}): Promise<{ hours: number; entryId?: string; demo?: boolean }> {
+  // confirmationSent: whether the STUDENT was actually emailed. The server
+  // computed it and dropped it, so the coordinator saw "Hours approved
+  // successfully!" whether or not anyone told the student their graduation
+  // hours had moved.
+}): Promise<{ hours: number; entryId?: string; demo?: boolean; confirmationSent?: boolean }> {
   const user = auth.currentUser;
   let token: string | null = user ? await user.getIdToken() : null;
   if (!token) {
@@ -51,5 +55,5 @@ export async function approveStudentHours(input: {
   if (!res.ok) {
     throw new Error(body?.error || 'Could not credit the hours. Please try again.');
   }
-  return { hours: body.hours ?? 0, entryId: body.entryId, demo: body.demo };
+  return { hours: body.hours ?? 0, entryId: body.entryId, demo: body.demo, confirmationSent: body.confirmationSent };
 }

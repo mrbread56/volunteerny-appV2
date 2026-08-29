@@ -70,7 +70,7 @@ test.beforeAll(async () => {
   await db.collection('organizations').doc(ORG.uid).set({
     uid: ORG.uid, organizationName: 'Lifecycle UI Org', mission: 'm', organizationType: 'Other',
     address: 'North York', coordinates: { lat: 43.76, lng: -79.41 }, contactEmail: ORG.email,
-    phone: '', northYorkConfirmed: true, websiteUrl: '', hasCra: 'no', craNumber: '',
+    phone: '', northYorkConfirmed: true, websiteUrl: '', hasCra: false, craNumber: '',
     craVerified: false, verificationStatus: 'verified',
   });
 

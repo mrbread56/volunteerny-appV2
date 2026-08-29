@@ -200,6 +200,19 @@ async function signIn(page: any, email: string) {
   await page.fill('input[type="password"]', PASSWORD);
   await page.click('button[type="submit"]');
   await page.waitForTimeout(4000);
+  /*
+   * ASSERT the sign-in worked.
+   *
+   * Without this a broken login left every page.goto below redirecting to
+   * /login, so the sweep hit-tested the login form fifteen times and reported
+   * every control on every authenticated route as reachable, having visited
+   * none of them. The `checked > 30` guard at the end does not close that: it
+   * is a module-global accumulated across the PUBLIC sweep first, and the
+   * navbar alone renders 27 controls on all five public routes, so it is
+   * satisfied long before any role signs in.
+   */
+  await expect(page, `${email} could not sign in, so none of its routes were really tested`)
+    .not.toHaveURL(/\/login/);
 }
 
 test('every visible control is actually clickable, on every route, for every role', async ({ browser }) => {
@@ -213,6 +226,7 @@ test('every visible control is actually clickable, on every route, for every rol
     await hitTest(pubPage, `(public) ${r}`);
   }
   await pub.close();
+  const publicChecked = checked;
 
   for (const [role, routes] of Object.entries(ROLE_ROUTES)) {
     // A fresh context per role: no cookies, no IndexedDB, no leftover session.
@@ -230,9 +244,15 @@ test('every visible control is actually clickable, on every route, for every rol
     }
   }
 
-  // Something must have been tested, or a silent selector change turns this
-  // into a check that cannot fail.
+  // Something must have been tested on the AUTHENTICATED routes specifically.
+  // `checked` is a module-global that starts accumulating during the public
+  // sweep above, so a threshold on it alone was already satisfied by the navbar
+  // before a single role signed in.
   expect(checked, 'no controls were hit-tested — the selectors or sign-in broke').toBeGreaterThan(30);
+  expect(
+    checked - publicChecked,
+    'no controls were hit-tested on any authenticated route — sign-in or the route list broke',
+  ).toBeGreaterThan(20);
 
   expect(
     blocked,

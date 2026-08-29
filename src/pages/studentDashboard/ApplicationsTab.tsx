@@ -129,6 +129,21 @@ export default function ApplicationsTab({
                         </div>
                       </div>
 
+                      {/* What the badge MEANS. It rendered the raw enum and
+                          nothing on the page defined any of the six values.
+                          "REVIEWED" reads as a decision, "WAITLIST" reads as a
+                          rejection, and "TERMINATED" is a red badge with no
+                          explanation at all — on a placement the student had
+                          already been accepted into. */}
+                      <p className="text-xs text-ink-muted leading-relaxed mt-2">
+                        {app.status === "pending" && "The organization has not opened your application yet."}
+                        {app.status === "reviewed" && "The organization has read your application and has not decided yet."}
+                        {app.status === "accepted" && "You have a place. Contact details are below."}
+                        {app.status === "waitlist" && "This opportunity was full when you applied. You are next in line if a place frees up, and we will email you."}
+                        {app.status === "rejected" && "The organization was not able to offer you a place this time. You can apply again if they post another opportunity."}
+                        {app.status === "terminated" && "This placement was ended. If you did not withdraw it yourself, contact the organization to ask why."}
+                      </p>
+
                       {(app.status === "accepted" || app.status === "pending") &&
                         orgContacts[app.opportunityId] && (
                           <div className="mt-4 bg-paper-2 p-6 rounded-lg border border-line animate-in fade-in slide-in- duration-500">

@@ -125,7 +125,27 @@ function LocationMarker({
       setCoords(e.latlng);
     },
   });
-  return <Marker position={coords} icon={customPinIcon} />;
+  /*
+   * draggable, because both geocode-failure messages tell the coordinator to
+   * drag it and react-leaflet markers are static without this prop. The message
+   * fires exactly when the address could not be found, so the pin is sitting at
+   * the North York default -- and those coordinates drive the student distance
+   * filter and the map a minor navigates to. An instruction that does nothing on
+   * that path is worse than no instruction.
+   */
+  return (
+    <Marker
+      position={coords}
+      icon={customPinIcon}
+      draggable
+      eventHandlers={{
+        dragend: (e: any) => {
+          const { lat, lng } = e.target.getLatLng();
+          setCoords({ lat, lng });
+        },
+      }}
+    />
+  );
 }
 
 export default function OrgOpportunityEdit() {
@@ -205,14 +225,14 @@ export default function OrgOpportunityEdit() {
           setGeocodeNotice(null);
         } else {
           setGeocodeNotice(
-            'We could not find that address on the map. Drag the pin below to the right place before you save.',
+            'We could not find that address on the map. Drag the pin below, or click the map, to put it in the right place before you save.',
           );
         }
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
         setGeocodeNotice(
-          'We could not look that address up just now. Check the pin below is in the right place before you save.',
+          'We could not look that address up just now. Check the pin below is in the right place, and drag it if it is not, before you save.',
         );
       } finally {
         if (!controller.signal.aborted) setIsGeocoding(false);
@@ -509,7 +529,18 @@ export default function OrgOpportunityEdit() {
       // developer) delete an application or a saved bookmark, and an
       // organization cannot even list savedOpportunities. So the server does
       // it, and emails the students whose placement has just disappeared.
-      await deleteOpportunityWithDependents(id);
+      const { deleteFailures } = await deleteOpportunityWithDependents(id);
+      if (deleteFailures > 0) {
+        // Not a silent success. Some applications survived the delete and now
+        // point at an opportunity that is gone; the students behind them were
+        // not emailed either.
+        setDeleteError(
+          `The opportunity was deleted, but ${deleteFailures} related record(s) could not be removed ` +
+          'and the students behind them may not have been told. Please let us know through Feedback.',
+        );
+        setIsDeleting(false);
+        return;
+      }
       navigate('/org/dashboard');
     } catch (err: any) {
       console.error('Failed to delete opportunity:', err);
@@ -653,7 +684,7 @@ export default function OrgOpportunityEdit() {
                    </div>
                 </label>
                 <div className="space-y-2">
-                   <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin</p>
+                   <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin (drag it, or click the map)</p>
                    {geocodeNotice && (
                      <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
                        {geocodeNotice}

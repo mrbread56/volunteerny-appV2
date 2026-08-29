@@ -123,7 +123,13 @@ export default function StudentProfile() {
   const [resumeUrl, setResumeUrl] = useState(
     decompressFile(studentProfile?.resumeUrl || ""),
   );
-  const [trackerEnabled, setTrackerEnabled] = useState(true);
+  // false, matching the server's `trackerEnabled === true` filter and the
+  // effect below. The effect only runs `if (studentProfile)`, and AuthContext
+  // sets that only on a SUCCESSFUL read with no else — so after a transient
+  // students/ read failure this initial value was written straight back on the
+  // next save, publishing a student who was never asked. Same consent
+  // manufacture the effect four lines down was changed to stop.
+  const [trackerEnabled, setTrackerEnabled] = useState(false);
   const [trackerAnonymous, setTrackerAnonymous] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 

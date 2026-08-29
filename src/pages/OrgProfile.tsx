@@ -69,23 +69,17 @@ export default function OrgProfile() {
 
   const handleToggle2FA = async () => {
     if (!user) return;
-    const newVal = !(userProfile?.twoFactorEnabled ?? true);
-    if (isDemoMode) {
-      localStorage.setItem("demo_2fa_enabled", newVal ? "true" : "false");
-      await refreshProfile();
-      return;
-    }
-    try {
-      await updateDoc(doc(db, "users", user.uid), {
-        twoFactorEnabled: newVal,
-      });
-      await refreshProfile();
-    } catch (err: any) {
-      // Was a browser alert containing err.message — a raw Firebase string,
-      // shown blocking and unstyled. reportError logs the original and returns
-      // a sentence.
-      setError(reportError('org 2FA toggle', err, 'Could not change the two-factor setting. Please try again.'));
-    }
+    /*
+     * Two-factor is MANDATORY for organisations, and firestore.rules enforces
+     * it: isValidUser permits `twoFactorEnabled: false` only when
+     * role == 'student'. So every click of this switch returned
+     * permission-denied and showed "Could not change the two-factor setting.
+     * Please try again." in a card near the top of a different section — an
+     * error inviting a retry that can never work, on a control that is not
+     * allowed to do anything. The switch renders locked-on instead; see the
+     * copy beside it.
+     */
+    setError('Two-step sign-in is required for organisations, because your account holds the contact details of minors. It cannot be turned off.');
   };
 
   // Profile Fields
@@ -233,7 +227,20 @@ export default function OrgProfile() {
         // too). Without it an organization that got charitable status after
         // signing up could enter its CRA number and never reach the reviewer's
         // queue, which lists 'pending' only.
-        ...(cleanCra && !orgProfile?.craVerified && orgProfile?.verificationStatus !== 'pending'
+        // NOT for an already-verified organisation.
+        //
+        // This wrote verificationStatus: 'pending' whenever a number was
+        // present and craVerified was false — and craVerified is false for
+        // every approved organisation that is not a registered charity. So a
+        // verified clinic or care home typing its BUSINESS number into a field
+        // labelled "CRA Registered Charity / Business Number (Optional)"
+        // silently moved itself back to pending, and isApprovedOrg() then
+        // refused posting, editing, closing and every accept or reject. No
+        // warning, no confirmation, no notice afterwards.
+        ...(cleanCra
+            && !orgProfile?.craVerified
+            && orgProfile?.verificationStatus !== 'pending'
+            && orgProfile?.verificationStatus !== 'verified'
           ? { verificationStatus: 'pending' }
           : {}),
         organizationType: orgType,
@@ -468,12 +475,18 @@ export default function OrgProfile() {
               <h3 className="text-lg font-bold text-ink mt-1 font-sans flex items-center gap-1.5 flex-wrap">
                 <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
                 <span>Two-step sign-in</span>
+                {/* "Required", not "Highly Recommended". firestore.rules refuses
+                    any non-student write of twoFactorEnabled: false, so this has
+                    never been optional for an organisation — the copy simply
+                    said otherwise while the switch beside it could not move. */}
                 <span className="text-xs font-semibold tracking-wide bg-emerald-50 text-emerald-700 px-2.5 py-0.5 rounded-lg border border-emerald-200/50">
-                  Highly Recommended
+                  Required
                 </span>
               </h3>
               <p className="text-xs text-ink-soft mt-1 leading-relaxed font-semibold">
-                Require a secure 6-digit confirmation key to sign in to your dashboard.
+                A 6-digit confirmation key is sent to your contact address every time you sign in.
+                This is required for organisation accounts, because your dashboard holds the names,
+                schools and contact details of students under 18.
               </p>
             </div>
 
@@ -483,14 +496,15 @@ export default function OrgProfile() {
                   MFA Login Gate
                 </h4>
                 <p className="text-xs text-ink-soft font-bold">
-                  {(userProfile?.twoFactorEnabled ?? true) ? "Shield is Active" : "Shield is Disabled"}
+                  {(userProfile?.twoFactorEnabled ?? true) ? "Active" : "Not yet active"}
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleToggle2FA}
                 role="switch"
-                aria-label="Toggle Two-Factor Authentication"
+                aria-label="Two-step sign-in is required for organisation accounts"
+                aria-disabled="true"
                 aria-checked={userProfile?.twoFactorEnabled ?? true}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",

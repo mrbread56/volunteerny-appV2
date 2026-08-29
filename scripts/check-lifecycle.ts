@@ -143,7 +143,7 @@ async function makeUser(role: 'student' | 'organization', tag: string) {
     await setDoc(doc(db, 'organizations', user.uid), {
       uid: user.uid, organizationName: `LC Org ${tag}`, mission: 'm', organizationType: 'Other',
       address: 'a', coordinates: null, contactEmail: email, phone: '', northYorkConfirmed: true,
-      websiteUrl: '', hasCra: 'no', craNumber: '', craVerified: false, verificationStatus: 'unverified',
+      websiteUrl: '', hasCra: false, craNumber: '', craVerified: false, verificationStatus: 'unverified',
     });
     // Approved straight away: posting is gated on verification, and every
     // suite here is about something other than the approval queue.

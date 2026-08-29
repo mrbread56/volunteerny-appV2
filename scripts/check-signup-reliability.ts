@@ -99,7 +99,7 @@ async function register(role: 'student' | 'organization', round: number) {
         uid: user.uid, organizationName: `Reliability Org ${round}`, mission: 'm',
         organizationType: 'Non-profit organization', address: 'a', coordinates: null,
         contactEmail: email, phone: '', northYorkConfirmed: true, websiteUrl: '',
-        hasCra: 'no', craNumber: '', craVerified: false, verificationStatus: 'unverified',
+        hasCra: false, craNumber: '', craVerified: false, verificationStatus: 'unverified',
       });
     }
 

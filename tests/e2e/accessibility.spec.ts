@@ -169,8 +169,18 @@ test('the storage notice itself meets WCAG 2.1 AA', async ({ page }) => {
   // before sign-up.
   await page.goto('/');
   await page.waitForLoadState('domcontentloaded');
-  await page.locator('text=/cookie|consent/i').first().waitFor({ timeout: 15000 }).catch(() => {});
-  await page.waitForTimeout(2500);
+
+  /*
+   * The notice has to BE THERE, and the audit has to be scoped TO IT.
+   *
+   * This waited for the banner with `.catch(() => {})`, which swallowed its
+   * absence, then audited `body` — the whole home page, which the test above
+   * already covers. So deleting the storage notice entirely left this test
+   * green, still named "the storage notice itself meets WCAG 2.1 AA".
+   */
+  const notice = page.locator('text=/cookie|consent|storage/i').first();
+  await expect(notice, 'no storage notice rendered, so nothing was audited').toBeVisible({ timeout: 15000 });
+  await page.waitForTimeout(1500);
 
   const { violations } = await new AxeBuilder({ page })
     .withTags(TAGS)

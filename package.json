@@ -9,7 +9,7 @@
   "scripts": {
     "dev": "tsx server.ts",
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=build/server.cjs",
-    "start": "node build/server.cjs",
+    "start": "node scripts/start.cjs",
     "lint": "tsc --noEmit && npm run check:esm",
     "check:esm": "tsc --noEmit --module nodenext --moduleResolution nodenext --target es2022 --skipLibCheck --esModuleInterop --resolveJsonModule server.ts api/index.ts server/emailTemplates.ts server/appUrl.ts",
     "check:firebase": "tsx scripts/check-firebase.ts",
@@ -44,7 +44,7 @@
     "backfill:hours": "tsx scripts/backfill-hours.ts",
     "backfill:availability": "tsx scripts/backfill-availability.ts",
     "repair:orphans": "tsx scripts/repair-orphaned-accounts.ts",
-    "test": "playwright test",
+    "test": "npm run build && playwright test",
     "test:offline": "playwright test tests/property-fuzz.spec.ts tests/email-templates.spec.ts tests/opportunity-date.spec.ts tests/otp-store.spec.ts tests/format-date.spec.ts tests/vocabularies.spec.ts tests/matching.spec.ts tests/password-change.spec.ts tests/opportunity-visibility.spec.ts --project=chromium",
     "test:tz": "tsx scripts/check-timezones.ts",
     "test:mutation": "tsx scripts/check-mutations.ts",

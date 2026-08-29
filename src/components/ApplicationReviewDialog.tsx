@@ -221,7 +221,7 @@ export default function ApplicationReviewDialog({
                         variant="outline"
                         className="flex-1 rounded-lg h-14 font-semibold uppercase text-xs tracking-widest border-line text-ink-soft hover:bg-paper-2"
                         onClick={() => {
-                          const resumeUrl = application?.resumeUrl || student?.resumeUrl;
+                          const resumeUrl = student?.resumeUrl || application?.resumeUrl;
                           if (resumeUrl) {
                             try {
                               const rawDataUrl = decompressFile(resumeUrl);
@@ -335,7 +335,7 @@ export default function ApplicationReviewDialog({
                   <div className="flex items-center gap-2">
                      <button aria-label="Download Resume" 
                        onClick={() => {
-                          const resumeUrl = application?.resumeUrl || student?.resumeUrl;
+                          const resumeUrl = student?.resumeUrl || application?.resumeUrl;
                           if (!resumeUrl) return;
                           const rawDataUrl = decompressFile(resumeUrl);
                           const link = document.createElement('a');
@@ -360,7 +360,7 @@ export default function ApplicationReviewDialog({
 
                 <div className="flex-grow flex items-center justify-center bg-paper-2 border border-line rounded-lg p-4 min-h-[420px] relative">
                   {(() => {
-                    const resumeUrl = application?.resumeUrl || student?.resumeUrl;
+                    const resumeUrl = student?.resumeUrl || application?.resumeUrl;
                     if (!resumeUrl) return <p className="text-ink-soft font-bold font-mono">No resume payload stored.</p>;
                     const rawDataUrl = decompressFile(resumeUrl);
                     // Storage URLs (current uploads) render through the same
@@ -384,14 +384,28 @@ export default function ApplicationReviewDialog({
                             <a aria-label="Download PDF" 
                               href={rawDataUrl}
                               download={`${student?.fullName || application?.studentName || 'student'}_resume.pdf`}
+                              target="_blank"
+                              rel="noopener noreferrer"
                               className="text-xs font-semibold uppercase text-blue-800 hover:underline"
                             >
                               Download PDF directly
                             </a>
                           </div>
+                          {/* sandbox + referrerPolicy, matching AttachmentPreview.
+                              This frame takes ANY https/http/data: value in
+                              resumeUrl with no extension test, so it frames
+                              strictly more than its sibling did while carrying
+                              none of its protection. Without a sandbox, a
+                              framed HTML document can navigate the
+                              coordinator's top-level window off-site in the
+                              middle of a decision about a minor.
+                              allow-same-origin without allow-scripts keeps the
+                              browser's PDF viewer working. */}
                           <iframe 
                             src={rawDataUrl}
                             title="Resume PDF"
+                            sandbox="allow-same-origin"
+                            referrerPolicy="no-referrer"
                             className="w-full h-[50vh] rounded-lg border border-line bg-white "
                           />
                         </div>

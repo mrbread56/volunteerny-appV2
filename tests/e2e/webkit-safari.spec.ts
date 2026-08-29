@@ -41,27 +41,56 @@ test.describe('WebKit / Safari', () => {
     expect(loaded.join(','), 'no custom font loaded under WebKit').toMatch(/Outfit|Fraunces/i);
   });
 
-  test('date parsing agrees with Chromium', async () => {
-    // Safari is the strict one here. If it disagrees, students see the wrong
-    // day for an opportunity — which is worse than an error, because nothing
-    // looks broken.
-    const iso = '2026-09-01T13:00:00Z';
-    expect(Number.isNaN(new Date(iso).getTime())).toBe(false);
+  test('date parsing agrees with Chromium', async ({ page }) => {
+    /*
+     * IN THE BROWSER. This test took no `page` fixture, so `new Date(...)` and
+     * resolveOpportunityDate both ran in Node's V8 — it lived inside a
+     * describe named "WebKit / Safari", ran under the webkit project, and never
+     * opened a browser. The exact divergence the file header names (Safari
+     * rejecting '2026-09-01T13:00') could not have been detected by it.
+     *
+     * The parsing halves run through page.evaluate. The pure-function half
+     * still runs in Node, which is correct — resolveOpportunityDate is
+     * platform-independent logic and is covered properly by property-fuzz;
+     * what belongs here is the ENGINE's date parsing.
+     */
+    await page.goto('/');
 
-    // The exact shape the app stores and re-reads.
+    const iso = '2026-09-01T13:00:00Z';
+    const isoOk = await page.evaluate((v) => !Number.isNaN(new Date(v).getTime()), iso);
+    expect(isoOk, 'WebKit could not parse an ISO date with a Z offset').toBe(true);
+
+    // The exact shape the app stores and re-reads: a datetime-local value with
+    // no zone. This is the one Safari has historically been strict about.
     const local = '2026-09-01T13:00';
-    expect(Number.isNaN(new Date(local).getTime())).toBe(false);
+    const localOk = await page.evaluate((v) => !Number.isNaN(new Date(v).getTime()), local);
+    expect(localOk, 'WebKit could not parse the stored datetime-local shape').toBe(true);
+
+    // And it must resolve to the SAME instant Node resolved, or students see a
+    // different day in Safari than the organisation entered.
+    const webkitMs = await page.evaluate((v) => new Date(v).getTime(), local);
+    expect(webkitMs, 'WebKit and Node disagree on the stored date').toBe(new Date(local).getTime());
 
     const from = new Date('2026-08-14T09:00:00Z');
     const single = resolveOpportunityDate('single', local, [], from);
-    expect(Number.isNaN(single.getTime()), 'WebKit could not parse the stored date').toBe(false);
+    expect(Number.isNaN(single.getTime()), 'the stored date did not resolve').toBe(false);
+    expect(single.getTime(), 'resolveOpportunityDate did not return the stored instant')
+      .toBe(new Date(local).getTime());
 
-    // The recurring path is the timezone-sensitive one: a weekday plus a start
-    // time, resolved against "now".
+    /*
+     * 'Mon', not 'Monday'. The app stores the three-letter form — property-fuzz
+     * documents this and warns that "a test using 'Monday' silently exercises
+     * the FALLBACK path instead of the logic". The fallback returns `from`
+     * unchanged, which trivially satisfies a !isNaN assertion, so this test was
+     * passing without ever reaching the recurring resolver.
+     */
     const recurring = resolveOpportunityDate(
-      'recurring', '', [{ day: 'Monday', startTime: '09:00', endTime: '12:00' } as any], from,
+      'recurring', '', [{ day: 'Mon', startTime: '09:00', endTime: '12:00' } as any], from,
     );
     expect(Number.isNaN(recurring.getTime()), 'WebKit could not resolve a recurring shift').toBe(false);
+    expect(recurring.getTime(), 'the recurring shift fell back to `from` instead of resolving')
+      .not.toBe(from.getTime());
+    expect(recurring.getDay(), 'a Monday shift did not resolve to a Monday').toBe(1);
   });
 
   test('a blocked localStorage does not white-screen the app', async ({ page }) => {

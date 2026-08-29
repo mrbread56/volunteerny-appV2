@@ -302,7 +302,12 @@ export default function StudentDashboard() {
       organization: logOrg,
       hours: parsedHours,
       date: logDate,
-      coordinatorName: logCoordinator || "Supervisor",
+      // No literal. certificate.ts prints this under "Coordinator Supervisor
+      // Details" on the transcript a student hands to a guidance office, and the
+      // form does not require the field — so leaving it blank produced a
+      // supervisor named "Supervisor" on an official-looking record. Same rule
+      // as the receipt and the certificate: an empty cell is honest.
+      coordinatorName: logCoordinator || "",
       coordinatorContact: normalizedContact,
       // Present whenever the request came from a real placement; absent for the
       // "Other / Unlisted" branch, which has no organisation account behind it.
@@ -1759,12 +1764,31 @@ export default function StudentDashboard() {
               <p className="text-xs text-ink-soft mt-1">A summary of hours confirmed on Volunteer North York. Not an official school document.</p>
             </div>
 
-            {/* Student Info Box */}
+            {/*
+              * Student Info Box — no invented identity, same rule as the
+              * receipt above and as certificate.ts.
+              *
+              * These were `|| "Toronto Secondary"`, `|| "11"` and
+              * `|| "North York"`. This is the sheet a student gets when the
+              * print popup is BLOCKED, which is the normal case on mobile Safari
+              * and on a school-managed browser — and it carries "Supervisor
+              * Signature & Stamp" and "Guidance Counselor Approval Date" boxes,
+              * so it reads as a signable record. A student handing that to a
+              * guidance office was naming a school they have never attended.
+              *
+              * A row that is left out is honest. A row that is wrong is not.
+              */}
             <div className="bg-paper-2/70 border border-line p-6 rounded-lg grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div><strong>Student Name:</strong> <span className="text-ink font-bold">{studentProfile?.fullName || "Name not set"}</span></div>
-              <div><strong>Academic School:</strong> <span className="text-ink font-bold">{studentProfile?.school || "Toronto Secondary"}</span></div>
-              <div><strong>Grade:</strong> <span className="text-ink font-bold">Grade {studentProfile?.grade || "11"}</span></div>
-              <div><strong>Toronto Neighborhood:</strong> <span className="text-ink font-bold">{studentProfile?.neighborhood || "North York"}</span></div>
+              <div><strong>Student Name:</strong> <span className="text-ink font-bold">{studentProfile?.fullName || "Not set"}</span></div>
+              {studentProfile?.school && (
+                <div><strong>School:</strong> <span className="text-ink font-bold">{studentProfile.school}</span></div>
+              )}
+              {studentProfile?.grade && (
+                <div><strong>Grade:</strong> <span className="text-ink font-bold">Grade {studentProfile.grade}</span></div>
+              )}
+              {studentProfile?.neighborhood && (
+                <div><strong>Neighbourhood:</strong> <span className="text-ink font-bold">{studentProfile.neighborhood}</span></div>
+              )}
             </div>
 
             {/* List Of Hours */}

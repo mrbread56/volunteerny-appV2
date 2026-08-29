@@ -18,6 +18,10 @@ test.describe.configure({ mode: 'serial' });
 const a: any = (admin as any).default || admin;
 const stamp = Date.now();
 const DEV = { email: `metrics_dev_${stamp}@example.com`, uid: '' };
+// A real student, because the "a student cannot reach the metrics tab" test
+// used to sign in as nobody and therefore proved only that an anonymous visitor
+// is redirected.
+const STU = { email: `metrics_stu_${stamp}@example.com`, uid: '' };
 const PASSWORD = 'metricsTab!123';
 
 let adminApp: any = null;
@@ -37,12 +41,29 @@ test.beforeAll(async () => {
     uid: DEV.uid, email: DEV.email, role: 'developer',
     twoFactorEnabled: false, createdAt: new Date(),
   });
+
+  const stu = await adminApp.auth().createUser({ email: STU.email, password: PASSWORD, emailVerified: true });
+  STU.uid = stu.uid;
+  await db.collection('users').doc(STU.uid).set({
+    uid: STU.uid, email: STU.email, role: 'student',
+    twoFactorEnabled: false, createdAt: new Date(),
+  });
+  await db.collection('students').doc(STU.uid).set({
+    uid: STU.uid, fullName: 'Metrics Student', school: 'Earl Haig Secondary School',
+    grade: '11', neighborhood: 'Willowdale', interests: [], skills: [],
+    availability: [], resumeUrl: '', trackerEnabled: false,
+  });
 });
 
 test.afterAll(async () => {
   if (!DEV.uid) return;
   await db.collection('users').doc(DEV.uid).delete().catch(() => {});
   await adminApp.auth().deleteUser(DEV.uid).catch(() => {});
+  if (STU.uid) {
+    await db.collection('users').doc(STU.uid).delete().catch(() => {});
+    await db.collection('students').doc(STU.uid).delete().catch(() => {});
+    await adminApp.auth().deleteUser(STU.uid).catch(() => {});
+  }
 });
 
 test('a developer sees real signal, separated from vanity counts', async ({ page }) => {
@@ -74,6 +95,21 @@ test('a developer sees real signal, separated from vanity counts', async ({ page
 
 test('a student cannot reach the metrics tab at all', async ({ page }) => {
   test.setTimeout(120000);
+  /*
+   * Signed in AS A STUDENT, which the test name always claimed and the body
+   * never did. There was no sign-in here at all, so it asserted that an
+   * ANONYMOUS visitor is redirected — something any auth guard does, and which
+   * would keep passing if students were granted the developer console outright.
+   */
+  await page.goto('/login');
+  await page.waitForSelector('input[type="email"]', { timeout: 20000 });
+  await page.fill('input[type="email"]', STU.email);
+  await page.fill('input[type="password"]', PASSWORD);
+  await page.click('button[type="submit"]');
+  await page.waitForURL(/\/student\//, { timeout: 40000 });
+  await expect(page, 'the student fixture did not sign in, so this proved nothing')
+    .not.toHaveURL(/\/login/);
+
   // The route guard should stop this well before the endpoint's 403 matters.
   await page.goto('/developer/dashboard');
   await expect(page).not.toHaveURL(/\/developer\/dashboard/, { timeout: 30000 });

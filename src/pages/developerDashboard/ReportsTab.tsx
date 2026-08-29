@@ -111,7 +111,18 @@ export default function ReportsTab({
                       </div>
 
                       <div className="text-ink-muted text-xs font-semibold shrink-0 font-mono">
-                        {report.createdAt ? new Date(report.createdAt).toLocaleDateString() : 'N/A'}
+                        {report.createdAt ? new Date(
+                      // A Firestore Timestamp, not a string. ReportModal writes
+                      // serverTimestamp() and isValidReport REQUIRES `is
+                      // timestamp`, so passing it straight to new Date() gave
+                      // "Invalid Date" on every real report — while demo mode,
+                      // which writes an ISO string, rendered correctly. The
+                      // loader that feeds this component already handles the
+                      // shape, as do both sibling renderers.
+                      (report.createdAt as any)?.seconds
+                        ? (report.createdAt as any).seconds * 1000
+                        : report.createdAt,
+                    ).toLocaleDateString() : 'N/A'}
                       </div>
                     </div>
 

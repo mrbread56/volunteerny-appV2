@@ -53,6 +53,59 @@ const asUser = (uid: string, claims: Record<string, unknown> = {}) =>
     .firestore() as any;
 const asAnon = () => env.unauthenticatedContext().firestore() as any;
 
+/**
+ * A developer session as it really exists.
+ *
+ * mfaSatisfied() no longer treats an ABSENT twoFactorEnabled as "off" for a
+ * non-student, so a developer needs the same per-sign-in claim a real one
+ * carries after passing the challenge. A fixture without it was testing an
+ * account that cannot sign in.
+ */
+const DEV_AUTH_TIME = 1786700000;
+
+/**
+ * An ORGANISATION session as it really exists.
+ *
+ * Two-factor is mandatory for organisations — Signup writes twoFactorEnabled
+ * true and firestore.rules refuses any non-student write of false — so a real
+ * organisation reaches the database only after passing the challenge, carrying
+ * the per-sign-in claim that produces. The old fixture carried none, and passed
+ * anyway because mfaSatisfied()'s two defaults collided at zero: an absent
+ * mfaVerifiedFor read as 0 and an absent auth_time read as 0, so an
+ * organisation with NO claim satisfied the gate. An emulator probe found it.
+ *
+ * With the defaults separated, a claimless fixture is correctly denied — which
+ * is the right answer for a session that cannot exist. These helpers give the
+ * organisations the claim a real one holds, so the suite tests the app rather
+ * than an impossible account.
+ */
+const asOrg = () =>
+  env
+    .authenticatedContext(ORG, {
+      email: `${ORG}@example.com`, email_verified: true,
+      auth_time: DEV_AUTH_TIME, mfaVerified: true, mfaVerifiedFor: DEV_AUTH_TIME,
+    })
+    .firestore() as any;
+
+const asOrg2 = () =>
+  env
+    .authenticatedContext(ORG2, {
+      email: `${ORG2}@example.com`, email_verified: true,
+      auth_time: DEV_AUTH_TIME, mfaVerified: true, mfaVerifiedFor: DEV_AUTH_TIME,
+    })
+    .firestore() as any;
+
+const asDev = () =>
+  env
+    .authenticatedContext(DEV, {
+      email: `${DEV}@example.com`,
+      email_verified: true,
+      auth_time: DEV_AUTH_TIME,
+      mfaVerified: true,
+      mfaVerifiedFor: DEV_AUTH_TIME,
+    })
+    .firestore() as any;
+
 /** Write fixtures with the rules switched off, the way a seeded database looks. */
 async function seed(fn: (db: any) => Promise<void>) {
   await env.withSecurityRulesDisabled(async (ctx) => {
@@ -112,9 +165,9 @@ test.beforeEach(async () => {
 test.describe('users/{uid}', () => {
   test('an account is readable by its owner and by a developer, and by nobody else', async () => {
     await assertSucceeds(getDoc(doc(asUser(STUDENT), 'users', STUDENT)));
-    await assertSucceeds(getDoc(doc(asUser(DEV), 'users', STUDENT)));
+    await assertSucceeds(getDoc(doc(asDev(), 'users', STUDENT)));
     await assertFails(getDoc(doc(asUser(STUDENT2), 'users', STUDENT)));
-    await assertFails(getDoc(doc(asUser(ORG), 'users', STUDENT)));
+    await assertFails(getDoc(doc(asOrg(), 'users', STUDENT)));
     await assertFails(getDoc(doc(asAnon(), 'users', STUDENT)));
   });
 
@@ -138,8 +191,8 @@ test.describe('users/{uid}', () => {
     await assertSucceeds(updateDoc(doc(asUser(STUDENT), 'users', STUDENT), { twoFactorEnabled: false }));
     // The whole point of the rule: an org opting out of 2FA is a privilege
     // downgrade on the highest-value accounts on the platform.
-    await assertFails(updateDoc(doc(asUser(ORG), 'users', ORG), { twoFactorEnabled: false }));
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'users', ORG), { twoFactorEnabled: true }));
+    await assertFails(updateDoc(doc(asOrg(), 'users', ORG), { twoFactorEnabled: false }));
+    await assertSucceeds(updateDoc(doc(asOrg(), 'users', ORG), { twoFactorEnabled: true }));
   });
 
   test('an organization cannot opt out of two-factor at CREATION', async () => {
@@ -173,7 +226,7 @@ test.describe('users/{uid}', () => {
 
   test('no account may change its own role', async () => {
     await assertFails(updateDoc(doc(asUser(STUDENT), 'users', STUDENT), { role: 'developer' }));
-    await assertFails(updateDoc(doc(asUser(ORG), 'users', ORG), { role: 'developer' }));
+    await assertFails(updateDoc(doc(asOrg(), 'users', ORG), { role: 'developer' }));
   });
 
   test('an account cannot be used as free storage', async () => {
@@ -187,7 +240,7 @@ test.describe('users/{uid}', () => {
   test('accounts cannot be deleted from a browser, or enumerated', async () => {
     await assertFails(deleteDoc(doc(asUser(STUDENT), 'users', STUDENT)));
     await assertFails(getDocs(collection(asUser(STUDENT), 'users')));
-    await assertSucceeds(getDocs(collection(asUser(DEV), 'users')));
+    await assertSucceeds(getDocs(collection(asDev(), 'users')));
   });
 });
 
@@ -198,7 +251,7 @@ test.describe('students/{uid}', () => {
     await assertSucceeds(getDoc(doc(asUser(STUDENT), 'students', STUDENT)));
     // These documents carry resumeUrl and passportUrl. An org reading any
     // student by uid was a whole-identity leak.
-    await assertFails(getDoc(doc(asUser(ORG), 'students', STUDENT)));
+    await assertFails(getDoc(doc(asOrg(), 'students', STUDENT)));
     await assertFails(getDoc(doc(asUser(STUDENT2), 'students', STUDENT)));
   });
 
@@ -284,7 +337,7 @@ test.describe('organizations/{uid}', () => {
   });
 
   test('an organization may put itself IN the review queue', async () => {
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'organizations', ORG), {
+    await assertSucceeds(updateDoc(doc(asOrg(), 'organizations', ORG), {
       verificationStatus: 'pending',
     }));
   });
@@ -297,20 +350,20 @@ test.describe('organizations/{uid}', () => {
     await seed(async (db) => {
       await updateDoc(doc(db, 'organizations', ORG), { verificationStatus: 'unverified' });
     });
-    await assertFails(updateDoc(doc(asUser(ORG), 'organizations', ORG), {
+    await assertFails(updateDoc(doc(asOrg(), 'organizations', ORG), {
       verificationStatus: 'verified',
     }));
-    await assertFails(updateDoc(doc(asUser(ORG), 'organizations', ORG), { craVerified: true }));
+    await assertFails(updateDoc(doc(asOrg(), 'organizations', ORG), { craVerified: true }));
   });
 
   test('a developer can decide a verification', async () => {
-    await assertSucceeds(updateDoc(doc(asUser(DEV), 'organizations', ORG), {
+    await assertSucceeds(updateDoc(doc(asDev(), 'organizations', ORG), {
       verificationStatus: 'verified',
     }));
   });
 
   test("an organization cannot edit another organization", async () => {
-    await assertFails(updateDoc(doc(asUser(ORG2), 'organizations', ORG), {
+    await assertFails(updateDoc(doc(asOrg2(), 'organizations', ORG), {
       organizationName: 'Hijacked',
     }));
   });
@@ -343,8 +396,8 @@ test.describe('opportunities/{id}', () => {
   });
 
   test('an organization can post only under its own id', async () => {
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'new_opp'), validOpp(ORG)));
-    await assertFails(setDoc(doc(asUser(ORG2), 'opportunities', 'forged'), validOpp(ORG)));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'new_opp'), validOpp(ORG)));
+    await assertFails(setDoc(doc(asOrg2(), 'opportunities', 'forged'), validOpp(ORG)));
   });
 
   test('a student cannot post an opportunity', async () => {
@@ -352,33 +405,33 @@ test.describe('opportunities/{id}', () => {
   });
 
   test('field limits and the status enum are enforced', async () => {
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'too_long'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'too_long'), {
       ...validOpp(ORG), title: 'x'.repeat(101),
     }));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'bad_status'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'bad_status'), {
       ...validOpp(ORG), status: 'whatever',
     }));
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'closed_ok'), {
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'closed_ok'), {
       ...validOpp(ORG), status: 'closed',
     }));
   });
 
   test('unknown fields are refused, so a posting cannot become free storage', async () => {
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'padded'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'padded'), {
       ...validOpp(ORG), junk: 'x'.repeat(5000),
     }));
   });
 
   test('only the owner can edit or delete a posting', async () => {
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'opportunities', 'opp_1'), { title: 'Renamed' }));
-    await assertFails(updateDoc(doc(asUser(ORG2), 'opportunities', 'opp_1'), { title: 'Hijacked' }));
+    await assertSucceeds(updateDoc(doc(asOrg(), 'opportunities', 'opp_1'), { title: 'Renamed' }));
+    await assertFails(updateDoc(doc(asOrg2(), 'opportunities', 'opp_1'), { title: 'Hijacked' }));
     await assertFails(updateDoc(doc(asUser(STUDENT), 'opportunities', 'opp_1'), { title: 'Hijacked' }));
-    await assertFails(deleteDoc(doc(asUser(ORG2), 'opportunities', 'opp_1')));
-    await assertSucceeds(deleteDoc(doc(asUser(ORG), 'opportunities', 'opp_1')));
+    await assertFails(deleteDoc(doc(asOrg2(), 'opportunities', 'opp_1')));
+    await assertSucceeds(deleteDoc(doc(asOrg(), 'opportunities', 'opp_1')));
   });
 
   test('an owner cannot hand a posting to someone else', async () => {
-    await assertFails(updateDoc(doc(asUser(ORG), 'opportunities', 'opp_1'), { orgId: ORG2 }));
+    await assertFails(updateDoc(doc(asOrg(), 'opportunities', 'opp_1'), { orgId: ORG2 }));
   });
 });
 
@@ -417,8 +470,8 @@ test.describe('applications/{id}', () => {
 
   test('the owning organization decides; an unrelated one cannot', async () => {
     await seed(async (db) => { await setDoc(doc(db, 'applications', appId), validApp(STUDENT)); });
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'applications', appId), { status: 'accepted' }));
-    await assertFails(updateDoc(doc(asUser(ORG2), 'applications', appId), { status: 'accepted' }));
+    await assertSucceeds(updateDoc(doc(asOrg(), 'applications', appId), { status: 'accepted' }));
+    await assertFails(updateDoc(doc(asOrg2(), 'applications', appId), { status: 'accepted' }));
   });
 
   test('free-text fields on an application are bounded', async () => {
@@ -493,7 +546,7 @@ test.describe('a suspended account', () => {
     await seed(async (db) => {
       await updateDoc(doc(db, 'users', ORG), { isBanned: true });
     });
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'banned_opp'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'banned_opp'), {
       orgId: ORG, orgName: 'Org One', title: 'Still posting', description: 'd',
       location: 'l', category: 'Environment', requirements: '', maxVolunteers: 5,
       skillsNeeded: [], exclusives: [], timeCommitment: 'One-time', isVirtual: false,
@@ -544,13 +597,13 @@ test.describe('free text is bounded everywhere it is accepted', () => {
   test('an opportunity cannot carry unbounded text to every public visitor', async () => {
     // This collection is world-readable, so an unbounded field here is served
     // to unauthenticated browsers.
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'fat_opp'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'fat_opp'), {
       ...oppBase(), location: 'x'.repeat(900000),
     }));
   });
 
   test('capacity cannot be negative', async () => {
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'neg_opp'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'neg_opp'), {
       ...oppBase(), maxVolunteers: -5,
     }));
   });
@@ -560,7 +613,7 @@ test.describe('free text is bounded everywhere it is accepted', () => {
 
 test.describe('collections only the server may write', () => {
   test('a reference cannot be forged from a browser', async () => {
-    await assertFails(setDoc(doc(asUser(ORG), 'recommendations', 'rec1'), {
+    await assertFails(setDoc(doc(asOrg(), 'recommendations', 'rec1'), {
       studentId: STUDENT, orgId: ORG, text: 'Excellent', createdAt: new Date().toISOString(),
     }));
     await assertFails(setDoc(doc(asUser(STUDENT), 'recommendations', 'rec2'), {
@@ -577,7 +630,7 @@ test.describe('collections only the server may write', () => {
   test('the default-deny catch-all holds for a collection nobody defined', async () => {
     await assertFails(setDoc(doc(asUser(STUDENT), 'chats', 'c1'), { text: 'hi' }));
     await assertFails(getDocs(collection(asUser(STUDENT), 'messages')));
-    await assertFails(setDoc(doc(asUser(DEV), 'somethingInvented', 'x'), { a: 1 }));
+    await assertFails(setDoc(doc(asDev(), 'somethingInvented', 'x'), { a: 1 }));
   });
 });
 
@@ -786,8 +839,8 @@ test.describe('caps are pinned at their boundary, not merely "somewhere"', () =>
       timeCommitment: 'One-time', isVirtual: false,
       dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
     });
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'b_desc_ok'), opp('x'.repeat(5000))));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'b_desc_over'), opp('x'.repeat(5001))));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'b_desc_ok'), opp('x'.repeat(5000))));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'b_desc_over'), opp('x'.repeat(5001))));
   });
 
   test('an opportunity title is capped at 100, exactly', async () => {
@@ -798,8 +851,8 @@ test.describe('caps are pinned at their boundary, not merely "somewhere"', () =>
       timeCommitment: 'One-time', isVirtual: false,
       dateTime: new Date('2026-09-01T13:00:00Z'), createdAt: serverTimestamp(),
     });
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'b_title_ok'), opp('x'.repeat(100))));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'b_title_over'), opp('x'.repeat(101))));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'b_title_ok'), opp('x'.repeat(100))));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'b_title_over'), opp('x'.repeat(101))));
   });
 
   test('a report description is capped at 5000, exactly', async () => {
@@ -856,7 +909,7 @@ test.describe('organizationType and its "Other" free text', () => {
   });
 
   test('an organization can change its type later', async () => {
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'organizations', ORG), {
+    await assertSucceeds(updateDoc(doc(asOrg(), 'organizations', ORG), {
       organizationType: 'Other', organizationTypeOther: 'Neighbourhood tool library',
     }));
   });
@@ -881,29 +934,29 @@ test.describe('opportunity posting is gated on real verification', () => {
     // organization could put an opportunity in front of minors within a minute
     // of signing up, with no person ever reviewing it.
     await setStatus('unverified');
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'unver_opp'), opp(ORG)));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'unver_opp'), opp(ORG)));
   });
 
   test('an organization AWAITING review cannot publish yet', async () => {
     await setStatus('pending');
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'pending_opp'), opp(ORG)));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'pending_opp'), opp(ORG)));
   });
 
   test('a REJECTED organization cannot publish', async () => {
     await setStatus('rejected');
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'rejected_opp'), opp(ORG)));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'rejected_opp'), opp(ORG)));
   });
 
   test('a VERIFIED organization can publish', async () => {
     await setStatus('verified');
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'verified_opp'), opp(ORG)));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'verified_opp'), opp(ORG)));
   });
 
   test('an organization that loses verification cannot keep editing a live posting', async () => {
     await setStatus('verified');
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'live_opp'), opp(ORG)));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'live_opp'), opp(ORG)));
     await setStatus('rejected');
-    await assertFails(updateDoc(doc(asUser(ORG), 'opportunities', 'live_opp'), { title: 'Edited after rejection' }));
+    await assertFails(updateDoc(doc(asOrg(), 'opportunities', 'live_opp'), { title: 'Edited after rejection' }));
   });
 
   test('...but it can still withdraw its own posting', async () => {
@@ -911,9 +964,9 @@ test.describe('opportunity posting is gated on real verification', () => {
     // it removes their listing from in front of students, which is the outcome
     // everyone wants. Blocking it would strand the posting.
     await setStatus('verified');
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'withdraw_opp'), opp(ORG)));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'withdraw_opp'), opp(ORG)));
     await setStatus('rejected');
-    await assertSucceeds(deleteDoc(doc(asUser(ORG), 'opportunities', 'withdraw_opp')));
+    await assertSucceeds(deleteDoc(doc(asOrg(), 'opportunities', 'withdraw_opp')));
   });
 
 });
@@ -929,15 +982,15 @@ test.describe('minAge on an opportunity', () => {
   });
 
   test('a sensible minimum age is accepted, and absent is fine', async () => {
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_16'), opp({ minAge: 16 })));
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_none'), opp({})));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'age_16'), opp({ minAge: 16 })));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'age_none'), opp({})));
   });
 
   test('it must be a whole number in a sane range', async () => {
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_neg'), opp({ minAge: -1 })));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_huge'), opp({ minAge: 999 })));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_str'), opp({ minAge: '16' })));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'age_frac'), opp({ minAge: 16.5 })));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'age_neg'), opp({ minAge: -1 })));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'age_huge'), opp({ minAge: 999 })));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'age_str'), opp({ minAge: '16' })));
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'age_frac'), opp({ minAge: 16.5 })));
   });
 
   test('it can be changed later', async () => {
@@ -946,8 +999,8 @@ test.describe('minAge on an opportunity', () => {
     // already happened twice in this file — with updatedAt, and with the
     // 'reviewed' status — and both times it passed locally because demo mode
     // never reaches Firestore.
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'age_edit'), opp({ minAge: 14 })));
-    await assertSucceeds(updateDoc(doc(asUser(ORG), 'opportunities', 'age_edit'), { minAge: 18 }));
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'age_edit'), opp({ minAge: 14 })));
+    await assertSucceeds(updateDoc(doc(asOrg(), 'opportunities', 'age_edit'), { minAge: 18 }));
   });
 });
 
@@ -966,10 +1019,10 @@ test.describe('metrics/public', () => {
 
   test('nobody can write them from a browser', async () => {
     await assertFails(setDoc(doc(asUser(STUDENT), 'metrics', 'public'), { hoursConfirmed: 999999 }));
-    await assertFails(setDoc(doc(asUser(ORG), 'metrics', 'public'), { hoursConfirmed: 999999 }));
+    await assertFails(setDoc(doc(asOrg(), 'metrics', 'public'), { hoursConfirmed: 999999 }));
     // Not even a developer: this is a server-computed aggregate, and a
     // hand-edited counter is worse than no counter.
-    await assertFails(setDoc(doc(asUser(DEV), 'metrics', 'public'), { hoursConfirmed: 999999 }));
+    await assertFails(setDoc(doc(asDev(), 'metrics', 'public'), { hoursConfirmed: 999999 }));
   });
 
   test('no other document in the collection is readable', async () => {
@@ -991,14 +1044,14 @@ test.describe('mfaBackupCodes', () => {
     // Reading your own document would leak the hashes, and hashes are the only
     // thing standing between a database copy and a working second factor.
     await assertFails(getDoc(doc(asUser(STUDENT), 'mfaBackupCodes', STUDENT)));
-    await assertFails(getDoc(doc(asUser(DEV), 'mfaBackupCodes', STUDENT)));
+    await assertFails(getDoc(doc(asDev(), 'mfaBackupCodes', STUDENT)));
     await assertFails(getDoc(doc(asAnon(), 'mfaBackupCodes', STUDENT)));
   });
 
   test('nobody can write them either', async () => {
     // A write would let someone mark a spent code unused and replay it.
     await assertFails(setDoc(doc(asUser(STUDENT), 'mfaBackupCodes', STUDENT), { hashes: [] }));
-    await assertFails(setDoc(doc(asUser(DEV), 'mfaBackupCodes', STUDENT), { hashes: [] }));
+    await assertFails(setDoc(doc(asDev(), 'mfaBackupCodes', STUDENT), { hashes: [] }));
   });
 });
 
@@ -1026,16 +1079,16 @@ test.describe('a suspended organisation loses its READS, not just its writes', (
 
     // The ALLOW case first, so a later blanket denial cannot masquerade as this
     // test passing.
-    await assertSucceeds(getDoc(doc(asUser(ORG), 'applications', appId)));
+    await assertSucceeds(getDoc(doc(asOrg(), 'applications', appId)));
 
     await assertSucceeds(getDocs(query(
-      collection(asUser(ORG), 'applications'), where('opportunityId', 'in', ['opp_1']),
+      collection(asOrg(), 'applications'), where('opportunityId', 'in', ['opp_1']),
     )));
 
     await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
-    await assertFails(getDoc(doc(asUser(ORG), 'applications', appId)));
+    await assertFails(getDoc(doc(asOrg(), 'applications', appId)));
     await assertFails(getDocs(query(
-      collection(asUser(ORG), 'applications'), where('opportunityId', 'in', ['opp_1']),
+      collection(asOrg(), 'applications'), where('opportunityId', 'in', ['opp_1']),
     )));
     // The student it is about keeps their own copy either way.
     await assertSucceeds(getDoc(doc(asUser(STUDENT), 'applications', appId)));
@@ -1051,19 +1104,19 @@ test.describe('a suspended organisation loses its READS, not just its writes', (
         orgId: ORG, status: 'pending', requestedAt: '2026-02-01T00:00:00Z',
       });
     });
-    await assertSucceeds(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
+    await assertSucceeds(getDoc(doc(asOrg(), 'hoursRequests', 'hr_ban_1')));
 
     // The QUERY, not just the single-document read. Nothing in the app ever
     // reads an hours request by id: both org paths are queries, so `list` is
     // the rule the exploit actually used and the one that has to deny.
     await assertSucceeds(getDocs(query(
-      collection(asUser(ORG), 'hoursRequests'), where('orgId', '==', ORG),
+      collection(asOrg(), 'hoursRequests'), where('orgId', '==', ORG),
     )));
 
     await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
-    await assertFails(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
+    await assertFails(getDoc(doc(asOrg(), 'hoursRequests', 'hr_ban_1')));
     await assertFails(getDocs(query(
-      collection(asUser(ORG), 'hoursRequests'), where('orgId', '==', ORG),
+      collection(asOrg(), 'hoursRequests'), where('orgId', '==', ORG),
     )));
   });
 });
@@ -1101,17 +1154,25 @@ test.describe('keys that were permitted but never validated', () => {
       northYorkConfirmed: true, verificationStatus: 'pending',
     };
     await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
-    await assertSucceeds(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: '119219814RR0001' }));
+    await assertSucceeds(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, craNumber: '119219814RR0001' }));
 
     // The developer console renders {org.craNumber} straight into JSX. React
     // throws on a raw object child, so one organisation writing this took the
     // ENTIRE verification queue down behind the ErrorBoundary, for every other
     // organisation waiting in it.
     await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
-    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: { evil: true } }));
-    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, craNumber: 'x'.repeat(500) }));
-    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, hasCra: 'yes' }));
-    await assertFails(setDoc(doc(asUser(ORG2), 'organizations', ORG2), { ...base, description: 'd'.repeat(6000) }));
+    await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, craNumber: { evil: true } }));
+    await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, craNumber: 'x'.repeat(500) }));
+    // A SHORT string is deliberately accepted. isValidOrganization also runs on
+    // UPDATE against the merged document, and every organisation created before
+    // the bool fix stores "yes"/"no" — a strict `is bool` made a one-field
+    // profile edit fail against a value the write never touched. The bound is
+    // what matters; the type is not worth locking those accounts out over.
+    await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
+    await assertSucceeds(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, hasCra: 'yes' }));
+    await seed(async (db) => { await deleteDoc(doc(db, 'organizations', ORG2)); });
+    await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, hasCra: 'x'.repeat(50) }));
+    await assertFails(setDoc(doc(asOrg2(), 'organizations', ORG2), { ...base, description: 'd'.repeat(6000) }));
   });
 
   test('dateTime has to be a timestamp on a publicly readable collection', async () => {
@@ -1122,23 +1183,23 @@ test.describe('keys that were permitted but never validated', () => {
       exclusives: [], timeCommitment: 'One-time', isVirtual: false,
       createdAt: serverTimestamp(),
     };
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'dt_ok'), {
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'dt_ok'), {
       ...base, dateTime: new Date('2026-09-01T13:00:00Z'),
     }));
     // A short ISO string is accepted, because isValidOpportunity also runs on
     // UPDATE against the merged document: a strict `is timestamp` would have
     // made any posting already storing a string impossible for its owner to
     // close or reopen.
-    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'dt_iso'), {
+    await assertSucceeds(setDoc(doc(asOrg(), 'opportunities', 'dt_iso'), {
       ...base, dateTime: new Date('2026-09-01T13:00:00Z').toISOString(),
     }));
     // opportunities is `allow read: if true`, so anything unbounded here is
     // downloaded by every signed-out visitor to the browse page. The bound is
     // the point; the exact type is not.
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'dt_string'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'dt_string'), {
       ...base, dateTime: 'x'.repeat(100000),
     }));
-    await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'dt_list'), {
+    await assertFails(setDoc(doc(asOrg(), 'opportunities', 'dt_list'), {
       ...base, dateTime: new Date('2026-09-01T13:00:00Z'),
       skillsNeeded: Array.from({ length: 200 }, (_, i) => `skill-${i}`),
     }));

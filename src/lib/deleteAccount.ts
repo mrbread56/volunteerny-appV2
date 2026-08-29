@@ -46,7 +46,7 @@ export async function deleteOwnAccount(confirmEmail: string): Promise<void> {
  * to it stranded — unreachable by the organization and unresolvable for the
  * student. The endpoint also emails anyone whose live application it closes.
  */
-export async function deleteOpportunityWithDependents(opportunityId: string): Promise<void> {
+export async function deleteOpportunityWithDependents(opportunityId: string): Promise<{ deleteFailures: number }> {
   const user = auth.currentUser;
   if (!user) throw new Error('You are not signed in.');
 
@@ -60,4 +60,10 @@ export async function deleteOpportunityWithDependents(opportunityId: string): Pr
   if (!response.ok || !result?.success) {
     throw new Error(result?.error || `The opportunity was not deleted (${response.status}).`);
   }
+  // deleteFailures is returned by the route and was thrown away here, so an
+  // organisation was navigated back to the dashboard reading "Deleted" while
+  // some applications survived the batch — pointing at an opportunity that no
+  // longer exists. That is precisely the orphan state check:integrity was
+  // written to DETECT, and that script is explicitly read-only.
+  return { deleteFailures: Number(result?.deleteFailures) || 0 };
 }

@@ -47,17 +47,39 @@ service cloud.firestore {
     // Organizations and developers cannot reach it — the users rules refuse any
     // non-student write of `false`, on both create and update.
     //
-    // Scope, deliberately: this gates WRITES, through the two role helpers
-    // below. It is NOT added to the applications `list` rule, which already
-    // spends all ten of Firestore's document accesses per query (exists() +
-    // get() on the parent opportunity, times five). Adding an eleventh would
-    // break every organization's applicant list at their fifth posting — the
-    // exact failure that rule's comment records. Reads therefore remain scoped
-    // by ownership alone, which means a stolen password can still READ what
-    // that account owns. Closing that needs the read paths restructured, not
-    // one more get(); tracked as ROADMAP B16.
+    // Scope: this gates every WRITE through the two role helpers below, and —
+    // since isDeveloper() began calling it — every developer READ as well. It
+    // is still NOT applied directly to the applications `list` rule for a
+    // STUDENT or ORGANISATION caller, which already spends most of Firestore's
+    // per-query document budget (exists() + get() on the parent opportunity,
+    // per id in the chunk) and would break every organisation's applicant list.
+    // Ordinary reads therefore remain scoped by ownership alone, which means a
+    // stolen password can still READ what that account owns. Closing that needs
+    // the read paths restructured, not one more get(); tracked as ROADMAP B16.
+    //
+    // The client chunk size is the counterweight: see the note on that rule
+    // before changing either.
     function mfaSatisfied() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('twoFactorEnabled', false) == false ||
+      // The opt-out clause requires the caller to BE A STUDENT.
+      //
+      // It read `.get('twoFactorEnabled', false) == false`, with no role test —
+      // so an account whose users document PREDATES the field satisfied it
+      // unconditionally, while AuthContext defaults the same absence to ON for
+      // organisations and developers. The two layers disagreed in the dangerous
+      // direction, and the oldest account in the system is the allowlisted
+      // developer, so the exact threat isDeveloper()'s MFA check was added to
+      // close was still open for it.
+      //
+      // `!= true` rather than `== false`, deliberately: students may have the
+      // field absent OR explicitly false and must stay exempt either way.
+      // Requiring an explicit false here would lock out every student who
+      // predates the field, which is most of them — a much larger failure than
+      // the one being fixed, and the emulator caught it. Students are the only
+      // role permitted to turn two-factor off at all, which the users rules
+      // already enforce on both create and update, so naming the role here adds
+      // no new policy; it stops an ABSENT value from granting one.
+      return (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('twoFactorEnabled', false) != true &&
+       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'student') ||
              // The support escape hatch, and it MUST be honoured here as well as
              // in src/lib/mfa.ts. scripts/grant-mfa.ts opens this window to
              // unlock an organization whose 2FA code cannot reach them —
@@ -67,7 +89,16 @@ service cloud.firestore {
              // auth_time, which Firebase stamps, rather than any clock the
              // person being let in controls.
              request.auth.token.get('auth_time', 0) < request.auth.token.get('mfaGraceUntil', 0) ||
-             request.auth.token.get('mfaVerifiedFor', 0) == request.auth.token.get('auth_time', -1);
+             // Two DIFFERENT impossible defaults, so absence can never satisfy
+             // this by collision. mfaVerifiedFor defaulted to 0 while auth_time
+             // defaulted to -1 — which looks safe until a token actually
+             // carries auth_time: 0, at which point an absent claim equals a
+             // present one and the whole gate opens. An emulator probe hit
+             // exactly that: an organisation with no claim at all was allowed to
+             // post, because both sides read as 0. Real Firebase tokens carry a
+             // real auth_time, so production was not exposed — but a rule that
+             // depends on that is a rule that is true by luck.
+             request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1);
     }
 
     function isVerifiedStudent() {
@@ -288,7 +319,22 @@ service cloud.firestore {
              // ErrorBoundary, for every organisation waiting in it. 40 is
              // generous for a 15-character CRA number.
              (absent(data, 'description') || (data.description is string && data.description.size() <= 5000)) &&
-             (absent(data, 'hasCra') || data.hasCra is bool) &&
+             // BOUNDED, not typed — the same reasoning as scheduleType and
+             // dateTime below, which this file already applies and this line
+             // missed.
+             //
+             // isValidOrganization runs on UPDATE as well as create, and on an
+             // update incoming() is the MERGED document. Every organisation in
+             // the live database was created by a Signup that wrote the STRING
+             // "yes"/"no", so a strict `is bool` here made a one-field profile
+             // edit — changing a phone number, fixing a mission statement —
+             // fail permission-denied against a value the write never touched.
+             // Verified in the emulator: `update {mission}` on a stored
+             // hasCra: 'no' was DENIED. Production survived only because
+             // OrgProfile happens to rewrite the field as a bool on every save.
+             (absent(data, 'hasCra') ||
+               data.hasCra is bool ||
+               (data.hasCra is string && data.hasCra.size() <= 8)) &&
              (absent(data, 'craNumber') || (data.craNumber is string && data.craNumber.size() <= 40)) &&
              // OrgProfile writes exactly three: twitter, instagram, linkedin.
              (absent(data, 'socialLinks') || (data.socialLinks is map && data.socialLinks.size() <= 10)) &&
@@ -753,7 +799,13 @@ service cloud.firestore {
                       ((isApprovedOrg() &&
                         existing().orgId == request.auth.uid &&
                         isValidOpportunity(incoming())) || isDeveloper()) &&
-                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
+                      // orgName is in the CREATE allowlist and was missing here,
+                      // so no client could ever change it — including the
+                      // developer branch. An organisation that renames itself
+                      // left every existing posting showing the old name to
+                      // every browsing student, permanently, repairable only
+                      // with the Admin SDK. isValidOpportunity caps it at 200.
+                      incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt', 'orgName']);
       allow delete: if isOrgAccount() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
 
@@ -946,6 +998,20 @@ service cloud.firestore {
     // mostly minors, so no client may touch it — not even a developer. The
     // Admin SDK writes it and GET /api/email/history reads it there, behind the
     // verified developer allowlist.
+    /*
+     * A record that an account deletion left files behind in Cloud Storage.
+     *
+     * Server-only, like emailLog beside it: it names a uid and the paths that
+     * survived, which is data about someone who asked to be erased. The Admin
+     * SDK writes it and an operator reads it there. Written because the only
+     * previous record of this was a console line in a serverless function, and
+     * the remnant is a file about a minor behind a URL that bypasses
+     * storage.rules and never expires.
+     */
+    match /purgeIncidents/{incidentId} {
+      allow read, write: if false;
+    }
+
     match /emailLog/{entryId} {
       allow read, write: if false;
     }

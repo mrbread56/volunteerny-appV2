@@ -994,12 +994,21 @@ app.use(express.json());
     const snap = await dbAdmin
       .collection('students')
       .orderBy('hours', 'desc')
-      // 10x, not 2x. Under the old `trackerEnabled !== false` filter an absent
-      // field passed, so nearly everyone in the fetched window survived and
-      // double the target was ample slack. Now only explicit opt-ins pass, and
-      // opting in is deliberately rare — Signup writes false and the onboarding
-      // checkbox starts unticked. At 2x the board would silently render short
-      // and permanently omit opted-in students ranked past the window.
+      /*
+       * FOUR FIELDS, not whole documents.
+       *
+       * A student document carries resumeUrl as a base64 data URI capped at
+       * 400 000 characters, plus up to 500 loggedHours entries — the rules cap
+       * those fields precisely to keep the document under Firestore's 1 MiB
+       * ceiling. Fetching 1000 of them whole is up to several hundred megabytes
+       * materialised inside one Vercel invocation, which OOMs or times out, and
+       * then the board stops updating at all rather than rendering short.
+       * Widening the window from 2x to 10x multiplied that by five.
+       *
+       * select() makes the width of the fetch independent of what a student
+       * uploads, which is the property that actually matters here.
+       */
+      .select('hours', 'trackerEnabled', 'trackerAnonymous', 'fullName')
       .limit(LEADERBOARD_TOP_N * 10)
       .get();
 
@@ -1432,6 +1441,23 @@ app.use(express.json());
       const caller = callerSnap.exists ? callerSnap.data() : null;
       const isDeveloperCaller =
         caller?.role === 'developer' || isAllowlistedDeveloper(authContext);
+      /*
+       * The second factor, on the highest-privilege route in the app.
+       *
+       * hasPassedMfa existed and had exactly ONE call site
+       * (/api/auth/backup-codes). All three /api/admin/* routes gated on the
+       * caller's ROLE alone, which is a Firestore field — so a stolen or reused
+       * developer password was enough, with no code and no mailbox: sign in with
+       * the Firebase SDK, never load /mfa, call this with the raw ID token.
+       * src/routes/guards.tsx already carries the note "Developer status must
+       * NOT bypass MFA. It used to"; the client was fixed and this tier was not.
+       */
+      if (!hasPassedMfa(authContext)) {
+        logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'verify-org' });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before using developer tools.',
+        });
+      }
       if (!isDeveloperCaller) {
         return res.status(403).json({ error: 'Only a developer can verify an organization.' });
       }
@@ -1519,6 +1545,14 @@ app.use(express.json());
       const isDeveloperCaller =
         caller?.role === 'developer' ||
         isAllowlistedDeveloper(authContext);
+      // Same second-factor gate as the other two admin routes. This one returns
+      // every student's name, school and email.
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'admin/students' });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before using developer tools.',
+        });
+      }
       if (!isDeveloperCaller) {
         return res.status(403).json({ error: 'Only a developer can list students.' });
       }
@@ -1597,8 +1631,13 @@ app.use(express.json());
       // address empty meant the retry this fallback exists to enable still
       // skipped that collection, so every message ever sent to a deleted
       // account kept its address on file permanently.
+      // LOGIN email first. coordinatorContact holds the login address (both the
+      // dashboard query and the rules compare it to request.auth.token.email),
+      // and contactEmail is the separate PUBLIC address the profile page invites
+      // an organisation to change — so preferring it made the retry settle
+      // nothing and prune the wrong address from emailLog.
       recoveredEmail = String(
-        studentSnap.data()?.email || orgSnap.data()?.contactEmail || orgSnap.data()?.email || '',
+        studentSnap.data()?.email || orgSnap.data()?.email || orgSnap.data()?.contactEmail || '',
       );
     }
     // Read before anything is deleted — emailLog is keyed by ADDRESS, and once
@@ -1827,6 +1866,29 @@ app.use(express.json());
       storageFailures.push(`bucket unavailable: ${err?.message || err}`);
     }
     if (storageFailures.length) {
+      /*
+       * Written to Firestore, not only to a serverless log line.
+       *
+       * logEvent is console.log, and console.log in a Vercel function is a
+       * stream nobody reads. The remnant here is a file about a MINOR that
+       * somebody asked to have removed — a resume, a passport scan, a
+       * safety-report photo — and every download URL this app ever issued
+       * bypasses storage.rules and keeps resolving forever. So the one record
+       * that it happened was a line in a log, and the account it belonged to
+       * was already gone.
+       *
+       * This collection is server-only in firestore.rules, and best-effort:
+       * failing to record the failure must not fail the deletion.
+       */
+      await adb.collection('purgeIncidents').doc(`${userId}_${Date.now()}`).set({
+        uid: userId,
+        role: role || 'unknown',
+        at: new Date().toISOString(),
+        failures: storageFailures.slice(0, 20),
+        resolved: false,
+      }).catch((recErr: any) =>
+        console.error('[purge] could not record the incomplete purge:', recErr?.message || recErr));
+
       // Loud, because the remnant is a file about a minor that someone asked to
       // have removed. RUNBOOK covers clearing it by hand.
       logEvent('purge_storage_incomplete', { target: userId, failures: storageFailures.length });
@@ -1856,7 +1918,11 @@ app.use(express.json());
       if (authErr?.code !== 'auth/user-not-found') throw authErr;
     }
 
-    return { authDeleted, role };
+    // storageIncomplete travels back to the caller. It was computed, logged and
+    // dropped, and /api/account/delete answers `success: true, ...result` — so a
+    // student was told their account was erased while files about them stayed in
+    // Cloud Storage behind permanent URLs.
+    return { authDeleted, role, storageIncomplete: storageFailures.length };
   }
 
   /**
@@ -1908,6 +1974,23 @@ app.use(express.json());
       // Demo sessions must never reach a real deletion.
       if (authContext.isDemo) {
         return res.status(403).json({ error: 'Demo mode cannot delete real accounts.' });
+      }
+      /*
+       * The second factor, on the highest-privilege route in the app.
+       *
+       * hasPassedMfa existed and had exactly ONE call site
+       * (/api/auth/backup-codes). All three /api/admin/* routes gated on the
+       * caller's ROLE alone, which is a Firestore field — so a stolen or reused
+       * developer password was enough, with no code and no mailbox: sign in with
+       * the Firebase SDK, never load /mfa, call this with the raw ID token.
+       * src/routes/guards.tsx already carries the note "Developer status must
+       * NOT bypass MFA. It used to"; the client was fixed and this tier was not.
+       */
+      if (!hasPassedMfa(authContext)) {
+        logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'delete-user' });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before using developer tools.',
+        });
       }
 
       const { userId } = req.body || {};
@@ -2778,18 +2861,43 @@ app.use(express.json());
         }
       }
 
-      // Second route, for hours volunteered outside a posted opportunity: the
-      // organization named as coordinator may sign off, but ONLY if a developer
-      // has vetted it. craVerified is settable by developers alone, so a
-      // throwaway account created to rubber-stamp its own request cannot reach
-      // this branch, while a real charity that was verified once can keep
-      // confirming hours for work it did not advertise on the platform.
+      /*
+       * Second route, for hours volunteered outside a posted opportunity: the
+       * organisation named as coordinator may sign off, but ONLY if a person has
+       * reviewed it.
+       *
+       * TWO BUGS LIVED HERE, AND TOGETHER THEY BLOCKED THE CORE LOOP.
+       *
+       * The gate was `craVerified === true`. But verify-org writes
+       * `craVerified: decision === 'verified' && submittedCra` — so every
+       * approved organisation that is NOT a registered charity (a clinic, a care
+       * home, a BIA, a sports club) has craVerified: false and could never reach
+       * this branch. Their own dashboard said "Verified organization — reviewed
+       * and approved by our team" while this route answered "your organization
+       * needs to be verified first", and the student's hours sat pending
+       * forever. Approval is verificationStatus; craVerified is only "we checked
+       * a CRA number", which most legitimate organisations do not have.
+       *
+       * And the address compared was the caller's LOGIN email, while
+       * coordinatorContact is prefilled from the organisation's PUBLIC contact
+       * address — a different field, which OrgProfile explicitly invites them to
+       * change. The visibility half of this exact drift was already fixed by
+       * querying orgId as well as coordinatorContact; the AUTHORISATION half was
+       * not, so the request appeared in the queue and then refused to approve.
+       * Both addresses are accepted now, and so is the orgId the student's form
+       * writes when they pick the organisation from the dropdown.
+       */
       if (!authorised && requestData) {
         const orgSnap = await adb.collection('organizations').doc(authContext.uid).get();
-        const vetted = orgSnap.exists && orgSnap.data()?.craVerified === true;
+        const orgData = orgSnap.exists ? orgSnap.data() : null;
+        const reviewed = orgData?.verificationStatus === 'verified';
         const callerEmail = (caller?.email || authContext.email || '').trim().toLowerCase();
-        const named = (requestData.coordinatorContact || '').trim().toLowerCase() === callerEmail;
-        if (vetted && named) authorised = true;
+        const publicEmail = String(orgData?.contactEmail || '').trim().toLowerCase();
+        const namedAddress = String(requestData.coordinatorContact || '').trim().toLowerCase();
+        const named =
+          (!!namedAddress && (namedAddress === callerEmail || (!!publicEmail && namedAddress === publicEmail))) ||
+          requestData.orgId === authContext.uid;
+        if (reviewed && named) authorised = true;
       }
 
       if (!authorised) {
@@ -2797,7 +2905,8 @@ app.use(express.json());
         return res.status(403).json({
           error:
             'You can only credit hours for a student who volunteered with your organization. ' +
-            'If they volunteered outside a posted opportunity, your organization needs to be verified first.',
+            'If they volunteered outside a posted opportunity, your organization has to be approved first, ' +
+            'and the request has to name your organization or its contact address.',
         });
       }
 
@@ -2992,6 +3101,10 @@ app.use(express.json());
       // Deliberately after the transaction and deliberately not awaited into
       // the response's success: the hours ARE credited at this point, and a
       // mail failure must not turn that into an error the organization retries.
+      // Reported back to the caller, not just logged. The coordinator was shown
+      // "Hours approved successfully!" whether or not the student was ever
+      // told, and the student's only other signal is opening the dashboard.
+      let confirmationSent = false;
       try {
         const emailSnap = await adb.collection('users').doc(studentId).get();
         const studentEmail = emailSnap.exists ? emailSnap.data()?.email : null;
@@ -3017,6 +3130,7 @@ app.use(express.json());
               error: error?.message, sentBy: authContext.email || authContext.uid,
             });
             if (error) console.error('[hours/approve] confirmation email failed:', error.message);
+            else confirmationSent = true;
           }
         }
       } catch (mailErr: any) {
@@ -3060,7 +3174,7 @@ app.use(express.json());
         }
       }
 
-      return res.json({ success: true, hours: result.total, entryId: result.entryId });
+      return res.json({ success: true, hours: result.total, entryId: result.entryId, confirmationSent });
     } catch (err: any) {
       if (err?.message === 'ALREADY_SETTLED') {
         return res.status(409).json({ error: 'Those hours have already been settled. Refresh to see the current status.' });
@@ -3219,6 +3333,19 @@ app.use(express.json());
       }
       if (!getAdminObj()) {
         return res.status(500).json({ error: 'Server configuration error.' });
+      }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      // This was the only route in the file without the check that eight others
+      // carry verbatim.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
 
       const opportunityId = String(req.params.id || '');
@@ -4507,7 +4634,19 @@ app.use(express.json());
       // rather than on the send path: this route is developer-only and rare, so
       // the cost lands where nobody is waiting on it.
       try {
-        const adb = adminFirestore();
+        // The second factor, like the three /api/admin/* routes. This returns the
+      // emailLog collection — the recipient address of every message this
+      // platform has ever sent, which is the email address of every student on
+      // it. It was the one developer-only route reading personal data with no
+      // MFA gate.
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'email/history' });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before using developer tools.',
+        });
+      }
+
+      const adb = adminFirestore();
         const snap = await adb.collection('emailLog')
           .orderBy('at', 'desc').limit(EMAIL_HISTORY_LIMIT).get();
         if (!snap.empty) {

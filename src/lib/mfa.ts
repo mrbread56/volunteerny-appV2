@@ -7,8 +7,18 @@ export function verifyMfaClaim(
   // If userProfile is missing (e.g., fetch failed), still trust mfaVerified
   if (!userProfile) return !!mfaVerified;
 
-  if (userProfile.twoFactorEnabled === false) {
-    return true; // Bypass/Banned/Disabled check
+  /*
+   * Only a STUDENT may be exempt, and only explicitly.
+   *
+   * This returned true for any role carrying twoFactorEnabled === false, while
+   * firestore.rules now requires a current claim from every non-student. Two
+   * layers disagreeing about who needs a code is how someone gets challenged by
+   * neither, or by one and refused by the other — so this mirrors the rule
+   * exactly: organisations and developers always need the claim, whatever their
+   * document says, because the rules refuse to let them turn it off anyway.
+   */
+  if (userProfile.twoFactorEnabled === false && userProfile.role === 'student') {
+    return true;
   }
   return !!mfaVerified;
 }

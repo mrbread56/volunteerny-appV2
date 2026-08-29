@@ -131,7 +131,20 @@ export default function StudentOpportunityDetail() {
               where('studentId', '==', user.uid)
             );
             const appSnap = await getDocs(appQuery);
-            setHasApplied(!appSnap.empty);
+            /*
+             * Only statuses that still OCCUPY the application block re-applying.
+             *
+             * This counted an application at ANY status, and the Withdraw button
+             * on the dashboard is offered only for pending, reviewed and
+             * waitlist — so a rejected or terminated application could never be
+             * removed, this page said "You've Applied!" forever, and the Apply
+             * button never came back. A student told "try again next term", or
+             * who becomes eligible later, had no route at all. Withdrawal
+             * already works by DELETING the document rather than tombstoning it,
+             * for exactly this reason; rejection was never followed through.
+             */
+            const BLOCKS_REAPPLY = ['pending', 'reviewed', 'accepted', 'waitlist'];
+            setHasApplied(appSnap.docs.some((d) => BLOCKS_REAPPLY.includes(String(d.data()?.status || ''))));
 
             // Check if bookmarked
             try {

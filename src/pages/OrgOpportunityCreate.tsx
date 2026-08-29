@@ -104,7 +104,27 @@ function LocationMarker({
       setCoords(e.latlng);
     },
   });
-  return <Marker position={coords} icon={customPinIcon} />;
+  /*
+   * draggable, because both geocode-failure messages tell the coordinator to
+   * drag it and react-leaflet markers are static without this prop. The message
+   * fires exactly when the address could not be found, so the pin is sitting at
+   * the North York default -- and those coordinates drive the student distance
+   * filter and the map a minor navigates to. An instruction that does nothing on
+   * that path is worse than no instruction.
+   */
+  return (
+    <Marker
+      position={coords}
+      icon={customPinIcon}
+      draggable
+      eventHandlers={{
+        dragend: (e: any) => {
+          const { lat, lng } = e.target.getLatLng();
+          setCoords({ lat, lng });
+        },
+      }}
+    />
+  );
 }
 
 export default function OrgOpportunityCreate() {
@@ -272,7 +292,7 @@ export default function OrgOpportunityCreate() {
           setGeocodeNotice(null);
         } else {
           setGeocodeNotice(
-            'We could not find that address on the map. Drag the pin below to the right place before you save.',
+            'We could not find that address on the map. Drag the pin below, or click the map, to put it in the right place before you save.',
           );
         }
       } catch (error) {
@@ -280,7 +300,7 @@ export default function OrgOpportunityCreate() {
         if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
         setGeocodeNotice(
-          'We could not look that address up just now. Check the pin below is in the right place before you save.',
+          'We could not look that address up just now. Check the pin below is in the right place, and drag it if it is not, before you save.',
         );
       } finally {
         if (!controller.signal.aborted) setIsGeocoding(false);
@@ -642,7 +662,7 @@ export default function OrgOpportunityCreate() {
                </label>
                
                <div className="space-y-2">
-                  <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Place Map Pin (Click to move)</p>
+                  <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Place Map Pin (drag it, or click the map)</p>
                   {geocodeNotice && (
                     <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
                       {geocodeNotice}

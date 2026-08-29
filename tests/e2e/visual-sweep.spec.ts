@@ -158,6 +158,15 @@ async function signIn(page: Page, role: 'student' | 'organization'): Promise<voi
 }
 
 test.beforeAll(async () => {
+  /*
+   * The hooks need their own timeout. test.setTimeout inside a test body does
+   * not apply to beforeAll/afterAll, and playwright.config sets no top-level
+   * `timeout`, so these eight sequential live round-trips had Playwright's 30s
+   * default. An afterAll that overruns leaves a real Auth account and a
+   * `verified` organisation in the production project, with a password that is
+   * a literal in a committed file.
+   */
+  test.setTimeout(120_000);
   adminApp = a.initializeApp(
     { credential: a.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) },
     `vsweep-${stamp}`,
@@ -182,15 +191,20 @@ test.beforeAll(async () => {
       });
     } else {
       await db.collection('organizations').doc(u.uid).set({
-        uid: u.uid, organizationName: 'Visual Sweep Org', mission: 'Sweeping.', contactEmail: acct.email,
+        uid: u.uid, organizationName: 'Visual Sweep Org (test fixture)', mission: 'Sweeping.', contactEmail: acct.email,
         northYorkConfirmed: true, organizationType: 'Other', address: '5100 Yonge St',
         phone: '', websiteUrl: '', craVerified: false, verificationStatus: 'verified',
+        // Named as a fixture in the organizationName because `organizations` is
+        // listable by any signed-in account, so a run that dies before afterAll
+        // leaves this visible to real students in the directory. The isFixture
+        // marker covers opportunities, not organisations.
       });
     }
   }
 });
 
 test.afterAll(async () => {
+  test.setTimeout(120_000);
   if (!adminApp) return;
   const db = adminApp.firestore();
   for (const acct of Object.values(ACCOUNTS)) {

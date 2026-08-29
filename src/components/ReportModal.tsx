@@ -339,9 +339,41 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
           </div>
         ) : (
           <CardContent className="p-6 md:p-8 space-y-5 overflow-y-auto flex-1 text-left">
+            {/*
+              * This banner used to promise "Administrative monitors will
+              * investigate timestamps, opportunity logs, and application
+              * communications to initiate profile restrictions instantly",
+              * under a heading about "York Volunteer Trust".
+              *
+              * None of that exists. The success panel above was corrected in an
+              * earlier pass and this was not — and this is the worse of the two,
+              * because it is what the student reads WHILE DECIDING whether
+              * reporting here is enough. A frightened person told enforcement is
+              * already automatic and instant does not then phone someone who
+              * could actually help tonight. York region is also a municipality
+              * with no relationship to this platform.
+              */}
             <div className="p-4 bg-red-50 text-red-900 border border-red-100 rounded-lg text-xs leading-relaxed font-semibold">
-              <span className="font-semibold block mb-1">🛡️ Protecting York Volunteer Trust</span>
-              You are reporting <strong>{reportedUserName}</strong> ({reportedUserRole}). Administrative monitors will investigate timestamps, opportunity logs, and application communications to initiate profile restrictions instantly.
+              You are reporting <strong>{reportedUserName}</strong> ({reportedUserRole}). What you write goes to a
+              moderation queue that a person reads by hand, so it may take a little time. Include dates, times and
+              exactly what happened.
+            </div>
+
+            {/*
+              * The crisis numbers, in EVERY state.
+              *
+              * They lived only inside the success panel, so the two paths that
+              * fail before a report is saved — an attachment that will not
+              * upload, and a denied write — both returned with the form still
+              * showing and the student never saw them at all. At 11pm those
+              * numbers were behind a successful database write.
+              */}
+            <div className="p-4 bg-white border-2 border-red-200 rounded-lg text-xs leading-relaxed">
+              <span className="font-bold text-red-700 block mb-1">If you are in danger right now, do not wait for us</span>
+              <span className="text-ink-soft">
+                Call <strong>911</strong>, or Kids Help Phone on <strong>1-800-668-6868</strong> (text CONNECT to 686868).
+                They answer 24 hours a day.
+              </span>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

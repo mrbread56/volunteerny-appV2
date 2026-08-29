@@ -189,7 +189,7 @@ async function createPathChecks() {
     setDoc(doc(db, 'organizations', o.uid), {
       uid: o.uid, organizationName: 'Real Org', mission: 'm', organizationType: 'Other',
       address: 'a', coordinates: null, contactEmail: o.email, phone: '', northYorkConfirmed: true,
-      websiteUrl: '', hasCra: 'yes', craNumber: '', craVerified: false, verificationStatus: 'pending',
+      websiteUrl: '', hasCra: true, craNumber: '', craVerified: false, verificationStatus: 'pending',
     }));
 }
 

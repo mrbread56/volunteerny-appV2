@@ -371,6 +371,8 @@ export default function OrgDashboard() {
   }, [user, isDemoMode]);
 
   const handleApproveHoursRequest = async (req: any, approved: boolean) => {
+    // Set from the server's response on the approved path; see below.
+    let serverConfirmed = false;
     setIsApprovingId(req.id);
     try {
       if (isDemoMode) {
@@ -410,13 +412,18 @@ export default function OrgDashboard() {
           // Rejects rather than resolving on refusal, so a 403 from the
           // relationship check skips the success message below and lands in
           // this function's catch, which shows the server's wording.
-          await approveStudentHours({
+          const credited = await approveStudentHours({
             studentId: req.studentId,
             hours: Number(req.hours),
             activity: `${req.activity} (${orgProfile?.organizationName || req.organization})`,
             date: req.date,
             requestId: req.id,
           });
+          // The SERVER sends hours_confirmation on approval, and now reports
+          // whether it went. See the send below: this page was sending the very
+          // same template a second time, so every approved student received two
+          // identical confirmations.
+          serverConfirmed = credited.confirmationSent === true;
         } else {
           // Server-side, like approving. The rule that used to allow this
           // from the client identified the coordinator by an email the STUDENT
@@ -454,7 +461,15 @@ export default function OrgDashboard() {
        * handleSendReminder in StudentDashboard already reads .success and even
        * documents the behaviour; this call site was never updated.
        */
-      const mail = isDemoMode ? { success: true } : await sendTransactionalEmail({
+      /*
+       * DECLINES only. /api/hours/approve already sends hours_confirmation on
+       * the approved path, so this was a duplicate: the student got the same
+       * confirmation twice, from two code paths, with slightly different copy.
+       * The decline path has no server-side send, so it still runs here.
+       */
+      const mail = (isDemoMode || approved)
+        ? { success: isDemoMode ? true : serverConfirmed }
+        : await sendTransactionalEmail({
         to: req.studentEmail,
         subject: approved
           ? `${req.hours} volunteer hours approved`
@@ -495,6 +510,7 @@ export default function OrgDashboard() {
               subject: "Volunteer Hours Update",
             }
       });
+
       if (!mail.success) {
         setErrorMessage(
           `The hours were ${approved ? 'approved' : 'declined'}, but we could not email ${req.studentName || 'the student'}. ` +

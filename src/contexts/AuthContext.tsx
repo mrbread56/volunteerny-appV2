@@ -204,11 +204,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (userDoc.exists()) {
         setProfileMissing(false);
         const data = userDoc.data() as UserProfile;
-        if (data.twoFactorEnabled === undefined) {
-          // Older accounts predate this field. Default to the same policy as
-          // signup: required for organizations and developers, optional for students (who can
-          // still turn it on from their settings).
-          data.twoFactorEnabled = data.role === 'organization' || data.role === 'developer';
+        if (data.role === 'organization' || data.role === 'developer') {
+          // Not just when undefined. Two-factor is mandatory for these roles —
+          // firestore.rules refuses any non-student write of `false` — so a
+          // stored false is a legacy or hand-edited value, not a preference,
+          // and honouring it meant the client skipped the challenge while the
+          // rules went on requiring the claim it produces.
+          data.twoFactorEnabled = true;
+        } else if (data.twoFactorEnabled === undefined) {
+          // Optional for students, who can turn it on from their settings.
+          data.twoFactorEnabled = false;
         }
         
         setUserProfile(data);
