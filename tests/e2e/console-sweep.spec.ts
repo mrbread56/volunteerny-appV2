@@ -7,7 +7,7 @@
  *
  *   npx playwright test tests/e2e/console-sweep.spec.ts --reporter=line
  */
-import { test } from '@playwright/test';
+import { test, expect } from '@playwright/test';
 import * as admin from 'firebase-admin';
 import dotenv from 'dotenv';
 
@@ -142,6 +142,20 @@ test.afterAll(async () => {
     console.log(`    ${r.text}`);
   }
   if (!unexpected.length) console.log('\n  nothing unexpected.');
+  /*
+   * The assertion this sweep never had.
+   *
+   * It walked every route as every role and printed what it found, with no
+   * expect() anywhere, so it could only ever be green: a ten minute
+   * console.log wearing a check's name. Worse, sign-in was never asserted
+   * either, so if login broke every role bounced to /login, no role-specific
+   * code ran, nothing was recorded, and it reported "nothing unexpected".
+   * The report got CLEANER the more broken the app was.
+   */
+  expect(
+    unexpected.map((r) => `[${r.type}] ${r.text}`),
+    'console errors with no entry in the expected list',
+  ).toEqual([]);
 
   for (const r of expected) {
     console.log(`\n  (expected) [${r.type}] x${r.count}  routes: ${[...r.routes].join(', ')}`);
@@ -211,4 +225,5 @@ test('sweep every route as every role and report console output', async ({ page 
       await page.waitForTimeout(3000);
     }
   }
+
 });

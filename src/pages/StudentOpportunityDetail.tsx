@@ -571,7 +571,7 @@ export default function StudentOpportunityDetail() {
                                 <div key={i} className="bg-paper-2 p-2.5 rounded-lg border border-line-light flex items-center justify-between">
                                    <div className="flex flex-col">
                                       <span className="text-xs font-bold text-ink-muted leading-tight uppercase tracking-tighter">
-                                         {opportunity.scheduleType === 'recurring' ? shift.day : (shift.date ? formatCalendarDate(shift.date) : 'Date to be confirmed')}
+                                         {opportunity.scheduleType === 'recurring' ? shift.day : (formatCalendarDate(shift.date) || 'Date to be confirmed')}
                                       </span>
                                       <span className="text-xs font-bold text-ink-soft">
                                          {shift.startTime} - {shift.endTime}

@@ -50,8 +50,17 @@ export function formatCalendarDate(value: string | null | undefined): string {
     // real timestamps.
     return formatDate(value);
   }
-  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
-  if (!Number.isFinite(d.getTime())) return '';
+  const [y, mo, day] = [Number(m[1]), Number(m[2]), Number(m[3])];
+  const d = new Date(y, mo - 1, day);
+  /*
+   * Round-trip check, because \d{2} bounds LENGTH, not range, and the Date
+   * constructor rolls over silently rather than failing: '2026-13-45' became
+   * Feb 14 2027 and '2026-02-30' became Mar 2. Number.isFinite passes on both,
+   * so the first version of this helper produced exactly the defect it was
+   * written to prevent — a real date, confidently wrong. If the parts do not
+   * survive the round trip, the input was not a real calendar date.
+   */
+  if (d.getFullYear() !== y || d.getMonth() !== mo - 1 || d.getDate() !== day) return '';
   return new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium' }).format(d);
 }
 

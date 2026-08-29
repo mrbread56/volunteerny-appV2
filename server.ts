@@ -1977,8 +1977,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) {
         return res.json({ success: true, emailSent: false, mode: 'demo' });
@@ -2111,8 +2120,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) return res.json({ success: true, demo: true });
 
@@ -2224,8 +2242,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) return res.json({ contacts: [] , demo: true });
 
@@ -2283,8 +2310,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) {
         return res.status(403).json({ error: 'Demo mode cannot write references.' });
@@ -2355,8 +2391,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) {
         return res.status(403).json({ error: 'Demo mode cannot write ratings.' });
@@ -2423,8 +2468,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) {
         return res.json({ success: true, demo: true, hours: 0 });
@@ -2823,8 +2877,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
       if (authContext.isDemo) return res.json({ profile: null, demo: true });
       if (!getAdminObj()) return res.status(500).json({ error: 'Server configuration error.' });
@@ -3298,31 +3361,30 @@ app.use(express.json());
   }
 
   /**
-   * Is this account suspended?
+   * Is this account suspended? Three answers, not two.
    *
-   * isBanned was enforced in firestore.rules and NOWHERE ELSE. It appeared once
-   * in this entire file, as an output field. Every privileged operation was
-   * deliberately moved off the client onto the Admin SDK precisely because the
-   * client could not be trusted with it — and the Admin SDK bypasses rules, so
-   * moving them here moved them outside the only place the ban was checked.
+   * isBanned was enforced in firestore.rules and NOWHERE ELSE — it appeared
+   * once in this file, as an output field. Every privileged operation was
+   * deliberately moved off the client onto the Admin SDK, which bypasses rules,
+   * so moving them here moved them outside the only place the ban was checked.
    *
-   * A suspended organisation could therefore still read an applicant's resume
-   * and email address, credit or destroy hours on a graduation record, delete a
-   * posting and mass-mail a hundred students from the verified domain. The
-   * suspension a developer applies after a safety report stopped the account
-   * writing through the SDK and left every route that matters wide open.
-   *
-   * Fails CLOSED: if the caller's own record cannot be read, the request is
-   * refused. A privileged action is not the place to assume the best.
+   * The first version of this returned a boolean and answered `true` on any
+   * error. adminFirestore() THROWS when credentials are absent, so a rotation
+   * or a transient Firestore timeout would have told every healthy user on
+   * eight routes that their account was suspended — on a platform for minors,
+   * during an outage. "Banned" and "cannot determine" are different facts and
+   * get different answers: 403 for the first, 503 for the second.
    */
-  async function callerIsSuspended(uid: string): Promise<boolean> {
+  async function callerStatus(uid: string): Promise<'ok' | 'suspended' | 'unknown'> {
     try {
-      const snap = await adminFirestore().collection('users').doc(uid).get();
-      if (!snap.exists) return true;
-      return snap.data()?.isBanned === true;
+      const adb = adminFirestore();
+      if (!adb) return 'unknown';
+      const snap = await adb.collection('users').doc(uid).get();
+      if (!snap.exists) return 'unknown';
+      return snap.data()?.isBanned === true ? 'suspended' : 'ok';
     } catch (err: any) {
-      console.error('[guard] could not read caller status, refusing:', err?.message || err);
-      return true;
+      console.error('[guard] could not read caller status:', err?.message || err);
+      return 'unknown';
     }
   }
 
@@ -3865,8 +3927,17 @@ app.use(express.json());
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
-      if (await callerIsSuspended(authContext.uid)) {
-        return res.status(403).json({ error: 'This account is suspended.' });
+      // Demo sessions have no users/ document by design and are handled by each
+      // handler's own demo branch, so they pass through rather than being told
+      // they are suspended.
+      if (!authContext.isDemo) {
+        const status = await callerStatus(authContext.uid);
+        if (status === 'suspended') {
+          return res.status(403).json({ error: 'This account is suspended.' });
+        }
+        if (status === 'unknown') {
+          return res.status(503).json({ error: 'We could not verify your account just now. Please try again shortly.' });
+        }
       }
 
       // Demo sessions simulate mail, and this must run BEFORE the mail-config

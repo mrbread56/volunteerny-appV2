@@ -219,15 +219,39 @@ export default function OrgDashboard() {
       return;
     }
     try {
-      const q = query(
-        collection(db, "hoursRequests"),
-        where("coordinatorContact", "==", (user.email || "").trim().toLowerCase()),
-        where("status", "==", "pending"),
-        // Bounded. A coordinator's pending queue is normally small, but nothing
-        // capped it, so a busy term read the whole thing on every load.
-        limit(300)
-      );
-      const snap = await getDocs(q);
+      /*
+       * Two queries, because the address is not a reliable address.
+       *
+       * This read only coordinatorContact == the account's LOGIN email, while
+       * the student's form is prefilled from the organisation's PUBLIC contact
+       * email — a required field OrgProfile explicitly invites them to change.
+       * The moment those two differ, every hours request to this organisation
+       * became invisible here, in the notification bell, and to the rules, with
+       * no error anywhere: the student was told it was submitted and the
+       * coordinator saw an empty queue. Hours that never reach the record are
+       * hours a student cannot graduate with.
+       *
+       * orgId is the identity and cannot drift. The email query is kept for
+       * rows written before it existed, and for the "Other / Unlisted" branch
+       * where there is no account behind the address. Results are merged by
+       * document id so a row matching both is not counted twice.
+       */
+      const base = [where("status", "==", "pending"), limit(300)] as const;
+      const [byId, byEmail] = await Promise.all([
+        getDocs(query(collection(db, "hoursRequests"), where("orgId", "==", user.uid), ...base))
+          .catch(() => null),
+        getDocs(query(
+          collection(db, "hoursRequests"),
+          where("coordinatorContact", "==", (user.email || "").trim().toLowerCase()),
+          ...base,
+        )).catch(() => null),
+      ]);
+      if (!byId && !byEmail) throw new Error('both hours queries failed');
+      const merged = new Map<string, any>();
+      for (const snapshot of [byId, byEmail]) {
+        for (const d of snapshot?.docs || []) merged.set(d.id, d);
+      }
+      const snap = { docs: [...merged.values()] };
       const list = snap.docs.map((doc) => ({
         id: doc.id,
         ...doc.data()

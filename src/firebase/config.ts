@@ -48,8 +48,38 @@ export const app = initializeApp(firebaseConfig);
  * THEN enforce, service by service. Enforcing before the client ships tokens
  * would lock every real user out.
  */
+/*
+ * App Check is OFF until it is proven to work, and that is a deliberate choice.
+ *
+ * As shipped it was initialised, loaded Google reCAPTCHA on every page for every
+ * visitor including signed-out minors, produced a 400 on every page load, and
+ * NEVER exchanged a token — verified in production on 29 Aug 2026: reCAPTCHA
+ * loads, recaptcha/api2/clr returns 400, and there is no request to
+ * firebaseappcheck.googleapis.com at all. So it provided no attestation
+ * whatsoever.
+ *
+ * That is the worst of both: the whole privacy cost and none of the protection.
+ * The cookie banner tells visitors "there are no advertising or analytics
+ * trackers on this site, and nothing here follows you to other websites", and
+ * reCAPTCHA v3 is continuous behavioural scoring that reads Google's cookies on
+ * google.com — so the statement was false, for nothing in return. This site is
+ * aimed at children, and the OPC's position is that such services should not
+ * place tracking technologies at all.
+ *
+ * It is also a live hazard. The note below is right that enforcing before the
+ * client ships tokens locks every real user out — and the client is not
+ * shipping tokens. Anyone switching enforcement on in the console, seeing it
+ * "configured", would take the site down for every user at once.
+ *
+ * To turn it back on: register the site key for this domain, confirm a token is
+ * actually minted (a request to firebaseappcheck.googleapis.com that is not a
+ * 400), THEN set VITE_APPCHECK_ENABLED=true alongside the site key. Two
+ * variables, so that a key sitting in the environment can no longer switch on a
+ * mechanism nobody has checked.
+ */
 const appCheckSiteKey = import.meta.env.VITE_APPCHECK_SITE_KEY;
-if (appCheckSiteKey) {
+const appCheckEnabled = String(import.meta.env.VITE_APPCHECK_ENABLED || '') === 'true';
+if (appCheckSiteKey && appCheckEnabled) {
   import('firebase/app-check')
     .then(({ initializeAppCheck, ReCaptchaV3Provider }) => {
       initializeAppCheck(app, {

@@ -107,7 +107,7 @@ export default function StudentDashboard() {
     setSearchParams({ tab });
   };
   const [orgContacts, setOrgContacts] = useState<
-    Record<string, { email: string; phone?: string; website?: string; organizationName?: string }>
+    Record<string, { email: string; uid?: string; phone?: string; website?: string; organizationName?: string }>
   >({});
   const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
@@ -158,6 +158,19 @@ export default function StudentDashboard() {
   const [logDate, setLogDate] = useState("");
   const [logCoordinator, setLogCoordinator] = useState("");
   const [logContact, setLogContact] = useState("");
+  /*
+   * The organisation's uid, carried so the request can be routed by identity.
+   *
+   * coordinatorContact alone was not enough. It is prefilled from the
+   * organisation's PUBLIC contact address, and OrgProfile invites them to make
+   * that different from their login address ("Public Contact Email", a required
+   * field). The organisation's queue, the notification bell and the rules all
+   * match on the LOGIN address. The moment those diverge every hours request to
+   * that organisation becomes invisible to them, with no error on either side:
+   * the student is told it was submitted, the coordinator sees an empty queue,
+   * and the hours never reach the record. A uid cannot drift.
+   */
+  const [logOrgUid, setLogOrgUid] = useState<string | null>(null);
   const [isLogging, setIsLogging] = useState(false);
   const [showLogForm, setShowLogForm] = useState(false);
   const [logSuccess, setLogSuccess] = useState(false);
@@ -276,6 +289,9 @@ export default function StudentDashboard() {
       date: logDate,
       coordinatorName: logCoordinator || "Supervisor",
       coordinatorContact: normalizedContact,
+      // Present whenever the request came from a real placement; absent for the
+      // "Other / Unlisted" branch, which has no organisation account behind it.
+      ...(logOrgUid ? { orgId: logOrgUid } : {}),
       status: "pending",
       requestedAt: new Date().toISOString()
     };
@@ -885,7 +901,7 @@ export default function StudentDashboard() {
 
       const newContacts: Record<
         string,
-        { email: string; phone?: string; website?: string; organizationName?: string }
+        { email: string; uid?: string; phone?: string; website?: string; organizationName?: string }
       > = { ...orgContacts };
       let changed = false;
 
@@ -940,6 +956,9 @@ export default function StudentDashboard() {
             if (!orgData) continue;
             newContacts[app.opportunityId] = {
               email: orgData.contactEmail || "",
+              // The identity, so an hours request can be routed to the account
+              // rather than to whatever address the profile currently shows.
+              uid: orgId,
               phone: orgData.phone || "",
               website: orgData.websiteUrl || "",
               organizationName: orgData.organizationName || "Community Group",
@@ -1417,6 +1436,7 @@ export default function StudentDashboard() {
                       setLogActivity("");
                       setLogOrg("");
                       setLogContact("");
+                      setLogOrgUid(null);
                     } else {
                       const app = applications.find(a => a.id === val);
                       if (app) {
@@ -1424,6 +1444,7 @@ export default function StudentDashboard() {
                         const contact = orgContacts[app.opportunityId];
                         setLogOrg(contact?.organizationName || "Canada Mutual Aid Partner");
                         setLogContact(contact?.email || "");
+                        setLogOrgUid(contact?.uid || null);
                       }
                     }
                   }}

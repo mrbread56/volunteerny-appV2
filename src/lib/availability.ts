@@ -48,9 +48,26 @@ export function slotsForOpportunity(opp: Pick<Opportunity, 'shifts' | 'dateTime'
     // A dated shift knows its own weekday; a recurring one carries `day`.
     let day = shift.day;
     if (!day && shift.date) {
-      const d = new Date(shift.date);
-      if (!Number.isNaN(d.getTime())) {
-        day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+      /*
+       * Parsed as a LOCAL calendar date, not as UTC midnight.
+       *
+       * `new Date('2026-09-14')` is UTC midnight, so getDay() in Toronto
+       * returned 0 — Sunday — for a Monday. Every dated shift was classified
+       * one weekday early: Monday shifts advertised as weekend, Saturday shifts
+       * as weekday. This is the same parse that made a shift DISPLAY the wrong
+       * day, but here it decides which students see the posting at all and
+       * which reason line they are shown, so a wrong answer is silent rather
+       * than visible.
+       */
+      const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(shift.date).trim());
+      if (m) {
+        const [y, mo, dd] = [Number(m[1]), Number(m[2]), Number(m[3])];
+        const d = new Date(y, mo - 1, dd);
+        // Same round-trip guard as formatCalendarDate: the constructor rolls
+        // impossible dates over instead of failing.
+        if (d.getFullYear() === y && d.getMonth() === mo - 1 && d.getDate() === dd) {
+          day = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getDay()];
+        }
       }
     }
     const slot = slotFor(day, shift.startTime);

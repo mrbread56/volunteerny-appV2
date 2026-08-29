@@ -650,9 +650,25 @@ service cloud.firestore {
       // organisation failed completely, and only for organisations that had
       // live postings — exactly the ones worth suspending. /organizations/{uid}
       // has carried `|| isDeveloper()` for this reason all along.
+      // isValidOpportunity has to sit INSIDE the organisation branch.
+      //
+      // The first attempt at this put `|| isDeveloper()` beside the ownership
+      // check and left isValidOpportunity(incoming()) as a shared conjunct
+      // after it. That validator opens with `data.orgId == request.auth.uid`,
+      // and on an update incoming() is the merged document — so orgId is the
+      // ORGANISATION's uid, which a developer's never equals. The developer
+      // branch was ANDed against a clause that denies developers
+      // unconditionally: dead code that read like a fix. Suspension still could
+      // not take an organisation's postings down, and only the reordering that
+      // moved closure out of the batch stopped that from killing the lockout
+      // too.
+      //
+      // A developer is still held to the affectedKeys allowlist below, so this
+      // is a takedown route, not a way to rewrite a posting's contents.
       allow update: if isValidId(opportunityId) &&
-                      ((isApprovedOrg() && existing().orgId == request.auth.uid) || isDeveloper()) && 
-                      isValidOpportunity(incoming()) &&
+                      ((isApprovedOrg() &&
+                        existing().orgId == request.auth.uid &&
+                        isValidOpportunity(incoming())) || isDeveloper()) &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
       allow delete: if isOrgAccount() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
     }
@@ -818,6 +834,14 @@ service cloud.firestore {
         // studentName, studentEmail, activity, hours and date for every student
         // who volunteered with that organization. Organization contactEmail is
         // listable by any signed-in account, so the addresses are harvestable.
+        // orgId first: an hours request carries the organisation's uid, so it can
+        // be found by identity. coordinatorContact is kept as the fallback for
+        // rows written before that, and for the "Other / Unlisted" branch where
+        // there is no account behind the address. Matching only on the address
+        // meant that the moment an organisation changed its PUBLIC contact email
+        // — a required field OrgProfile invites them to edit — every request to
+        // them became invisible, silently, on both sides.
+        (resource.data.get('orgId', '') == request.auth.uid) ||
         (resource.data.coordinatorContact == request.auth.token.email &&
          request.auth.token.email_verified == true) ||
         isDeveloper()
@@ -833,6 +857,14 @@ service cloud.firestore {
         // studentName, studentEmail, activity, hours and date for every student
         // who volunteered with that organization. Organization contactEmail is
         // listable by any signed-in account, so the addresses are harvestable.
+        // orgId first: an hours request carries the organisation's uid, so it can
+        // be found by identity. coordinatorContact is kept as the fallback for
+        // rows written before that, and for the "Other / Unlisted" branch where
+        // there is no account behind the address. Matching only on the address
+        // meant that the moment an organisation changed its PUBLIC contact email
+        // — a required field OrgProfile invites them to edit — every request to
+        // them became invisible, silently, on both sides.
+        (resource.data.get('orgId', '') == request.auth.uid) ||
         (resource.data.coordinatorContact == request.auth.token.email &&
          request.auth.token.email_verified == true) ||
         isDeveloper()
@@ -848,9 +880,15 @@ service cloud.firestore {
           // submission in the app fail permission-denied — caught by
           // check:flows, not by the emulator suite, whose fixture did not
           // match the real write.
+          // orgId routes the request to an account rather than to a string.
+          // Pinned to a real organisation the student actually applied to, so a
+          // student cannot address a request at an organisation they have never
+          // worked with just by naming its uid.
+          (absent(incoming(), 'orgId') ||
+           (incoming().orgId is string && incoming().orgId.size() <= 128)) &&
           incoming().keys().hasOnly(['id', 'studentId', 'studentName', 'studentEmail', 'activity',
                                      'hours', 'date', 'organization', 'coordinatorName',
-                                     'coordinatorContact', 'status', 'requestedAt'])) ||
+                                     'coordinatorContact', 'orgId', 'status', 'requestedAt'])) ||
         isDeveloper()
       );
       allow update: if isSignedIn() && isValidId(reqId) && (
