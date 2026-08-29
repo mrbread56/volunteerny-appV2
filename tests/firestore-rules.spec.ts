@@ -7,7 +7,7 @@ import {
 } from '@firebase/rules-unit-testing';
 import { readFileSync } from 'node:fs';
 import {
-  doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp,
+  doc, getDoc, setDoc, updateDoc, deleteDoc, collection, getDocs, serverTimestamp, query, where,
 } from 'firebase/firestore';
 
 /**
@@ -1028,8 +1028,15 @@ test.describe('a suspended organisation loses its READS, not just its writes', (
     // test passing.
     await assertSucceeds(getDoc(doc(asUser(ORG), 'applications', appId)));
 
+    await assertSucceeds(getDocs(query(
+      collection(asUser(ORG), 'applications'), where('opportunityId', 'in', ['opp_1']),
+    )));
+
     await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
     await assertFails(getDoc(doc(asUser(ORG), 'applications', appId)));
+    await assertFails(getDocs(query(
+      collection(asUser(ORG), 'applications'), where('opportunityId', 'in', ['opp_1']),
+    )));
     // The student it is about keeps their own copy either way.
     await assertSucceeds(getDoc(doc(asUser(STUDENT), 'applications', appId)));
   });
@@ -1046,8 +1053,18 @@ test.describe('a suspended organisation loses its READS, not just its writes', (
     });
     await assertSucceeds(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
 
+    // The QUERY, not just the single-document read. Nothing in the app ever
+    // reads an hours request by id: both org paths are queries, so `list` is
+    // the rule the exploit actually used and the one that has to deny.
+    await assertSucceeds(getDocs(query(
+      collection(asUser(ORG), 'hoursRequests'), where('orgId', '==', ORG),
+    )));
+
     await seed(async (db) => { await updateDoc(doc(db, 'users', ORG), { isBanned: true }); });
     await assertFails(getDoc(doc(asUser(ORG), 'hoursRequests', 'hr_ban_1')));
+    await assertFails(getDocs(query(
+      collection(asUser(ORG), 'hoursRequests'), where('orgId', '==', ORG),
+    )));
   });
 });
 
@@ -1108,8 +1125,16 @@ test.describe('keys that were permitted but never validated', () => {
     await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'dt_ok'), {
       ...base, dateTime: new Date('2026-09-01T13:00:00Z'),
     }));
+    // A short ISO string is accepted, because isValidOpportunity also runs on
+    // UPDATE against the merged document: a strict `is timestamp` would have
+    // made any posting already storing a string impossible for its owner to
+    // close or reopen.
+    await assertSucceeds(setDoc(doc(asUser(ORG), 'opportunities', 'dt_iso'), {
+      ...base, dateTime: new Date('2026-09-01T13:00:00Z').toISOString(),
+    }));
     // opportunities is `allow read: if true`, so anything unbounded here is
-    // downloaded by every signed-out visitor to the browse page.
+    // downloaded by every signed-out visitor to the browse page. The bound is
+    // the point; the exact type is not.
     await assertFails(setDoc(doc(asUser(ORG), 'opportunities', 'dt_string'), {
       ...base, dateTime: 'x'.repeat(100000),
     }));

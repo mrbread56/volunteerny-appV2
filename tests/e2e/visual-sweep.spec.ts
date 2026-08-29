@@ -16,13 +16,35 @@
  * Assertions are soft: one broken route at one width reports every finding
  * rather than stopping at the first.
  *
- * Needs no credentials — authenticated surfaces are reached through the demo
- * buttons on the home page, which is exactly how the app runs without
- * secrets.
+ * Signs in with real throwaway accounts, like console-sweep.spec.ts.
+ *
+ * It used to say "needs no credentials" and reach the dashboards through demo
+ * buttons on the home page. Those buttons do not exist — src/pages/Home.tsx
+ * carries the comment recording their removal, and the only demo entry left is
+ * inside the developer console. So enterDemo() threw on every run, its catch
+ * turned the failure into an ANNOTATION rather than a failure, and the caller
+ * returned before its first assertion: six of the nine tests here (3 viewports
+ * x 2 roles) had asserted nothing at all for as long as they had existed. They
+ * are the only coverage of horizontal overflow on authenticated routes, which
+ * is the regression this file was written for.
+ *
+ * Needs FIREBASE_SERVICE_ACCOUNT_KEY and FIREBASE_DATABASE_ID.
  *
  *   npx playwright test tests/e2e/visual-sweep.spec.ts --reporter=line
  */
 import { test, expect, type Page, type TestInfo } from '@playwright/test';
+import a from 'firebase-admin';
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+const PASSWORD = 'visualSweep!123';
+const stamp = Date.now();
+const ACCOUNTS: Record<string, { email: string; uid: string }> = {
+  student: { email: `vsweep.student.${stamp}@example.com`, uid: '' },
+  organization: { email: `vsweep.org.${stamp}@example.com`, uid: '' },
+};
+let adminApp: a.app.App;
 
 const VIEWPORTS = [
   { name: 'mobile', width: 375, height: 667 },
@@ -34,7 +56,7 @@ const PUBLIC_ROUTES = ['/', '/login', '/signup', '/terms', '/privacy'];
 
 // Mirrors the role route lists in console-sweep.spec.ts, minus the developer
 // console, which has no demo path.
-const DEMO_STUDENT_ROUTES = [
+const STUDENT_ROUTES = [
   '/student/dashboard',
   '/student/dashboard?tab=applications',
   '/student/dashboard?tab=hours',
@@ -43,7 +65,7 @@ const DEMO_STUDENT_ROUTES = [
   '/student/profile',
   '/feedback',
 ];
-const DEMO_ORG_ROUTES = [
+const ORG_ROUTES = [
   '/org/dashboard',
   '/org/dashboard?tab=hours',
   '/org/profile',
@@ -112,29 +134,74 @@ async function auditRoute(page: Page, testInfo: TestInfo, label: string) {
 }
 
 /**
- * Enter demo mode from the home page. Returns false (with an annotation, not
- * a failure) if the demo button never appeared — the sweep should report what
- * it could not reach rather than fail on it.
+ * Sign in for real, and ASSERT it worked.
+ *
+ * The assertion is the point. Without it a broken sign-in leaves every
+ * subsequent page.goto() redirecting to /login, so the sweep audits the login
+ * form N times and reports no overflow — the report gets cleaner the more
+ * broken the app is.
  */
-async function enterDemo(page: Page, testInfo: TestInfo, role: 'student' | 'organization'): Promise<boolean> {
-  await page.goto('/');
-  const button = page.getByRole('button', {
-    name: role === 'student' ? /Demo as a student/i : /Demo as an organization/i,
+async function signIn(page: Page, role: 'student' | 'organization'): Promise<void> {
+  await page.goto('/login');
+  await page.evaluate(() => {
+    indexedDB.deleteDatabase('firebaseLocalStorageDb');
+    localStorage.clear();
+    sessionStorage.clear();
   });
-  try {
-    await button.click({ timeout: 10000 });
-    await page.waitForURL(role === 'student' ? '**/student/dashboard**' : '**/org/dashboard**', {
-      timeout: 20000,
-    });
-    return true;
-  } catch {
-    testInfo.annotations.push({
-      type: 'warning',
-      description: `could not enter ${role} demo mode; its routes were not swept`,
-    });
-    return false;
-  }
+  await page.goto('/login');
+  await page.getByLabel('Email').fill(ACCOUNTS[role].email);
+  await page.getByLabel('Password').fill(PASSWORD);
+  await page.getByRole('button', { name: 'Sign In' }).click();
+  await page.waitForTimeout(6000);
+  await expect(page, `${role} could not sign in, so none of its routes were really swept`)
+    .not.toHaveURL(/\/login/);
 }
+
+test.beforeAll(async () => {
+  adminApp = a.initializeApp(
+    { credential: a.credential.cert(JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY!)) },
+    `vsweep-${stamp}`,
+  );
+  const db = adminApp.firestore();
+  db.settings({ databaseId: process.env.FIREBASE_DATABASE_ID });
+  for (const [role, acct] of Object.entries(ACCOUNTS)) {
+    const u = await adminApp.auth().createUser({ email: acct.email, password: PASSWORD, emailVerified: true });
+    acct.uid = u.uid;
+    // The MFA gate trusts only the signed custom claim, so set it here rather
+    // than driving an emailed OTP. Same claim the server writes after a code.
+    await adminApp.auth().setCustomUserClaims(u.uid, { mfaGraceUntil: Math.floor(Date.now() / 1000) + 3600 });
+    await db.collection('users').doc(u.uid).set({
+      uid: u.uid, email: acct.email, role, twoFactorEnabled: role !== 'student',
+      createdAt: a.firestore.FieldValue.serverTimestamp(),
+    });
+    if (role === 'student') {
+      await db.collection('students').doc(u.uid).set({
+        uid: u.uid, fullName: 'Visual Sweep Student', school: 'Earl Haig Secondary School', grade: '11',
+        neighborhood: 'Willowdale', interests: ['Environment'], skills: ['Leadership'],
+        availability: ['Flexible'], resumeUrl: '', trackerEnabled: false,
+      });
+    } else {
+      await db.collection('organizations').doc(u.uid).set({
+        uid: u.uid, organizationName: 'Visual Sweep Org', mission: 'Sweeping.', contactEmail: acct.email,
+        northYorkConfirmed: true, organizationType: 'Other', address: '5100 Yonge St',
+        phone: '', websiteUrl: '', craVerified: false, verificationStatus: 'verified',
+      });
+    }
+  }
+});
+
+test.afterAll(async () => {
+  if (!adminApp) return;
+  const db = adminApp.firestore();
+  for (const acct of Object.values(ACCOUNTS)) {
+    if (!acct.uid) continue;
+    await adminApp.auth().deleteUser(acct.uid).catch(() => {});
+    for (const c of ['users', 'students', 'organizations']) {
+      await db.collection(c).doc(acct.uid).delete().catch(() => {});
+    }
+  }
+  await adminApp.delete().catch(() => {});
+});
 
 for (const vp of VIEWPORTS) {
   test.describe(`visual sweep @ ${vp.name} (${vp.width}px)`, () => {
@@ -149,12 +216,12 @@ for (const vp of VIEWPORTS) {
     });
 
     for (const [role, routes] of [
-      ['student', DEMO_STUDENT_ROUTES],
-      ['organization', DEMO_ORG_ROUTES],
+      ['student', STUDENT_ROUTES],
+      ['organization', ORG_ROUTES],
     ] as const) {
-      test(`demo ${role} routes @ ${vp.name}`, async ({ page }, testInfo) => {
+      test(`${role} routes @ ${vp.name}`, async ({ page }, testInfo) => {
         test.setTimeout(300000);
-        if (!(await enterDemo(page, testInfo, role))) return;
+        await signIn(page, role);
 
         for (const route of routes) {
           await page.goto(route);
@@ -164,7 +231,7 @@ for (const vp of VIEWPORTS) {
           if (page.url().includes('/login')) {
             testInfo.annotations.push({
               type: 'warning',
-              description: `demo ${role} session was lost navigating to ${route}; remaining ${role} routes were not swept`,
+              description: `${role} session was lost navigating to ${route}; remaining ${role} routes were not swept`,
             });
             return;
           }

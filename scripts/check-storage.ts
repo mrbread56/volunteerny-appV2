@@ -38,6 +38,21 @@ let failed = 0;
 const pass = (m: string) => { console.log(`[PASS] ${m}`); passed++; };
 const fail = (m: string) => { console.error(`[FAIL] ${m}`); failed++; };
 
+const DENIED = ['permission-denied', 'unauthenticated', 'storage/unauthorized', 'storage/unauthenticated'];
+/**
+ * A denial has to look like a DENIAL.
+ *
+ * These were bare `catch { pass(...) }`, so any failure at all counted as proof
+ * the rules held — including a TIMEOUT, which is the exact symptom of the
+ * "Storage was never enabled and every upload hung forever" outage this file
+ * exists to catch. check-security.ts has done it this way all along.
+ */
+function passIfDenied(err: any, label: string) {
+  const code = err?.code || '';
+  if (DENIED.includes(code)) pass(label);
+  else fail(`${label} — refused, but with an unexpected error: ${code || err?.message || err}`);
+}
+
 /** Uploads must not hang. Without this the failure mode is a script that never
  *  exits, which is the same invisible failure the app had. */
 function withTimeout<T>(label: string, p: Promise<T>, ms = 30_000): Promise<T> {
@@ -95,8 +110,8 @@ function withTimeout<T>(label: string, p: Promise<T>, ms = 30_000): Promise<T> {
       await withTimeout('cross-user upload', uploadBytes(victim, body, TYPE));
       fail('student WROTE INTO ANOTHER STUDENT\'S FOLDER');
       await deleteObject(victim).catch(() => {});
-    } catch {
-      pass("student cannot write into another student's folder");
+    } catch (err: any) {
+      passIfDenied(err, "student cannot write into another student's folder");
     }
 
     // 5. Signed out, nobody uploads anything.
@@ -104,8 +119,8 @@ function withTimeout<T>(label: string, p: Promise<T>, ms = 30_000): Promise<T> {
     try {
       await withTimeout('anon upload', uploadBytes(ref(storage, `students/${uid}/anon.pdf`), body, TYPE));
       fail('an ANONYMOUS caller uploaded a file');
-    } catch {
-      pass('anonymous upload is refused');
+    } catch (err: any) {
+      passIfDenied(err, 'anonymous upload is refused');
     }
   } finally {
     // Admin cleanup: the account and anything it left behind.

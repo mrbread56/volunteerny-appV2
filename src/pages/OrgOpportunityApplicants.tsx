@@ -165,8 +165,30 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
         }));
         const closedIds = new Set(stillWaiting.map((a) => a.id));
         setApplicants((prev) => prev.map((a) => (closedIds.has(a.id) ? { ...a, status: 'rejected' } : a)));
-        const failed = results.filter((r) => r.status === 'rejected').length;
-        if (failed) setErrorMessage(`${failed} applicant(s) could not be declined. Try again.`);
+        /*
+         * Two counts, because this one was always zero.
+         *
+         * notifyApplicant never rejects — like sendTransactionalEmail it
+         * returns `{ success: false }` — so the inner promise was always
+         * FULFILLED and `results.filter(r => r.status === 'rejected')` could
+         * only ever be empty. The dialog above says "The N applicant(s) still
+         * waiting will be declined AND EMAILED", and /api/applications/notify
+         * is rate limited to 20 sends per 10 minutes, so any posting with more
+         * than 20 waiting applicants silently dropped the rest. handleBulkReject
+         * sixty lines below already does this correctly.
+         */
+        const failedWrites = results.filter((r) => r.status === 'rejected').length;
+        const unnotified = results.filter(
+          (r) => r.status === 'fulfilled' && (r.value as any)?.success === false,
+        ).length;
+        if (failedWrites) {
+          setErrorMessage(`${failedWrites} applicant(s) could not be declined. Please try again.`);
+        } else if (unnotified) {
+          setErrorMessage(
+            `All applicants were declined, but ${unnotified} could not be emailed. ` +
+            'Please contact them directly so they know the opportunity is closed.',
+          );
+        }
       }
       setSuccessMessage(closing ? 'Opportunity closed to new applications.' : 'Opportunity reopened.');
     } catch (err: any) {
@@ -531,6 +553,30 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
           resolve({ success: true, emailSent, receiptGenerated: status === "accepted" });
         } catch (err: any) {
           console.error("Error updating status:", err);
+          /*
+           * The failure has to outlive this component.
+           *
+           * The write is deferred five seconds so the toast can offer Undo, and
+           * the timer keeps running after an in-app navigation -- the
+           * beforeunload guard only covers a tab close or a reload. So an
+           * organisation could accept an applicant, see "Placement accepted.",
+           * click Back to Dashboard within five seconds, and have the write
+           * fail into a component that no longer exists: setApplicants and
+           * setErrorMessage are both no-ops, the student is never emailed, and
+           * on the next visit the applicant is simply still pending with no
+           * explanation anywhere.
+           *
+           * sessionStorage because it survives the unmount and the navigation
+           * but not the session, and OrgDashboard reads it on mount.
+           */
+          try {
+            sessionStorage.setItem('vny_pending_decision_failed', JSON.stringify({
+              at: Date.now(),
+              message: `A decision on one applicant did not save (${toUserMessage(err) || 'database write failed'}). `
+                + 'Please open that opportunity and check the applicant list.',
+            }));
+          } catch { /* storage disabled; the in-page path below still runs */ }
+
           // Revert optimistic update on error
           setApplicants(prev => prev.map(a => a.id === appId ? currentState : a));
           setErrorMessage(toUserMessage(err) || "Database write failed");

@@ -94,6 +94,40 @@ function toDateTimeLocal(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+/*
+ * At MODULE scope, not inside the component. Same reasoning as the create page:
+ * declared in the body they were a new function object on every render, so React
+ * unmounted and remounted them rather than updating, which made the dependency
+ * array meaningless and snapped the map viewport back to `coords` on every
+ * keystroke. react-leaflet does not memoise MapContainer's children.
+ */
+function MapController({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  useEffect(() => {
+    map.setView([center.lat, center.lng], map.getZoom());
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [center, map]);
+  return null;
+}
+
+function LocationMarker({
+  coords,
+  setCoords,
+}: {
+  coords: { lat: number; lng: number };
+  setCoords: (c: { lat: number; lng: number }) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      setCoords(e.latlng);
+    },
+  });
+  return <Marker position={coords} icon={customPinIcon} />;
+}
+
 export default function OrgOpportunityEdit() {
   const { id } = useParams();
   const { user, orgProfile, isDemoMode } = useAuth();
@@ -130,6 +164,9 @@ export default function OrgOpportunityEdit() {
   const [isVirtual, setIsVirtual] = useState(false);
   const [coords, setCoords] = useState({ lat: 43.7615, lng: -79.4111 });
   const [isGeocoding, setIsGeocoding] = useState(false);
+  // Set when the address lookup finds nothing or fails, so the map pin is not
+  // silently left at the North York default. See the geocode effect.
+  const [geocodeNotice, setGeocodeNotice] = useState<string | null>(null);
 
   // Auto-geocode location — same abort handling as OrgOpportunityCreate; see
   // the note there for why an unaborted in-flight lookup could overwrite the
@@ -148,13 +185,35 @@ export default function OrgOpportunityEdit() {
         );
         const data = await response.json();
 
+        /*
+         * Zero results is a RESULT, and it used to do nothing at all.
+         *
+         * With no `else`, coords kept whatever it already held: the generic
+         * North York centre on a fresh form, or the coordinates of a previous
+         * address the coordinator typed and then corrected. The posting was
+         * then created showing a confident pin on the map, and that value drives
+         * both the map marker students see and the distance filter that decides
+         * which students are shown the posting at all. Nobody found out until a
+         * student travelled to the wrong place.
+         *
+         * The pin is draggable, so the honest move is to say we could not find
+         * it and ask them to place it.
+         */
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           setCoords({ lat: parseFloat(lat), lng: parseFloat(lon) });
+          setGeocodeNotice(null);
+        } else {
+          setGeocodeNotice(
+            'We could not find that address on the map. Drag the pin below to the right place before you save.',
+          );
         }
       } catch (error) {
         if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
+        setGeocodeNotice(
+          'We could not look that address up just now. Check the pin below is in the right place before you save.',
+        );
       } finally {
         if (!controller.signal.aborted) setIsGeocoding(false);
       }
@@ -166,18 +225,6 @@ export default function OrgOpportunityEdit() {
       controller.abort();
     };
   }, [location, isVirtual]);
-
-  function MapController({ center }: { center: { lat: number; lng: number } }) {
-    const map = useMap();
-    useEffect(() => {
-      map.setView([center.lat, center.lng], map.getZoom());
-      const timer = setTimeout(() => {
-        map.invalidateSize();
-      }, 250);
-      return () => clearTimeout(timer);
-    }, [center, map]);
-    return null;
-  }
 
   // Advanced Timeline
   const [scheduleType, setScheduleType] = useState<'single' | 'recurring' | 'multiple'>('single');
@@ -286,15 +333,6 @@ export default function OrgOpportunityEdit() {
     };
     fetchOpp();
   }, [id, user, navigate]);
-
-  function LocationMarker() {
-    useMapEvents({
-      click(e) {
-        setCoords(e.latlng);
-      },
-    });
-    return <Marker position={coords} icon={customPinIcon} />;
-  }
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
@@ -415,11 +453,25 @@ export default function OrgOpportunityEdit() {
        */
       const newMax = Number(maxVolunteers) || 0;
       const added = newMax - loadedMaxRef.current;
+      let unnotified = 0;
       if (newMax > 0 && added > 0) {
         for (let i = 0; i < added; i++) {
-          const promoted = await promoteWaitlistedApplicant(id, orgProfile?.organizationName || 'Verified Organization');
+          const promoted: any = await promoteWaitlistedApplicant(id, orgProfile?.organizationName || 'Verified Organization');
           if (!promoted) break;
+          // Checked here TOO. The other two call sites read this flag; this
+          // third one was written without it, so a promotion whose email failed
+          // navigated away in silence and the student kept seeing WAITLIST.
+          if (promoted.emailSent === false) unnotified++;
         }
+      }
+
+      if (unnotified > 0) {
+        setSaveError(
+          `Saved, and ${unnotified} waitlisted student${unnotified === 1 ? ' was' : 's were'} moved into the new place${unnotified === 1 ? '' : 's'}, ` +
+          'but we could not email them. Please contact them directly.',
+        );
+        setIsSaving(false);
+        return;
       }
 
       navigate('/org/dashboard');
@@ -602,6 +654,11 @@ export default function OrgOpportunityEdit() {
                 </label>
                 <div className="space-y-2">
                    <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin</p>
+                   {geocodeNotice && (
+                     <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
+                       {geocodeNotice}
+                     </p>
+                   )}
                    <Card className="h-[300px] overflow-hidden rounded-lg border-none">
                       <MapContainer center={[coords.lat, coords.lng]} zoom={12} style={{ height: '100%', width: '100%' }}>
                          <TileLayer 
@@ -611,7 +668,7 @@ export default function OrgOpportunityEdit() {
                             maxZoom={20}
                          />
                          <MapController center={coords} />
-                         <LocationMarker />
+                         <LocationMarker coords={coords} setCoords={setCoords} />
                          {userCoords && (
                             <Marker position={[userCoords.latitude, userCoords.longitude]} icon={userLocationIcon}>
                                <Popup className="rounded-lg overflow-hidden">

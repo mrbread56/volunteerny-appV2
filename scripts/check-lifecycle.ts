@@ -162,6 +162,22 @@ const as = async (email: string) => {
   return auth.currentUser!.getIdToken();
 };
 
+const DENIED = ['permission-denied', 'unauthenticated', 'storage/unauthorized', 'storage/unauthenticated'];
+/**
+ * A denial has to look like a DENIAL.
+ *
+ * These blocks were bare `catch { pass(...) }`, so any failure at all counted
+ * as proof the rules held: a network drop, a bad fixture, a missing document —
+ * and in check-storage, a TIMEOUT, which is the exact symptom of the "Storage
+ * was never enabled and every upload hung forever" outage this file exists to
+ * catch. check-security.ts has done it this way all along.
+ */
+function passIfDenied(err: any, label: string) {
+  const code = err?.code || '';
+  if (DENIED.includes(code)) pass(label);
+  else fail(`${label} — refused, but with an unexpected error: ${code || err?.message || err}`);
+}
+
 /** Apply the way StudentOpportunityDetail does: deterministic id. */
 async function apply(studentUid: string, oppId: string, title: string, orgId: string, status: string) {
   await setDoc(doc(db, 'applications', `${studentUid}_${oppId}`), {
@@ -203,8 +219,8 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
     try {
       await apply(s1.uid, oppId, 'Lifecycle Opportunity', org.uid, 'pending');
       fail('the same student applied to the same opportunity TWICE');
-    } catch {
-      pass('a second application from the same student is refused');
+    } catch (err: any) {
+      passIfDenied(err, 'a second application from the same student is refused');
     }
     const mine = await getDocs(query(collection(db, 'applications'),
       where('studentId', '==', s1.uid), where('opportunityId', '==', oppId)));
@@ -239,8 +255,8 @@ async function apply(studentUid: string, oppId: string, title: string, orgId: st
     try {
       await updateDoc(doc(db, 'applications', `${s1.uid}_${oppId}`), { status: 'accepted' });
       fail("a student edited ANOTHER student's application");
-    } catch {
-      pass("a student cannot edit another student's application");
+    } catch (err: any) {
+      passIfDenied(err, "a student cannot edit another student's application");
     }
 
     // ── capacity: waitlist promotion must respect maxVolunteers ──────────────

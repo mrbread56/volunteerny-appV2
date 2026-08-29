@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { reportError } from '../lib/errors';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase/config';
@@ -164,8 +164,26 @@ export default function StudentOpportunityDetail() {
     fetchData();
   }, [id, user, navigate]);
 
+  // See handleToggleSave: this is what stops a double-click writing two rows.
+  const savingRef = useRef(false);
+
   const handleToggleSave = async () => {
     if (!user || !id) return;
+    /*
+     * One at a time.
+     *
+     * isSaved is only flipped AFTER the await, and the button carries no
+     * disabled state, so a double-click had both handlers read isSaved === false
+     * and run addDoc twice: two savedOpportunities rows for the same student and
+     * opportunity. The dashboard lists bookmarks with orderBy(savedAt) limit(5),
+     * so the duplicate eats a slot and the student sees four of their five most
+     * recent saves.
+     *
+     * A ref rather than state because it has to be true before the next click
+     * can be handled, and a state update is not.
+     */
+    if (savingRef.current) return;
+    savingRef.current = true;
     try {
       const localSaves = JSON.parse(localStorage.getItem('demo_saved_ids') || '[]');
       if (isSaved) {
@@ -210,6 +228,8 @@ export default function StudentOpportunityDetail() {
           ? "Your account can't save opportunities yet. Make sure your student profile is complete — sign out and back in to finish setup if you're prompted."
           : 'Could not update your bookmark. Please check your connection and try again.';
       setNotice({ kind: 'error', text: reportError('toggle bookmark', err, message) });
+    } finally {
+      savingRef.current = false;
     }
   };
 
@@ -382,15 +402,48 @@ export default function StudentOpportunityDetail() {
       //
       // Fire and forget, after the write: the application is saved either way,
       // and a mail failure must not tell the student their application failed.
-      if (!isDemoMode && organization?.contactEmail) {
+      /*
+       * The address is re-read here if the page load did not get it.
+       *
+       * This was gated on `organization?.contactEmail` alone, and `organization`
+       * is set by a read whose two failure paths both only call reportError and
+       * carry on. So whenever that read failed, the guard was false, no message
+       * was composed at all, and the organisation was never told anyone had
+       * applied — silently, on the one notification that matters most for a
+       * small charity that checks the site fortnightly. One extra getDoc on the
+       * apply path is cheaper than that.
+       */
+      let orgContact = organization?.contactEmail || '';
+      let orgDisplayName = organization?.organizationName || opportunity.orgName || 'your organization';
+      if (!isDemoMode && !orgContact && opportunity.orgId) {
+        try {
+          const freshOrg = await getDoc(doc(db, 'organizations', opportunity.orgId));
+          if (freshOrg.exists()) {
+            orgContact = String(freshOrg.data()?.contactEmail || '');
+            orgDisplayName = String(freshOrg.data()?.organizationName || orgDisplayName);
+          }
+        } catch (retryErr) {
+          reportError('re-read organization to notify it of an applicant', retryErr);
+        }
+      }
+      if (!isDemoMode && !orgContact) {
+        // Loud rather than silent: the application IS saved, but nobody has been
+        // told, and only an operator can notice that.
+        reportError(
+          'notify organization of a new applicant',
+          new Error(`no contactEmail for organizations/${opportunity.orgId} (opportunity ${id})`),
+        );
+      }
+
+      if (!isDemoMode && orgContact) {
         sendTransactionalEmail({
-          to: organization.contactEmail,
+          to: orgContact,
           subject: `New applicant for "${opportunity.title}"`,
           templateName: 'new_applicant',
           templateData: {
             applicantName: studentProfile?.fullName || user.displayName || 'A student',
             oppTitle: opportunity.title,
-            orgName: organization.organizationName || 'your organization',
+            orgName: orgDisplayName,
             message: applicationMessage || '',
             actionLabel: 'Review the application',
             actionUrl: `${window.location.origin}/org/opportunities/${id}/applicants`,

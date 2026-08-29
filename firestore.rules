@@ -131,9 +131,46 @@ service cloud.firestore {
       return ['kiamehrmetanat@gmail.com'];
     }
 
+    /*
+     * isNotBanned() and mfaSatisfied() apply to DEVELOPERS TOO.
+     *
+     * They did not, and every consumer ORs this in AHEAD of the branch it is
+     * guarding — isVerifiedStudent, isOrgAccount, isApprovedOrg, the users
+     * rules, the applications rules. So the highest-privilege account in the
+     * system was the only one exempt from both the second factor and
+     * suspension.
+     *
+     * src/routes/guards.tsx already carries the note "Developer status must NOT
+     * bypass MFA. It used to" — the client was fixed and this was not, which
+     * protects only a developer who chooses to use the React app. Someone
+     * holding a phished or reused developer password signs in with the Firebase
+     * SDK, never loads /mfa, and `allow list: if isDeveloper()` on /users hands
+     * them every student's name, email and school.
+     *
+     * Suspending a developer also did nothing at all.
+     *
+     * Costs no extra document access: all three helpers read the same
+     * users/{uid} document, and rules cache repeated gets of one path within an
+     * evaluation.
+     */
     function isDeveloper() {
-      return isSignedIn() && (
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'developer' ||
+      return isSignedIn() &&
+        // Both guards are conditional on the caller HAVING a users document,
+        // because the allowlist branch below deliberately works without one:
+        // that is the bootstrap, used before any account carries
+        // role == 'developer'. isNotBanned() and mfaSatisfied() both read
+        // users/{uid}.data, and .data on a get() that returned null is an
+        // evaluation ERROR, not a false — so applying them unconditionally
+        // denied the bootstrap outright. An account with no users document also
+        // has no isBanned and no twoFactorEnabled to check.
+        (
+          !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+          (isNotBanned() && mfaSatisfied())
+        ) && (
+        (
+          exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', '') == 'developer'
+        ) ||
         // email_verified matters here. Firebase does not require ownership proof
         // to create an account with a given address, so without it anyone could
         // register an unclaimed allowlisted address and be handed developer.
@@ -292,7 +329,21 @@ service cloud.firestore {
              // Absent means open, so every opportunity created before this
              // field existed keeps working with no backfill.
              (absent(data, 'status') || data.status in ['open', 'closed']) &&
-             (absent(data, 'scheduleType') || data.scheduleType in ['single', 'multiple', 'recurring']) &&
+             // Capped rather than enumerated, and dateTime accepts a bounded
+             // string as well as a timestamp.
+             //
+             // isValidOpportunity runs on UPDATE as well as create, and on an
+             // update incoming() is the MERGED document — so a conjunct about a
+             // field the write never touches is still evaluated against
+             // whatever is already stored. Closing a posting writes two keys
+             // (status, updatedAt), so a strict enum here would have made any
+             // pre-existing posting with an off-list scheduleType, or a
+             // dateTime stored as a string, permanently impossible for its
+             // owner to close or reopen — with a permission error naming
+             // nothing. The bound is what this validator is for on a
+             // world-readable collection; the exact type is not worth bricking
+             // live postings over.
+             (absent(data, 'scheduleType') || (data.scheduleType is string && data.scheduleType.size() <= 32)) &&
              (absent(data, 'shifts') || (data.shifts is list && data.shifts.size() <= 50)) &&
              // dateTime was in BOTH hasOnly allowlists and named by nothing
              // here, so the one field the browse page sorts and filters on
@@ -301,7 +352,9 @@ service cloud.firestore {
              // OrgOpportunityEdit) pass it through resolveOpportunityDate,
              // which always returns a Date, so this is what the app already
              // sends on every create and every save.
-             (absent(data, 'dateTime') || data.dateTime is timestamp) &&
+             (absent(data, 'dateTime') ||
+               data.dateTime is timestamp ||
+               (data.dateTime is string && data.dateTime.size() <= 64)) &&
              (absent(data, 'coordinates') || (data.coordinates is map && data.coordinates.lat is number && data.coordinates.lng is number)) &&
              // OrgOpportunityEdit writes this on every save. It was in neither
              // this validator nor the update hasOnly below, so hasOnly saw an
@@ -926,6 +979,14 @@ service cloud.firestore {
       // addressed to them.
       allow list: if isSignedIn() && (
         resource.data.studentId == request.auth.uid ||
+        // isNotBanned() on both coordinator branches HERE TOO, and this is the
+        // one that mattered. The sibling `get` rule was given the ban check and
+        // this was not — but nothing in the app ever reads a single hours
+        // request by id: both org paths (OrgDashboard and the notification
+        // bell) are queries, so `list` is the rule the exploit actually used.
+        // Fixing the unused half and claiming both is exactly the shape of
+        // mistake this file keeps finding.
+        //
         // email_verified is required, for the same reason isDeveloper() above
         // requires it: Firebase does not make you prove you own an address to
         // register with it. Without this, anyone could sign up using a
@@ -940,8 +1001,8 @@ service cloud.firestore {
         // meant that the moment an organisation changed its PUBLIC contact email
         // — a required field OrgProfile invites them to edit — every request to
         // them became invisible, silently, on both sides.
-        (resource.data.get('orgId', '') == request.auth.uid) ||
-        (resource.data.coordinatorContact == request.auth.token.email &&
+        (isNotBanned() && resource.data.get('orgId', '') == request.auth.uid) ||
+        (isNotBanned() && resource.data.coordinatorContact == request.auth.token.email &&
          request.auth.token.email_verified == true) ||
         isDeveloper()
       );

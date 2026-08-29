@@ -79,7 +79,7 @@ export default function LeaderboardTab({
           </div>
         </div>
 
-        {(studentProfile?.trackerEnabled ?? true) ? (
+        {(studentProfile?.trackerEnabled ?? false) ? (
           <div className="space-y-8 animate-fadeIn">
             {/* 3D-Style Podium Card (Light Theme Accent) */}
             <div className="bg-white border border-blue-dark/10 rounded-lg p-8 text-ink relative overflow-hidden">

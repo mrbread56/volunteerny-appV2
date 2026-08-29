@@ -380,7 +380,7 @@ export default function StudentDashboard() {
 
   const handleToggleCompetitiveness = async () => {
     if (!user) return;
-    const newVal = !(studentProfile?.trackerEnabled ?? true);
+    const newVal = !(studentProfile?.trackerEnabled ?? false);
     if (isDemoMode) {
       const updated = { ...(studentProfile || {}), trackerEnabled: newVal };
       localStorage.setItem("demo_student_profile", JSON.stringify(updated));
@@ -773,7 +773,7 @@ export default function StudentDashboard() {
       ];
 
       if (isDemoMode) {
-        if (studentProfile?.trackerEnabled ?? true) {
+        if (studentProfile?.trackerEnabled ?? false) {
           const selfItem = {
             id: user?.uid || "self",
             name: studentProfile?.trackerAnonymous
@@ -823,7 +823,7 @@ export default function StudentDashboard() {
               (studentProfile?.trackerAnonymous ?? false) &&
               entries.some((e) => !e.userId && Math.abs(Number(e.score) - totalCompletedHours) < 0.01);
 
-            if (!hasSelf && !anonSelfAlreadyRanked && (studentProfile?.trackerEnabled ?? true)) {
+            if (!hasSelf && !anonSelfAlreadyRanked && (studentProfile?.trackerEnabled ?? false)) {
               mapped.push({
                 id: user?.uid || "self",
                 name: studentProfile?.trackerAnonymous
@@ -1513,8 +1513,22 @@ export default function StudentDashboard() {
                       const app = applications.find(a => a.id === val);
                       if (app) {
                         setLogActivity(app.opportunityTitle || "");
+                        /*
+                         * No invented organisation. This was
+                         * `|| "Canada Mutual Aid Partner"`, and orgContacts is
+                         * populated by a fetch whose every failure path is
+                         * swallowed — so when that read failed the student's
+                         * hours request was filed against a fictional charity,
+                         * with a blank coordinator address and NO orgId, which
+                         * is the field that routes it to a queue. It could
+                         * never be approved by anyone, and the student was told
+                         * it had been submitted.
+                         *
+                         * Leaving it blank makes the required field visibly
+                         * empty, which is the truth: we do not know.
+                         */
                         const contact = orgContacts[app.opportunityId];
-                        setLogOrg(contact?.organizationName || "Canada Mutual Aid Partner");
+                        setLogOrg(contact?.organizationName || "");
                         setLogContact(contact?.email || "");
                         setLogOrgUid(contact?.uid || null);
                       }

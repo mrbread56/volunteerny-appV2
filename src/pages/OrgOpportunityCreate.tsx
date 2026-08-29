@@ -64,6 +64,49 @@ const SCHEDULE_TYPES = [
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
+/*
+ * At MODULE scope, not inside the component.
+ *
+ * Declared in the component body these were a NEW function object on every
+ * parent render, so React saw a different element.type and unmounted and
+ * remounted them instead of updating -- which makes the [center, map]
+ * dependency array irrelevant, because the effect runs in a fresh component
+ * every time. react-leaflet's MapContainer does not memoise its children, so
+ * every parent render reached them.
+ *
+ * The visible result: an organisation drags the map to place the pin exactly,
+ * types one character in Title, and the viewport snaps back to `coords`. It
+ * also snapped back a second later when the draft autosave set its timestamp,
+ * and twice more on every address edit via the geocoding flag. The Marker was
+ * a destroyed-and-recreated Leaflet layer each time, so the pin flickered too.
+ */
+function MapController({ center }: { center: { lat: number; lng: number } }) {
+  const map = useMap();
+  React.useEffect(() => {
+    map.setView([center.lat, center.lng], map.getZoom());
+    const timer = setTimeout(() => {
+      map.invalidateSize();
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [center, map]);
+  return null;
+}
+
+function LocationMarker({
+  coords,
+  setCoords,
+}: {
+  coords: { lat: number; lng: number };
+  setCoords: (c: { lat: number; lng: number }) => void;
+}) {
+  useMapEvents({
+    click(e) {
+      setCoords(e.latlng);
+    },
+  });
+  return <Marker position={coords} icon={customPinIcon} />;
+}
+
 export default function OrgOpportunityCreate() {
   const { user, isDemoMode, orgProfile } = useAuth();
   const navigate = useNavigate();
@@ -86,6 +129,9 @@ export default function OrgOpportunityCreate() {
   const [isVirtual, setIsVirtual] = useState(false);
   const [coords, setCoords] = useState({ lat: 43.7615, lng: -79.4111 }); // North York center
   const [isGeocoding, setIsGeocoding] = useState(false);
+  // Set when the address lookup finds nothing or fails, so the map pin is not
+  // silently left at the North York default. See the geocode effect.
+  const [geocodeNotice, setGeocodeNotice] = useState<string | null>(null);
 
   // Advanced Timeline
   const [scheduleType, setScheduleType] = useState<'single' | 'recurring' | 'multiple'>('single');
@@ -206,14 +252,36 @@ export default function OrgOpportunityCreate() {
         );
         const data = await response.json();
 
+        /*
+         * Zero results is a RESULT, and it used to do nothing at all.
+         *
+         * With no `else`, coords kept whatever it already held: the generic
+         * North York centre on a fresh form, or the coordinates of a previous
+         * address the coordinator typed and then corrected. The posting was
+         * then created showing a confident pin on the map, and that value drives
+         * both the map marker students see and the distance filter that decides
+         * which students are shown the posting at all. Nobody found out until a
+         * student travelled to the wrong place.
+         *
+         * The pin is draggable, so the honest move is to say we could not find
+         * it and ask them to place it.
+         */
         if (data && data.length > 0) {
           const { lat, lon } = data[0];
           setCoords({ lat: parseFloat(lat), lng: parseFloat(lon) });
+          setGeocodeNotice(null);
+        } else {
+          setGeocodeNotice(
+            'We could not find that address on the map. Drag the pin below to the right place before you save.',
+          );
         }
       } catch (error) {
         // We cancelled it ourselves; not a failure worth reporting.
         if ((error as Error)?.name === 'AbortError') return;
         console.error('Geocoding error:', error);
+        setGeocodeNotice(
+          'We could not look that address up just now. Check the pin below is in the right place before you save.',
+        );
       } finally {
         if (!controller.signal.aborted) setIsGeocoding(false);
       }
@@ -225,27 +293,6 @@ export default function OrgOpportunityCreate() {
       controller.abort();
     };
   }, [location, isVirtual]);
-
-  function MapController({ center }: { center: { lat: number; lng: number } }) {
-    const map = useMap();
-    React.useEffect(() => {
-      map.setView([center.lat, center.lng], map.getZoom());
-      const timer = setTimeout(() => {
-        map.invalidateSize();
-      }, 250);
-      return () => clearTimeout(timer);
-    }, [center, map]);
-    return null;
-  }
-
-  function LocationMarker() {
-    useMapEvents({
-      click(e) {
-        setCoords(e.latlng);
-      },
-    });
-    return <Marker position={coords} icon={customPinIcon} />;
-  }
 
   const toggleSkill = (skill: string) => {
     setSelectedSkills(prev => prev.includes(skill) ? prev.filter(s => s !== skill) : [...prev, skill]);
@@ -596,6 +643,11 @@ export default function OrgOpportunityCreate() {
                
                <div className="space-y-2">
                   <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Place Map Pin (Click to move)</p>
+                  {geocodeNotice && (
+                    <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
+                      {geocodeNotice}
+                    </p>
+                  )}
                   <Card className="h-[300px] overflow-hidden rounded-lg border-none">
                      <MapContainer center={[coords.lat, coords.lng]} zoom={12} style={{ height: '100%', width: '100%' }}>
                         <TileLayer 
@@ -605,7 +657,7 @@ export default function OrgOpportunityCreate() {
                             maxZoom={20}
                          />
                         <MapController center={coords} />
-                        <LocationMarker />
+                        <LocationMarker coords={coords} setCoords={setCoords} />
                         {userCoords && (
                            <Marker position={[userCoords.latitude, userCoords.longitude]} icon={userLocationIcon}>
                               <Popup className="rounded-lg overflow-hidden">

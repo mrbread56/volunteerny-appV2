@@ -280,7 +280,14 @@ export default function Signup() {
             phone,
             northYorkConfirmed: isNorthYork,
             websiteUrl: website,
-            hasCra,
+            // A BOOLEAN. This state is "yes" | "no" | null for the radio group,
+            // and the string was being written straight through — so the moment
+            // firestore.rules started validating this key (it was permitted and
+            // never checked), every single organisation signup began failing
+            // with "Your account was created, but we couldn't save your
+            // profile", leaving an auth user with no organizations document.
+            // OrgProfile already wrote the bool; this site was missed.
+            hasCra: hasCra === "yes",
             craNumber: hasCra === "yes" ? normalizeCraNumber(craNumber) : "",
             // NOT self-declared. An organization typing its own number proves
             // nothing; previously this wrote craVerified: true purely because

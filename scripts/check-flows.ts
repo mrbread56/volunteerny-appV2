@@ -174,7 +174,10 @@ const as = async (email: string) => {
       title: 'Flow Check Opportunity',
       description: 'Created by npm run check:flows.',
       location: '5100 Yonge St',
-      dateTime: new Date(Date.now() + 86400000).toISOString(),
+      // A Date, not a string. This is the third client-SDK writer of
+      // opportunities (the two in src/ both go through resolveOpportunityDate,
+      // which returns a Date), and it is the one the rules comment forgot.
+      dateTime: new Date(Date.now() + 86400000),
       category: 'Community Services',
       requirements: '',
       maxVolunteers: 5,

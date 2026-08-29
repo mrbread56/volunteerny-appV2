@@ -94,16 +94,16 @@ export default function SettingsTab({
               onClick={handleToggleCompetitiveness}
               aria-label="Toggle whether peers see your hours leaderboard"
               role="switch"
-              aria-checked={studentProfile?.trackerEnabled ?? true}
+              aria-checked={studentProfile?.trackerEnabled ?? false}
               className={cn(
                 "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                (studentProfile?.trackerEnabled ?? true) ? "bg-blue-dark" : "bg-slate-200",
+                (studentProfile?.trackerEnabled ?? false) ? "bg-blue-dark" : "bg-slate-200",
               )}
             >
               <span
                 className={cn(
                   "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
-                  (studentProfile?.trackerEnabled ?? true) ? "translate-x-5" : "translate-x-0"
+                  (studentProfile?.trackerEnabled ?? false) ? "translate-x-5" : "translate-x-0"
                 )}
               />
             </button>
@@ -123,11 +123,11 @@ export default function SettingsTab({
               aria-label="Hide your full name on high achievement boards"
               role="switch"
               aria-checked={studentProfile?.trackerAnonymous ?? false}
-              disabled={!(studentProfile?.trackerEnabled ?? true)}
+              disabled={!(studentProfile?.trackerEnabled ?? false)}
               className={cn(
                 "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
                 (studentProfile?.trackerAnonymous ?? false) ? "bg-amber" : "bg-slate-200",
-                !(studentProfile?.trackerEnabled ?? true) && "opacity-40 cursor-not-allowed",
+                !(studentProfile?.trackerEnabled ?? false) && "opacity-40 cursor-not-allowed",
               )}
             >
               <span

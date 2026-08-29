@@ -139,7 +139,13 @@ export default function StudentProfile() {
       setAvailability(normalizeAvailability(studentProfile.availability));
       setPreviousExperience(studentProfile.previousExperience || "");
       setResumeUrl(decompressFile(studentProfile.resumeUrl || ""));
-      setTrackerEnabled(studentProfile.trackerEnabled ?? true);
+      // ?? false, matching the server's `trackerEnabled === true` filter.
+      // With ?? true this page READ absence as opted-in and then WROTE it back
+      // on the next save of anything at all — a resume upload, a school
+      // correction — publishing the student's real name and hours on a board
+      // readable by every signed-in account. Signup was fixed and this
+      // manufactured the consent right back.
+      setTrackerEnabled(studentProfile.trackerEnabled ?? false);
       setTrackerAnonymous(studentProfile.trackerAnonymous ?? false);
     }
   }, [studentProfile]);

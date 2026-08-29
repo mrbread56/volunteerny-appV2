@@ -442,7 +442,19 @@ export default function OrgDashboard() {
       // Guarded. This sat AFTER the demo/real fork rather than inside the real
       // branch, so a demo session mailed whatever address the fixture carried,
       // for real, from our verified domain.
-      if (!isDemoMode) sendTransactionalEmail({
+      /*
+       * The RESOLVED value is checked, not just a .catch().
+       *
+       * sendTransactionalEmail never rejects — its whole body sits in one try
+       * whose catch RETURNS `{ success: false }`, and a non-2xx response
+       * (403 recipient refusal, 429 rate limit, 502 Resend rejection, 503 no
+       * API key) returns the same. So the .catch() attached here was dead code
+       * and the failure was invisible: the coordinator saw "Hours approved
+       * successfully!" and the student was never told their hours had moved.
+       * handleSendReminder in StudentDashboard already reads .success and even
+       * documents the behaviour; this call site was never updated.
+       */
+      const mail = isDemoMode ? { success: true } : await sendTransactionalEmail({
         to: req.studentEmail,
         subject: approved
           ? `${req.hours} volunteer hours approved`
@@ -482,7 +494,13 @@ export default function OrgDashboard() {
               supervisorName: req.coordinatorName || "Site Supervisor",
               subject: "Volunteer Hours Update",
             }
-      }).catch(err => console.error("Could not send validation email:", err));
+      });
+      if (!mail.success) {
+        setErrorMessage(
+          `The hours were ${approved ? 'approved' : 'declined'}, but we could not email ${req.studentName || 'the student'}. ` +
+          'Please let them know directly.',
+        );
+      }
 
     } catch (err: any) {
       // This previously only logged to the console: the org clicked Approve,

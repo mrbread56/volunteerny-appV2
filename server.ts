@@ -265,7 +265,27 @@ async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: 
 
   try {
     const adminObj = (adminInstance as any).default || adminInstance;
-    const decoded = await adminObj.auth().verifyIdToken(token);
+    /*
+     * checkRevoked: true. The second argument is the whole fix for two things.
+     *
+     * Nothing in this repo calls revokeRefreshTokens, so the rules compensate
+     * for a suspension with a live get() on every evaluation while the server
+     * compensated on eight hand-placed guards. Every other route kept working
+     * with a token issued before the suspension, for up to an hour.
+     *
+     * Deletion was worse. purgeAccount DOES delete the Auth user, but without
+     * this flag verifyIdToken never consults the Auth record, so the old token
+     * stayed valid: POST /api/auth/backup-codes with a pre-deletion token still
+     * satisfied uid, isDemo and hasPassedMfa, and RE-CREATED
+     * mfaBackupCodes/{deleted uid} — returning ten plaintext recovery codes for
+     * an account that had asked to be erased. send-otp likewise re-created its
+     * document and mailed the deleted address.
+     *
+     * With this flag a deleted uid raises auth/user-not-found and a revoked
+     * session raises auth/id-token-revoked, both of which land in the catch
+     * below and are refused. It costs one extra Auth lookup per request.
+     */
+    const decoded = await adminObj.auth().verifyIdToken(token, true);
     // uid only. This logged `email: <address>` on EVERY authenticated API call,
     // so a log stream that outlives the request accumulated the email addresses
     // of users who are mostly minors — the exact data the privacy policy
@@ -974,7 +994,13 @@ app.use(express.json());
     const snap = await dbAdmin
       .collection('students')
       .orderBy('hours', 'desc')
-      .limit(LEADERBOARD_TOP_N * 2)
+      // 10x, not 2x. Under the old `trackerEnabled !== false` filter an absent
+      // field passed, so nearly everyone in the fetched window survived and
+      // double the target was ample slack. Now only explicit opt-ins pass, and
+      // opting in is deliberately rare — Signup writes false and the onboarding
+      // checkbox starts unticked. At 2x the board would silently render short
+      // and permanently omit opted-in students ranked past the window.
+      .limit(LEADERBOARD_TOP_N * 10)
       .get();
 
     const entries = snap.docs
@@ -1558,6 +1584,7 @@ app.use(express.json());
      *
      * Two reads, only on the path where the first one came back empty.
      */
+    let recoveredEmail = '';
     if (!role) {
       const [studentSnap, orgSnap] = await Promise.all([
         adb.collection('students').doc(userId).get(),
@@ -1565,10 +1592,18 @@ app.use(express.json());
       ]);
       if (studentSnap.exists) role = 'student';
       else if (orgSnap.exists) role = 'organization';
+      // The ADDRESS too, not just the role. emailLog is keyed by recipient
+      // address and is cleared with it; recovering the role while leaving the
+      // address empty meant the retry this fallback exists to enable still
+      // skipped that collection, so every message ever sent to a deleted
+      // account kept its address on file permanently.
+      recoveredEmail = String(
+        studentSnap.data()?.email || orgSnap.data()?.contactEmail || orgSnap.data()?.email || '',
+      );
     }
     // Read before anything is deleted — emailLog is keyed by ADDRESS, and once
     // the account document is gone there is no way back to it.
-    const userEmail = userSnap.exists ? String(userSnap.data()?.email || '') : '';
+    const userEmail = userSnap.exists ? String(userSnap.data()?.email || '') : recoveredEmail;
 
     const deleteWhere = async (coll: string, field: string, value: string) => {
       // Paginated. This was a single `.limit(300)` with nothing after it, so an
@@ -1637,18 +1672,30 @@ app.use(express.json());
        * stated cause leaves them a true account of what happened and a reason to
        * re-file the hours another way.
        */
-      for (;;) {
-        const pending = await adb.collection('hoursRequests')
-          .where('orgId', '==', userId).where('status', '==', 'pending').limit(300).get();
-        if (pending.empty) break;
-        await Promise.all(pending.docs.map((d: any) => d.ref.update({
-          status: 'declined',
-          declinedReason: 'The organization closed its account before confirming these hours.',
-          decidedAt: new Date().toISOString(),
-          declinedAt: new Date().toISOString(),
-        })));
-        if (pending.size < 300) break;
-      }
+      //
+      // BOTH fields, because a request reaches an organisation by either one.
+      // orgId is the identity, but firestore.rules makes it optional and its
+      // own comment keeps coordinatorContact "for rows written before that, and
+      // for the Other / Unlisted branch where there is no account behind the
+      // address". Both org read paths query both. Settling only by orgId left
+      // every legacy and Other/Unlisted claim stranded exactly as before.
+      const settleStranded = async (field: string, value: string) => {
+        if (!value) return;
+        for (;;) {
+          const pending = await adb.collection('hoursRequests')
+            .where(field, '==', value).where('status', '==', 'pending').limit(300).get();
+          if (pending.empty) break;
+          await Promise.all(pending.docs.map((d: any) => d.ref.update({
+            status: 'declined',
+            declinedReason: 'The organization closed its account before confirming these hours.',
+            decidedAt: new Date().toISOString(),
+            declinedAt: new Date().toISOString(),
+          })));
+          if (pending.size < 300) break;
+        }
+      };
+      await settleStranded('orgId', userId);
+      await settleStranded('coordinatorContact', userEmail.trim().toLowerCase());
     } else if (role === 'student') {
       await deleteWhere('applications', 'studentId', userId);
       await deleteWhere('savedOpportunities', 'studentId', userId);
@@ -2071,6 +2118,26 @@ app.use(express.json());
       }
       if (authContext.isDemo) {
         return res.json({ success: true, emailSent: false, mode: 'demo' });
+      }
+
+      /*
+       * Approval, not just ban. This route was missed when orgApprovalStatus
+       * went onto review-profile and applicant-contacts.
+       *
+       * It only SENDS MAIL — it writes no status — so the isApprovedOrg() guard
+       * on the applications rules never comes into play, and ownership of the
+       * posting stays true after a rejection. An organisation a reviewer had
+       * turned down could therefore still send "you have been accepted" to a
+       * minor, from the verified sending domain, with this platform's name on
+       * it. Losing the ability to decide while keeping the ability to announce
+       * a decision is the wrong half.
+       */
+      const notifyApproval = await orgApprovalStatus(authContext.uid);
+      if (notifyApproval === 'not-approved') {
+        return res.status(403).json({ error: 'Your organization is not approved, so it cannot email applicants.' });
+      }
+      if (notifyApproval === 'unknown') {
+        return res.status(503).json({ error: 'We could not verify your organization just now. Please try again shortly.' });
       }
 
       const { applicationId, status, reason, note } = req.body || {};

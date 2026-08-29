@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { isVisibleToStudents } from '../lib/visibleToStudents';
 import { reportError } from '../lib/errors';
 import { useDialog } from '../hooks/useDialog';
@@ -241,8 +241,23 @@ export default function StudentOpportunities() {
    * Demo mode keeps the localStorage path, because there is no Firestore
    * behind it by design.
    */
+  // Per-opportunity, because a student can legitimately tap two different
+  // bookmarks quickly; it is the SAME one twice that has to be serialised.
+  const savingIds = useRef<Set<string>>(new Set());
+
   const handleSave = async (oppId: string) => {
     if (!user) return;
+    /*
+     * The second tap on the same card used to invert the first.
+     *
+     * savedIds is updated optimistically below, so tap 2 reads wasSaved === true
+     * while tap 1's addDoc is still in flight, and runs the DELETE query, which
+     * matches nothing yet. Tap 1 then lands. End state: the document exists in
+     * Firestore and the icon says unsaved, and the opportunity reappears in the
+     * dashboard's Saved panel the student believes they removed.
+     */
+    if (savingIds.current.has(oppId)) return;
+    savingIds.current.add(oppId);
     const wasSaved = savedIds.includes(oppId);
 
     // Optimistic: the tap should feel instant.
@@ -254,6 +269,7 @@ export default function StudentOpportunities() {
         ? localSaves.filter((id: string) => id !== oppId)
         : [...new Set([...localSaves, oppId])];
       localStorage.setItem('demo_saved_ids', JSON.stringify(updated));
+      savingIds.current.delete(oppId);
       return;
     }
 
@@ -283,6 +299,8 @@ export default function StudentOpportunities() {
           ? "We couldn't remove that bookmark. Please try again."
           : "We couldn't save that opportunity. Please check your connection and try again."
       );
+    } finally {
+      savingIds.current.delete(oppId);
     }
   };
 
