@@ -29,6 +29,32 @@ export function formatDate(date: string | number | Date | null | undefined) {
   }).format(d);
 }
 
+/**
+ * A calendar date that has no time of day, rendered as that date.
+ *
+ * formatDate must not be used for these. `new Date('2026-09-14')` parses as UTC
+ * midnight, so in Toronto it is 8pm on the 13th — and formatDate asks for
+ * timeStyle, so a bare shift date rendered through it produced
+ * "Sep 13, 2026, 8:00 p.m." directly above the real "09:00 - 12:00" on the next
+ * line. Wrong day, and a time nobody entered. A student reading that block
+ * arrives on Sunday evening for a Monday morning shift.
+ *
+ * The parts are pulled apart and handed to a local Date so the calendar day is
+ * the one the organisation typed, and no time is shown because none was given.
+ */
+export function formatCalendarDate(value: string | null | undefined): string {
+  if (!value) return '';
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value).trim());
+  if (!m) {
+    // Not a bare date: fall back to the normal formatter, which is correct for
+    // real timestamps.
+    return formatDate(value);
+  }
+  const d = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  if (!Number.isFinite(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-CA', { dateStyle: 'medium' }).format(d);
+}
+
 export async function copyToClipboard(text: string): Promise<boolean> {
   if (typeof navigator !== 'undefined' && navigator.clipboard && navigator.clipboard.writeText) {
     try {

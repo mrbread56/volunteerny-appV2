@@ -9,7 +9,7 @@ import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { MapPin, Calendar, Clock, ArrowLeft, Building2, Share2, Bookmark, CheckCircle2, Users, X, Mail, Phone, ShieldAlert } from 'lucide-react';
-import { formatDate, cn, copyToClipboard } from '../lib/utils';
+import { formatDate, cn, copyToClipboard, formatCalendarDate } from '../lib/utils';
 import { fetchAcceptedCount } from '../lib/opportunityCapacity';
 import ReportModal from '../components/ReportModal';
 import { sendTransactionalEmail } from '../lib/emailService';
@@ -571,7 +571,7 @@ export default function StudentOpportunityDetail() {
                                 <div key={i} className="bg-paper-2 p-2.5 rounded-lg border border-line-light flex items-center justify-between">
                                    <div className="flex flex-col">
                                       <span className="text-xs font-bold text-ink-muted leading-tight uppercase tracking-tighter">
-                                         {opportunity.scheduleType === 'recurring' ? shift.day : (shift.date ? formatDate(shift.date) : 'Date to be confirmed')}
+                                         {opportunity.scheduleType === 'recurring' ? shift.day : (shift.date ? formatCalendarDate(shift.date) : 'Date to be confirmed')}
                                       </span>
                                       <span className="text-xs font-bold text-ink-soft">
                                          {shift.startTime} - {shift.endTime}

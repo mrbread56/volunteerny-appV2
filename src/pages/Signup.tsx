@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { API_BASE_URL } from '../lib/config';
 import { useNavigate, useLocation, Link } from "react-router-dom";
 // No signInWithPopup / GoogleAuthProvider here on purpose — registration is
 // manual only. See the note next to the role-select buttons.
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword, sendEmailVerification } from "firebase/auth";
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "../firebase/config";
 import { toUserMessage } from "../lib/errors";
@@ -309,7 +310,23 @@ export default function Signup() {
       try {
         // A Google account arrives with a Google-verified address already, so
         // a second round trip would just be noise.
-        if (!account.emailVerified) await sendEmailVerification(account);
+        //
+        // Sent through our own server rather than the client SDK's
+        // sendEmailVerification. That call delivers from
+        // noreply@<project>.firebaseapp.com, the unauthenticated sender whose
+        // silence was already found and fixed for password reset. It matters
+        // most for organisations: firestore.rules requires email_verified
+        // before they may list hoursRequests, so a message that never arrives
+        // means they can never read the hours their volunteers submit, and
+        // nothing offered to send another.
+        if (!account.emailVerified) {
+          const token = await account.getIdToken();
+          await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: '{}',
+          });
+        }
       } catch (verifyErr) {
         console.error('Verification email could not be sent for', normalizedEmail, verifyErr);
       }

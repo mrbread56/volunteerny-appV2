@@ -1975,6 +1975,11 @@ app.use(express.json());
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
+      }
       if (authContext.isDemo) {
         return res.json({ success: true, emailSent: false, mode: 'demo' });
       }
@@ -2104,6 +2109,11 @@ app.use(express.json());
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
+      }
       if (authContext.isDemo) return res.json({ success: true, demo: true });
 
       const { opportunityId } = req.body || {};
@@ -2212,6 +2222,11 @@ app.use(express.json());
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
+      }
       if (authContext.isDemo) return res.json({ contacts: [] , demo: true });
 
       const opportunityId = String(req.params.id || '');
@@ -2265,6 +2280,11 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
       }
       if (authContext.isDemo) {
         return res.status(403).json({ error: 'Demo mode cannot write references.' });
@@ -2333,6 +2353,11 @@ app.use(express.json());
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
+      }
       if (authContext.isDemo) {
         return res.status(403).json({ error: 'Demo mode cannot write ratings.' });
       }
@@ -2395,6 +2420,11 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
       }
       if (authContext.isDemo) {
         return res.json({ success: true, demo: true, hours: 0 });
@@ -2791,6 +2821,11 @@ app.use(express.json());
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
       }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
+      }
       if (authContext.isDemo) return res.json({ profile: null, demo: true });
       if (!getAdminObj()) return res.status(500).json({ error: 'Server configuration error.' });
 
@@ -2933,6 +2968,96 @@ app.use(express.json());
    *      emails anyone who is named in the body is ours to throttle. Five in ten
    *      minutes matches the OTP ceiling.
    */
+  // ── EMAIL VERIFICATION ──
+  /**
+   * Send the address-verification link over OUR mail pipeline, not Firebase's.
+   *
+   * Signup called the client SDK's sendEmailVerification, which hands delivery
+   * to Google's mailer as noreply@<project>.firebaseapp.com — the exact
+   * unauthenticated sender whose non-delivery was already found and fixed for
+   * password reset. The sibling caller was never grepped.
+   *
+   * For an organisation this is not cosmetic. firestore.rules requires
+   * email_verified to list hoursRequests, so an organisation whose verification
+   * mail never arrived cannot read the hours its volunteers submit — the core
+   * loop — and OrgDashboard tells them "We sent a link when you signed up, open
+   * it". There was no way to ask for another one: sendEmailVerification appears
+   * exactly once in the codebase, inside signup. The organisation is locked out
+   * permanently and the interface blames them for it.
+   *
+   * Callable by the signed-in owner of the address only, and rate limited,
+   * because it sends mail on our own domain to whoever is named in the token.
+   */
+  app.post('/api/auth/send-verification', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext?.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      if (authContext.isDemo) {
+        return res.json({ success: true, emailSent: false, mode: 'demo' });
+      }
+      if (authContext.emailVerified) {
+        // Already done. Say so rather than sending a link that confuses them.
+        return res.json({ success: true, alreadyVerified: true });
+      }
+
+      const adminObj = getAdminObj();
+      if (!adminObj) {
+        return res.status(503).json({ error: 'Verification is temporarily unavailable. Please try again shortly.' });
+      }
+
+      const email = String(authContext.email || '').trim();
+      if (!email) {
+        return res.status(422).json({ error: 'This account has no email address on file.' });
+      }
+
+      // Same ceiling as the OTP and reset routes, keyed by uid because the
+      // caller must already be signed in as the owner of this address.
+      if (await isOtpRateLimited(authContext.uid, 'verify_email_rate_limits')) {
+        return res.status(429).json({ error: 'Too many requests. Please wait a few minutes and try again.' });
+      }
+
+      let link: string;
+      try {
+        link = await adminObj.auth().generateEmailVerificationLink(email);
+      } catch (err: any) {
+        console.error('[send-verification] link generation failed:', err?.code, err?.message);
+        return res.status(500).json({ error: 'Could not create a verification link. Please try again.' });
+      }
+
+      if (!resend) {
+        console.error('[send-verification] RESEND_API_KEY is not configured — cannot deliver the link.');
+        return res.status(503).json({ error: 'Email delivery is not configured on this server. Please contact support.' });
+      }
+
+      const fromAddress = process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>';
+      const { error } = await resend.emails.send({
+        from: fromAddress,
+        to: email,
+        subject: 'Confirm your email address',
+        html: emailTemplates.email_verification(link),
+      });
+      if (error) {
+        console.error('[send-verification] Resend rejected the message:', { message: error.message, from: fromAddress });
+        return res.status(502).json({ error: 'We could not send the confirmation email just now. Please try again in a moment.' });
+      }
+
+      recordEmailLog({
+        to: email,
+        subject: 'Confirm your email address',
+        templateName: 'email_verification',
+        status: 'sent',
+        sentBy: 'system',
+      });
+      console.log(`[send-verification] link sent to ${authContext.uid}`);
+      return res.json({ success: true, emailSent: true });
+    } catch (err: any) {
+      console.error('[send-verification] Crash:', err);
+      return res.status(500).json({ error: 'Something went wrong. Please try again.' });
+    }
+  });
+
   app.post('/api/auth/password-reset', async (req, res) => {
     // Said in every branch below, including the failures. See property 1.
     const SAME_ANSWER = {
@@ -3170,6 +3295,35 @@ app.use(express.json());
       if (i === 4) out += '-';
     }
     return out;
+  }
+
+  /**
+   * Is this account suspended?
+   *
+   * isBanned was enforced in firestore.rules and NOWHERE ELSE. It appeared once
+   * in this entire file, as an output field. Every privileged operation was
+   * deliberately moved off the client onto the Admin SDK precisely because the
+   * client could not be trusted with it — and the Admin SDK bypasses rules, so
+   * moving them here moved them outside the only place the ban was checked.
+   *
+   * A suspended organisation could therefore still read an applicant's resume
+   * and email address, credit or destroy hours on a graduation record, delete a
+   * posting and mass-mail a hundred students from the verified domain. The
+   * suspension a developer applies after a safety report stopped the account
+   * writing through the SDK and left every route that matters wide open.
+   *
+   * Fails CLOSED: if the caller's own record cannot be read, the request is
+   * refused. A privileged action is not the place to assume the best.
+   */
+  async function callerIsSuspended(uid: string): Promise<boolean> {
+    try {
+      const snap = await adminFirestore().collection('users').doc(uid).get();
+      if (!snap.exists) return true;
+      return snap.data()?.isBanned === true;
+    } catch (err: any) {
+      console.error('[guard] could not read caller status, refusing:', err?.message || err);
+      return true;
+    }
   }
 
   /**
@@ -3708,6 +3862,11 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      // Suspension has to hold here too: this tier bypasses firestore.rules.
+      if (await callerIsSuspended(authContext.uid)) {
+        return res.status(403).json({ error: 'This account is suspended.' });
       }
 
       // Demo sessions simulate mail, and this must run BEFORE the mail-config

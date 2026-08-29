@@ -640,8 +640,18 @@ service cloud.firestore {
       allow read: if true; // Public access to browse
       allow create: if isApprovedOrg() && isValidOpportunity(incoming()) && isValidId(opportunityId) &&
                       incoming().keys().hasOnly(['orgId', 'orgName', 'title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'createdAt', 'coordinates', 'scheduleType', 'shifts']);
-      allow update: if isApprovedOrg() && isValidId(opportunityId) &&
-                      existing().orgId == request.auth.uid && 
+      // The ownership conjunct needs its own developer branch.
+      //
+      // isApprovedOrg() already lets a developer through, but this AND after it
+      // did not, so a developer could never write to an organisation's posting.
+      // That surfaced the moment suspension started closing an org's listings:
+      // the batch write was denied, and because a writeBatch is atomic the
+      // isBanned writes in the same batch died with it. Suspending an
+      // organisation failed completely, and only for organisations that had
+      // live postings — exactly the ones worth suspending. /organizations/{uid}
+      // has carried `|| isDeveloper()` for this reason all along.
+      allow update: if isValidId(opportunityId) &&
+                      ((isApprovedOrg() && existing().orgId == request.auth.uid) || isDeveloper()) && 
                       isValidOpportunity(incoming()) &&
                       incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'location', 'dateTime', 'category', 'requirements', 'maxVolunteers', 'skillsNeeded', 'exclusives', 'minAge', 'timeCommitment', 'isVirtual', 'status', 'coordinates', 'scheduleType', 'shifts', 'updatedAt']);
       allow delete: if isOrgAccount() && isValidId(opportunityId) && existing().orgId == request.auth.uid;
@@ -697,7 +707,20 @@ service cloud.firestore {
         // users/ and organizations/ and changed nothing this rule could see.
         // The sibling collections below check it; this one, which decides who
         // meets a child in person, did not.
-        (isNotBanned() &&
+        //
+        // isApprovedOrg() rather than a hand-rolled isNotBanned().
+        //
+        // This branch decides which adult meets which child, and it was the one
+        // organisation write that used neither role helper — so it skipped
+        // mfaSatisfied() entirely. Organisations are forced into two-step
+        // sign-in precisely because they hold minors' contact details, and a
+        // stolen password with no mailbox access could still accept, reject and
+        // terminate applicants through the SDK. It also skipped the
+        // verification check, so an organisation a reviewer had just set to
+        // 'rejected' kept full control of every posting it already had.
+        // isApprovedOrg() carries the ban check, the MFA check and the
+        // verification check together, which is the point of having it.
+        (isApprovedOrg() &&
          exists(/databases/$(database)/documents/opportunities/$(existing().opportunityId)) &&
          get(/databases/$(database)/documents/opportunities/$(existing().opportunityId)).data.orgId == request.auth.uid &&
          incoming().diff(existing()).affectedKeys().hasOnly(['status', 'rejectionReason', 'rejectionNote', 'decidedAt'])) ||

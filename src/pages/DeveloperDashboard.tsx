@@ -355,32 +355,49 @@ export default function DeveloperDashboard() {
           } else if (uData.role === 'organization') {
             batch.update(doc(db, 'organizations', userId), { isBanned: !isCurrentlyBanned });
           }
+          await batch.commit();
+
           /*
-           * Suspending an organisation must take its postings down too.
+           * Postings come down AFTER the suspension, and separately.
            *
-           * isBanned stopped the account writing, and left everything it had
-           * already published in front of students. Nothing filters the browse
-           * list by organisation status: isVisibleToStudents checks only
-           * `status !== 'closed'` and the fixture flag. So an organisation
-           * suspended after a safety report kept its listings live, kept
-           * collecting applications from minors, and every card kept rendering
-           * the VETTED badge beside its name.
+           * This was inside the batch above. A writeBatch is atomic, so when
+           * the opportunity writes were refused the isBanned writes died with
+           * them and suspending an organisation failed completely — only for
+           * organisations that had live postings, which is every organisation
+           * worth suspending. The rule now has a developer branch, but the
+           * ordering is the real safeguard: locking the account out is the
+           * safety-critical act, and it must not be contingent on a secondary
+           * cleanup succeeding.
            *
-           * Closing rather than deleting: the postings, and the applications
-           * pointing at them, are evidence. Lifting the suspension deliberately
-           * does NOT reopen them, because a person should decide what goes back
-           * in front of students.
+           * Chunked at 400 because a batch caps at 500 writes, and closed
+           * rather than deleted because the postings and the applications under
+           * them are evidence. Lifting a suspension deliberately does not
+           * reopen them: a person should decide what goes back in front of
+           * students.
            */
           if (!isCurrentlyBanned && uData.role === 'organization') {
-            const theirs = await getDocs(
-              query(collection(db, 'opportunities'), where('orgId', '==', userId)),
-            );
-            for (const d of theirs.docs) {
-              if (d.data()?.status !== 'closed') batch.update(d.ref, { status: 'closed' });
+            try {
+              const theirs = await getDocs(
+                query(collection(db, 'opportunities'), where('orgId', '==', userId)),
+              );
+              const live = theirs.docs.filter((d) => d.data()?.status !== 'closed');
+              for (let i = 0; i < live.length; i += 400) {
+                const chunk = writeBatch(db);
+                for (const d of live.slice(i, i + 400)) chunk.update(d.ref, { status: 'closed' });
+                await chunk.commit();
+              }
+              if (live.length) {
+                setConsoleNotice(`Suspended, and took ${live.length} posting(s) off the student list.`);
+              }
+            } catch (closeErr) {
+              // The account IS suspended at this point. Say what still needs doing.
+              console.error('Could not close postings for suspended org:', closeErr);
+              setConsoleNotice(
+                'Account suspended, but their postings could NOT be taken down and are still visible to students. Close them by hand.',
+              );
             }
           }
 
-          await batch.commit();
         }
       }
       loadData();

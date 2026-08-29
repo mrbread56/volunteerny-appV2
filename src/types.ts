@@ -144,6 +144,13 @@ export interface Application {
   // dashboard can render and email without a second read. These were being
   // set and read already; the interface just did not admit them.
   studentEmail?: string;
+  /*
+   * NOT written by the apply flow, despite the note that used to sit here
+   * claiming they were "denormalised onto the application document at write
+   * time". firestore.rules' hasOnly on applications does not permit either key,
+   * so they are only ever present when a caller patches them in — which the
+   * student dashboard does and the organisation pages do not. Treat as absent.
+   */
   studentSchool?: string;
   studentGrade?: string;
   orgId?: string;

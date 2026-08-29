@@ -206,16 +206,39 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 pb-3 border-b border-line/50">
-                <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">School</span>
-                  <p className="text-ink-soft font-bold">{application.studentSchool || 'York Region Secondary'}</p>
+              {/*
+                * Rendered only when the values are actually present.
+                *
+                * These were `application.studentSchool || 'York Region
+                * Secondary'` and `Grade {application.studentGrade ||
+                * 'Secondary'}`. Nothing writes either field: the apply payload
+                * omits them and firestore.rules' hasOnly on applications makes
+                * writing them impossible, so the fallbacks were not fallbacks —
+                * they were the only values an organisation ever saw. Every
+                * receipt printed by an org stated the volunteer attends "York
+                * Region Secondary" in "Grade Secondary": invented identity data
+                * on a serial-numbered document badged "Verified & Secured".
+                *
+                * This same file already refuses to send when the email is
+                * missing rather than inventing one. The two fields beside it
+                * were left doing the opposite.
+                */}
+              {(application.studentSchool || application.studentGrade) && (
+                <div className="grid grid-cols-2 gap-4 pb-3 border-b border-line/50">
+                  {application.studentSchool && (
+                    <div>
+                      <span className="text-xs text-ink-soft tracking-wide block font-semibold">School</span>
+                      <p className="text-ink-soft font-bold">{application.studentSchool}</p>
+                    </div>
+                  )}
+                  {application.studentGrade && (
+                    <div>
+                      <span className="text-xs text-ink-soft tracking-wide block font-semibold">Grade</span>
+                      <p className="text-ink-soft font-bold">Grade {application.studentGrade}</p>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <span className="text-xs text-ink-soft tracking-wide block font-semibold">Grade</span>
-                  <p className="text-ink-soft font-bold">Grade {application.studentGrade || 'Secondary'}</p>
-                </div>
-              </div>
+              )}
 
               <div className="grid grid-cols-1 gap-1 pb-3 border-b border-line/50">
                 <span className="text-xs text-ink-soft tracking-wide block font-semibold">Hosting Organization</span>

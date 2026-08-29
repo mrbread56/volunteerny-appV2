@@ -580,6 +580,39 @@ export const emailTemplates = {
   },
 
   /**
+   * Confirm the address on the account.
+   *
+   * Signup used Firebase's own sendEmailVerification, which delivers from
+   * noreply@<project>.firebaseapp.com — the same unauthenticated sender whose
+   * silence was already found and fixed for password reset. That mattered more
+   * here than it looks: firestore.rules requires email_verified before an
+   * organisation may list hoursRequests, so an organisation whose link never
+   * arrived could not read the hours its own volunteers had submitted, and
+   * nothing anywhere offered to send another one.
+   */
+  email_verification: (link: string) => {
+    const title = "Confirm your email address";
+    const children = `
+      <h2 class="h2">One quick step</h2>
+      <p>Confirm this is your address so we know we can reach you. Organisations
+         need this before they can see the hours their volunteers submit.</p>
+
+      <div style="text-align: center;">
+        <a href="${esc(link)}" class="btn">Confirm my email</a>
+      </div>
+
+      <div class="card">
+        <p>If the button does not work, copy this address into your browser:</p>
+        <p style="word-break: break-all; font-size: 12px;">${esc(link)}</p>
+      </div>
+
+      <p>If you did not create an account with us, you can ignore this email.</p>
+      <p>The ${BRAND_NAME} Team</p>
+    `;
+    return wrapBaseTemplate({ title, children, previewText: "Confirm your email address." });
+  },
+
+  /**
    * 5. Auth / Security Codes (Verification/Reset)
    */
   auth_verification: (userName: string, code: string, purpose: "verification" | "reset") => {

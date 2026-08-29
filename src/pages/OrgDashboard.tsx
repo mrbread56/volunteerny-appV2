@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { API_BASE_URL } from '../lib/config';
 import { useDialog } from "../hooks/useDialog";
 import { useAuth } from "../contexts/AuthContext";
 import { db, auth } from "../firebase/config";
@@ -169,6 +170,12 @@ export default function OrgDashboard() {
   // the retry. Cleared on success; see handleOrgLogSubmit.
   const logClientRef = useRef<string | null>(null);
 
+  // Set when the hours read failed specifically because the address is
+  // unconfirmed, so the banner can offer a new link instead of pointing at one
+  // that may never have arrived.
+  const [needsEmailVerification, setNeedsEmailVerification] = useState(false);
+  const [resendState, setResendState] = useState<'idle' | 'sending' | 'sent' | 'already' | 'error'>('idle');
+
   /*
    * Changing any field starts a NEW attempt.
    *
@@ -241,14 +248,42 @@ export default function OrgDashboard() {
         e?.code === 'permission-denied' && auth.currentUser?.emailVerified === false;
       setErrorMessage(
         needsVerification
-          ? "Confirm your email address before you can see hours awaiting approval. We sent a link when you signed up — open it, then sign out and back in."
+          // Was: "We sent a link when you signed up, open it." That link went
+          // out over Firebase's unauthenticated mailer, the one already found
+          // to deliver nothing, and there was no way to request another —
+          // sendEmailVerification appeared once in the whole codebase, inside
+          // signup. So an organisation whose link never arrived was told to
+          // open a message that did not exist, forever, on the screen that
+          // gates the core loop. The banner now offers to send one.
+          ? "Confirm your email address before you can see hours awaiting approval. Use the button below to send yourself a new link, then sign out and back in."
           : reportError(
               'load hours requests',
               e,
               "We couldn't load the hours awaiting your approval. Please refresh to try again.",
             ),
       );
+      setNeedsEmailVerification(needsVerification);
       setHoursRequests([]);
+    }
+  };
+
+  /** Send another confirmation link, over the pipeline that actually delivers. */
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setResendState('sending');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || 'Could not send the link.');
+      setResendState(body?.alreadyVerified ? 'already' : 'sent');
+    } catch (err: any) {
+      setResendState('error');
+      setErrorMessage(err?.message || 'We could not send a new confirmation link. Please try again.');
     }
   };
 
@@ -761,6 +796,21 @@ export default function OrgDashboard() {
         >
           <XCircle className="w-4 h-4 shrink-0" />
           <span className="leading-relaxed">{errorMessage}</span>
+          {needsEmailVerification && (
+            <button
+              onClick={handleResendVerification}
+              disabled={resendState === 'sending' || resendState === 'sent'}
+              className="ml-2 shrink-0 bg-white text-rose-700 rounded-lg px-3 h-8 font-bold disabled:opacity-60"
+            >
+              {resendState === 'sending'
+                ? 'Sending…'
+                : resendState === 'sent'
+                  ? 'Link sent'
+                  : resendState === 'already'
+                    ? 'Already confirmed'
+                    : 'Send me a new link'}
+            </button>
+          )}
           <button
             onClick={() => setErrorMessage(null)}
             aria-label="Dismiss error"

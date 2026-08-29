@@ -822,7 +822,23 @@ async function bannedOrgChecks(adb: any) {
   const afterId = await mkApp('after');
 
   await signOut(auth);
-  await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+
+  /*
+   * A real approved organisation has passed the second factor, so the fixture
+   * must too. isApprovedOrg() now gates the applications update branch — that
+   * branch decides which adult meets which child and previously skipped MFA
+   * entirely — so signing in with a password alone no longer represents an
+   * organisation that can legitimately act. Granting it here rather than later
+   * means both assertions below run against the same realistic account.
+   */
+  const secAdmin: any = ((admin as any).default || admin).app('sec-admin-auth-' + STAMP);
+  const cred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  const decoded: any = await secAdmin.auth().verifyIdToken(await cred.user.getIdToken());
+  const claims = (await secAdmin.auth().getUser(org.uid)).customClaims || {};
+  await secAdmin.auth().setCustomUserClaims(org.uid, {
+    ...claims, mfaVerified: true, mfaVerifiedFor: decoded.auth_time,
+  });
+  await cred.user.getIdToken(true);
 
   await mustAllow('an approved organisation can decide an application',
     () => updateDoc(doc(db, 'applications', beforeId), { status: 'accepted', decidedAt: serverTimestamp() }));
@@ -834,27 +850,36 @@ async function bannedOrgChecks(adb: any) {
   await mustDeny('a SUSPENDED organisation cannot decide an application',
     () => updateDoc(doc(db, 'applications', afterId), { status: 'accepted', decidedAt: serverTimestamp() }));
 
-  /*
-   * The MFA claim has to be granted for this one to mean anything.
-   *
-   * The organizations update branch requires mfaSatisfied() as well as
-   * isNotBanned(), and this suite signs in with a password only. So without
-   * this the assertion passed for the WRONG reason — it would have passed with
-   * isNotBanned() deleted from the rule entirely, proving nothing about the fix
-   * it was written to cover. Granting the second factor first makes the ban the
-   * only thing left that can deny the write.
-   */
-  const secAdmin: any = ((admin as any).default || admin).app('sec-admin-auth-' + STAMP);
-  const cred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
-  const decoded: any = await secAdmin.auth().verifyIdToken(await cred.user.getIdToken());
-  const claims = (await secAdmin.auth().getUser(org.uid)).customClaims || {};
-  await secAdmin.auth().setCustomUserClaims(org.uid, {
-    ...claims, mfaVerified: true, mfaVerifiedFor: decoded.auth_time,
-  });
-  await cred.user.getIdToken(true);
-
   await mustDeny('a SUSPENDED organisation cannot edit its public profile (MFA satisfied)',
     () => updateDoc(doc(db, 'organizations', org.uid), { mission: 'still here' }));
+
+  /*
+   * And the same suspension has to hold on the SERVER tier.
+   *
+   * isBanned lived only in firestore.rules. Every privileged operation was
+   * deliberately moved off the client onto the Admin SDK — which bypasses
+   * rules — so moving them there moved them outside the only place the ban was
+   * ever checked. A suspended organisation could still read an applicant's
+   * resume and email, credit hours onto a graduation record, delete a posting
+   * and mass-mail a hundred students from the verified domain.
+   */
+  const bannedToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken(true);
+  const serverRoutes: [string, string, any][] = [
+    ['POST', '/api/hours/approve', { studentId: student.uid, hours: 4, activity: 'x', date: '2026-08-01', clientRef: `ban_${STAMP}` }],
+    ['POST', '/api/applications/notify', { applicationId: beforeId, status: 'accepted' }],
+    ['POST', '/api/ratings/create', { studentId: student.uid, opportunityId: opp.id, rating: 5 }],
+    ['GET', `/api/students/${student.uid}/review-profile`, null],
+    ['GET', `/api/opportunities/${opp.id}/applicant-contacts`, null],
+  ];
+  for (const [method, path, body] of serverRoutes) {
+    const r = await fetch(`${BASE}${path}`, {
+      method,
+      headers: { Authorization: `Bearer ${bannedToken}`, 'Content-Type': 'application/json' },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    }).catch(() => null);
+    if (r && r.status === 403) pass(`a SUSPENDED organisation is refused by ${path}`);
+    else fail(`${path} answered ${r ? r.status : 'network error'} to a suspended organisation, expected 403`);
+  }
 
   await signOut(auth);
   await adb.collection('applications').doc(beforeId).delete().catch(() => {});
