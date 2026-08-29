@@ -79,6 +79,37 @@ const ORGS = [
     expectListing: true,
     expectListingStatus: 'closed', // still a draft, awaiting their schedule
   },
+  /*
+   * The other two real organisations.
+   *
+   * This suite covered two of four. It was written when there were two, and
+   * nobody widened it when Flemingdon and the clinic were onboarded — so the
+   * file reported "21 passed" while half the live organisations had never been
+   * looked at once. A suite whose scope silently lags the data is worse than a
+   * smaller honest one, because the passing number is read as coverage.
+   *
+   * password: null means we do not hold a credential for them. Sections 1 and
+   * 3 to 6 all run on the Admin SDK and cover them fully; only the section 2
+   * sign-in is skipped, and it is skipped LOUDLY rather than counted as a pass.
+   * We should not know these passwords: the clinic registered itself, and
+   * Flemingdon was handed a password and told to change it.
+   */
+  {
+    label: 'Flemingdon Food Bank',
+    email: 'flemingdonfb@gmail.com',
+    password: null,
+    emailedPasswordWorks: null,
+    expectListing: false,
+    expectListingStatus: null,
+  },
+  {
+    label: 'Trusted Medical Clinic',
+    email: 'team@trustedclinic.ca',
+    password: null,
+    emailedPasswordWorks: null,
+    expectListing: false,
+    expectListingStatus: null,
+  },
 ];
 
 let adminApp: any = null;
@@ -170,7 +201,9 @@ async function pastSends(store: any, email: string): Promise<number> {
     }
 
     // ── 2. the emailed password, and whether it should still open the door ───
-    try {
+    if (!org.password) {
+      warn('no credential held for this organisation, so sign-in is unverified here');
+    } else try {
       const cred = await signInWithEmailAndPassword(auth, org.email, org.password);
       if (!org.emailedPasswordWorks) {
         // A password we chose for someone else, still working after they told
