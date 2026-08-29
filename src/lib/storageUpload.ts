@@ -1,4 +1,4 @@
-import { ref, uploadBytesResumable, getDownloadURL, getStorage } from 'firebase/storage';
+import { ref, uploadBytesResumable, getStorage } from 'firebase/storage';
 import { app } from '../firebase/config';
 
 // Created here rather than in firebase/config, which every page imports — see
@@ -139,12 +139,30 @@ export async function uploadFileToStorage(
       },
       (error) => finish(() => reject(error)),
       async () => {
-        try {
-          const url = await getDownloadURL(task.snapshot.ref);
-          finish(() => resolve(url));
-        } catch (err) {
-          finish(() => reject(err));
-        }
+        /*
+         * The PATH, not a download URL.
+         *
+         * getDownloadURL() mints a permanent, unguessable-but-public link with
+         * an access token baked into the query string, and that token BYPASSES
+         * storage.rules entirely — the rules only govern the SDK path. So the
+         * link this used to return was readable by anyone who ever saw it,
+         * signed out, from anywhere, forever, no matter how tight the rules
+         * above it were.
+         *
+         * For a student's resume that is the whole file: high-school students,
+         * and a resume in practice carries a home address and a phone number.
+         * The link was written into students/{uid}.resumeUrl AND copied onto
+         * every application document, so every organisation they ever applied
+         * to held a permanent copy — surviving rejection, withdrawal, deleting
+         * the application, and suspension of the organisation.
+         *
+         * Storing the path instead means no permanent credential is ever
+         * created. The server mints a short-lived signed URL at read time,
+         * after the same relationship check it already performs. The prefix
+         * marks the generation so legacy https:// values and legacy inline
+         * base64 keep rendering untouched.
+         */
+        finish(() => resolve(`storage:${task.snapshot.ref.fullPath}`));
       },
     );
   });

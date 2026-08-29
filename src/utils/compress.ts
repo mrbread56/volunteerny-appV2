@@ -14,6 +14,7 @@ export function compressFile(original: string | null | undefined): string {
   if (!original) return '';
   if (original.startsWith(COMPRESSED_PREFIX)) return original; // Already compressed
   if (original.startsWith('http://') || original.startsWith('https://')) return original; // Storage URL
+  if (original.startsWith('storage:')) return original; // Storage PATH — see storageUpload.ts
   
   try {
     const compressed = LZString.compressToEncodedURIComponent(original);
@@ -34,6 +35,7 @@ export function decompressFile(data: string | null | undefined): string {
   if (!data) return '';
   // Storage URLs (Firebase Storage / any HTTP link) are not compressed — return as-is.
   if (data.startsWith('https://') || data.startsWith('http://')) return data;
+  if (data.startsWith('storage:')) return data;
   if (!data.startsWith(COMPRESSED_PREFIX)) return data; // Raw/uncompressed string
   
   try {

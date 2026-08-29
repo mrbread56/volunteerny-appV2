@@ -3524,7 +3524,9 @@ app.use(express.json());
           skills: Array.isArray(d.skills) ? d.skills : [],
           availability: Array.isArray(d.availability) ? d.availability : [],
           previousExperience: d.previousExperience ?? '',
-          resumeUrl: d.resumeUrl ?? '',
+          // Signed here, for this caller, for five minutes. What is stored is a
+          // path, so this response is the only place a usable link exists.
+          resumeUrl: await signStoragePath(d.resumeUrl),
           // passportUrl intentionally omitted — see the note above.
         },
       });
@@ -4013,6 +4015,47 @@ app.use(express.json());
    * Three-state for the same reason callerStatus is: an infrastructure failure
    * must not be reported to a healthy organisation as a rejection.
    */
+  /**
+   * Turn a stored attachment reference into something the caller can open.
+   *
+   * Three generations exist in the database and all three must keep working:
+   *   storage:<path>   current. No credential is stored; one is minted here,
+   *                    short-lived, only for a caller already authorised by the
+   *                    route that calls this.
+   *   https://…        legacy getDownloadURL links, whose embedded token
+   *                    bypasses storage.rules and never expires. Passed through
+   *                    because the bytes are still only reachable that way, and
+   *                    revoking those tokens is an operational step (it breaks
+   *                    every existing link at once) rather than a code change.
+   *   data: / lzs::    the oldest generation, the file inline in the document.
+   *
+   * Five minutes is deliberately short: long enough to open a PDF, short enough
+   * that a link pasted into a chat or leaked from a browser history is dead
+   * before anyone can use it.
+   */
+  async function signStoragePath(value: unknown, minutes = 5): Promise<string> {
+    const raw = String(value || '');
+    if (!raw.startsWith('storage:')) return raw;
+    const path = raw.slice('storage:'.length);
+    // A path is built from a uid and a filename; anything trying to climb out
+    // of the bucket is refused rather than signed.
+    if (!path || path.includes('..')) return '';
+    try {
+      const adminObj = getAdminObj();
+      if (!adminObj) return '';
+      const [url] = await adminObj.storage().bucket().file(path).getSignedUrl({
+        action: 'read',
+        expires: Date.now() + minutes * 60_000,
+      });
+      return url;
+    } catch (err: any) {
+      // A missing object or an unsigned service account must not take the whole
+      // profile response down; the caller renders "no resume" instead.
+      console.error('[signStoragePath] could not sign', path, err?.message || err);
+      return '';
+    }
+  }
+
   async function orgApprovalStatus(uid: string): Promise<'approved' | 'not-approved' | 'unknown'> {
     try {
       const adb = adminFirestore();

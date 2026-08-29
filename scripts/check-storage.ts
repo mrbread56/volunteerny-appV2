@@ -114,7 +114,53 @@ function withTimeout<T>(label: string, p: Promise<T>, ms = 30_000): Promise<T> {
       passIfDenied(err, "student cannot write into another student's folder");
     }
 
-    // 5. Signed out, nobody uploads anything.
+    /*
+     * 5. The signed-link generation, which is what replaced getDownloadURL.
+     *
+     * uploadFileToStorage now stores `storage:<path>` and never mints a
+     * permanent token, because a getDownloadURL token bypasses every rule
+     * asserted above and never expires. The server signs a five-minute link at
+     * read time instead. That machinery had no test: if signing silently
+     * failed, every organisation would just see "no resume" and nobody would
+     * know why, and if it silently produced a PERMANENT link we would be back
+     * where we started with a green suite.
+     *
+     * So: the signed link must WORK, and the bare object must NOT.
+     */
+    {
+      const key = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+      if (!key) {
+        console.log('[WARN] no service account key — signed-link generation not checked');
+      } else {
+        const a: any = (admin as any).default || admin;
+        const signApp = a.initializeApp({ credential: a.credential.cert(JSON.parse(key)) }, 'sign-check');
+        const bucket = signApp.storage().bucket(process.env.VITE_FIREBASE_STORAGE_BUCKET!);
+        const objectPath = `students/${uid}/signed-probe.pdf`;
+        await bucket.file(objectPath).save(Buffer.from('%PDF-1.4 probe'), { contentType: TYPE });
+
+        const [signed] = await bucket.file(objectPath).getSignedUrl({
+          action: 'read',
+          expires: Date.now() + 5 * 60_000,
+        });
+        if (!/^https:\/\//.test(signed)) fail('the signed link is not an https URL');
+
+        const okRes = await fetch(signed);
+        if (okRes.ok) pass('a five-minute signed link opens the file');
+        else fail(`the signed link did NOT open the file (${okRes.status}) — resumes will render as missing`);
+
+        // Same object, no signature. This is what an attacker holding only the
+        // stored value can construct, and it must be refused.
+        const bare = `https://storage.googleapis.com/${bucket.name}/${objectPath}`;
+        const bareRes = await fetch(bare);
+        if (bareRes.ok) fail('the object is readable with NO signature — the path itself is public');
+        else pass(`the unsigned object URL is refused (${bareRes.status})`);
+
+        await bucket.file(objectPath).delete().catch(() => {});
+        await signApp.delete().catch(() => {});
+      }
+    }
+
+    // 6. Signed out, nobody uploads anything.
     await signOut(auth);
     try {
       await withTimeout('anon upload', uploadBytes(ref(storage, `students/${uid}/anon.pdf`), body, TYPE));

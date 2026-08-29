@@ -429,7 +429,21 @@ export default function StudentOpportunityDetail() {
         opportunityTitle: opportunity.title,
         studentName: studentProfile?.fullName || user.displayName || 'Student',
         previousExperience: studentProfile?.previousExperience || '',
-        resumeUrl: studentProfile?.resumeUrl || ''
+        /*
+         * The resume is NOT copied onto the application any more.
+         *
+         * It used to be duplicated here, which meant every organisation a
+         * student ever applied to held its own copy of the reference in a
+         * document that outlives the relationship: it survived rejection,
+         * withdrawal and the organisation being suspended. One student
+         * applying to eight postings created eight copies to keep track of.
+         *
+         * The resume now lives in exactly one place, students/{uid}, which
+         * firestore.rules restricts to the owner. Organisations read it through
+         * GET /api/students/:id/review-profile, which checks a CURRENT
+         * relationship and approval status and returns a five-minute signed
+         * link. ApplicationReviewDialog already prefers that value.
+         */
       };
 
       try {
