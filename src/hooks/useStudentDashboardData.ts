@@ -57,6 +57,25 @@ export function useStudentDashboardData(
   user: { uid: string } | null | undefined,
   studentProfile: Partial<StudentProfile> | null | undefined,
   isDemoMode: boolean,
+  /**
+   * Whether AuthContext has finished loading BOTH profiles.
+   *
+   * Without it this ran twice on every single load. AuthContext sets
+   * userProfile and then awaits the students/ document before setting
+   * studentProfile, while PrivateRoute releases the page on userProfile alone —
+   * so the first run fired with studentProfile still null and a second followed
+   * the moment it arrived. Twelve Firestore queries where six were wanted.
+   *
+   * They also disagreed. The first scored recommendations with empty interests
+   * and skills, zeroing the 20-point interest term and the 15-point skill term,
+   * so "Recommended For You" fell back to plain recency. Whichever run resolved
+   * last won, and that was decided by network ordering across six independent
+   * queries — the first usually won, but nothing made it.
+   *
+   * Optional so the demo path and any caller that has no auth context still
+   * work; undefined reads as "nothing to wait for".
+   */
+  profilesLoaded?: boolean,
 ): StudentDashboardData {
   const [applications, setApplications] = useState<Application[]>([]);
   const [savedOpportunities, setSavedOpportunities] = useState<Opportunity[]>([]);
@@ -76,9 +95,11 @@ export function useStudentDashboardData(
   // toggle should move, not blank the page. Refetches after the first now happen
   // quietly in the background.
   const hasLoadedOnce = useRef(false);
+  // Which run is the live one. See the note beside the call below.
+  const runId = useRef(0);
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (stillCurrent: () => boolean) => {
       if (!user) return;
       if (!hasLoadedOnce.current) setIsLoading(true);
 
@@ -336,13 +357,42 @@ export function useStudentDashboardData(
         console.error("Error fetching dashboard data:", error);
         setErrorMessage(error.message || "Failed to load dashboard data");
       } finally {
-        setIsLoading(false);
+        // A superseded run must not take the skeleton down for the live one.
+        if (stillCurrent()) setIsLoading(false);
       }
     };
 
-    fetchData();
-    hasLoadedOnce.current = true;
-  }, [user, isDemoMode, studentProfile]);
+    /*
+     * A run counter, because this effect always fires at least twice.
+     *
+     * AuthContext sets userProfile and then awaits the students/ document
+     * before setting studentProfile, and PrivateRoute releases the page on
+     * userProfile alone — so this mounts with studentProfile still null, runs,
+     * and runs again the moment the profile lands. refreshProfile() does it
+     * again on every settings toggle, since setStudentProfile yields a new
+     * object identity each time.
+     *
+     * That is six Firestore queries twice over, and the two runs do not agree:
+     * the first scores recommendations with empty interests and skills, so the
+     * 20-point interest term and the 15-point skill term are both zero and
+     * "Recommended For You" degrades to plain recency. Whichever run resolved
+     * last won, decided by network ordering across six independent queries.
+     * The first usually wins, but nothing made it.
+     *
+     * hasLoadedOnce was also set synchronously after fetchData was CALLED
+     * rather than after it resolved, so the second run was treated as a
+     * background refresh: the skeleton came down while it was still writing and
+     * the cards could visibly change after the page said it was done.
+     */
+    // Nothing to do until the profile this fetch reads is actually here.
+    if (!isDemoMode && user && profilesLoaded === false) return;
+
+    const run = ++runId.current;
+    const stillCurrent = () => run === runId.current;
+    fetchData(stillCurrent).finally(() => {
+      if (stillCurrent()) hasLoadedOnce.current = true;
+    });
+  }, [user, isDemoMode, studentProfile, profilesLoaded]);
 
   return {
     applications, savedOpportunities, recommended, hoursRequests, allOrganizations,

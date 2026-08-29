@@ -177,8 +177,20 @@ export default function ApplicationReviewDialog({
                     </div>
                     <div className="space-y-2">
                       <h4 className="text-3xl font-semibold text-ink uppercase tracking-tight">Student accepted</h4>
+                      {/* The outcome of the send decides the sentence.
+                          emailDispatched was already captured and then used
+                          only to decide whether to show the spam-folder tip, so
+                          this claimed the student had been emailed even when
+                          notifyApplicant had returned success: false — which it
+                          does for an unapproved org, a missing address, a rate
+                          limit, or a Resend rejection. An accepted student was
+                          never told, and the coordinator had been assured they
+                          were, so nobody followed up and the placement quietly
+                          failed to start. */}
                       <p className="text-sm text-ink-soft font-medium">
-                        Accepted. We have emailed the student, and their placement now shows in your applicants list.
+                        {emailDispatched
+                          ? 'Accepted. We have emailed the student, and their placement now shows in your applicants list.'
+                          : 'Accepted, and their placement now shows in your applicants list. We could not email them, so please contact them directly.'}
                       </p>
                       {emailDispatched && (
                         <div className="text-left max-w-sm mx-auto pt-1">

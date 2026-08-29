@@ -832,8 +832,21 @@ export default function StudentOpportunityDetail() {
         <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain">
           {/* fixed, not absolute: the backdrop must cover the viewport rather
               than the first screenful of a scrolling container. */}
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setShowApplyModal(false)} />
-          <div className="relative flex min-h-full items-center justify-center p-4">
+          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
+          {/* The dismiss handler lives HERE, not on the backdrop.
+              Making the overlay scrollable turned the backdrop and this
+              centring wrapper into siblings, both positioned and both at
+              z-index auto. This one comes later in tree order and is
+              min-h-full by full width, so it paints on top of the backdrop
+              across the whole viewport — and hit-testing follows paint order,
+              so every click landed here and the backdrop's onClick could never
+              fire. Click-outside was dead on the one modal students use.
+              Escape and the X still worked, which is exactly why it would not
+              have been noticed. */}
+          <div
+            className="relative flex min-h-full items-center justify-center p-4"
+            onClick={() => setShowApplyModal(false)}
+          >
           {/* The ref and dialog semantics live on this wrapper: Card is a plain
               function component that neither forwards a ref nor accepts ARIA
               props, and widening its signature for one caller is a bigger
@@ -844,6 +857,8 @@ export default function StudentOpportunityDetail() {
             aria-modal="true"
             aria-label="Express interest in this opportunity"
             className="relative w-full max-w-xl mx-auto"
+            // Clicks inside the card are not clicks outside it.
+            onClick={(e) => e.stopPropagation()}
           >
           <Card className="relative w-full rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
             <button

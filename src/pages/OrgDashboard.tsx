@@ -500,7 +500,7 @@ export default function OrgDashboard() {
             }
           : {
               heading: "Your volunteer hours were not approved",
-              details: `${orgProfile?.organizationName || "The organization"} reviewed the ${req.hours} hours you submitted for "${req.activity}" and was not able to approve them. If you think this is a mistake, contact your supervisor at the organization directly — they can re-submit the confirmation from their dashboard.`,
+              details: `${orgProfile?.organizationName || "The organization"} reviewed the ${req.hours} hours you submitted for "${req.activity}" and was not able to approve them. If you think this is a mistake, talk to your supervisor and then submit the hours again from your dashboard. A declined request cannot be reopened, so it has to be a new submission.`,
               studentName: req.studentName,
               oppTitle: req.activity,
               hours: req.hours,

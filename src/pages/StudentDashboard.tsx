@@ -84,7 +84,7 @@ export default function StudentDashboard() {
     applications, savedOpportunities, recommended, hoursRequests, allOrganizations,
     isLoading, errorMessage, setErrorMessage,
     setApplications, setSavedOpportunities, setHoursRequests, setAllOrganizations,
-  } = useStudentDashboardData(user, studentProfile, isDemoMode);
+  } = useStudentDashboardData(user, studentProfile, isDemoMode, profilesLoaded);
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "applications" | "hours" | "leaderboard" | "settings"
@@ -221,9 +221,9 @@ export default function StudentDashboard() {
         templateName: "notification",
         templateData: {
           heading: "A volunteer hours confirmation is still pending",
-          details: `${studentProfile?.fullName || "A student"} has asked you to confirm the ${req.hours} hours they logged for "${req.activity}" on ${req.date}. You can approve or decline it from your Volunteer North York dashboard.`,
-          actionLabel: "Review the request",
-          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
+          details: `${studentProfile?.fullName || "A student"} has asked you to confirm the ${req.hours} hours they logged for "${req.activity}" on ${req.date}. Confirming here needs a Volunteer North York organization account, which our team reviews before it is approved. If you would rather not create one, signing the student's school board form directly works just as well.`,
+          actionLabel: "Create an organization account",
+          actionUrl: `${window.location.origin}/signup`
         }
       });
       if (!reminderResult.success) {
@@ -363,9 +363,13 @@ export default function StudentDashboard() {
         templateName: "notification",
         templateData: {
           heading: "Please confirm these volunteer hours",
-          details: `${studentProfile?.fullName || "A student"} submitted ${parsedHours} hours for "${logActivity}" on ${logDate} and has asked you to verify them online.`,
-          actionLabel: "Review the request",
-          actionUrl: `${window.location.origin}/org/dashboard?tab=hours`
+          details: `${studentProfile?.fullName || "A student"} submitted ${parsedHours} hours for "${logActivity}" on ${logDate} and has asked you to confirm them. Confirming here needs a Volunteer North York organization account, which our team reviews before it is approved. If you would rather not create one, signing the student's school board form directly works just as well.`,
+          // /org/dashboard is organization-only, so a coordinator at an
+          // unregistered organisation hit a login wall and the hours sat
+          // pending forever. The server rebuilds this copy before sending;
+          // these two are kept in step with it.
+          actionLabel: "Create an organization account",
+          actionUrl: `${window.location.origin}/signup`
         }
       }).catch(err => console.error("Could not send hours verification email:", err));
     } catch (err: any) {
@@ -1593,11 +1597,33 @@ export default function StudentDashboard() {
                           setLogOrg("");
                           setLogContact("");
                           setLogCoordinator("");
+                          setLogOrgUid(null);
                         } else {
                           const org = allOrganizations.find(o => o.id === val);
                           if (org) {
                             setLogOrg(org.organizationName || "");
                             setLogContact(org.contactEmail || org.email || "");
+                            /*
+                             * The uid, so the request can be routed by identity.
+                             *
+                             * orgId was added to hoursRequests precisely so a claim
+                             * would still reach an organisation after it changed its
+                             * public contact address, and it was wired only to the
+                             * OTHER dropdown — the one fed from organisations the
+                             * student already has an application with, which is the
+                             * case /api/hours/approve already authorises by the
+                             * application itself.
+                             *
+                             * This dropdown is the only route for hours volunteered
+                             * outside a posted opportunity, which is the case orgId
+                             * was for. Without it the request carried only
+                             * coordinatorContact, prefilled from the organisation's
+                             * PUBLIC address, while OrgDashboard queries orgId or the
+                             * LOGIN address — so the claim was invisible in the
+                             * organisation's queue and in both notification bells, with
+                             * no error anywhere.
+                             */
+                            setLogOrgUid(org.id);
                             // No literal. `contactName` is in NO organizations allowlist and exists in
                         // this repo only in demo fixtures, so in production it is always
                         // undefined and "Site Supervisor" was always what landed in the

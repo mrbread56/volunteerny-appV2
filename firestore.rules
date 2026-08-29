@@ -195,30 +195,41 @@ service cloud.firestore {
         // denied the bootstrap outright. An account with no users document also
         // has no isBanned and no twoFactorEnabled to check.
         (
-          // With a users document: the normal gate. Without one — the bootstrap
-          // case, before any account carries role == 'developer' — a CURRENT
-          // MFA claim is still required, read straight off the token rather
-          // than through mfaSatisfied(), which cannot run without the document.
+          // A CURRENT MFA claim, always, read straight off the token.
           //
-          // The escape used to be unconditional, so an allowlisted Google
-          // session with no users document reached `allow list: if
-          // isDeveloper()` on /users — every student's name, email and school —
-          // with no second factor at all. That is the precise threat the MFA
-          // check was added to close, surviving in the one branch that skipped
-          // it. /api/auth/send-otp does not read the users document either, so
-          // a genuine bootstrap can still get a code.
-          exists(/databases/$(database)/documents/users/$(request.auth.uid))
-            ? (isNotBanned() && mfaSatisfied())
-            : (
-                // The support grace window, honoured HERE TOO. mfaSatisfied()
-                // has three satisfying clauses and this branch copied only the
-                // claim comparison, so a bootstrap developer unlocked by
-                // scripts/grant-mfa.ts — RUNBOOK step 3 — was still refused.
-                // The comment beside that clause says a grant the rules ignore
-                // is a recovery tool that recovers nothing.
-                request.auth.token.get('auth_time', 0) < request.auth.token.get('mfaGraceUntil', 0) ||
-                request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1)
-              )
+          // This branched on whether a users document existed and, when one
+          // did, deferred to mfaSatisfied(). That was a hole, because
+          // mfaSatisfied() is satisfied outright by `twoFactorEnabled != true
+          // && role == 'student'` — a clause that exists so students who never
+          // turned two-factor on are not locked out of their own data.
+          //
+          // An allowlisted address whose users document says role 'student'
+          // therefore satisfied it with NO second factor, and the allowlist
+          // half below does not care about the stored role. That is the
+          // bootstrap state the file describes as normal: an allowlisted
+          // address that was never promoted to role 'developer', because
+          // isDeveloperUser makes promotion unnecessary. It reached `allow
+          // list: if isDeveloper()` on /users — every account's uid, email and
+          // role — from a password-only session. src/lib/devAccess.ts grants
+          // the console on the email alone and src/lib/mfa.ts carries the same
+          // student exemption, so nothing in the client redirected either; only
+          // the server tier held.
+          //
+          // Developers do not get the student exemption. The claim comparison
+          // and the support grace window are the only two ways in, and both are
+          // measured against auth_time, which Firebase stamps.
+          (
+            request.auth.token.get('auth_time', 0) < request.auth.token.get('mfaGraceUntil', 0) ||
+            request.auth.token.get('mfaVerifiedFor', -2) == request.auth.token.get('auth_time', -1)
+          ) &&
+          // isNotBanned() reads users/{uid}.data, and .data on a get() that
+          // returned null is an evaluation ERROR rather than a false, so it
+          // stays behind the existence check. A bootstrap account has no users
+          // document and therefore no isBanned to read.
+          (
+            !exists(/databases/$(database)/documents/users/$(request.auth.uid)) ||
+            isNotBanned()
+          )
         ) && (
         (
           exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&

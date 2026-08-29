@@ -259,7 +259,10 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
         title: o.verificationStatus === 'verified' ? 'Your organization is verified' : 'Verification not approved',
         body:
           o.verificationStatus === 'verified'
-            ? 'Students can now see the verified badge on your listings.'
+            // Not a badge. OpportunityCard removed it deliberately and says
+            // so in its own comment; no student-facing surface reads
+            // verificationStatus. Approval buys the ability to post.
+            ? 'Your listings are live and students can find them.'
             : 'We could not verify your organization from the details provided. Get in touch and we will help.',
         at: toDate(o.verifiedAt), href: '/org/profile',
       });
@@ -354,7 +357,7 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
   // hours to confirm and feedback replies are all independent of them.
   if (!ids.length) return extra;
 
-  // Chunked by 5, NOT by the Firestore `in` limit of 30.
+  // Chunked by 3, NOT by the Firestore `in` limit of 30.
   //
   // The applications list rule proves ownership with exists() + get() on the
   // opportunity, which costs two document accesses per distinct id against a

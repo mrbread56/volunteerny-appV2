@@ -430,7 +430,15 @@ export const emailTemplates = {
         <p><strong>Completed Hours:</strong> <strong class="hours-highlight">+ ${Number(hours) || 0} Volunteer Hours</strong></p>
         <p><strong>Opportunity:</strong> ${esc(oppTitle)}</p>
         <p><strong>Organization:</strong> ${esc(orgName)}</p>
-        <p><strong>Authorized By:</strong> ${esc(supervisorName)}</p>
+        <!-- Omitted rather than defaulted.
+             This printed "Authorized By: Site Supervisor" on every approved
+             hours email ever sent, because the only production caller passed no
+             supervisorName and renderTemplate filled the gap with a placeholder.
+             This is the message a student forwards to a parent or a guidance
+             office, so a fabricated name under "Authorized By" is the one place
+             an invention does real damage. If we do not know who confirmed it,
+             we say nothing. -->
+        ${supervisorName ? `<p><strong>Confirmed by:</strong> ${esc(supervisorName)}</p>` : ''}
         <!-- There was a "Verification Code" here reading
              VERIFIED-VNY-${'$'}{Math.random()...}, generated fresh at send time,
              stored nowhere and checkable by nobody. It appeared in the one

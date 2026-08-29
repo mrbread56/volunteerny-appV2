@@ -555,8 +555,7 @@ export default function Signup() {
                         Are you a CRA-registered charity? <span className="text-red-600">*</span>
                       </legend>
                       <p className="text-xs text-ink-soft leading-relaxed">
-                        Registered charities are reviewed by our team and shown a verified badge.
-                        You can join without one.
+                        Registered charities are reviewed by our team. You can join without one.
                       </p>
                       <div className="flex gap-3">
                         {([["yes", "Yes"], ["no", "No"]] as const).map(([val, label]) => (

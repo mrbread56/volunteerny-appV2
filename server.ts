@@ -1780,11 +1780,9 @@ app.use(express.json());
       // address empty meant the retry this fallback exists to enable still
       // skipped that collection, so every message ever sent to a deleted
       // account kept its address on file permanently.
-      // LOGIN email first. coordinatorContact holds the login address (both the
-      // dashboard query and the rules compare it to request.auth.token.email),
-      // and contactEmail is the separate PUBLIC address the profile page invites
-      // an organisation to change — so preferring it made the retry settle
-      // nothing and prune the wrong address from emailLog.
+      // LOGIN email first, because emailLog is keyed by the address we SENT to.
+      // Note this is not the address a stranded hours request carries; see the
+      // note on settleStranded below.
       recoveredEmail = String(
         studentSnap.data()?.email || orgSnap.data()?.email || orgSnap.data()?.contactEmail || '',
       );
@@ -1883,7 +1881,29 @@ app.use(express.json());
         }
       };
       await settleStranded('orgId', userId);
-      await settleStranded('coordinatorContact', userEmail.trim().toLowerCase());
+      /*
+       * BOTH addresses, because they are genuinely different fields.
+       *
+       * This settled against users/{uid}.email alone, which is the LOGIN
+       * address. coordinatorContact is prefilled from the organisation's
+       * PUBLIC contactEmail — StudentDashboard reads org.contactEmail into the
+       * field, and OrgProfile invites an organisation to change it — so for any
+       * organisation whose two addresses differ, this matched nothing.
+       *
+       * Combined with the orgId sweep above matching nothing either (the
+       * partner dropdown did not write orgId until this same change set), an
+       * organisation deleting its account left every pending claim against it
+       * pending forever, unapprovable by anyone: exactly the outcome this block
+       * exists to prevent.
+       */
+      const publicEmail = String(
+        (await adb.collection('organizations').doc(userId).get()).data()?.contactEmail || '',
+      ).trim().toLowerCase();
+      const loginEmail = userEmail.trim().toLowerCase();
+      if (loginEmail) await settleStranded('coordinatorContact', loginEmail);
+      if (publicEmail && publicEmail !== loginEmail) {
+        await settleStranded('coordinatorContact', publicEmail);
+      }
     } else if (role === 'student') {
       await deleteWhere('applications', 'studentId', userId);
       await deleteWhere('savedOpportunities', 'studentId', userId);
@@ -3342,6 +3362,10 @@ app.use(express.json());
             hours: parsedHours,
             activity: String(activity || 'Volunteer Activity'),
             orgName: orgSnap.exists ? (orgSnap.data()?.organizationName || 'Verified Organization') : 'Verified Organization',
+            // The person who actually confirmed it, off the request the student
+            // filed. Absent for the accepted-application path, where the line
+            // is simply omitted rather than filled with a placeholder.
+            supervisorName: String(requestData?.coordinatorName || ''),
           });
           if (html) {
             const { error } = await resend.emails.send({
@@ -4611,9 +4635,14 @@ app.use(express.json());
         return emailTemplates.hours_confirmation(
           d.studentName || 'Student',
           Number(d.hours) || 0,
-          d.oppTitle || 'Volunteer Opportunity',
+          // `activity` is what the caller actually sends and what the student
+          // typed; oppTitle was the key this read, so the real activity was
+          // dropped and replaced by "Volunteer Opportunity" on every send.
+          d.oppTitle || d.activity || 'Volunteer Opportunity',
           d.orgName || 'Community Partner',
-          d.supervisorName || 'Site Supervisor'
+          // No default. See the note in the template: an invented name here is
+          // worse than an absent one.
+          d.supervisorName || ''
         );
       case 'new_applicant':
         return emailTemplates.new_applicant(
@@ -4784,13 +4813,32 @@ app.use(express.json());
 
             subject = `${who} asked you to confirm their volunteer hours`;
             templateName = 'notification';
+            /*
+             * Say what confirming actually requires.
+             *
+             * This told the coordinator to "verify them online" behind a button
+             * to /org/dashboard, which is a PrivateRoute for role
+             * 'organization'. The note above concedes the recipient is usually
+             * at an organisation that has never registered here, so the button
+             * put them on a login wall with nothing to log in with, and
+             * /api/hours/approve refuses non-organizations outright anyway.
+             *
+             * The student's hours then sat pending forever: the supervisor gave
+             * up at the wall, and the student read "pending" as "my supervisor
+             * has not got to it yet". Nothing in either interface said whose
+             * move it was. It says so now, and it offers the route that needs
+             * no account at all.
+             */
             templateData = {
               heading: 'Please confirm these volunteer hours',
               details:
                 `${who} submitted ${hoursText} for "${what}"${when ? ` on ${when}` : ''} ` +
-                `and has asked you to verify them online.`,
-              actionLabel: 'Review the request',
-              actionUrl: `${appOrigin()}/org/dashboard?tab=hours`,
+                `and has asked you to confirm them. Confirming here needs a Volunteer North York ` +
+                `organization account, which our team reviews before it is approved. ` +
+                `If you would rather not create one, signing the student's school board form ` +
+                `directly works just as well.`,
+              actionLabel: 'Create an organization account',
+              actionUrl: `${appOrigin()}/signup`,
             };
             logEvent('coordinator_notice_rebuilt', { uid: authContext.uid });
           }

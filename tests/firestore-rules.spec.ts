@@ -673,6 +673,45 @@ test.describe('the developer bootstrap allowlist', () => {
       .firestore() as any;
     await assertFails(getDocs(collection(bare, 'users')));
   });
+
+  test('an allowlisted address cannot borrow the student two-factor exemption', async () => {
+    /*
+     * The hole the test above missed. It only ever exercised uids with NO users
+     * document, so every allowlist assertion in this file landed on the
+     * bootstrap branch and none reached the branch taken once a document
+     * exists.
+     *
+     * With one, isDeveloper() used to defer to mfaSatisfied(), which is
+     * satisfied outright by `twoFactorEnabled != true && role == 'student'` —
+     * a clause that exists so students who never turned two-factor on keep
+     * access to their own data. An allowlisted address whose users document
+     * says 'student' therefore held developer with no second factor, and
+     * `allow list` on /users hands over every account's uid, email and role.
+     */
+    await env.withSecurityRulesDisabled(async (ctx) => {
+      await setDoc(doc(ctx.firestore(), 'users', 'dev_as_student'), {
+        uid: 'dev_as_student', email: 'kiamehrmetanat@gmail.com', role: 'student',
+        twoFactorEnabled: false, createdAt: new Date(),
+      });
+    });
+    const asStudentDoc = env
+      .authenticatedContext('dev_as_student', {
+        email: 'kiamehrmetanat@gmail.com', email_verified: true,
+      })
+      .firestore() as any;
+    await assertFails(getDocs(collection(asStudentDoc, 'users')));
+
+    // ...and the same account WITH a current claim is still a developer, so
+    // this closes the bypass without breaking the bootstrap it protects.
+    const AT = 1786700111;
+    const withClaim = env
+      .authenticatedContext('dev_as_student', {
+        email: 'kiamehrmetanat@gmail.com', email_verified: true,
+        auth_time: AT, mfaVerified: true, mfaVerifiedFor: AT,
+      })
+      .firestore() as any;
+    await assertSucceeds(getDocs(collection(withClaim, 'users')));
+  });
 });
 
 // ─────────────── two-factor, enforced by the database ───────────────
