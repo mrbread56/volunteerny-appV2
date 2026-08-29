@@ -202,7 +202,7 @@ async function bootServer() {
   // server that refused to start reported only "did not come up" with no clue
   // why — the harness has to be able to explain its own failure.
   let log = '';
-  server = spawn(process.execPath, ['dist/server.cjs'], {
+  server = spawn(process.execPath, ['build/server.cjs'], {
     cwd: process.cwd(),
     env: { ...process.env, NODE_ENV: 'production', PORT: String(PORT) },
     stdio: ['ignore', 'pipe', 'pipe'],

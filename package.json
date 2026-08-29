@@ -7,8 +7,8 @@
   "//deps:firebase": "Do not bump firebase past 12.13 without running the FULL Playwright suite twice. 12.17.1 was tried on 18 Aug 2026: green alone, but under the full 142-test parallel run the same 5 failure-simulation specs (network-failure, otp-store, lifecycle-ui) failed deterministically both times — cross-file contention, likely the newer SDK holding aborted connections longer and starving the shared dev server. Rolled back rather than shipped, because a suite that is flaky under load can no longer prove anything. The npm audit moderates are transitive in firebase-admin (uuid buffer bounds needs an attacker-controlled buf we never pass; opentelemetry is server-side tracing) — documented, not exploitable here.",
   "scripts": {
     "dev": "tsx server.ts",
-    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --sourcemap --outfile=dist/server.cjs",
-    "start": "node dist/server.cjs",
+    "build": "vite build && esbuild server.ts --bundle --platform=node --format=cjs --packages=external --outfile=build/server.cjs",
+    "start": "node build/server.cjs",
     "lint": "tsc --noEmit && npm run check:esm",
     "check:esm": "tsc --noEmit --module nodenext --moduleResolution nodenext --target es2022 --skipLibCheck --esModuleInterop --resolveJsonModule server.ts api/index.ts server/emailTemplates.ts server/appUrl.ts",
     "check:firebase": "tsx scripts/check-firebase.ts",

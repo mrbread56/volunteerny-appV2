@@ -31,7 +31,7 @@ const BASE = `http://127.0.0.1:${PORT}`;
 async function boot(env: NodeJS.ProcessEnv, cwd = process.cwd()): Promise<ChildProcess> {
   // Absolute path to the bundle, because cwd is sometimes moved away from the
   // project to starve the child of .env — see the failure-direction test.
-  const entry = path.resolve('dist/server.cjs');
+  const entry = path.resolve('build/server.cjs');
   const proc = spawn(process.execPath, [entry], {
     cwd,
     env: { ...env, PORT: String(PORT) },

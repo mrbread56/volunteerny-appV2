@@ -99,7 +99,7 @@ async function approveOrg(adb: any, uid: string) {
 
 async function bootApi() {
   let log = '';
-  apiServer = spawn(process.execPath, ['dist/server.cjs'], {
+  apiServer = spawn(process.execPath, ['build/server.cjs'], {
     cwd: process.cwd(),
     // NODE_ENV stays out of production here: send-otp logs the code to stdout
     // in non-production, which is the only way to learn it without a mailbox.

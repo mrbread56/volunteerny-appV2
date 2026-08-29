@@ -228,7 +228,7 @@ if (!resend) {
 }
 
 
-async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: string; emailVerified?: boolean; role?: string; isDemo: boolean; authTime?: number; error?: string }> {
+async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: string; emailVerified?: boolean; role?: string; isDemo: boolean; authTime?: number; mfaVerified?: boolean; mfaVerifiedFor?: number; mfaGraceUntil?: number; error?: string }> {
   const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       console.log('[verifyAuth] Missing or invalid authorization header');
@@ -288,6 +288,12 @@ async function verifyAuth(req: express.Request): Promise<{ uid: string; email?: 
       // refresh, so it identifies the sign-in session. /api/auth/verify-otp
       // pins the MFA claim to this value; see the note there.
       authTime: typeof decoded.auth_time === 'number' ? decoded.auth_time : undefined,
+      // The second-factor claims, carried so routes can require MFA and not
+      // merely authentication. Before this, verifyAuth answered "who is this?"
+      // and every caller silently treated that as "may this person act?".
+      mfaVerified: decoded.mfaVerified === true,
+      mfaVerifiedFor: typeof decoded.mfaVerifiedFor === 'number' ? decoded.mfaVerifiedFor : undefined,
+      mfaGraceUntil: typeof decoded.mfaGraceUntil === 'number' ? decoded.mfaGraceUntil : undefined,
     };
   } catch (err: any) {
     console.warn('[verifyAuth] Token verification failed:', err.message || err);
@@ -2939,6 +2945,28 @@ app.use(express.json());
     return out;
   }
 
+  /**
+   * Has this caller actually passed the second factor on THIS sign-in?
+   *
+   * Mirrors mfaSatisfied() in firestore.rules: the claim must be pinned to the
+   * current token's auth_time, so a claim minted for an older sign-in cannot be
+   * replayed. The grace window is honoured for the same reason the rules honour
+   * it, so a supported user is not locked out of two different layers.
+   *
+   * This exists because /api/auth/backup-codes had only verifyAuth on it, and
+   * "is authenticated" is not "has passed MFA". A stolen password alone yields
+   * a valid Firebase ID token before any second factor, and that token was
+   * enough to mint ten fresh recovery codes and immediately redeem one — which
+   * grants the MFA claim. The second factor could be defeated with the first
+   * factor alone, and the victim's real printed codes were destroyed by the
+   * same call, because generation uses set() rather than update().
+   */
+  function hasPassedMfa(ctx: { authTime?: number; mfaVerified?: boolean; mfaVerifiedFor?: number; mfaGraceUntil?: number }): boolean {
+    if (typeof ctx.authTime !== 'number') return false;
+    if (typeof ctx.mfaGraceUntil === 'number' && ctx.authTime < ctx.mfaGraceUntil) return true;
+    return ctx.mfaVerified === true && ctx.mfaVerifiedFor === ctx.authTime;
+  }
+
   app.post('/api/auth/backup-codes', async (req, res) => {
     try {
       const authContext = await verifyAuth(req);
@@ -2947,6 +2975,17 @@ app.use(express.json());
       }
       if (authContext.isDemo) {
         return res.status(400).json({ error: 'Recovery codes are not available in demo mode.' });
+      }
+
+      // Recovery codes are a SECOND factor. Minting them must itself require
+      // the second factor, or they become a way around it rather than a way
+      // through it. The UI only offers this from the profile page, which is
+      // already behind the gate; the endpoint has to enforce that itself.
+      if (!hasPassedMfa(authContext)) {
+        logEvent('backup_codes_denied_pre_mfa', { uid: authContext.uid });
+        return res.status(403).json({
+          error: 'Please complete your sign-in verification before creating recovery codes.',
+        });
       }
 
       const adb = adminFirestore();

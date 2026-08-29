@@ -82,7 +82,7 @@ function adminHandle() {
 
 async function bootApi() {
   let log = '';
-  apiServer = spawn(process.execPath, ['dist/server.cjs'], {
+  apiServer = spawn(process.execPath, ['build/server.cjs'], {
     cwd: process.cwd(),
     env: { ...process.env, NODE_ENV: 'production', PORT: String(API_PORT) },
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -121,6 +121,29 @@ const post = (path: string, token: string, body: unknown) =>
     body: JSON.stringify(body),
   });
 
+/**
+ * Give an account the second factor and return a token that carries it.
+ *
+ * The claim is pinned to auth_time, so it must be minted against the SAME
+ * sign-in that will use it: signing in again afterwards produces a new
+ * auth_time and the claim no longer matches. So this refreshes the existing
+ * session's token in place rather than starting a fresh one — which is exactly
+ * what the app does after /api/auth/verify-otp succeeds.
+ */
+async function grantMfaAndToken(uid: string, email: string): Promise<string> {
+  const cred = await signInWithEmailAndPassword(auth, email, PASSWORD);
+  const decoded: any = await adminHandle().auth().verifyIdToken(await cred.user.getIdToken());
+  const existing = (await adminHandle().auth().getUser(uid)).customClaims || {};
+  await adminHandle().auth().setCustomUserClaims(uid, {
+    ...existing,
+    mfaVerified: true,
+    mfaVerifiedFor: decoded.auth_time,
+    mfaVerifiedAt: Date.now(),
+  });
+  // force = true: same session, same auth_time, now carrying the new claim.
+  return cred.user.getIdToken(true);
+}
+
 (async () => {
   try {
     await bootApi();
@@ -128,8 +151,34 @@ const post = (path: string, token: string, body: unknown) =>
     const org = await makeOrg('a');
     const other = await makeOrg('b');
 
-    // ── generate ────────────────────────────────────────────────────────────
+    /*
+     * ── minting codes must itself require the second factor ─────────────────
+     *
+     * This suite used to jump straight to generation with a password-only
+     * token, and it passed — because the endpoint checked authentication and
+     * called it authorization. That made recovery codes a way AROUND the second
+     * factor rather than a way through it: a stolen password alone could mint
+     * ten codes and redeem one to obtain the mfaVerified claim, which
+     * firestore.rules honours on every write in the database. The same call
+     * also overwrote the victim's real printed codes, because generation uses
+     * set().
+     *
+     * So the pre-MFA refusal is asserted first, and only then is the second
+     * factor granted the way the server itself grants it after a verified code.
+     */
     let token = await tokenFor(org.email);
+    const preMfa = await post('/api/auth/backup-codes', token, {});
+    if (preMfa.status === 403) {
+      pass('codes cannot be minted before passing the second factor');
+    } else {
+      fail(`generation before MFA returned ${preMfa.status}, expected 403 — the bypass is open`);
+    }
+
+    // Grant the factor exactly as /api/auth/verify-otp does: pinned to THIS
+    // sign-in's auth_time, so it cannot be replayed onto another session.
+    token = await grantMfaAndToken(org.uid, org.email);
+
+    // ── generate ────────────────────────────────────────────────────────────
     const genRes = await post('/api/auth/backup-codes', token, {});
     const gen: any = await genRes.json();
     if (genRes.ok && Array.isArray(gen.codes) && gen.codes.length === 10) {
@@ -159,7 +208,8 @@ const post = (path: string, token: string, body: unknown) =>
     else fail(`a wrong code returned ${badRes.status}, expected 400`);
 
     // ── someone else's code does not work on your account ───────────────────
-    const otherToken = await tokenFor(other.email);
+    let otherToken = await tokenFor(other.email);
+    otherToken = await grantMfaAndToken(other.uid, other.email);
     await post('/api/auth/backup-codes', otherToken, {});
     const crossRes = await post('/api/auth/backup-codes/redeem', otherToken, { code: gen.codes[1] });
     if (crossRes.status === 400) pass("another account's code does not work here");
@@ -186,6 +236,11 @@ const post = (path: string, token: string, body: unknown) =>
     else fail(`a spent code returned ${replayRes.status}, expected 400`);
 
     // ── regenerating invalidates the old set ────────────────────────────────
+    // Re-grant first: redeeming a code above pinned the claim to that token's
+    // auth_time, and tokenFor() starts a fresh sign-in with a new one. A real
+    // user regenerating codes is inside one session whose claim already
+    // matches; the suite has to reproduce that rather than reuse a stale claim.
+    token = await grantMfaAndToken(org.uid, org.email);
     const regenRes = await post('/api/auth/backup-codes', token, {});
     const regen: any = await regenRes.json();
     const oldStillWorks = await post('/api/auth/backup-codes/redeem', token, { code: gen.codes[2] });

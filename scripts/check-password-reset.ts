@@ -75,7 +75,7 @@ function adminHandle() {
 
 async function bootApi() {
   let log = '';
-  apiServer = spawn(process.execPath, ['dist/server.cjs'], {
+  apiServer = spawn(process.execPath, ['build/server.cjs'], {
     cwd: process.cwd(),
     env: { ...process.env, NODE_ENV: 'production', PORT: String(API_PORT) },
     stdio: ['ignore', 'pipe', 'pipe'],
