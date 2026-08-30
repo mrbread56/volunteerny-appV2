@@ -30,6 +30,7 @@ export default function ReportsTab({
   orgs,
   onUpdateReportStatus,
   onToggleBan,
+  unloaded,
 }: {
   reports: any[];
   /** Used to resolve a reported party's name from their uid. */
@@ -38,6 +39,8 @@ export default function ReportsTab({
   onUpdateReportStatus: (reportId: string, newStatus: 'resolved' | 'dismissed') => void;
   /** Suspending a reported account straight from the report. */
   onToggleBan: (userId: string, isCurrentlyBanned: boolean) => void;
+  /** True while the load is in flight or has failed — see the empty state. */
+  unloaded?: boolean;
 }) {
   // Local alias so the moved markup needs no edits.
   const handleUpdateReportStatus = onUpdateReportStatus;
@@ -86,11 +89,18 @@ export default function ReportsTab({
                 empty, which now includes "every report has been dealt with".
                 And "Secure Safe Space Guaranteed" is a guarantee nobody can
                 make. Say which of the two states this is. */}
+            {/* An empty list is not proof of an empty queue.
+                This asserted "Nobody has filed a safety report yet" whenever
+                `reports` was empty — including while the read was still in
+                flight and when it had FAILED. On the safety queue that is the
+                worst possible thing to be wrong about. */}
             <h3 className="text-base font-semibold text-ink uppercase">
-              {reports.length === 0 ? 'No reports have been filed' : 'Nothing waiting'}
+              {unloaded ? 'Reports not loaded' : reports.length === 0 ? 'No reports have been filed' : 'Nothing waiting'}
             </h3>
             <p className="text-ink-muted text-xs font-semibold max-w-sm mx-auto leading-relaxed">
-              {reports.length === 0
+              {unloaded
+                ? 'We could not load the safety queue, so this is not a statement that it is empty. Refresh to try again.'
+                : reports.length === 0
                 ? 'Nobody has filed a safety report yet.'
                 : `All ${reports.length} report${reports.length === 1 ? ' has' : 's have'} been resolved or dismissed. Use the button above to look back through them.`}
             </p>

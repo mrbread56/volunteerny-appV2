@@ -58,6 +58,9 @@ async function fillOrgFormExceptType(page: any, name: string, email: string) {
   await page.getByLabel(/^organization name/i).fill(name);
   await page.getByLabel(/^mission/i).fill('We fix things together.');
   await page.getByRole('button', { name: /^no$/i }).first().click();
+  // The address is required and now enforced, so a helper that omits it makes
+  // every test using it fail on validation rather than on what it is testing.
+  await page.getByRole('textbox', { name: /address/i }).first().fill('5100 Yonge St, North York');
   await page.getByLabel(/^email address/i).fill(email);
   await page.getByLabel(/^password/i).fill(PASSWORD);
   await page.locator('#consent').check();

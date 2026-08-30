@@ -1050,6 +1050,7 @@ export default function DeveloperDashboard() {
           orgs={orgs}
           onUpdateReportStatus={handleUpdateReportStatus}
           onToggleBan={handleToggleBan}
+          unloaded={isLoading || !!consoleNotice}
         />
       ) : activeTab === 'terminated' ? (
         /* TERMINATED BASE TAB */
@@ -1081,7 +1082,13 @@ export default function DeveloperDashboard() {
                 {bannedStudents.length === 0 ? (
                   <div className="py-12 text-center text-ink-muted space-y-3">
                     <ShieldCheck className="w-10 h-10 text-blue-dark mx-auto" />
-                    <p className="text-xs font-semibold uppercase text-ink-soft">No Suspended Students</p>
+                    <p className="text-xs font-semibold uppercase text-ink-soft">
+                      {/* A failed load leaves this array empty with isLoading
+                          already false, so this made a positive claim about the
+                          whole platform on the strength of a read that never
+                          returned. */}
+                      {consoleNotice ? 'Suspension list not loaded' : 'No Suspended Students'}
+                    </p>
                     <p className="text-xs text-ink-muted font-medium">All students currently maintain active, good-standing credentials.</p>
                   </div>
                 ) : (
@@ -1309,7 +1316,12 @@ export default function DeveloperDashboard() {
                   {emailLogError}
                 </p>
               ) : emailLogs.length === 0 ? (
-                <p className="text-xs text-ink-muted">No email has been sent yet.</p>
+                <p className="text-xs text-ink-muted">
+                  {/* There is no loading flag on this fetch, so the first paint
+                      of System Settings always claimed no mail had ever been
+                      sent while the request was still in flight. */}
+                  {isLoading ? 'Loading the email log…' : 'No email has been sent yet.'}
+                </p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">

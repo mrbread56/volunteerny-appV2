@@ -111,6 +111,15 @@ export default function MetricsTab() {
           <p className="text-sm text-ink-soft mt-1 max-w-2xl leading-relaxed">
             Opening this tab also refreshes the public figures shown on the home page.
           </p>
+          {/* Only claim it when the server says it happened. That write is the
+              only writer of metrics/public, so a silent failure froze the
+              landing page's numbers while this line asserted they were fresh. */}
+          {metrics && (metrics as any).publicRefreshed === false && (
+            <p role="alert" className="text-sm text-amber-700 font-semibold mt-2 max-w-2xl leading-relaxed">
+              The public figures on the home page could NOT be updated just now, so they are still
+              showing the previous values. Everything below is current.
+            </p>
+          )}
         </div>
         <button
           type="button"
@@ -173,8 +182,11 @@ export default function MetricsTab() {
               />
               <Figure
                 label="Students with any hours"
-                value={`${s.studentsWithAnyHours}${s.studentsAt40 ? ` · ${s.studentsAt40} at 40` : ''}`}
-                hint="Reached the graduation requirement through this platform."
+                value={`${s.studentsWithAnyHours} · ${s.studentsAt40 || 0} at 40`}
+              // The label counts students with ANY hours; only the second number is the
+          // 40-hour one, and it vanished entirely when it was zero — leaving the
+          // whole tile captioned as if everyone in it had graduated.
+          hint="Students credited with at least one hour. The second figure is how many have reached 40." 
               />
             </div>
           </section>
@@ -195,7 +207,10 @@ export default function MetricsTab() {
               <Figure
                 label="Verified orgs"
                 value={String(c.orgsByStatus.verified || 0)}
-                hint={`${c.orgsByStatus.pending || 0} awaiting review`}
+              // pending AND unverified. The review queue lists both, and 'unverified' is
+          // the default for every non-charity signup — so this said "0 awaiting
+          // review" while the Verify Orgs tab showed a red count.
+          hint={`${(c.orgsByStatus.pending || 0) + (c.orgsByStatus.unverified || 0)} awaiting review`}
               />
               <Figure label="Opportunities" value={`${c.openOpportunities} open / ${c.opportunities}`} />
               <Figure label="Applications" value={String(c.applications)} />

@@ -78,6 +78,15 @@ test('an organisation can register through the real form', async ({ page }) => {
   await page.getByRole('option').first().click();
   await page.getByLabel(/^mission/i).fill('We test our own front door.');
   await page.getByRole('button', { name: /^no$/i }).first().click();
+  /*
+   * The address, which the form marks required and now enforces.
+   *
+   * It was labelled with an asterisk and validated nowhere, so an organisation
+   * could register with a blank one and then reach a reviewer whose screen
+   * instructs them to confirm the address is in or near North York. This test
+   * skipped it, which is how the gap stayed invisible.
+   */
+  await page.getByRole('textbox', { name: /address/i }).first().fill('5100 Yonge St, North York');
   await page.getByLabel(/^email address/i).fill(EMAIL);
   await page.getByLabel(/^password/i).fill(PASSWORD);
   await page.locator('#consent').check();

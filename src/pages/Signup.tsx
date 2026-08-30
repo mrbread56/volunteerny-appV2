@@ -46,6 +46,25 @@ const GRADES = [
 
 
 
+/**
+ * "example.org" becomes "https://example.org"; anything already carrying a
+ * scheme is left alone; blank stays blank.
+ *
+ * The stored value is rendered as a link on the reviewer's screen and on a
+ * student's applications list, and firestore.rules refuses anything that is
+ * not http(s) — so this is what stops a reasonable answer being rejected as an
+ * invalid one.
+ */
+function normalizeWebsite(raw: string): string {
+  const v = String(raw || '').trim();
+  if (!v) return '';
+  if (/^https?:\/\//i.test(v)) return v;
+  // A scheme we do not accept is dropped rather than coerced: turning
+  // "javascript:..." into "https://javascript:..." would be worse than empty.
+  if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return '';
+  return `https://${v}`;
+}
+
 export default function Signup() {
   const [role, setRole] = useState<"student" | "organization" | null>(null);
   const [setupStage, setSetupStage] = useState<"role-select" | "form">("role-select");
@@ -175,6 +194,21 @@ export default function Signup() {
       }
     }
 
+    /*
+     * The address is marked required and was never enforced.
+     *
+     * AddressMapsSelector renders a bare <input> with no `required`, and this
+     * function validated gender, hasCra, orgTypeOther, the CRA format and
+     * consent — never the address. So an organisation could complete signup
+     * with a blank one and coordinates: null, and then reach a reviewer whose
+     * own screen instructs them to "confirm the address is in or near North
+     * York" with no address to look at.
+     */
+    if (role === 'organization' && !address.trim()) {
+      setError("Please enter your organization's address. A reviewer uses it to confirm you are in or near North York.");
+      return;
+    }
+
     if (!consent) {
       setError("Please agree to our Terms and Privacy Policy.");
       return;
@@ -279,7 +313,11 @@ export default function Signup() {
             contactEmail: (contactEmail || normalizedEmail),
             phone,
             northYorkConfirmed: isNorthYork,
-            websiteUrl: website,
+            // Normalised to a scheme the rules accept. firestore.rules now
+            // pins websiteUrl to ^https?:// because it is rendered as a link to
+            // reviewers and students — so a coordinator typing "example.org"
+            // would otherwise have their whole signup rejected for it.
+            websiteUrl: normalizeWebsite(website),
             // A BOOLEAN. This state is "yes" | "no" | null for the radio group,
             // and the string was being written straight through — so the moment
             // firestore.rules started validating this key (it was permitted and
@@ -540,6 +578,30 @@ export default function Signup() {
                         value={address}
                         onChange={setAddress}
                         onCoordinatesChange={setCoords}
+                      />
+                    </div>
+
+                    {/* The website, which the REVIEWER is told to check.
+                        This state and its write existed all along and the field
+                        was never rendered, so websiteUrl was written empty for
+                        every organisation — while the verification screen says
+                        "open their website, confirm the address is in or near
+                        North York, and see that the contact email matches their
+                        domain" and then had no link to open. Optional, because
+                        plenty of small charities genuinely have none, but asking
+                        is what makes the review possible. */}
+                    <div className="space-y-1.5">
+                      <label htmlFor="org-website" className="text-[13px] font-medium text-ink">
+                        Website <span className="font-normal text-ink-muted">(optional, but it speeds up your review)</span>
+                      </label>
+                      <input
+                        id="org-website"
+                        type="url"
+                        inputMode="url"
+                        placeholder="https://example.org"
+                        value={website}
+                        onChange={(e) => setWebsite(e.target.value)}
+                        className="w-full h-11 px-3.5 text-[14px] bg-white border border-line rounded-lg text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
                       />
                     </div>
 

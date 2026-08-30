@@ -128,7 +128,7 @@ function LocationMarker({
 }
 
 export default function OrgOpportunityCreate() {
-  const { user, isDemoMode, orgProfile } = useAuth();
+  const { user, isDemoMode, orgProfile, profilesLoaded } = useAuth();
   const navigate = useNavigate();
   const { coords: userCoords } = useGeolocation();
   const [isLoading, setIsLoading] = useState(false);
@@ -177,6 +177,7 @@ export default function OrgOpportunityCreate() {
         if (parsed.category) setCategory(parsed.category);
         if (parsed.requirements) setRequirements(parsed.requirements);
         if (parsed.maxVolunteers) setMaxVolunteers(parsed.maxVolunteers);
+        if (parsed.minAge) setMinAge(parsed.minAge);
         if (parsed.selectedSkills) setSelectedSkills(parsed.selectedSkills);
         if (parsed.selectedExclusives) setSelectedExclusives(parsed.selectedExclusives);
         if (parsed.timeCommitment) setTimeCommitment(parsed.timeCommitment);
@@ -213,6 +214,9 @@ export default function OrgOpportunityCreate() {
       category,
       requirements,
       maxVolunteers,
+      // minAge was in neither the save nor the load, so it silently vanished on
+      // every reload while the banner said the draft was saved.
+      minAge,
       selectedSkills,
       selectedExclusives,
       timeCommitment,
@@ -240,6 +244,7 @@ export default function OrgOpportunityCreate() {
     setCategory(OPPORTUNITY_CATEGORIES[0]);
     setRequirements('');
     setMaxVolunteers('5');
+    setMinAge('');
     setSelectedSkills([]);
     setSelectedExclusives([]);
     setTimeCommitment(COMMITMENTS[0].value);
@@ -443,7 +448,17 @@ export default function OrgOpportunityCreate() {
     ? 'verified'
     : (orgProfile?.verificationStatus || 'unverified');
 
-  if (!isDemoMode && orgProfile && verification !== 'verified') {
+  /*
+   * profilesLoaded, not `orgProfile &&`.
+   *
+   * A null orgProfile means a failed or denied read, or a signup where users/
+   * was written and organizations/ was not — and with the old condition the
+   * gate was SKIPPED in exactly those cases. The full form rendered, and the
+   * submit then died on isApprovedOrg() with a message about their connection.
+   * AuthContext exposes profilesLoaded precisely so a null can be read as "no
+   * document" rather than "still in flight".
+   */
+  if (!isDemoMode && profilesLoaded && verification !== 'verified') {
     const copy = {
       pending: {
         title: 'Your organization is being reviewed',

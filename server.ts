@@ -1356,17 +1356,24 @@ app.use(express.json());
       // Refresh the public counters as a side effect: the expensive part is the
       // read pass, which has already happened, so this costs one write rather
       // than a second job.
+      let publicRefreshed = true;
       try {
         await adminFirestore().collection('metrics').doc('public').set({
           ...metrics.publicCounters,
           updatedAt: metrics.generatedAt,
         });
       } catch (writeErr: any) {
-        // The dashboard is still useful without the public copy being fresh.
+        // Reported, not just logged. This is the ONLY writer of metrics/public,
+        // which is what the landing page renders, and the Metrics tab states
+        // unconditionally that opening it refreshes those figures. A failure
+        // froze the public numbers at a stale value while telling the operator
+        // they had just been updated — the one admin failure in this console
+        // reachable only from a server log.
+        publicRefreshed = false;
         console.error('[metrics] public counters not refreshed:', writeErr?.message || writeErr);
       }
 
-      res.json(metrics);
+      res.json({ ...metrics, publicRefreshed });
     } catch (err: any) {
       console.error('[metrics] failed:', err?.message || err);
       res.status(500).json({ error: 'Could not calculate metrics right now.' });
@@ -5177,17 +5184,46 @@ app.use(express.json());
              * move it was. It says so now, and it offers the route that needs
              * no account at all.
              */
-            templateData = {
-              heading: 'Please confirm these volunteer hours',
-              details:
-                `${who} submitted ${hoursText} for "${what}"${when ? ` on ${when}` : ''} ` +
-                `and has asked you to confirm them. Confirming here needs a Volunteer North York ` +
-                `organization account, which our team reviews before it is approved. ` +
-                `If you would rather not create one, signing the student's school board form ` +
-                `directly works just as well.`,
-              actionLabel: 'Create an organization account',
-              actionUrl: `${appOrigin()}/signup`,
-            };
+            /*
+             * If they already have an approved account, do not tell them to
+             * make one.
+             *
+             * coordinatorContact is prefilled from the organisation's public
+             * contact address, so this copy — written for a coordinator with no
+             * account — was going to REGISTERED, APPROVED organisations,
+             * inviting them to sign up and offering an off-ramp to bypass the
+             * platform entirely.
+             */
+            let registered = false;
+            try {
+              const match = await adb.collection('organizations')
+                .where('contactEmail', '==', target).limit(1).get();
+              registered = !match.empty && match.docs[0].data()?.verificationStatus === 'verified';
+            } catch (lookupErr: any) {
+              console.error('[email/send] could not check for an existing org:', lookupErr?.message || lookupErr);
+            }
+
+            templateData = registered
+              ? {
+                  heading: 'Please confirm these volunteer hours',
+                  details:
+                    `${who} submitted ${hoursText} for "${what}"${when ? ` on ${when}` : ''} ` +
+                    `and has asked you to confirm them. You can approve or decline it from your ` +
+                    `dashboard.`,
+                  actionLabel: 'Review the request',
+                  actionUrl: `${appOrigin()}/org/dashboard?tab=hours`,
+                }
+              : {
+                  heading: 'Please confirm these volunteer hours',
+                  details:
+                    `${who} submitted ${hoursText} for "${what}"${when ? ` on ${when}` : ''} ` +
+                    `and has asked you to confirm them. Confirming here needs a Volunteer North York ` +
+                    `organization account, which our team reviews before it is approved. ` +
+                    `If you would rather not create one, signing the student's school board form ` +
+                    `directly works just as well.`,
+                  actionLabel: 'Create an organization account',
+                  actionUrl: `${appOrigin()}/signup`,
+                };
             logEvent('coordinator_notice_rebuilt', { uid: authContext.uid });
           }
         }
