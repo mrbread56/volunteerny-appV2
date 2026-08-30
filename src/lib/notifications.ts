@@ -22,7 +22,7 @@
  * The only stored thing is a "last opened" timestamp, per account, in
  * localStorage — losing it just means the bell looks unread once.
  */
-import { collection, doc, getDoc, getDocs, query, where, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, getDocs, query, where, limit, orderBy } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 export type NotificationKind =
@@ -93,6 +93,21 @@ export function getSeenAt(uid: string): Date {
  * makes it correct under any skew.
  */
 export function markAllSeen(uid: string, items: AppNotification[] = []): void {
+  /*
+   * Nothing to mark means nothing gets marked.
+   *
+   * The stamp below is Math.max(Date.now(), newest + 1000), so with an EMPTY
+   * list this wrote "now" — and countUnread only counts notifications newer
+   * than the stamp. So a student whose bell failed to load (a network blip,
+   * a permission error) and who then opened it out of curiosity permanently
+   * cleared every notification that existed but had not been fetched. Their
+   * acceptance from an hour ago never raised a badge again, and nothing
+   * anywhere recorded that it had happened.
+   *
+   * An empty list is also the honest reading: there is nothing here that the
+   * reader can be said to have seen.
+   */
+  if (!items.length) return;
   // Every arithmetic step here is guarded against a bad timestamp. One NaN
   // poisons Math.max, and `new Date(NaN).toISOString()` THROWS RangeError
   // rather than returning something useless — which took down the whole page,
@@ -125,7 +140,28 @@ async function studentNotifications(uid: string): Promise<AppNotification[]> {
   // mobile data that is most of the delay a student notices. They are entirely
   // independent: nothing in one query's result feeds another.
   const [apps, hours, recs] = await Promise.all([
-    getDocs(query(collection(db, 'applications'), where('studentId', '==', uid), limit(50))),
+    /*
+     * orderBy, because limit() WITHOUT one is not "the newest 50".
+     *
+     * Firestore falls back to __name__ ordering, so a bare limit returns an
+     * arbitrary but stable subset — and these ids are `{uid}_{oppId}`, so the
+     * subset is effectively alphabetical by opportunity id. Past 50
+     * applications a student's newest decision could sit outside the window and
+     * never raise a badge, while a year-old one held its place. The list is
+     * sorted by time afterwards, which hides this completely: the order looks
+     * right, the contents are wrong.
+     *
+     * Covered by the existing (studentId, appliedAt DESC) composite index.
+     */
+    getDocs(query(collection(db, 'applications'), where('studentId', '==', uid), orderBy('appliedAt', 'desc'), limit(50))),
+    /*
+     * ponytail: bare limit, so this is an arbitrary 50 rather than the newest
+     * 50 — same trap as the applications query above. Fixing it needs a
+     * (studentId, requestedAt) composite index that does not exist yet, and
+     * adding the orderBy before the index is deployed THROWS in production
+     * while passing locally. Add the index, deploy it, then add the orderBy.
+     * Harmless until a student files more than 50 hours requests.
+     */
     getDocs(query(collection(db, 'hoursRequests'), where('studentId', '==', uid), limit(50))),
     getDocs(query(collection(db, 'recommendations'), where('studentId', '==', uid), limit(30))),
   ]);
@@ -337,7 +373,8 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
   // applications loop even started.
   const [ratings, opps, shared] = await Promise.all([
     getDocs(query(collection(db, 'orgRatings'), where('orgId', '==', uid), limit(30))),
-    getDocs(query(collection(db, 'opportunities'), where('orgId', '==', uid), limit(30))),
+    // Same reasoning; covered by the existing (orgId, createdAt DESC) index.
+    getDocs(query(collection(db, 'opportunities'), where('orgId', '==', uid), orderBy('createdAt', 'desc'), limit(30))),
     sharedNotifications(uid, '/feedback'),
   ]);
   for (const d of ratings.docs) {

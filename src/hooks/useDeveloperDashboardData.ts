@@ -254,7 +254,9 @@ export function useDeveloperDashboardData(
         setStudents(studentList);
         setRealStudentCount(studentList.length);
 
-        const orgSnap = await getDocs(query(collection(db, 'organizations'), limit(200)));
+        // Ordered, same reasoning as the reports queue above: an unordered
+        // limit hides an arbitrary set forever rather than the oldest ones.
+        const orgSnap = await getDocs(query(collection(db, 'organizations'), orderBy('organizationName'), limit(200)));
         const orgList = orgSnap.docs.map(doc => ({ uid: doc.id, ...doc.data() }));
         setOrgs(orgList);
         setRealOrgCount(orgList.length);
@@ -343,6 +345,12 @@ export function useDeveloperDashboardData(
       const q = query(
         collection(db, 'organizations'),
         where('verificationStatus', 'in', ['pending', 'unverified']),
+        // Ordered, or the cap hides an arbitrary set of organisations forever
+        // rather than showing the queue in a stable, walkable order. This list
+        // is the likeliest of all the admin queues to exceed 200: 'unverified'
+        // is the default for every non-charity signup and nothing ages an
+        // entry out of it except an explicit decision.
+        orderBy('__name__'),
         limit(200),
       );
       const snap = await getDocs(q);

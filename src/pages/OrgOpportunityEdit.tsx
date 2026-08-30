@@ -537,26 +537,34 @@ export default function OrgOpportunityEdit() {
       // organization cannot even list savedOpportunities. So the server does
       // it, and emails the students whose placement has just disappeared.
       const { deleteFailures, uncontacted } = await deleteOpportunityWithDependents(id);
-      if (uncontacted > 0) {
-        // Said plainly, because these students had a live application and the
-        // organisation is now the only party who can reach them: the
-        // applications are deleted, so nothing on our side can identify them
-        // again.
-        setDeleteError(
-          `The opportunity was deleted. We emailed the first applicants, but ${uncontacted} more ` +
-          'could not be emailed in time. Please contact them directly so they know the placement is off.',
-        );
-        setIsDeleting(false);
-        return;
-      }
-      if (deleteFailures > 0) {
-        // Not a silent success. Some applications survived the delete and now
-        // point at an opportunity that is gone; the students behind them were
-        // not emailed either.
-        setDeleteError(
-          `The opportunity was deleted, but ${deleteFailures} related record(s) could not be removed ` +
-          'and the students behind them may not have been told. Please let us know through Feedback.',
-        );
+      /*
+       * ONE message covering both, because they correlate.
+       *
+       * These were two branches and the first returned, so whenever both were
+       * non-zero — the likely case, since both scale with applicant count — the
+       * orphaned-applications warning never rendered. That warning reports
+       * applications still pointing at a deleted opportunity, which is the
+       * invariant check:integrity exists to detect and is explicitly read-only
+       * about, so nothing else would ever surface it.
+       */
+      if (uncontacted > 0 || deleteFailures > 0) {
+        const parts: string[] = [];
+        if (uncontacted > 0) {
+          // These students had a live application and the organisation is now
+          // the only party who can reach them: the applications are deleted, so
+          // nothing on our side can identify them again.
+          parts.push(
+            `${uncontacted} applicant(s) could not be emailed, so please contact them directly ` +
+            'so they know the placement is off.',
+          );
+        }
+        if (deleteFailures > 0) {
+          parts.push(
+            `${deleteFailures} related record(s) could not be removed and still point at this ` +
+            'opportunity. Please let us know through Feedback.',
+          );
+        }
+        setDeleteError(`The opportunity was deleted. ${parts.join(' ')}`);
         setIsDeleting(false);
         return;
       }

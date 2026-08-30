@@ -26,6 +26,7 @@ import './env';
 import { initializeApp } from 'firebase/app';
 import { getAuth, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import adminNs from 'firebase-admin';
+import { grantMfaClaim } from './grantMfaClaim';
 import { spawn, ChildProcess } from 'node:child_process';
 
 const admin: any = (adminNs as any).default ?? adminNs;
@@ -309,7 +310,15 @@ const send = (token: string, body: unknown) =>
     else fail(`a student verifying an org returned ${asStudent.status}, expected 403`);
 
     const devCred = await signInWithEmailAndPassword(auth, devEmail, PASSWORD);
-    const devToken = await devCred.user.getIdToken();
+    /*
+     * The developer routes require a current second factor, and a fresh
+     * sign-in mints a new auth_time that no previously-stamped claim matches.
+     * Stamped here the way /api/auth/verify-otp stamps a real developer after
+     * they pass their code — otherwise every probe below reads 403 and the
+     * suite reports the route broken when it is working exactly as intended.
+     */
+    await grantMfaClaim(adminHandle(), devCred.user);
+    const devToken = await devCred.user.getIdToken(true);
 
     const approved = await verifyAs(devToken, pending.uid, 'verified');
     const approvedBody: any = await approved.json().catch(() => ({}));

@@ -1712,7 +1712,20 @@ app.use(express.json());
         return res.status(403).json({ error: 'Only a developer can list students.' });
       }
 
-      const snap = await adb.collection('students').limit(200).get();
+      /*
+     * ORDERED, because an unordered limit is an arbitrary window, not a page.
+     *
+     * Firestore falls back to __name__ ordering and student ids are random
+     * Firebase uids, so past 200 students this returned the same arbitrary 200
+     * on every refresh — and students outside it could not be seen, suspended
+     * or purged from the console at all. This repo already carries a 15-line
+     * note about that exact failure on the reports queue; the fix reached
+     * reports, feedbacks and interestRequests and never reached here.
+     *
+     * `truncated` is returned so the console can say the list is partial
+     * instead of presenting it as the whole platform.
+     */
+    const snap = await adb.collection('students').orderBy('__name__').limit(200).get();
       const students = snap.docs.map((d: any) => {
         const s = d.data() || {};
         // Allow-list, not a deny-list: a field added to the student document
@@ -2166,7 +2179,14 @@ app.use(express.json());
       return res.json({ success: true, ...result });
     } catch (err: any) {
       console.error('[account/delete] failed:', err);
-      return res.status(500).json({ error: 'Could not delete your account. Please try again.' });
+      // "did not finish", not "was not deleted". purgeAccount removes
+      // documents first, so a throw part-way leaves an account partly cleared —
+      // and it is re-entrant, so pressing Delete again is what completes it.
+      // The client's wording for this was unreachable because this message
+      // always won the `result?.error ||` race.
+      return res.status(500).json({
+        error: 'We could not finish deleting your account. Some of it may already be removed — please press Delete again to complete it.',
+      });
     }
   });
 
@@ -2226,7 +2246,18 @@ app.use(express.json());
       try {
         result = await purgeAccount(adb, adminObj, userId);
       } catch (authErr: any) {
-        console.error('[admin/delete-user] auth delete failed:', authErr);
+        /*
+         * This catch wraps ALL of purgeAccount, not just its auth step.
+         *
+         * The auth delete is the last thing it does, and everything before it
+         * can throw — the parallel opportunity sweep, the four deleteWhere
+         * calls, the users/{uid} delete. So a failure in the DOCUMENT phase
+         * landed here too, where the message asserted the documents were gone
+         * and only the sign-in survived. The previous wording made the opposite
+         * unconditional claim; swapping one absolute for the other is not a
+         * fix, so this now describes only what is actually known.
+         */
+        console.error('[admin/delete-user] purge failed:', authErr);
         /*
          * Say which half failed, because they fail in a fixed order.
          *
@@ -2242,8 +2273,9 @@ app.use(express.json());
          * deliberately re-entrant for.
          */
         return res.status(502).json({
-          error: 'The account data was removed, but the sign-in identity survived.',
-          details: 'Press Delete again to finish removing it. Until you do, that person can still sign in.',
+          error: 'The deletion did not finish, and it may have removed part of the account.',
+          details: 'Press Delete again — it is safe to repeat and picks up wherever it stopped. ' +
+                   'Until it completes, that person may still be able to sign in.',
         });
       }
 
@@ -2403,6 +2435,27 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      /*
+       * The second factor, at this tier too.
+       *
+       * firestore.rules requires mfaSatisfied() for the client equivalent of
+       * this, and students/{uid} was deliberately narrowed to owner-or-developer
+       * precisely to funnel organisations through these routes — which then did
+       * not ask for it. The Admin SDK bypasses rules, so the gate that exists in
+       * one tier was simply absent in the other.
+       *
+       * So an attacker holding an organisation's PASSWORD but not its mailbox
+       * could sign in with the Firebase SDK, never load /mfa, and call these
+       * with the raw ID token: a minor's name, school, grade, neighbourhood,
+       * availability and a live resume link, or credit and decline hours on a
+       * graduation record. This is the same two-tier disagreement this file
+       * already records closing twice before.
+       */
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('route_denied_pre_mfa', { uid: authContext.uid, route: 'applications/notify' });
+        return res.status(403).json({ error: 'Please complete your sign-in verification first.' });
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
@@ -2662,7 +2715,14 @@ app.use(express.json());
         .filter((a: any) => LIVE.includes(a.status))
         .map((a: any) => ({ name: a.studentName || 'Student', studentId: String(a.studentId || '') }));
       const recipients = allLive.slice(0, MAILABLE);
-      const uncontacted = Math.max(0, allLive.length - recipients.length);
+      // Starts at the over-cap remainder and GROWS with every send that fails.
+      // Counting only the remainder told the organisation everyone under the
+      // cap had been emailed, while a Resend rate limit — likely, since these
+      // go out back to back against a ~2/second ceiling — silently dropped
+      // some of them. An accepted applicant losing their placement with no
+      // email is exactly what this number exists to prevent.
+      let uncontacted = Math.max(0, allLive.length - recipients.length);
+      if (!resend) uncontacted = allLive.length;
 
       /*
        * allSettled, and the opportunity is deleted whether or not every
@@ -2697,7 +2757,7 @@ app.use(express.json());
           try {
             const uSnap = await adb.collection('users').doc(r.studentId).get();
             const to = uSnap.exists ? uSnap.data()?.email : null;
-            if (!to) continue;
+            if (!to) { uncontacted++; continue; }
             const html = renderTemplate('application_status', {
               studentName: r.name,
               oppTitle,
@@ -2705,19 +2765,21 @@ app.use(express.json());
               status: 'rejected',
               note: 'This opportunity has been withdrawn by the organization, so your application has been closed. Nothing went wrong with your application — please browse other opportunities.',
             });
-            if (!html) continue;
+            if (!html) { uncontacted++; continue; }
             const { error: sendErr } = await resend.emails.send({
               from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
               to: [to],
               subject: `"${oppTitle}" has been withdrawn`,
               html,
             });
+            if (sendErr) uncontacted++;
             recordEmailLog({
               to, subject: `"${oppTitle}" has been withdrawn`,
               templateName: 'application_status', status: sendErr ? 'failed' : 'sent',
               error: sendErr?.message, sentBy: authContext.email || authContext.uid,
             });
           } catch (mailErr: any) {
+            uncontacted++;
             console.error('[opportunities/delete] withdrawal email failed:', mailErr?.message || mailErr);
           }
         }
@@ -2840,6 +2902,27 @@ app.use(express.json());
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      /*
+       * The second factor, at this tier too.
+       *
+       * firestore.rules requires mfaSatisfied() for the client equivalent of
+       * this, and students/{uid} was deliberately narrowed to owner-or-developer
+       * precisely to funnel organisations through these routes — which then did
+       * not ask for it. The Admin SDK bypasses rules, so the gate that exists in
+       * one tier was simply absent in the other.
+       *
+       * So an attacker holding an organisation's PASSWORD but not its mailbox
+       * could sign in with the Firebase SDK, never load /mfa, and call these
+       * with the raw ID token: a minor's name, school, grade, neighbourhood,
+       * availability and a live resume link, or credit and decline hours on a
+       * graduation record. This is the same two-tier disagreement this file
+       * already records closing twice before.
+       */
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('route_denied_pre_mfa', { uid: authContext.uid, route: 'recommendations/create' });
+        return res.status(403).json({ error: 'Please complete your sign-in verification first.' });
+      }
+
       // Suspension has to hold here too: this tier bypasses firestore.rules.
       // Demo sessions have no users/ document by design and are handled by each
       // handler's own demo branch, so they pass through rather than being told
@@ -2921,6 +3004,18 @@ app.use(express.json());
         return res.status(401).json({ error: 'Unauthorized' });
       }
 
+      /*
+       * NO MFA gate here, deliberately, unlike its four siblings.
+       *
+       * This one is called by a STUDENT (StudentDashboard rates an organisation
+       * they volunteered with), and hasPassedMfa does not carry the student
+       * exemption that mfaSatisfied() has in firestore.rules — two-factor is
+       * optional for students, so one who has it switched off holds no claim at
+       * all and would be refused outright. It also exposes no minor's data and
+       * touches no graduation record: the ownership check below is the right
+       * gate for it.
+       */
+
       // Suspension has to hold here too: this tier bypasses firestore.rules.
       // Demo sessions have no users/ document by design and are handled by each
       // handler's own demo branch, so they pass through rather than being told
@@ -2996,6 +3091,27 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      /*
+       * The second factor, at this tier too.
+       *
+       * firestore.rules requires mfaSatisfied() for the client equivalent of
+       * this, and students/{uid} was deliberately narrowed to owner-or-developer
+       * precisely to funnel organisations through these routes — which then did
+       * not ask for it. The Admin SDK bypasses rules, so the gate that exists in
+       * one tier was simply absent in the other.
+       *
+       * So an attacker holding an organisation's PASSWORD but not its mailbox
+       * could sign in with the Firebase SDK, never load /mfa, and call these
+       * with the raw ID token: a minor's name, school, grade, neighbourhood,
+       * availability and a live resume link, or credit and decline hours on a
+       * graduation record. This is the same two-tier disagreement this file
+       * already records closing twice before.
+       */
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('route_denied_pre_mfa', { uid: authContext.uid, route: 'hours/approve' });
+        return res.status(403).json({ error: 'Please complete your sign-in verification first.' });
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
@@ -3536,6 +3652,27 @@ app.use(express.json());
       const authContext = await verifyAuth(req);
       if (!authContext || !authContext.uid || authContext.error) {
         return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      /*
+       * The second factor, at this tier too.
+       *
+       * firestore.rules requires mfaSatisfied() for the client equivalent of
+       * this, and students/{uid} was deliberately narrowed to owner-or-developer
+       * precisely to funnel organisations through these routes — which then did
+       * not ask for it. The Admin SDK bypasses rules, so the gate that exists in
+       * one tier was simply absent in the other.
+       *
+       * So an attacker holding an organisation's PASSWORD but not its mailbox
+       * could sign in with the Firebase SDK, never load /mfa, and call these
+       * with the raw ID token: a minor's name, school, grade, neighbourhood,
+       * availability and a live resume link, or credit and decline hours on a
+       * graduation record. This is the same two-tier disagreement this file
+       * already records closing twice before.
+       */
+      if (!authContext.isDemo && !hasPassedMfa(authContext)) {
+        logEvent('route_denied_pre_mfa', { uid: authContext.uid, route: 'students/review-profile' });
+        return res.status(403).json({ error: 'Please complete your sign-in verification first.' });
       }
 
       // Suspension has to hold here too: this tier bypasses firestore.rules.
@@ -4919,6 +5056,29 @@ app.use(express.json());
           return res.status(500).json({ error: 'Server configuration error.' });
         }
         const scope = await allowedEmailRecipients(adb, authContext.uid, authContext.email);
+        /*
+         * The second factor, but ONLY for the unrestricted scope.
+         *
+         * allowedEmailRecipients answers null — meaning no recipient check at
+         * all — for a developer, and the subject and notification body come
+         * from the request. So a developer PASSWORD alone, with no code and no
+         * mailbox access, could send arbitrary branded mail from the verified
+         * sending domain to any address, to a userbase of minors. Every other
+         * developer capability gates on hasPassedMfa; this one did not.
+         *
+         * Gating the whole route would have been wrong: ordinary callers reach
+         * it too, and their recipients are already constrained by a real
+         * relationship. Signup sends the welcome email through here before the
+         * account has ever seen a code, and a student sends an hours-
+         * verification request with two-factor switched off. Both would have
+         * been refused.
+         */
+        if (scope === null && !authContext.isDemo && !hasPassedMfa(authContext)) {
+          logEvent('admin_route_denied_pre_mfa', { uid: authContext.uid, route: 'email/send' });
+          return res.status(403).json({
+            error: 'Please complete your sign-in verification before sending email.',
+          });
+        }
         if (scope) {
           const { allowed, selfAsserted } = scope;
           const refused = recipients.filter(

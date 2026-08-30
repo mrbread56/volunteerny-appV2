@@ -854,7 +854,23 @@ async function bannedOrgChecks(adb: any) {
    * or 422 to a synthetic body, and what matters is that they are not refusing
    * the ACCOUNT.
    */
-  const healthyToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken(true);
+  /*
+   * A fresh sign-in mints a NEW auth_time, which correctly invalidates the
+   * claim granted against the previous one — so the claim has to be re-stamped
+   * against this session, exactly as /api/auth/verify-otp does after a real
+   * organisation passes its code.
+   *
+   * Without this the probes below answered 403 and the suite read it as the
+   * routes refusing a healthy account. They were refusing a session that had
+   * never passed a second factor, which is the correct answer to give it.
+   */
+  const healthyCred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  // secAdmin at this scope is the admin APP itself (line 834), not the
+  // firestore handle that carries __app — passing .__app here silently skipped
+  // the grant and the probes read a two-second-stale claim as a route refusing
+  // a healthy account.
+  await grantMfaClaim(secAdmin, healthyCred.user);
+  const healthyToken = await healthyCred.user.getIdToken(true);
   const probeRoutes: [string, string, any][] = [
     ['POST', '/api/hours/approve', { studentId: student.uid, hours: 4, activity: 'x', date: '2026-08-01', clientRef: `ok_${STAMP}` }],
     ['POST', '/api/applications/notify', { applicationId: beforeId, status: 'accepted' }],
@@ -893,7 +909,11 @@ async function bannedOrgChecks(adb: any) {
    * resume and email, credit hours onto a graduation record, delete a posting
    * and mass-mail a hundred students from the verified domain.
    */
-  const bannedToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken(true);
+  // Same re-stamp: this probe must be refused for being SUSPENDED, not for
+  // lacking a second factor, or the assertion proves nothing.
+  const bannedCred = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+  await grantMfaClaim(secAdmin, bannedCred.user);
+  const bannedToken = await bannedCred.user.getIdToken(true);
   const serverRoutes: [string, string, any][] = [
     ['POST', '/api/hours/approve', { studentId: student.uid, hours: 4, activity: 'x', date: '2026-08-01', clientRef: `ban_${STAMP}` }],
     ['POST', '/api/applications/notify', { applicationId: beforeId, status: 'accepted' }],
@@ -946,7 +966,26 @@ async function cleanup() {
     await signOut(auth);
     const studentToken = await (await signInWithEmailAndPassword(auth, studentA.email, PASSWORD)).user.getIdToken();
     await signOut(auth);
-    const orgToken = await (await signInWithEmailAndPassword(auth, org.email, PASSWORD)).user.getIdToken();
+    /*
+     * A claimed token, because these probes assert VALIDATION answers.
+     *
+     * Every route holding a minor's data or a graduation record now requires a
+     * current second factor, so a bare password token is refused with 403 — a
+     * correct answer that makes "does this route reject 99999 hours with a
+     * 400?" untestable. Stamped the way verify-otp stamps a real organisation
+     * after it passes its code.
+     */
+    const orgCredForApi = await signInWithEmailAndPassword(auth, org.email, PASSWORD);
+    {
+      const a2: any = (admin as any).default || admin;
+      const key2 = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+      if (key2) {
+        const app3 = a2.apps?.find((x: any) => x?.name === 'sec-api-mfa-' + STAMP)
+          || a2.initializeApp({ credential: a2.credential.cert(JSON.parse(key2)) }, 'sec-api-mfa-' + STAMP);
+        await grantMfaClaim(app3, orgCredForApi.user);
+      }
+    }
+    const orgToken = await orgCredForApi.user.getIdToken(true);
 
     console.log('STAGE: booting server');
     await bootServer();

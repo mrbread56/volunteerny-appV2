@@ -1472,7 +1472,30 @@ export default function DeveloperDashboard() {
                     {verifyingId === org.uid ? '...' : 'Approve'}
                   </button>
                   <button
-                    onClick={() => handleVerifyOrg(org.uid, 'rejected')}
+                    onClick={() => {
+                    /*
+                     * Confirmed, because this one does not come back.
+                     *
+                     * Suspend is reversible and pops a named confirm; Purge has
+                     * a two-step inline confirm; Reject had neither, sat flush
+                     * against Approve at the same size, and is the most final
+                     * of the three. It closes every posting they own, emails
+                     * them, and drops them out of this queue — which only lists
+                     * 'pending' and 'unverified' — with no control anywhere in
+                     * the console that can set a status back. An organisation
+                     * WITH a CRA number can crawl back by re-saving its
+                     * profile; a non-charity, which is most of the ones this
+                     * queue was widened for, cannot.
+                     */
+                    const ok = window.confirm(
+                      `Reject ${org.organizationName || 'this organization'}?
+
+` +
+                      'This closes every opportunity they have posted and emails them. ' +
+                      'They will drop out of this queue and cannot be re-reviewed from here.',
+                    );
+                    if (ok) handleVerifyOrg(org.uid, 'rejected');
+                  }}
                     disabled={verifyingId === org.uid}
                     className="flex-1 h-10 bg-red-600 text-white text-xs font-semibold uppercase hover:bg-red-700 disabled:opacity-50 transition-colors"
                   >

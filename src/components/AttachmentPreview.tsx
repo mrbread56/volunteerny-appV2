@@ -92,6 +92,28 @@ export default function AttachmentPreview({
   const resolved = isStoragePath ? (blobUrl as string) : raw;
   const fileName = name || 'attachment';
 
+  /*
+   * Only schemes that can carry a file, checked before anything is rendered.
+   *
+   * `resolved` reaches an <a href>, an <img src>, an <iframe src> AND a raw
+   * DOM anchor in triggerDownload below. attachmentUrl is written by the
+   * reporter — firestore.rules caps it at 1000 characters and checks nothing
+   * else — and the raw-DOM assignment is outside React, so React's URL
+   * sanitizer never runs and a programmatic click on a `javascript:` href
+   * executes even with `download` set.
+   *
+   * This component renders in the Control Room's safety-report evidence
+   * viewer, so the session at risk is a moderator's: the one account that can
+   * read every report, every student and every organisation.
+   */
+  if (!/^(https?:|data:|blob:)/i.test(resolved)) {
+    return (
+      <p className="mt-2 text-xs text-amber-700 font-semibold">
+        This attachment could not be shown because its link is not a file we can open.
+      </p>
+    );
+  }
+
   // blob: is same-origin, so `download` works and no new tab is wanted.
   const isUrl = resolved.startsWith('http://') || resolved.startsWith('https://');
   const ext = (fileName.split('.').pop() || '').toLowerCase();
@@ -157,13 +179,26 @@ export default function AttachmentPreview({
               free text — so the bytes need not be a PDF at all. allow-same-origin
               without allow-scripts keeps the browser's PDF viewer working while
               denying script execution and top-level navigation. */}
-          <iframe
-            src={resolved}
-            title={fileName}
-            sandbox="allow-same-origin"
-            referrerPolicy="no-referrer"
-            className="w-full h-64 rounded-lg border border-line bg-paper-2"
-          />
+          {/* Framed only if it is OUR file.
+              The branch is chosen by attachmentName merely ending in ".pdf",
+              and that name is reporter-written free text, so any https URL
+              could be framed as a report's evidence. The sandbox denies
+              scripts, but it still put an attacker's page where a moderator
+              expects the evidence — and the load itself told them the moment
+              their report was opened. A blob: URL is our own fetched bytes. */}
+          {(resolved.startsWith('blob:') || resolved.startsWith('data:')) ? (
+            <iframe
+              src={resolved}
+              title={fileName}
+              sandbox="allow-same-origin"
+              referrerPolicy="no-referrer"
+              className="w-full h-64 rounded-lg border border-line bg-paper-2"
+            />
+          ) : (
+            <p className="text-xs text-ink-muted font-medium p-3 bg-paper-2 rounded-lg border border-line">
+              Preview is off for files stored outside this site. Use the download link below.
+            </p>
+          )}
           <a
             aria-label="Download attachment"
             href={resolved}

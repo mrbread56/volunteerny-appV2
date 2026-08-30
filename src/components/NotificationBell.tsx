@@ -150,8 +150,14 @@ export default function NotificationBell() {
     setOpen(next);
     openRef.current = next;
     if (next) {
-      markAllSeen(uid, items);
-      setUnread(0);
+      // Not while the last load is known to have failed. `items` then holds
+      // whatever survived from before — usually nothing — and treating that as
+      // "everything the reader has seen" is how an unfetched notification gets
+      // marked read. The refetch below sets the badge honestly either way.
+      if (!error) {
+        markAllSeen(uid, items);
+        setUnread(0);
+      }
       void load();
     }
   };
