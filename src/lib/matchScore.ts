@@ -2,6 +2,7 @@ import type { Opportunity, StudentProfile } from '../types';
 import { coordsForNeighborhood, type LatLng } from './neighborhoods';
 import { distanceToOpportunity, formatDistance } from './distance';
 import { slotsForOpportunity, availabilityOverlaps, describeOverlap } from './availability';
+import { normalizeAvailability } from './vocabularies';
 import { checkEligibility, describeEligibility, type Eligibility } from './eligibility';
 
 /**
@@ -73,7 +74,21 @@ export function getMatchResult(
 ): MatchResult {
   const interests = profile?.interests || [];
   const skills = profile?.skills || [];
-  const origin = from || coordsForNeighborhood(profile?.neighborhood);
+  /*
+   * No neighbourhood means no origin, not the North York civic centre.
+   *
+   * coordsForNeighborhood falls back to that centre, which is right for the
+   * map on the browse page (it has to point somewhere) and wrong for scoring:
+   * the distance term is the heaviest weight, so a student who never answered
+   * the question had it applied in full against a place they never named — a
+   * 35-point swing between two postings, decided by a value they did not
+   * supply. distancePoints(null) gives the honest neutral instead.
+   *
+   * An UNRECOGNISED neighbourhood still falls back, as documented there: that
+   * makes ranking slightly worse, which is the intended trade. An ABSENT one
+   * is not a bad answer, it is no answer.
+   */
+  const origin = from || (profile?.neighborhood ? coordsForNeighborhood(profile.neighborhood) : null);
 
   const reasons: { text: string; points: number }[] = [];
   let score = 0;
@@ -84,19 +99,37 @@ export function getMatchResult(
   score += dPoints;
   if (opp.isVirtual) {
     reasons.push({ text: 'You can do this one from home', points: dPoints });
-  } else if (distanceKm !== null && distanceKm <= FAR_KM) {
-    const where = profile?.neighborhood ? ` from ${profile.neighborhood}` : '';
-    reasons.push({ text: `${formatDistance(distanceKm)}${where}`, points: dPoints });
+  } else if (distanceKm !== null && distanceKm <= FAR_KM && profile?.neighborhood) {
+    // Only when we know where they are.
+    //
+    // coordsForNeighborhood falls back to the North York civic centre for an
+    // absent value, so a student who never set a neighbourhood was scored
+    // against a place they never named — a 35-point swing between two postings
+    // — and the card asserted "0 m" as a flat statement of fact. Suppressing
+    // the origin NAME while still printing the distance made the invented
+    // number look more authoritative, not less.
+    reasons.push({ text: `${formatDistance(distanceKm)} from ${profile.neighborhood}`, points: dPoints });
   }
 
   // ── availability ────────────────────────────────────────────────────────
   const slots = slotsForOpportunity(opp);
   if (availabilityOverlaps(profile?.availability, slots)) {
     const stated = (profile?.availability || []).length > 0;
-    // 'Flexible' is a non-answer rather than a perfect match, and a student who
-    // has told us nothing has not matched anything — neither should score full.
+    /*
+     * The overlap is tested directly, not through describeOverlap's string.
+     *
+     * 'Flexible' is a non-answer rather than a perfect match, and the header of
+     * this file says so — but describeOverlap returns the non-empty sentence
+     * "You said your availability is flexible" for it, so the truthiness test
+     * took the FULL-marks branch every time. The 0.6 branch fired only for an
+     * unrecognised stored value, which produced the perverse ordering that a
+     * student with garbage availability (15) outranked one who honestly left it
+     * blank (12.5).
+     */
+    const mine = normalizeAvailability(profile?.availability);
+    const realOverlap = slots.length > 0 && slots.some((s) => mine.includes(s));
     const aPoints = stated
-      ? (describeOverlap(profile?.availability, slots) ? WEIGHTS.availability : WEIGHTS.availability * 0.6)
+      ? (realOverlap ? WEIGHTS.availability : WEIGHTS.availability * 0.6)
       : WEIGHTS.availability * 0.5;
     score += aPoints;
     const text = describeOverlap(profile?.availability, slots);

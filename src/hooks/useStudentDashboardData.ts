@@ -355,7 +355,11 @@ export function useStudentDashboardData(
         setRecommended(finalRecs);
       } catch (error: any) {
         console.error("Error fetching dashboard data:", error);
-        setErrorMessage(error.message || "Failed to load dashboard data");
+        // The five sibling catches in this file already do this. Raw, a missing
+        // composite index surfaces as "The query requires an index. You can
+        // create it here: https://console.firebase.google.com/..." — a link to
+        // our own Firebase console, rendered to a minor.
+        setErrorMessage(reportError('load dashboard', error, "We couldn't load your dashboard. Please refresh."));
       } finally {
         // A superseded run must not take the skeleton down for the live one.
         if (stillCurrent()) setIsLoading(false);

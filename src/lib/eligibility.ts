@@ -43,7 +43,34 @@ export function checkAge(
   if (typeof minAge !== 'number' || !Number.isFinite(minAge)) return 'eligible';
   const floor = minAgeForGrade(grade);
   if (floor === null) return 'unknown';
-  return floor >= minAge ? 'eligible' : 'likely-ineligible';
+  if (floor >= minAge) return 'eligible';
+  /*
+   * A band, not a cliff.
+   *
+   * The header above promises the answer "errs toward 'we are not sure' rather
+   * than toward wrongly excluding someone", and the code had no such path:
+   * anything above the grade's floor was flatly likely-ineligible, so a 16+
+   * posting excluded Grade 9, 10 AND 11 — and Ontario Grade 11 students are
+   * 15 to 17, most commonly 16. 'unknown' was reachable only when the grade was
+   * missing entirely.
+   *
+   * ONE year, not two. The floors here are the youngest a grade is likely to
+   * be, so the typical age is floor+1: Grade 11 is usually 16, Grade 12 usually
+   * 17. Anything up to that typical age is a genuine maybe; beyond it is a real
+   * mismatch.
+   *
+   * Two years would have swallowed the case that matters most in Toronto —
+   * Daily Bread, the Humane Society and Second Harvest are 18+ or 19+, and a
+   * Grade 12 student is typically 17, so an 18+ posting must still read as
+   * likely-ineligible rather than "not sure". One year keeps that while fixing
+   * the 16+ posting that wrongly excluded every Grade 11 student.
+   *
+   * This matters because hideIneligible turns the verdict into a filter: a
+   * badge on a posting is a hint, a hidden posting is a decision made for the
+   * student on a guess.
+   */
+  const ceiling = floor + 1;
+  return minAge <= ceiling ? 'unknown' : 'likely-ineligible';
 }
 
 /**
@@ -87,8 +114,35 @@ export function describeEligibility(
 ): string {
   const verdict = checkEligibility(opp, grade);
   if (verdict === 'eligible') return '';
-  const gradeRule = (opp.exclusives || []).find((e) => /^Grade \d+ Only$/.test(e));
-  if (gradeRule) return `This one is ${gradeRule.replace(' Only', '')} only`;
-  if (typeof opp.minAge === 'number') return `This one asks for volunteers aged ${opp.minAge}+`;
-  return '';
+
+  /*
+   * The reason has to come from the check that FAILED.
+   *
+   * This picked its message by which rule EXISTS, not by which one the student
+   * fell foul of — so a Grade 12 student looking at
+   * { minAge: 18, exclusives: ['Grade 12 Only'] } was told "This one is Grade
+   * 12 only", a statement that is self-evidently false about them, while the
+   * real 18+ blocker went unmentioned. It reads as a platform bug and buries
+   * the actual reason.
+   */
+  const ageVerdict = checkAge(opp.minAge, grade);
+  const gradeVerdict = checkGradeExclusives(opp.exclusives, grade);
+
+  // All of them, not the first. `find` reported only "Grade 11 only" on a
+  // posting open to both Grade 11 and 12.
+  const gradeRules = (opp.exclusives || []).filter((e) => /^Grade \d+ Only$/.test(e));
+  const gradeText = gradeRules.length
+    ? `This one is ${gradeRules.map((r) => r.replace(' Only', '')).join(' and ')} only`
+    : '';
+  const ageText = typeof opp.minAge === 'number'
+    ? `This one asks for volunteers aged ${opp.minAge}+`
+    : '';
+
+  if (gradeVerdict === 'likely-ineligible' && gradeText) return gradeText;
+  if (ageVerdict === 'likely-ineligible' && ageText) return ageText;
+  // Neither is a definite mismatch, so the verdict is 'unknown' — say the thing
+  // that is actually uncertain rather than picking whichever rule exists.
+  if (ageVerdict === 'unknown' && ageText) return ageText;
+  if (gradeVerdict === 'unknown' && gradeText) return gradeText;
+  return gradeText || ageText;
 }

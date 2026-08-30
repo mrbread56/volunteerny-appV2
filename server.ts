@@ -955,10 +955,13 @@ app.use(express.json());
     const placements = new Set<string>();
     for (const d of students.docs) {
       const logged: any[] = d.data()?.loggedHours || [];
-      const total = logged.reduce((sum, l) => {
-        const n = Number(l?.hours);
-        return sum + (Number.isFinite(n) ? n : 0);
-      }, 0);
+      // totalLoggedHours, not a fourth inline reduce. hours.ts opens "the single
+      // definition of how many hours a student has earned" and these two copies
+      // omitted its 2-dp rounding, so five credits typeable at the org form's
+      // own step="0.1" summed to 39.99999999999999 here while the student's
+      // record, their 40-hour email and their elite badge all said 40. Same
+      // student, same data, two answers.
+      const total = totalLoggedHours(logged);
       if (total > 0) studentsWithAnyHours++;
       if (total >= 40) studentsAt40++;
       hoursConfirmed += total;
@@ -1001,10 +1004,13 @@ app.use(express.json());
     for (const d of students.docs) {
       if (fixtureUids.has(d.id)) continue;
       const logged: any[] = d.data()?.loggedHours || [];
-      const total = logged.reduce((sum, l) => {
-        const n = Number(l?.hours);
-        return sum + (Number.isFinite(n) ? n : 0);
-      }, 0);
+      // totalLoggedHours, not a fourth inline reduce. hours.ts opens "the single
+      // definition of how many hours a student has earned" and these two copies
+      // omitted its 2-dp rounding, so five credits typeable at the org form's
+      // own step="0.1" summed to 39.99999999999999 here while the student's
+      // record, their 40-hour email and their elite badge all said 40. Same
+      // student, same data, two answers.
+      const total = totalLoggedHours(logged);
       if (total > 0) publicStudentsWithHours++;
       publicHours += total;
       for (const l of logged) {
@@ -1829,11 +1835,22 @@ app.use(express.json());
       for (;;) {
         const opps = await adb.collection('opportunities').where('orgId', '==', userId).limit(300).get();
         if (opps.empty) break;
-        for (const opp of opps.docs) {
+        /*
+         * The page in parallel, not one posting at a time.
+         *
+         * Three sequential round trips per posting inside a serial loop is
+         * roughly 300 awaits for an organisation with 100 postings — well past
+         * Vercel's default 10-15s function limit, so the invocation was killed
+         * part-way through a delete the account holder had asked for. The
+         * ordering is already safe (documents before the sign-in identity, so a
+         * kill leaves a retryable account rather than an unreachable one), but
+         * finishing inside the budget is better than relying on the retry.
+         */
+        await Promise.all(opps.docs.map(async (opp: any) => {
           await deleteWhere('applications', 'opportunityId', opp.id);
           await deleteWhere('savedOpportunities', 'opportunityId', opp.id);
           await opp.ref.delete();
-        }
+        }));
         if (opps.size < 300) break;
       }
       // Applications whose opportunity was already gone before this ran. They
@@ -2210,9 +2227,23 @@ app.use(express.json());
         result = await purgeAccount(adb, adminObj, userId);
       } catch (authErr: any) {
         console.error('[admin/delete-user] auth delete failed:', authErr);
+        /*
+         * Say which half failed, because they fail in a fixed order.
+         *
+         * purgeAccount deliberately deletes DOCUMENTS FIRST and the sign-in
+         * identity LAST, so by the time control reaches here the Firestore
+         * documents, the Storage objects and the leaderboard entry are already
+         * gone — including users/{uid}, which is where isBanned lived, so a
+         * suspension has just been erased and the surviving session can build a
+         * fresh profile on the same identity. Telling the moderator "nothing
+         * was removed" and "the profile documents were left intact" was the
+         * exact opposite of the state, and it stopped them doing the one thing
+         * that fixes it: pressing Delete again, which purgeAccount is
+         * deliberately re-entrant for.
+         */
         return res.status(502).json({
-          error: 'Could not delete the sign-in account, so nothing was removed.',
-          details: 'The profile documents were left intact. Please try again.',
+          error: 'The account data was removed, but the sign-in identity survived.',
+          details: 'Press Delete again to finish removing it. Until you do, that person can still sign in.',
         });
       }
 
@@ -2608,11 +2639,30 @@ app.use(express.json());
       // emailing those sixty a second time. Deleting first means the state is
       // correct even if the mail never goes out, which is the safe direction.
       const LIVE = ['pending', 'reviewed', 'accepted', 'waitlist'];
-      const recipients: { name: string; studentId: string }[] = appDocs
+      /*
+       * Capped at what the function can actually finish.
+       *
+       * The loop below awaits one Firestore read AND one Resend send per
+       * student, serially, and Resend allows about two requests a second — so
+       * 100 recipients is roughly a minute against Vercel's 10-15s default
+       * function limit. The invocation was killed mid-loop, and because the
+       * deletes run FIRST (deliberately, so the database is correct either
+       * way) the applications were already gone: the recipient list lived only
+       * in memory, so the students past the cut-off could never be identified
+       * again, let alone emailed. Their accepted placement vanished with no
+       * message and no way to reconstruct who to tell.
+       *
+       * Twelve fits comfortably. The remainder is RETURNED rather than
+       * silently dropped, so the coordinator is told to contact them from the
+       * applicant list they still have.
+       */
+      const MAILABLE = 12;
+      const allLive: { name: string; studentId: string }[] = appDocs
         .map((d: any) => d.data() || {})
         .filter((a: any) => LIVE.includes(a.status))
-        .slice(0, 100)
         .map((a: any) => ({ name: a.studentName || 'Student', studentId: String(a.studentId || '') }));
+      const recipients = allLive.slice(0, MAILABLE);
+      const uncontacted = Math.max(0, allLive.length - recipients.length);
 
       /*
        * allSettled, and the opportunity is deleted whether or not every
@@ -2673,7 +2723,13 @@ app.use(express.json());
         }
       }
 
-      return res.json({ success: true, applicationsRemoved: appDocs.length, deleteFailures: failedDeletes });
+      return res.json({
+        success: true,
+        applicationsRemoved: appDocs.length,
+        deleteFailures: failedDeletes,
+        // So the org can act on it rather than assume everyone was told.
+        uncontacted,
+      });
     } catch (err: any) {
       console.error('[opportunities/delete] failed:', err);
       return res.status(500).json({ error: 'Could not delete the opportunity. Please try again.' });
@@ -4143,26 +4199,44 @@ app.use(express.json());
    * that a link pasted into a chat or leaked from a browser history is dead
    * before anyone can use it.
    */
+  /** Told apart from '' by the client, which says so instead of "none stored". */
+  const SIGN_UNAVAILABLE = 'storage:unavailable';
+
   async function signStoragePath(value: unknown, minutes = 5): Promise<string> {
     const raw = String(value || '');
     if (!raw.startsWith('storage:')) return raw;
     const path = raw.slice('storage:'.length);
     // A path is built from a uid and a filename; anything trying to climb out
     // of the bucket is refused rather than signed.
-    if (!path || path.includes('..')) return '';
+    if (!path || path.includes('..')) return SIGN_UNAVAILABLE;
     try {
       const adminObj = getAdminObj();
-      if (!adminObj) return '';
-      const [url] = await adminObj.storage().bucket().file(path).getSignedUrl({
+      if (!adminObj) return SIGN_UNAVAILABLE;
+      // The bucket is NAMED, like the only other .storage() call in this file.
+      // bucket() with no argument reads app.options.storageBucket, and this
+      // admin app is initialised with projectId and a credential and nothing
+      // else — so it threw storage/invalid-argument, the catch below swallowed
+      // it, and EVERY resume came back as '' and rendered to the coordinator as
+      // "No resume payload stored." check:storage did not catch it because it
+      // signs through its own app with the bucket named explicitly.
+      const bucketName = process.env.VITE_FIREBASE_STORAGE_BUCKET;
+      if (!bucketName) {
+        console.error('[signStoragePath] VITE_FIREBASE_STORAGE_BUCKET is not set — cannot sign', path);
+        return SIGN_UNAVAILABLE;
+      }
+      const [url] = await adminObj.storage().bucket(bucketName).file(path).getSignedUrl({
         action: 'read',
         expires: Date.now() + minutes * 60_000,
       });
       return url;
     } catch (err: any) {
-      // A missing object or an unsigned service account must not take the whole
-      // profile response down; the caller renders "no resume" instead.
+      // A sentinel, not ''. Returning an empty string made a signing FAILURE
+      // indistinguishable from "this student uploaded nothing", and the review
+      // dialog states the latter positively — so a coordinator could decline an
+      // applicant for not submitting a resume they had in fact submitted, with
+      // the only trace in a serverless log.
       console.error('[signStoragePath] could not sign', path, err?.message || err);
-      return '';
+      return SIGN_UNAVAILABLE;
     }
   }
 
@@ -4460,7 +4534,13 @@ app.use(express.json());
         // auth_time, the values stop matching, and the gate closes.
         if (typeof authContext.authTime !== 'number') {
           return res.status(500).json({
-            error: 'Your code was correct, but we could not complete verification on the server. Please try again, or contact support if this persists.',
+            // "Request a new code", not "try again". The code was consumed
+            // inside verifyOtpAtomic before this point, so re-entering it hits
+            // the tombstone and answers "No code was requested. Please request
+            // a new code." — two contradictory messages, neither pointing at
+            // the Resend button, on a second factor that is mandatory for
+            // organisations and rate limited to five per ten minutes.
+            error: 'Your code was correct, but we could not finish verifying you. Please request a new code and try once more.',
           });
         }
         let claimSet = false;
@@ -4486,7 +4566,13 @@ app.use(express.json());
         // failed verification, not a self-granted one.
         if (!claimSet) {
           return res.status(500).json({
-            error: 'Your code was correct, but we could not complete verification on the server. Please try again, or contact support if this persists.',
+            // "Request a new code", not "try again". The code was consumed
+            // inside verifyOtpAtomic before this point, so re-entering it hits
+            // the tombstone and answers "No code was requested. Please request
+            // a new code." — two contradictory messages, neither pointing at
+            // the Resend button, on a second factor that is mandatory for
+            // organisations and rate limited to five per ten minutes.
+            error: 'Your code was correct, but we could not finish verifying you. Please request a new code and try once more.',
           });
         }
       }

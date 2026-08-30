@@ -26,6 +26,7 @@
  */
 import './env';
 import adminNs from 'firebase-admin';
+import { totalLoggedHours } from '../src/lib/hours';
 
 const admin: any = (adminNs as any).default ?? adminNs;
 
@@ -73,10 +74,29 @@ const num = (v: any) => {
       for (const d of students.docs) {
         const data = d.data();
         const entries = Array.isArray(data.loggedHours) ? data.loggedHours : [];
-        const summed = entries.reduce((s: number, e: any) => s + num(e?.hours), 0);
+        /*
+         * The SAME function the writer uses, compared exactly.
+         *
+         * This was a fourth implementation of the sum and it omitted the 2-dp
+         * rounding server.ts applies, which two ways round is wrong:
+         *
+         *  - False positives. Math.round(x*100)/100 can legitimately move the
+         *    value by up to 0.005, five times this tolerance, and nothing
+         *    constrains a credit to two decimals — three entries of 1.005 store
+         *    3.01 and raw-sum to 3.0149999999999997, reported as DRIFT on a
+         *    record that is exactly right.
+         *  - A blind spot. Comparing against the RAW sum cannot see
+         *    rounding-policy drift, which is the exact incident server.ts
+         *    records: one writer storing 0.3 and another 0.30000000000000004
+         *    into the same field. Both pass a 0.001 tolerance, so this check
+         *    reported green throughout it.
+         *
+         * With both sides rounding identically there is nothing left to
+         * tolerate, so the comparison is exact.
+         */
+        const summed = totalLoggedHours(entries);
         const scalar = num(data.hours);
-        // Tolerance for floating point only, not for real disagreement.
-        if (Math.abs(summed - scalar) > 0.001) {
+        if (summed !== scalar) {
           drifted.push(`${d.id}: hours=${scalar} but loggedHours sums to ${summed}`);
         }
       }

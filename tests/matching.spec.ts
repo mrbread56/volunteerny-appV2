@@ -143,15 +143,30 @@ test.describe('eligibility', () => {
     // none of them sat on the boundary. A comparison is only really tested by
     // the pair either side of it.
     //
-    // Grade 11 has a floor of 15.
-    expect(checkAge(15, '11')).toBe('eligible');          // exactly meets it
-    expect(checkAge(16, '11')).toBe('likely-ineligible');  // one year short
-    // Grade 9 has a floor of 13.
+    /*
+     * There are now TWO boundaries, and both are pinned.
+     *
+     * The floors are the YOUNGEST a grade is likely to be, so the typical age
+     * is floor+1. A flat `floor >= minAge` therefore called every Grade 11
+     * student ineligible for a 16+ posting, when a Grade 11 student is
+     * typically exactly 16 — the file's own header promises the answer errs
+     * toward "not sure" rather than toward wrongly excluding someone, and it
+     * did the opposite. Up to the typical age is 'unknown'; past it is a real
+     * mismatch.
+     */
+    // Grade 11: floor 15, typical 16.
+    expect(checkAge(15, '11')).toBe('eligible');           // meets the floor
+    expect(checkAge(16, '11')).toBe('unknown');            // typical age — a real maybe
+    expect(checkAge(17, '11')).toBe('likely-ineligible');  // past it
+    // Grade 9: floor 13, typical 14.
     expect(checkAge(13, '9')).toBe('eligible');
-    expect(checkAge(14, '9')).toBe('likely-ineligible');
-    // Grade 12 has a floor of 16 — the common "18+ only" case must be caught.
+    expect(checkAge(14, '9')).toBe('unknown');
+    expect(checkAge(15, '9')).toBe('likely-ineligible');
+    // Grade 12: floor 16, typical 17. The 18+ case is the one that matters most
+    // in Toronto — Daily Bread, the Humane Society and Second Harvest are 18+
+    // or 19+ — and it must still be caught rather than softened to "not sure".
     expect(checkAge(16, '12')).toBe('eligible');
-    expect(checkAge(17, '12')).toBe('likely-ineligible');
+    expect(checkAge(17, '12')).toBe('unknown');
     expect(checkAge(18, '12')).toBe('likely-ineligible');
   });
 
@@ -170,6 +185,21 @@ test.describe('eligibility', () => {
     const { checkEligibility } = await import('../src/lib/eligibility');
     expect(checkEligibility({ minAge: 18, exclusives: ['Grade 12 Only'] }, '12'))
       .toBe('likely-ineligible');
+  });
+
+  test('the reason names the rule the student actually failed', async () => {
+    const { describeEligibility } = await import('../src/lib/eligibility');
+    /*
+     * This picked its message by which rule EXISTED rather than which one
+     * failed, so a Grade 12 student looking at a Grade-12-only posting with an
+     * 18+ floor was told "This one is Grade 12 only" — self-evidently false
+     * about them — while the real blocker went unmentioned.
+     */
+    expect(describeEligibility({ minAge: 18, exclusives: ['Grade 12 Only'] }, '12'))
+      .toMatch(/18\+/);
+    // And `find` reported only the first of several grade rules.
+    expect(describeEligibility({ exclusives: ['Grade 11 Only', 'Grade 12 Only'] }, '9'))
+      .toMatch(/Grade 11 and Grade 12/);
   });
 });
 
@@ -250,5 +280,91 @@ test.describe('ranking', () => {
     // hiding on a guess makes a posting permanently invisible to someone who
     // may actually qualify.
     expect(r.reasons[r.reasons.length - 1]).toMatch(/Grade 9 only/i);
+  });
+});
+
+test.describe('regressions the ranking tests did not previously reach', () => {
+  const posting = (over: any = {}) => ({
+    id: 'o1', title: 'Beach cleanup', description: 'd', location: 'l',
+    category: 'Environment', skillsNeeded: [], exclusives: [],
+    coordinates: { lat: 43.7615, lng: -79.4111 }, isVirtual: false,
+    createdAt: new Date(), ...over,
+  }) as any;
+
+  test('a one-off Saturday posting is a weekend posting, not a weekday one', async () => {
+    const { slotsForOpportunity } = await import('../src/lib/availability');
+    /*
+     * The create form seeds a default shift row { startTime: '09:00',
+     * endTime: '12:00' } and writes it for EVERY schedule type, so a
+     * single-date posting arrives with one dayless shift alongside the real
+     * time in dateTime. slotFor treated an absent day as a weekday, the set was
+     * therefore non-empty, and the dateTime fallback never ran — so every
+     * one-off posting, the most common kind, advertised itself as Weekday
+     * Mornings whatever day it actually was.
+     *
+     * The old test used an EMPTY shifts array, the one shape the form never
+     * writes, which is why it passed throughout.
+     */
+    const saturdayAfternoon = posting({
+      scheduleType: 'single',
+      dateTime: new Date(2026, 8, 5, 14, 0), // Sat 5 Sep 2026, 2pm, local
+      shifts: [{ startTime: '09:00', endTime: '12:00', date: null, day: null }],
+    });
+    expect(slotsForOpportunity(saturdayAfternoon)).toEqual(['Weekend Afternoons']);
+  });
+
+  test('a student free on the day outranks one who is not', async () => {
+    const { getMatchResult } = await import('../src/lib/matchScore');
+    const saturdayAfternoon = posting({
+      scheduleType: 'single',
+      dateTime: new Date(2026, 8, 5, 14, 0),
+      shifts: [{ startTime: '09:00', endTime: '12:00', date: null, day: null }],
+    });
+    const canAttend = getMatchResult(saturdayAfternoon, {
+      availability: ['Weekend Afternoons'], neighborhood: 'Bayview Village', interests: [], skills: [],
+    } as any).score;
+    const cannotAttend = getMatchResult(saturdayAfternoon, {
+      availability: ['Weekday Mornings'], neighborhood: 'Bayview Village', interests: [], skills: [],
+    } as any).score;
+    expect(canAttend).toBeGreaterThan(cannotAttend);
+  });
+
+  test("'Flexible' scores partial marks, not full", async () => {
+    const { getMatchResult } = await import('../src/lib/matchScore');
+    // The file header says so and the code did the opposite: the branch tested
+    // describeOverlap's STRING, which is non-empty for Flexible ("You said your
+    // availability is flexible"), so Flexible took the full-marks branch and
+    // tied with an exact slot match on every posting.
+    const opp = posting({ scheduleType: 'recurring', shifts: [{ day: 'Sat', startTime: '09:00' }] });
+    const who = (availability: string[]) => getMatchResult(opp, {
+      availability, neighborhood: 'Bayview Village', interests: [], skills: [],
+    } as any).score;
+    expect(who(['Flexible'])).toBeLessThan(who(['Weekend Mornings']));
+    // ...and still better than saying nothing at all.
+    expect(who(['Flexible'])).toBeGreaterThan(who([]));
+  });
+
+  test("'School Breaks' is not a penalty for answering the question", async () => {
+    const { availabilityOverlaps } = await import('../src/lib/availability');
+    // It is offered in the UI and is not in slotsForOpportunity's codomain
+    // ([Weekday|Weekend] x [Mornings|Afternoons|Evenings]), so it overlapped
+    // nothing and left the student worse off than leaving the field blank —
+    // which is exempted. Two retired values are backfilled into it.
+    expect(availabilityOverlaps(['School Breaks'], ['Weekend Mornings'])).toBe(true);
+  });
+
+  test('a student with no neighbourhood is not measured from North York', async () => {
+    const { getMatchResult } = await import('../src/lib/matchScore');
+    // coordsForNeighborhood falls back to the North York civic centre, which is
+    // right for centring the map and wrong for scoring: the heaviest weight was
+    // applied against a place the student never named, and the card asserted
+    // "0 m" as a flat fact.
+    const nearby = posting({ coordinates: { lat: 43.7615, lng: -79.4111 } });
+    const faraway = posting({ coordinates: { lat: 43.6205, lng: -79.5132 } });
+    const p = { availability: ['Flexible'], interests: [], skills: [] } as any;
+    const a = getMatchResult(nearby, p);
+    const b = getMatchResult(faraway, p);
+    expect(a.score).toBe(b.score);
+    expect(a.reasons.join(' ')).not.toMatch(/m|km/);
   });
 });

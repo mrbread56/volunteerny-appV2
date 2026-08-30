@@ -32,7 +32,23 @@ export async function deleteOwnAccount(confirmEmail: string): Promise<void> {
 
   const result = await response.json().catch(() => null);
   if (!response.ok || !result?.success) {
-    throw new Error(result?.error || `Your account was not deleted (${response.status}).`);
+    /*
+     * "Not finished" rather than "not deleted", because a timeout is the
+     * likeliest failure here and it is not a no-op.
+     *
+     * purgeAccount removes documents first and the sign-in identity last, so a
+     * killed invocation leaves an account that is partly cleared and still
+     * signed-in-able — and it is deliberately re-entrant, so pressing Delete
+     * again finishes the job. "Your account was not deleted" told the one
+     * person who could finish it that there was nothing to finish.
+     */
+    const partial = response.status === 504 || response.status === 502 || response.status === 500;
+    throw new Error(
+      result?.error ||
+      (partial
+        ? 'We could not finish deleting your account. Some of it may already be removed — please press Delete again to complete it.'
+        : `Your account was not deleted (${response.status}).`),
+    );
   }
 }
 
@@ -46,7 +62,7 @@ export async function deleteOwnAccount(confirmEmail: string): Promise<void> {
  * to it stranded — unreachable by the organization and unresolvable for the
  * student. The endpoint also emails anyone whose live application it closes.
  */
-export async function deleteOpportunityWithDependents(opportunityId: string): Promise<{ deleteFailures: number }> {
+export async function deleteOpportunityWithDependents(opportunityId: string): Promise<{ deleteFailures: number; uncontacted: number }> {
   const user = auth.currentUser;
   if (!user) throw new Error('You are not signed in.');
 
@@ -65,5 +81,11 @@ export async function deleteOpportunityWithDependents(opportunityId: string): Pr
   // some applications survived the batch — pointing at an opportunity that no
   // longer exists. That is precisely the orphan state check:integrity was
   // written to DETECT, and that script is explicitly read-only.
-  return { deleteFailures: Number(result?.deleteFailures) || 0 };
+  // uncontacted for the same reason: the route can only email a bounded number
+  // of applicants inside one serverless invocation, and the organisation is the
+  // only party who can reach the rest.
+  return {
+    deleteFailures: Number(result?.deleteFailures) || 0,
+    uncontacted: Number(result?.uncontacted) || 0,
+  };
 }

@@ -155,6 +155,47 @@ function withTimeout<T>(label: string, p: Promise<T>, ms = 30_000): Promise<T> {
         if (bareRes.ok) fail('the object is readable with NO signature — the path itself is public');
         else pass(`the unsigned object URL is refused (${bareRes.status})`);
 
+        /*
+         * The bucket must be NAMED, and this asserts it the way the server
+         * actually initialises.
+         *
+         * The check above signs through an app built with the bucket named
+         * explicitly, so it passed while production was dead: server.ts builds
+         * its admin app with projectId and a credential and NO storageBucket,
+         * and bucket() with no argument reads app.options.storageBucket and
+         * throws. Every resume came back empty and rendered to coordinators as
+         * "No resume payload stored."
+         *
+         * So build an app the same way server.ts does and assert both halves.
+         */
+        const serverShaped = a.initializeApp(
+          { projectId: JSON.parse(key).project_id, credential: a.credential.cert(JSON.parse(key)) },
+          'sign-check-bare',
+        );
+        let threw = false;
+        try {
+          await serverShaped.storage().bucket().file(objectPath).getSignedUrl({
+            action: 'read', expires: Date.now() + 60_000,
+          });
+        } catch {
+          threw = true;
+        }
+        if (threw) {
+          pass('an unnamed bucket() throws, so the signer must name it explicitly');
+        } else {
+          fail('bucket() with no name worked here but not in production — this guard is now meaningless');
+        }
+
+        try {
+          const [u2] = await serverShaped.storage().bucket(process.env.VITE_FIREBASE_STORAGE_BUCKET!)
+            .file(objectPath).getSignedUrl({ action: 'read', expires: Date.now() + 60_000 });
+          if (/^https:\/\//.test(u2)) pass('a server-shaped app CAN sign once the bucket is named');
+          else fail('naming the bucket did not produce a usable link');
+        } catch (err: any) {
+          fail(`a server-shaped app could not sign even with the bucket named: ${err?.message || err}`);
+        }
+        await serverShaped.delete().catch(() => {});
+
         await bucket.file(objectPath).delete().catch(() => {});
         await signApp.delete().catch(() => {});
       }

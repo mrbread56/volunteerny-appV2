@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { decompressFile } from '../utils/compress';
 
 /**
@@ -20,20 +21,89 @@ export default function AttachmentPreview({
   value: string | null | undefined;
   name?: string | null;
 }) {
+  /*
+   * Three generations now, not two.
+   *
+   * uploadFileToStorage was changed to store `storage:<path>` instead of a
+   * permanent getDownloadURL token, because that token bypasses storage.rules
+   * and never expires. That change landed for ALL THREE of its call sites —
+   * resumes, safety-report evidence and feedback attachments — but only the
+   * resume path grew a resolver, on the server inside review-profile.
+   *
+   * So a moderator opening a safety report saw "Download File (shot.png)" over
+   * an href of `storage:reports/{uid}/shot.png`, which is not a URL scheme:
+   * no preview, no download, no error. That is the evidence attached to a
+   * report about an adult, and it is the one attachment nobody can afford to
+   * lose sight of.
+   *
+   * Resolved here through the Storage SDK rather than a token, so the read is
+   * governed by storage.rules — which already permits a developer to read
+   * reports/ and feedbacks/ — and the resulting blob URL dies with the tab.
+   */
+  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [resolveFailed, setResolveFailed] = useState(false);
+  const raw = value ? decompressFile(value) : '';
+  const isStoragePath = raw.startsWith('storage:') && raw !== 'storage:unavailable';
+
+  useEffect(() => {
+    if (!isStoragePath) return;
+    let cancelled = false;
+    let created = '';
+    (async () => {
+      try {
+        const [{ getStorage, ref, getBlob }, { app }] = await Promise.all([
+          import('firebase/storage'),
+          import('../firebase/config'),
+        ]);
+        const blob = await getBlob(ref(getStorage(app), raw.slice('storage:'.length)));
+        if (cancelled) return;
+        created = URL.createObjectURL(blob);
+        setBlobUrl(created);
+      } catch (err) {
+        console.error('[AttachmentPreview] could not load', raw, err);
+        if (!cancelled) setResolveFailed(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+      // Revoked, or every report a moderator opens leaks its evidence for the
+      // lifetime of the tab.
+      if (created) URL.revokeObjectURL(created);
+    };
+  }, [raw, isStoragePath]);
+
   if (!value) return null;
 
-  // decompressFile passes URLs through untouched and only inflates legacy
-  // lzs:: payloads, so one call normalises both generations.
-  const resolved = decompressFile(value);
+  // A signing failure is NOT "nothing was attached". The server returns this
+  // sentinel rather than an empty string precisely so the two can be told
+  // apart here.
+  if (raw === 'storage:unavailable' || resolveFailed) {
+    return (
+      <p className="mt-2 text-xs text-amber-700 font-semibold">
+        We could not load this attachment right now. It is still stored; try again shortly.
+      </p>
+    );
+  }
+
+  if (isStoragePath && !blobUrl) {
+    return <p className="mt-2 text-xs text-ink-muted font-medium">Loading attachment…</p>;
+  }
+
+  const resolved = isStoragePath ? (blobUrl as string) : raw;
   const fileName = name || 'attachment';
 
+  // blob: is same-origin, so `download` works and no new tab is wanted.
   const isUrl = resolved.startsWith('http://') || resolved.startsWith('https://');
   const ext = (fileName.split('.').pop() || '').toLowerCase();
+  // The extension test has to cover blob: too, or a Storage-backed screenshot
+  // falls through to the generic "Document attachment" branch and never
+  // previews.
+  const byName = isUrl || resolved.startsWith('blob:');
   const looksLikeImage =
     resolved.startsWith('data:image/') ||
-    (isUrl && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext));
+    (byName && ['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'].includes(ext));
   const looksLikePdf =
-    resolved.startsWith('data:application/pdf') || (isUrl && ext === 'pdf');
+    resolved.startsWith('data:application/pdf') || (byName && ext === 'pdf');
 
   const triggerDownload = () => {
     // For same-document data URIs the `download` attribute works; for

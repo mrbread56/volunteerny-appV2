@@ -373,7 +373,11 @@ export default function StudentDashboard() {
         }
       }).catch(err => console.error("Could not send hours verification email:", err));
     } catch (err: any) {
-      setLogError("Failed to submit verification request: " + err.message);
+      // reportError, like the two other catches in this file. Raw, this printed
+      // "Missing or insufficient permissions." to a Grade 10 student on the one
+      // screen that produces their graduation record, with nothing telling them
+      // to retry.
+      setLogError(reportError('submit hours request', err, "We couldn't send that request. Please try again."));
     } finally {
       setIsLogging(false);
     }
@@ -845,9 +849,30 @@ export default function StudentDashboard() {
              * Their own score is the only handle left, which is the price of
              * not publishing an identifier anyone can join on.
              */
-            const anonSelfAlreadyRanked =
-              (studentProfile?.trackerAnonymous ?? false) &&
-              entries.some((e) => !e.userId && Math.abs(Number(e.score) - totalCompletedHours) < 0.01);
+            /*
+             * Only when the score identifies exactly ONE row.
+             *
+             * `some` claimed any anonymous row with a matching total, and totals
+             * collide constantly — 10, 20 and 40 are the numbers this product
+             * drives everyone toward. Two anonymous students on 12.5 hours, one
+             * ranked third and one outside the top 100: the second loaded their
+             * dashboard, matched the first student's row, was dropped from the
+             * append, and read a stranger's rank as their own.
+             *
+             * When the score is ambiguous we cannot tell, so we do not guess:
+             * the student is appended as themselves. The ranked rows stay
+             * anonymous either way. Showing someone their own total at the
+             * bottom is a smaller wrong than showing them someone else's rank.
+             *
+             * The complete fix is an opaque per-student token published on the
+             * anonymous row and mirrored into students/{uid} — an identifier
+             * only its owner can match. That needs a server change and a
+             * backfill; this removes the false identification today.
+             */
+            const anonScoreMatches = (studentProfile?.trackerAnonymous ?? false)
+              ? entries.filter((e) => !e.userId && Math.abs(Number(e.score) - totalCompletedHours) < 0.01)
+              : [];
+            const anonSelfAlreadyRanked = anonScoreMatches.length === 1;
 
             if (!hasSelf && !anonSelfAlreadyRanked && (studentProfile?.trackerEnabled ?? false)) {
               mapped.push({

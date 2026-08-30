@@ -536,7 +536,19 @@ export default function OrgOpportunityEdit() {
       // developer) delete an application or a saved bookmark, and an
       // organization cannot even list savedOpportunities. So the server does
       // it, and emails the students whose placement has just disappeared.
-      const { deleteFailures } = await deleteOpportunityWithDependents(id);
+      const { deleteFailures, uncontacted } = await deleteOpportunityWithDependents(id);
+      if (uncontacted > 0) {
+        // Said plainly, because these students had a live application and the
+        // organisation is now the only party who can reach them: the
+        // applications are deleted, so nothing on our side can identify them
+        // again.
+        setDeleteError(
+          `The opportunity was deleted. We emailed the first applicants, but ${uncontacted} more ` +
+          'could not be emailed in time. Please contact them directly so they know the placement is off.',
+        );
+        setIsDeleting(false);
+        return;
+      }
       if (deleteFailures > 0) {
         // Not a silent success. Some applications survived the delete and now
         // point at an opportunity that is gone; the students behind them were

@@ -28,8 +28,22 @@ function slotFor(day: string | undefined, startTime: string | undefined): string
   if (!startTime) return null;
   const hour = Number(String(startTime).split(':')[0]);
   if (!Number.isFinite(hour)) return null;
-
-  const isWeekend = WEEKEND_DAYS.has(String(day || '').trim().toLowerCase());
+  /*
+   * An unknown day is UNKNOWN, not a weekday.
+   *
+   * WEEKEND_DAYS.has('') is false, so a missing or unparseable day silently
+   * MEANT weekday — and the create form seeds a default shift row
+   * { startTime: '09:00', endTime: '12:00' } and writes it for every schedule
+   * type, including single-date postings that carry their real time in
+   * dateTime. So a Saturday 2pm beach cleanup was classified 'Weekday
+   * Mornings', the dateTime fallback below never ran because the set was not
+   * empty, and the students who could actually attend scored 25 points BELOW
+   * the ones who could not — who were then told "Runs weekday mornings, when
+   * you are free".
+   */
+  const key = String(day || '').trim().toLowerCase();
+  if (!key) return null;
+  const isWeekend = WEEKEND_DAYS.has(key);
   const part = hour < MORNING_END ? 'Mornings' : hour < AFTERNOON_END ? 'Afternoons' : 'Evenings';
   return `${isWeekend ? 'Weekend' : 'Weekday'} ${part}`;
 }
@@ -74,7 +88,8 @@ export function slotsForOpportunity(opp: Pick<Opportunity, 'shifts' | 'dateTime'
     if (slot) out.add(slot);
   }
 
-  // A one-off posting has no shifts, only a dateTime.
+  // A one-off posting has no USABLE shifts, only a dateTime. `out` is empty
+  // when every shift row was dayless, which is exactly the seeded default.
   if (out.size === 0 && opp.dateTime) {
     const raw: any = opp.dateTime;
     const d = typeof raw?.toDate === 'function' ? raw.toDate() : new Date(raw);
@@ -106,6 +121,22 @@ export function availabilityOverlaps(
   const mine = normalizeAvailability(studentAvailability);
   if (mine.length === 0) return true;
   if (mine.includes('Flexible')) return true;
+  /*
+   * 'School Breaks' is offered to students and is not in this function's
+   * codomain.
+   *
+   * slotsForOpportunity can only ever emit [Weekday|Weekend] x
+   * [Mornings|Afternoons|Evenings], so a student who ticked the option the app
+   * itself put in front of them overlapped NOTHING and took the full
+   * availability penalty on every scheduled posting — worse off than a student
+   * who left the question blank, since silence is exempted two lines above.
+   * LEGACY_AVAILABILITY also backfills the retired 'Summer Break' and
+   * 'Winter/Spring Breaks' values straight into it.
+   *
+   * Treated like Flexible until slots carry a calendar, which is the honest
+   * reading: it is a broad answer, not a contradiction.
+   */
+  if (mine.includes('School Breaks')) return true;
   if (opportunitySlots.length === 0) return true;
   return opportunitySlots.some((slot) => mine.includes(slot));
 }
