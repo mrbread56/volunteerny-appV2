@@ -372,7 +372,14 @@ service cloud.firestore {
              // OrgProfile writes exactly three: twitter, instagram, linkedin.
              (absent(data, 'socialLinks') || (data.socialLinks is map && data.socialLinks.size() <= 10)) &&
              (absent(data, 'phone') || (data.phone is string && data.phone.size() <= 40)) &&
-             (absent(data, 'websiteUrl') || (data.websiteUrl is string && data.websiteUrl.size() <= 500)) &&
+             // http(s) only. This is rendered as a link on the reviewer's
+             // screen and on a student's applications list, and the client-side
+             // check in OrgProfile is bypassable through the SDK. React blocks
+             // javascript: today, so this is defence that does not depend on
+             // the framework continuing to.
+             (absent(data, 'websiteUrl') ||
+               (data.websiteUrl is string && data.websiteUrl.size() <= 500 &&
+                (data.websiteUrl == '' || data.websiteUrl.matches('^https?://.*')))) &&
              (absent(data, 'organizationType') || (data.organizationType is string && data.organizationType.size() <= 80)) &&
              // Free text, so it is capped like every other free-text field.
              (absent(data, 'organizationTypeOther') || (data.organizationTypeOther is string && data.organizationTypeOther.size() <= 80)) &&
@@ -510,12 +517,25 @@ service cloud.firestore {
              // document ceiling.
              (absent(data, 'attachmentData') ||
                (data.attachmentData is string && data.attachmentData.size() <= 400000)) &&
-             (absent(data, 'aiOverview') || data.aiOverview is map) &&
              (absent(data, 'developerReply') || (data.developerReply is string && data.developerReply.size() <= 10000)) &&
              (absent(data, 'repliedAt') || data.repliedAt is string || data.repliedAt is timestamp) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }
 
+    /*
+     * aiOverview is NOT client-writable.
+     *
+     * It was in both hasOnly allowlists and validated only as `is map`, so the
+     * person filing a report could write the "AI Trust & Safety Analysis" the
+     * moderator then reads under that heading — urgency low, "verified
+     * duplicate, safe to dismiss" — about their own case. React escapes it, so
+     * this is not XSS; it is the reported party steering the human deciding a
+     * safety matter about a minor. Nested strings were uncapped too, so one
+     * report could carry a megabyte into the queue.
+     *
+     * The server writes it after triage. Removing it from the allowlists is
+     * enough: hasOnly refuses any key it does not name.
+     */
     function isValidReport(data) {
       // createdAt is REQUIRED, not optional, because the moderation queue orders
       // by it. A report filed without it would be omitted from that query
@@ -556,7 +576,6 @@ service cloud.firestore {
              // Current reports store the attachment in Firebase Storage
              // (reports/{uid}/... per storage.rules) and carry only the URL.
              (absent(data, 'attachmentUrl') || (data.attachmentUrl is string && data.attachmentUrl.size() <= 1000)) &&
-             (absent(data, 'aiOverview') || data.aiOverview is map) &&
              data.createdAt == (resource == null ? request.time : resource.data.createdAt);
     }
 
@@ -971,7 +990,7 @@ service cloud.firestore {
       // attached — and the notification bell reads exactly that field to
       // announce "we answered your feedback". A user could manufacture a reply
       // from us to themselves. Only the developer branch below writes them.
-      allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'aiOverview', 'createdAt']);
+      allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'createdAt']);
       allow update: if isSignedIn() && isValidId(feedbackId) && (
         isDeveloper() || 
         (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))
@@ -982,7 +1001,7 @@ service cloud.firestore {
     match /reports/{reportId} {
       allow get: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper()) && isValidId(reportId);
       allow list: if isSignedIn() && (resource.data.reportingUserId == request.auth.uid || isDeveloper());
-      allow create: if isSignedIn() && isNotBanned() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['reportingUserId', 'reportingUserEmail', 'reportingUserName', 'reportedUserId', 'reportedUserName', 'reportedUserRole', 'reason', 'description', 'status', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'attachmentUrl', 'aiOverview', 'createdAt']);
+      allow create: if isSignedIn() && isNotBanned() && incoming().reportingUserId == request.auth.uid && isValidId(reportId) && isValidReport(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['reportingUserId', 'reportingUserEmail', 'reportingUserName', 'reportedUserId', 'reportedUserName', 'reportedUserRole', 'reason', 'description', 'status', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'attachmentUrl', 'createdAt']);
       allow update, delete: if isDeveloper();
     }
 

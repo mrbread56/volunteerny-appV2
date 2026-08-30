@@ -174,9 +174,17 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
        * displayed a summary saying it was already being handled. The queue
        * skips the block entirely when this is absent.
        */
-      let aiOverview: any = null;
-
-      try {
+      /*
+       * Triage runs AFTER the report is filed, not before.
+       *
+       * It used to run first and its result was written into the report by the
+       * client. The report is the thing that matters, so it is created first
+       * and the analysis is attached to it by the server, which is now the only
+       * writer of that field. A failed or slow triage can no longer delay or
+       * block a safety report.
+       */
+      const runTriage = async () => {
+        try {
         // /api/feedback/analyze requires a bearer token. This request sent
         // none, so triage 401'd on every real report and every one of them was
         // filed with the hardcoded placeholder summary above — silently,
@@ -189,16 +197,22 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ subject: `SAFETY REPORT: ${reason}`, message: description, type: 'safety' }),
+          body: JSON.stringify({
+            subject: `SAFETY REPORT: ${reason}`,
+            message: description,
+            type: 'safety',
+            // Which document to attach the result to. The server checks the
+            // caller filed it before writing anything.
+            reportId,
+          }),
         });
-        if (aiResponse.ok) {
-          aiOverview = await aiResponse.json();
-        } else {
-          console.warn('AI triage for this safety report was rejected:', aiResponse.status, await aiResponse.text());
+        if (!aiResponse.ok) {
+          console.warn('AI triage for this safety report was rejected:', aiResponse.status);
         }
-      } catch (aiErr) {
-        console.warn('AI evaluation failed for report, using fallback metadata:', aiErr);
-      }
+        } catch (aiErr) {
+          console.warn('AI evaluation failed for this report:', aiErr);
+        }
+      };
 
       // Generate report object
       const reportId = 'report_' + Math.random().toString(36).substring(2, 11);
@@ -213,9 +227,11 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
         reason,
         description,
         createdAt: new Date().toISOString(),
-        // Omitted, not null: isValidReport requires `is map` when present, and
-        // absent is what tells the queue triage did not run.
-        ...(aiOverview ? { aiOverview } : {}),
+        // NOT sent from here. firestore.rules refuses aiOverview on any client
+        // write, because the person filing a report must not be able to author
+        // the "AI Trust & Safety Analysis" a moderator reads about their own
+        // case. The server attaches it after the report exists — see the call
+        // below and /api/feedback/analyze.
         // Attachment. Real reports carry only the Storage URL; the bytes live
         // in Firebase Storage under reports/{uid}/... (see storage.rules).
         // Demo reports keep the inline compressed data because they never
@@ -250,6 +266,10 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
             delete docData.attachmentDescription;
           }
           await setDoc(doc(db, 'reports', reportId), docData);
+          // Fire and forget: the report is filed, and triage is an aid to the
+          // moderator rather than part of the record. Awaiting it would make a
+          // slow or failing AI call delay a safety report.
+          void runTriage();
         } catch (dbErr: any) {
           // Previously this was swallowed ("recorded local copy seamlessly"),
           // which meant a permission-denied looked exactly like a filed report
