@@ -23,6 +23,21 @@
 @import "tailwindcss";
 
 @theme {
+  /* ── Type scale ──────────────────────────────────────────────────────
+   *
+   * text-xs is 12px in stock Tailwind and this app uses it 652 times — more
+   * than every other size combined — so 12px was the effective body size of
+   * the product, not a caption size. That is why so much of it read as cramped
+   * and hard to scan: form labels, help text, table cells, button labels and
+   * status chips were all at the floor.
+   *
+   * Raised to 13px rather than rewriting 652 class names, which is the change
+   * least likely to break a layout. text-sm stays at 14px, so the two are still
+   * distinguishable and the existing hierarchy is preserved.
+   */
+  --text-xs: 0.8125rem;      /* 13px, was 12px */
+  --text-xs--line-height: 1.15rem;
+
   /* ── Ink: text hierarchy (video 15: "don't use pure black, use dark gray") ── */
   --color-ink: #1A2B36;
   --color-ink-soft: #2D4A5A;

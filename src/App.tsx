@@ -29,15 +29,15 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-sans text-slate-900">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-sans text-ink">
           <div className="max-w-md w-full bg-white p-8 rounded-sm  text-center space-y-6 border border-red-100">
             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-sm flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-black uppercase tracking-tight text-slate-900">Something went wrong</h1>
-            <p className="text-sm font-medium text-slate-600">Something went wrong while loading this page. The problem has been recorded. Refreshing usually fixes it, and if it keeps happening please let us know.</p>
+            <h1 className="text-2xl font-black uppercase tracking-tight text-ink">Something went wrong</h1>
+            <p className="text-sm font-medium text-ink-soft">Something went wrong while loading this page. The problem has been recorded. Refreshing usually fixes it, and if it keeps happening please let us know.</p>
             <button
               onClick={() => window.location.reload()}
               className="mt-6 w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer"

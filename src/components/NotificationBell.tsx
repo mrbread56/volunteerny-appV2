@@ -41,7 +41,7 @@ const ICONS: Record<NotificationKind, typeof Bell> = {
 
 const TONE: Record<NotificationKind, string> = {
   accepted: 'text-emerald-600 bg-emerald-50',
-  rejected: 'text-slate-500 bg-slate-100',
+  rejected: 'text-ink-muted bg-slate-100',
   waitlist: 'text-amber-600 bg-amber-50',
   reviewed: 'text-blue-600 bg-blue-50',
   hours: 'text-emerald-600 bg-emerald-50',

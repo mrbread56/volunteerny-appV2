@@ -712,7 +712,6 @@ export default function DeveloperDashboard() {
             <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white" : "text-blue-400")} />
             <span className="block text-2xl font-bold">{showStudentsList ? realStudentCount : 0}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">STUDENTS</span>
-            {!showStudentsList && <span className="text-[7px] text-blue-300 font-semibold uppercase tracking-wide block mt-1">Click to Load</span>}
           </div>
 
           {/* Orgs counter */}
@@ -740,7 +739,6 @@ export default function DeveloperDashboard() {
             <Building2 className={cn("w-5 h-5 mx-auto mb-1.5", showOrgsList ? "text-white animate-pulse" : "text-blue-400")} />
             <span className="block text-2xl font-bold">{showOrgsList ? realOrgCount : 0}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">ORGS</span>
-            {!showOrgsList && <span className="text-[7px] text-blue-300 font-semibold uppercase tracking-wide block mt-1">Click to Load</span>}
           </div>
 
           {/* Reports counter */}
@@ -768,7 +766,6 @@ export default function DeveloperDashboard() {
             <ShieldAlert className={cn("w-5 h-5 mx-auto mb-1.5", showReportsList && activeTab === 'reports' ? "text-white" : "text-red-400 animate-pulse")} />
             <span className="block text-2xl font-bold">{reports.length}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">REPORTS</span>
-            {(!showReportsList || activeTab !== 'reports') && <span className="text-[7px] text-red-300 font-semibold uppercase tracking-wide block mt-1">Click to Load</span>}
           </div>
         </div>
 
@@ -1434,7 +1431,7 @@ export default function DeveloperDashboard() {
                     <p className="text-xs text-ink-muted mt-1">{org.contactEmail} · {org.address || 'No address'}</p>
                   </div>
                   <span className={`text-xs font-semibold uppercase px-2 py-1 ${
-                    org.craNumber ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-700'
+                    org.craNumber ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-ink-soft'
                   }`}>{org.craNumber ? 'Charity' : 'No CRA'}</span>
                 </div>
                 {org.craNumber ? (

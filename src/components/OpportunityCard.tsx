@@ -146,11 +146,11 @@ export default function OpportunityCard({
             <span className="text-xs font-semibold text-ink-soft">
               {opportunity.scheduleType === 'recurring' ? (
                 <span className="flex items-center gap-1 hover:text-blue-dark">
-                  Recurring <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[8px] px-1 rounded">Weekly</span>
+                  Recurring <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[11px] px-1 rounded">Weekly</span>
                 </span>
               ) : opportunity.scheduleType === 'multiple' ? (
                 <span className="flex items-center gap-1">
-                  Multi-day <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[8px] px-1 rounded">{opportunity.shifts?.length || 0} dates</span>
+                  Multi-day <span className="bg-blue-dark/5 text-blue-dark font-semibold text-[11px] px-1 rounded">{opportunity.shifts?.length || 0} dates</span>
                 </span>
               ) : (
                 // formatDate returns '' when there is no usable date (it used
