@@ -586,6 +586,35 @@ export default function Signup() {
                       />
                     </div>
 
+                    {/* Both of these were declared, written to the profile, and
+                        NEVER rendered — so websiteUrl was always "" and
+                        northYorkConfirmed always false. The reviewer's screen
+                        tells them to "open their website, confirm the address is
+                        in or near North York", shows a link that is never there,
+                        and labels every organisation "did not confirm North
+                        York". They were being judged on two answers nobody was
+                        ever asked for. */}
+                    <Input
+                      label="Website or social media page"
+                      type="text"
+                      placeholder="https://yourorganization.org"
+                      value={website}
+                      onChange={(e) => setWebsite(e.target.value)}
+                      helperText="Optional, but it is the fastest way for us to confirm you are real."
+                    />
+
+                    <label className="flex items-start gap-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={isNorthYork}
+                        onChange={(e) => setIsNorthYork(e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-[#1F4C63]"
+                      />
+                      <span className="text-[13px] text-ink-soft leading-relaxed">
+                        We operate in or near North York.
+                      </span>
+                    </label>
+
                     {/* The website, which the REVIEWER is told to check.
                         This state and its write existed all along and the field
                         was never rendered, so websiteUrl was written empty for

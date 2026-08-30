@@ -744,14 +744,20 @@ export default function OrgOpportunityCreate() {
                   Requirements & Skills
                </h3>
                <div className="flex flex-col gap-1.5">
-                  <label className="text-sm font-medium text-ink-soft">Detailed Requirements <span className="text-red-600">*</span></label>
-                  <textarea 
+                  {/* Optional, like Minimum Age beside it.
+                      This was required, so a coordinator with no policy to hand
+                      had to invent one or go and ask a manager before they could
+                      post anything at all. Most postings genuinely have no
+                      requirements, and "none" is a perfectly good answer. */}
+                  <label className="text-sm font-medium text-ink-soft">
+                    Requirements <span className="font-normal text-ink-muted">(optional)</span>
+                  </label>
+                  <textarea
                     className="w-full rounded-lg border border-line p-6 text-sm focus:ring-2 focus:ring-blue-dark focus:outline-none min-h-[100px] font-medium"
-                    aria-label="Detailed requirements"
-                    placeholder="Specify any background checks, language requirements, or age limits..."
+                    aria-label="Requirements"
+                    placeholder="Anything a student must have or do first, like a police check or a language. Leave blank if there is nothing."
                     value={requirements}
                     onChange={(e) => setRequirements(e.target.value)}
-                    required
                   />
                </div>
                <div>

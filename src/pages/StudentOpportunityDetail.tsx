@@ -573,12 +573,16 @@ export default function StudentOpportunityDetail() {
           {notice.text}
         </div>
       )}
-      <button 
-        onClick={() => navigate(-1)}
+      {/* A real route, not navigate(-1). The product pushes sharing hard, so
+          arriving by a shared link is a designed-for case — and history-back
+          then sent the visitor out of the app entirely, under a label that
+          promised results. */}
+      <Link
+        to="/student/opportunities"
         className="flex items-center gap-2 text-ink-muted hover:text-blue-dark font-medium transition-colors mb-6"
       >
         <ArrowLeft className="w-4 h-4" /> Back to results
-      </button>
+      </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Main Info */}
