@@ -295,12 +295,14 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
         title: o.verificationStatus === 'verified' ? 'Your organization is verified' : 'Verification not approved',
         body:
           o.verificationStatus === 'verified'
-            // Not a badge. OpportunityCard removed it deliberately and says
-            // so in its own comment; no student-facing surface reads
-            // verificationStatus. Approval buys the ability to post.
-            ? 'Your listings are live and students can find them.'
+            // Not a badge, and not "you are finished". OpportunityCard removed
+            // the badge deliberately, and this said listings were live to
+            // organisations that had none — a claim that is false and, worse,
+            // terminal: it reads as the job being done and linked to the
+            // profile page rather than the create form.
+            ? 'You can post opportunities now. Students see them as soon as you do.'
             : 'We could not verify your organization from the details provided. Get in touch and we will help.',
-        at: toDate(o.verifiedAt), href: '/org/profile',
+        at: toDate(o.verifiedAt), href: '/org/opportunities/new',
       });
     }
   }

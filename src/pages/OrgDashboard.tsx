@@ -1015,12 +1015,34 @@ export default function OrgDashboard() {
         const status = orgProfile.craVerified
           ? 'verified'
           : (orgProfile.verificationStatus || 'unverified');
-        if (status === 'verified') return null;
+        /*
+         * The banner was INVERTED, and this is why approved organisations post
+         * nothing.
+         *
+         * An org that CANNOT post was shown "One step before you can post". An
+         * org that CAN post was shown null — the one moment the guidance
+         * becomes actionable is the moment it was deleted. What replaced it was
+         * four stat cards reading zero under the words "Manage your
+         * opportunities", which reads as a broken account rather than an empty
+         * one. The empty state that does lead somewhere lives behind the
+         * Opportunities tab, which nobody has a reason to open once the
+         * overview says there is nothing to manage.
+         *
+         * Two verified organisations on this platform have posted nothing and
+         * never signed in a second time. This is the screen they would land on.
+         */
+        if (status === 'verified' && opportunities.length > 0) return null;
         const copy = {
+          verified: {
+            tone: 'border-blue-dark/20 bg-blue-dark/5',
+            title: 'Post your first opportunity',
+            body: 'Your organization is approved, so anything you post is visible to students straight away. Say what they would be doing, roughly when, and how many you can take.',
+            cta: { to: '/org/opportunities/new', label: 'Post an opportunity' },
+          },
           unverified: {
             tone: 'border-blue-dark/20 bg-blue-dark/5',
             title: 'One step before you can post',
-            body: 'Students meet organizations in person, and most of them are under 18, so a person reviews every organization before its opportunities are shown. Add your details and ask for review — it usually takes a day or two.',
+            body: 'Students meet organizations in person, and most of them are under 18, so a person reviews every organization before its opportunities are shown. You are already in the queue. Adding a website and your address helps us approve you faster — it usually takes a day or two.',
             cta: { to: '/org/profile', label: 'Complete your profile' },
           },
           pending: {
@@ -1035,7 +1057,7 @@ export default function OrgDashboard() {
             body: 'It cannot post opportunities. If you believe that is a mistake, reply to the email we sent and we will take another look.',
             cta: null,
           },
-        }[status === 'pending' ? 'pending' : status === 'rejected' ? 'rejected' : 'unverified'];
+        }[status === 'verified' ? 'verified' : status === 'pending' ? 'pending' : status === 'rejected' ? 'rejected' : 'unverified'];
         return (
           <div className={cn('rounded-lg border p-6 sm:p-8 space-y-3', copy.tone)}>
             <h2 className="text-lg font-bold text-ink">{copy.title}</h2>

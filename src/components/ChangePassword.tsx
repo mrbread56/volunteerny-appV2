@@ -132,7 +132,7 @@ export default function ChangePassword() {
           <KeyRound className="w-3.5 h-3.5" /> Change password
         </h4>
         <p className="text-xs text-ink-soft mt-1 leading-relaxed">
-          Set your own password here. You will stay signed in on this device.
+          Set your own password here. You stay signed in, and if your account uses two-step sign-in you will be asked for a fresh code afterwards.
         </p>
       </div>
 
@@ -176,7 +176,7 @@ export default function ChangePassword() {
       {error && <p role="alert" className="text-xs font-semibold text-red-600">{error}</p>}
       {done && (
         <p role="status" className="text-xs font-semibold text-emerald-700">
-          Password changed. Use the new one next time you sign in.
+          Password changed. Use the new one next time you sign in. If you are asked for a code now, that is expected — changing a password starts a new session.
         </p>
       )}
     </div>

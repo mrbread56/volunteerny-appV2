@@ -911,12 +911,19 @@ app.use(express.json());
       // rebuildGlobalLeaderboard documents the same hazard and already uses
       // select().
       dbAdmin.collection('students').select('loggedHours').get(),
-      dbAdmin.collection('organizations').get(),
-      dbAdmin.collection('opportunities').get(),
-      dbAdmin.collection('applications').get(),
-      dbAdmin.collection('hoursRequests').get(),
-      dbAdmin.collection('reports').get(),
-      dbAdmin.collection('users').get(),
+      // The same projection on the other six. Only students had it, so this
+      // pulled whole documents from every remaining collection into one
+      // invocation to compute counts — including reports, which carry a
+      // reporter's free text, and applications, which carry resumeUrl. The read
+      // COUNT is unchanged (it equals the collection sizes either way); what
+      // this removes is the payload, which is what actually breaks first as the
+      // data grows. Each list is exactly the fields the loops below read.
+      dbAdmin.collection('organizations').select('craVerified', 'verificationStatus', 'isBanned').get(),
+      dbAdmin.collection('opportunities').select('status', 'orgId').get(),
+      dbAdmin.collection('applications').select('status', 'opportunityId', 'appliedAt', 'decidedAt', 'studentId').get(),
+      dbAdmin.collection('hoursRequests').select('status').get(),
+      dbAdmin.collection('reports').select('status').get(),
+      dbAdmin.collection('users').select('email', 'role').get(),
     ]);
 
     const orgsByStatus = { unverified: 0, pending: 0, verified: 0, rejected: 0 } as Record<string, number>;
@@ -1381,7 +1388,10 @@ app.use(express.json());
     try {
       const snap = await adminFirestore().collection('metrics').doc('public').get();
       const d = snap.exists ? snap.data() : null;
-      res.set('Cache-Control', 'public, max-age=300');
+      // s-maxage, or Vercel's edge never caches it and every visitor's first
+    // landing-page load invokes the function — measured at ~2s on a cold
+    // container against ~130ms warm, for a route that reads one document.
+    res.set('Cache-Control', 'public, max-age=300, s-maxage=300, stale-while-revalidate=600');
       res.json({
         hoursConfirmed: d?.hoursConfirmed ?? 0,
         verifiedOrganizations: d?.verifiedOrganizations ?? 0,
@@ -1725,7 +1735,13 @@ app.use(express.json());
      * `truncated` is returned so the console can say the list is partial
      * instead of presenting it as the whole platform.
      */
-    const snap = await adb.collection('students').orderBy('__name__').limit(200).get();
+    // Projected. This read FULL student documents into the Lambda and threw
+    // most of each away one line later — and a student document may carry
+    // resumeUrl and passportUrl at up to 400 000 characters each, so 200 of
+    // them is a payload measured in tens of megabytes for a list view.
+    const snap = await adb.collection('students')
+      .select('fullName', 'email', 'school', 'grade', 'isBanned', 'hours', 'loggedHours')
+      .orderBy('__name__').limit(200).get();
       const students = snap.docs.map((d: any) => {
         const s = d.data() || {};
         // Allow-list, not a deny-list: a field added to the student document

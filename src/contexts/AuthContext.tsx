@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
+import { onIdTokenChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
 import { UserProfile, StudentProfile, OrganizationProfile } from '../types';
@@ -328,7 +328,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // (Removed a duplicate test/connection probe here: the security rules deny
     // that document, so it always failed and proved nothing.)
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
+    /*
+     * onIdTokenChanged, not onAuthStateChanged.
+     *
+     * The SDK fires onAuthStateChanged only when the UID changes (it gates on
+     * lastNotifiedUid), so mfaVerified was derived once per sign-in and then
+     * went stale in BOTH directions on every operation that changes the token
+     * without changing the user:
+     *
+     *  - A student turning two-factor ON polls for the new claim, gets it, and
+     *    writes twoFactorEnabled: true — but mfaVerified in React is still the
+     *    false it has held since sign-in, so verifyMfaClaim fails and the guard
+     *    ejects them to /mfa the instant they succeed. That auto-sends a SECOND
+     *    code, spends two of five allowed in ten minutes, and strands them
+     *    behind a gate with zero recovery codes, because the RecoveryCodes
+     *    panel renders only on the page they were just thrown off.
+     *
+     *  - Changing a password re-authenticates, which moves auth_time forward
+     *    and silently invalidates the claim. mfaVerified stayed TRUE, so the UI
+     *    kept saying verified while every write was denied by the rules.
+     *
+     * Re-deriving on each token change fixes both, and the listener body is
+     * unchanged otherwise.
+     */
+    const unsubscribe = onIdTokenChanged(auth, async (currentUser) => {
       if (!localStorage.getItem('demo_mode_role')) {
         setUser(currentUser);
         if (currentUser) {

@@ -1022,11 +1022,25 @@ export default function StudentDashboard() {
 
       if (needed.length) {
         try {
+          /*
+           * The application already carries orgId, so most of these reads are
+           * unnecessary.
+           *
+           * This fetched one opportunity document PER APPLICATION purely to
+           * read orgId off it — up to 50 reads on every dashboard load, for a
+           * field the application document already has (it is in the rules'
+           * allowed key set, and line 504 in this same file already uses
+           * `app.orgId ||` as a fast path). Only applications predating that
+           * field need the lookup now, so this drops to the number of distinct
+           * organisations the student has applied to: typically one to five.
+           */
           const opps = await Promise.all(
             needed.map((app: any) =>
-              getDoc(doc(db, "opportunities", app.opportunityId))
-                .then((snap) => ({ app, snap }))
-                .catch(() => ({ app, snap: null })),
+              app?.orgId
+                ? Promise.resolve({ app, snap: null, orgIdFromApp: String(app.orgId) })
+                : getDoc(doc(db, "opportunities", app.opportunityId))
+                    .then((snap) => ({ app, snap, orgIdFromApp: null as string | null }))
+                    .catch(() => ({ app, snap: null, orgIdFromApp: null as string | null })),
             ),
           );
 
@@ -1036,7 +1050,7 @@ export default function StudentDashboard() {
           const missingOrgIds = [
             ...new Set(
               opps
-                .map(({ snap }) => (snap?.exists() ? snap.data()?.orgId : null))
+                .map((r: any) => r.orgIdFromApp || (r.snap?.exists() ? r.snap.data()?.orgId : null))
                 .filter((id): id is string => !!id && !known.has(id)),
             ),
           ];
@@ -1050,8 +1064,8 @@ export default function StudentDashboard() {
           );
           for (const row of fetched) if (row) known.set(row.orgId, row.data);
 
-          for (const { app, snap } of opps) {
-            const orgId = snap?.exists() ? snap.data()?.orgId : null;
+          for (const { app, snap, orgIdFromApp } of opps as any[]) {
+            const orgId = orgIdFromApp || (snap?.exists() ? snap.data()?.orgId : null);
             const orgData = orgId ? known.get(orgId) : null;
             if (!orgData) continue;
             newContacts[app.opportunityId] = {
