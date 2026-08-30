@@ -85,6 +85,27 @@ export default function StudentDashboard() {
     isLoading, errorMessage, setErrorMessage,
     setApplications, setSavedOpportunities, setHoursRequests, setAllOrganizations,
   } = useStudentDashboardData(user, studentProfile, isDemoMode, profilesLoaded);
+  const [verifyState, setVerifyState] = useState<'idle' | 'sending' | 'sent' | 'already' | 'error'>('idle');
+
+  /** Same route and same states the organisation dashboard already uses. */
+  const handleResendVerification = async () => {
+    if (!user) return;
+    setVerifyState('sending');
+    try {
+      const token = await user.getIdToken();
+      const res = await fetch(`${API_BASE_URL}/api/auth/send-verification`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: '{}',
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || 'Could not send the link.');
+      setVerifyState(body?.alreadyVerified ? 'already' : 'sent');
+    } catch (err: any) {
+      setVerifyState('error');
+      setErrorMessage(err?.message || 'We could not send a new confirmation link. Please try again.');
+    }
+  };
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<
     "dashboard" | "applications" | "hours" | "leaderboard" | "settings"

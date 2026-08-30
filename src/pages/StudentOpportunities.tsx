@@ -579,6 +579,42 @@ export default function StudentOpportunities() {
         </div>
       ) : (
         <div className="space-y-6">
+          {/* The map had NEITHER an error state nor an empty state.
+              All three of those branches live inside the list arm above, so
+              filtering to zero on the map, or hitting a failed read there, gave
+              a blank map of Toronto with no message, no count and no way to
+              clear the filters. The map is a view of the same data, so it says
+              the same things. */}
+          {loadError ? (
+            <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 rounded-lg">
+              {loadError}
+            </div>
+          ) : filteredOpps.length === 0 ? (
+            <div className="bg-paper-2 border border-line rounded-lg p-6 text-center space-y-2">
+              <p className="font-semibold text-ink">
+                {hasActiveFilters
+                  ? 'No opportunities match these filters.'
+                  : 'No volunteer opportunities yet.'}
+              </p>
+              {hasActiveFilters ? (
+                <>
+                  <p className="text-sm text-ink-muted">
+                    {opportunities.length} {opportunities.length === 1 ? 'is' : 'are'} available in total.
+                  </p>
+                  <button
+                    onClick={clearAllFilters}
+                    className="mt-1 h-11 px-6 rounded-lg bg-blue-dark text-white font-semibold text-sm"
+                  >
+                    Clear all filters
+                  </button>
+                </>
+              ) : (
+                <p className="text-sm text-ink-muted">
+                  New postings appear here as organizations add them. Check back soon.
+                </p>
+              )}
+            </div>
+          ) : null}
           <Card className="h-[300px] sm:h-[450px] md:h-[600px] rounded-lg overflow-hidden relative border-none ">
              <Suspense
                 fallback={
