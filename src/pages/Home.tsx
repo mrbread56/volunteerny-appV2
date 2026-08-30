@@ -1,5 +1,5 @@
 import type { FC, ReactNode } from 'react';
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { motion, useInView, AnimatePresence, useScroll, useTransform } from 'motion/react';
 import { ArrowRight, ChevronRight, Play, UserCircle, Search, BadgeCheck } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -7,15 +7,55 @@ import { useAuth } from '../contexts/AuthContext';
 import { useCarousel } from '../hooks/useCarousel';
 import ImpactCounter from '../components/ImpactCounter';
 
-/* ── Reveal wrapper ── */
+/* ── Reveal wrapper ──
+ *
+ * An animation must never be the reason content is invisible.
+ *
+ * This held its children at opacity 0 until useInView fired, and for twelve
+ * elements on this page it never did — including "Connecting students with
+ * communities that need them" and BOTH primary buttons, "Continue as a
+ * student" and "Continue as an organization". They stayed at the inline
+ * `opacity: 0; transform: translateY(28px)` that framer-motion writes for
+ * `initial`, through a full scroll of the page and back. The landing page's
+ * calls to action were invisible to every visitor.
+ *
+ * Two changes make that impossible rather than unlikely:
+ *
+ *   1. A timer. Whatever the observer does, the content is shown after 900ms.
+ *      An IntersectionObserver that does not fire — a negative rootMargin
+ *      against a clipping ancestor, a browser that never scrolls because the
+ *      viewport already contains the page, a bot, a screenshot tool — can now
+ *      only delay the reveal, not cancel it.
+ *
+ *   2. prefers-reduced-motion skips the animation entirely and renders the
+ *      content outright. index.css neutralises CSS transitions for those
+ *      users, but these styles are written inline by JavaScript, so that block
+ *      could not reach them: a reduced-motion visitor was relying on the same
+ *      observer as everyone else.
+ */
 const Reveal: FC<{ children: ReactNode; className?: string; delay?: number }> = ({ children, className = '', delay = 0 }) => {
   const ref = useRef(null);
   const inView = useInView(ref, { once: true, margin: '-80px' });
+  const [forced, setForced] = useState(false);
+  const reduced =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  useEffect(() => {
+    if (reduced) return;
+    const t = setTimeout(() => setForced(true), 900);
+    return () => clearTimeout(t);
+  }, [reduced]);
+
+  if (reduced) return <div className={className}>{children}</div>;
+
+  const shown = inView || forced;
   return (
     <motion.div
       ref={ref}
       initial={{ opacity: 0, y: 28 }}
-      animate={inView ? { opacity: 1, y: 0 } : {}}
+      animate={shown ? { opacity: 1, y: 0 } : { opacity: 0, y: 28 }}
       transition={{ duration: 0.8, delay, ease: [0.16, 1, 0.3, 1] as const }}
       className={className}
     >

@@ -18,6 +18,7 @@ import {
   StudentProfile, StudentOnboarding, OrgDashboard, OrgOpportunityCreate, OrgOpportunityEdit,
   OrgOpportunityApplicants, OrgProfile, FeedbackPage, DeveloperDashboard, TermsOfService,
   PrivacyPolicy, MfaChallenge,
+  NotFound,
 } from './pages';
 
 /** Public pages get the traditional navbar + footer. */
@@ -136,7 +137,13 @@ export default function AppRoutes() {
                   </PrivateRoute>
                 } />
 
-                <Route path="*" element={<Navigate to="/" replace />} />
+                {/* A real page, not a silent redirect home.
+                    This was <Navigate to="/" replace />, which dropped the
+                    visitor on the marketing page with no explanation and, being
+                    a replace, erased the bad URL from history so Back could not
+                    return them either. The realistic case is a shared link to a
+                    withdrawn opportunity, not a typo. */}
+                <Route path="*" element={<NotFound />} />
                 </Routes>
     </Suspense>
   );

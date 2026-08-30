@@ -2,6 +2,7 @@ import { lazy } from 'react';
 
 // Lazy load pages for maximum performance and minimum bundle size (lighthouse optimization)
 export const Home = lazy(() => import('../pages/Home'));
+export const NotFound = lazy(() => import('../pages/NotFound'));
 export const Login = lazy(() => import('../pages/Login'));
 export const Signup = lazy(() => import('../pages/Signup'));
 export const StudentDashboard = lazy(() => import('../pages/StudentDashboard'));
