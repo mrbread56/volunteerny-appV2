@@ -1905,10 +1905,23 @@ app.use(express.json());
         await settleStranded('coordinatorContact', publicEmail);
       }
     } else if (role === 'student') {
+      // Which postings this student was OCCUPYING, read before the rows go.
+      // deleteWhere removes applications at every status, accepted included, so
+      // without this the places they held simply vanished and the waitlist
+      // behind them never moved.
+      let freed: string[] = [];
+      try {
+        const held = await adb.collection('applications')
+          .where('studentId', '==', userId).where('status', '==', 'accepted').get();
+        freed = held.docs.map((d: any) => String(d.data()?.opportunityId || '')).filter(Boolean);
+      } catch (err: any) {
+        console.error('[purge] could not read held places before deletion:', err?.message || err);
+      }
       await deleteWhere('applications', 'studentId', userId);
       await deleteWhere('savedOpportunities', 'studentId', userId);
       await deleteWhere('hoursRequests', 'studentId', userId);
       await deleteWhere('interestRequests', 'studentId', userId);
+      if (freed.length) await promoteAfterFreeing(adb, freed);
     }
 
     // Four collections carry identifiers and none of them were purged, so a
@@ -4039,6 +4052,79 @@ app.use(express.json());
    * Three-state for the same reason callerStatus is: an infrastructure failure
    * must not be reported to a healthy organisation as a rejection.
    */
+  /**
+   * Fill places freed on the server, where no coordinator is present to do it.
+   *
+   * Promotion lived only on the two client accept/reject handlers, so it fired
+   * only when a human clicked Reject or Terminate. Every other way a place can
+   * open freed nothing — and deleting a student account is one of them:
+   * purgeAccount removes their applications at EVERY status, `accepted`
+   * included, so a place opened and the waitlist behind it never moved. No cron
+   * covers it and check:integrity only reports.
+   *
+   * Best effort by design. This runs after the deletion has already committed,
+   * and a promotion that fails must never make the deletion look failed — the
+   * student asked to be erased and that is the operation being served.
+   */
+  async function promoteAfterFreeing(adb: any, opportunityIds: string[]) {
+    for (const oppId of Array.from(new Set(opportunityIds)).slice(0, 50)) {
+      try {
+        const oppSnap = await adb.collection('opportunities').doc(oppId).get();
+        if (!oppSnap.exists) continue;
+        const opp = oppSnap.data() || {};
+        // Absent or zero means uncapped, matching the create form, the rules
+        // and waitlistService. An uncapped posting has no queue to advance.
+        const max = Number(opp.maxVolunteers) || 0;
+        if (max <= 0) continue;
+
+        const accepted = await adb.collection('applications')
+          .where('opportunityId', '==', oppId).where('status', '==', 'accepted').get();
+        let free = max - accepted.size;
+        if (free <= 0) continue;
+
+        const queued = await adb.collection('applications')
+          .where('opportunityId', '==', oppId).where('status', '==', 'waitlist')
+          .orderBy('appliedAt', 'asc').limit(free).get();
+
+        for (const d of queued.docs) {
+          // decidedAt, or the student's bell timestamps this at their APPLY
+          // time and a promotion weeks later reads as already-seen.
+          await d.ref.update({ status: 'accepted', decidedAt: new Date().toISOString() });
+          free -= 1;
+          const a = d.data() || {};
+          try {
+            const who = await adb.collection('users').doc(String(a.studentId || '')).get();
+            const to = who.exists ? String(who.data()?.email || '') : '';
+            const html = renderTemplate('application_status', {
+              studentName: a.studentName || 'Student',
+              oppTitle: a.opportunityTitle || opp.title || 'a placement',
+              orgName: opp.orgName || 'the organization',
+              status: 'accepted',
+              note: 'A place became available and you have been moved off the waitlist.',
+            });
+            if (to && html && resend) {
+              const subject = 'A place opened up and it is yours';
+              const { error } = await resend.emails.send({
+                from: process.env.MAIL_FROM || 'Volunteer North York <hello@volunteernorthyork.org>',
+                to: [to], subject, html,
+              });
+              recordEmailLog({
+                to, subject, templateName: 'application_status',
+                status: error ? 'failed' : 'sent', error: error?.message, sentBy: 'system',
+              });
+            }
+          } catch (mailErr: any) {
+            // Promoted either way. The student holds the place; the notice is
+            // what failed, and it is logged loudly because nothing retries it.
+            console.error('[promote] promoted but not emailed:', d.id, mailErr?.message || mailErr);
+          }
+        }
+      } catch (err: any) {
+        console.error('[promote] could not advance the waitlist for', oppId, err?.message || err);
+      }
+    }
+  }
+
   /**
    * Turn a stored attachment reference into something the caller can open.
    *
