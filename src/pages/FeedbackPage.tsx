@@ -175,31 +175,34 @@ export default function FeedbackPage() {
         }
       }
 
-      // 1. Trigger server-side secure Gemini analysis of this feedback for control room logs
-      let aiOverview = {
-        category: type,
-        urgency: 'medium',
-        summary: 'Your feedback will be reviewed manually by our developer team shortly.',
-        suggestedFix: 'Under analysis.',
-      };
-
-      try {
-        const token = await user?.getIdToken();
-        const response = await fetch(`${API_BASE_URL}/api/feedback/analyze`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
-          body: JSON.stringify({ subject, message, type }),
-        });
-        if (response.ok) {
-          const aiData = await response.json();
-          aiOverview = aiData;
+      /*
+       * Triage runs AFTER the document is written, and the SERVER attaches it.
+       *
+       * It used to run first and its result was written into the document by
+       * the client — which firestore.rules now refuses, because the author of a
+       * ticket must not write the analysis a developer reads about it. It also
+       * needs feedbackId, which is declared below, so it has to be a function
+       * called later rather than a straight-line await.
+       */
+      const runTriage = async (id: string) => {
+        try {
+          const token = await user?.getIdToken();
+          const response = await fetch(`${API_BASE_URL}/api/feedback/analyze`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            // Without feedbackId the server computes the triage, returns it and
+            // throws it away, so the Control Room's aiOverview block stayed
+            // empty for every new ticket.
+            body: JSON.stringify({ subject, message, type, feedbackId: id }),
+          });
+          if (!response.ok) console.warn('AI triage rejected:', response.status);
+        } catch (aiErr) {
+          console.warn('AI triage failed for this feedback:', aiErr);
         }
-      } catch (aiErr) {
-        console.warn('AI Analysis failed, saving standard metadata fallback:', aiErr);
-      }
+      };
 
       // 2. Draft complete feedback document schema
       const feedbackId = 'fb_' + Math.random().toString(36).substring(2, 11);
@@ -212,7 +215,11 @@ export default function FeedbackPage() {
         subject,
         message,
         createdAt: new Date().toISOString(),
-        aiOverview,
+        // NOT sent. firestore.rules refuses aiOverview on every client write —
+        // the author of a report must not be able to write the analysis a
+        // moderator reads about it — so leaving this here made EVERY real
+        // feedback submission fail with permission-denied. The server attaches
+        // it after the document exists; see the analyze call below.
         // File Attachment parameters:
         attachmentName: file ? file.name : null,
         attachmentSize: file ? formatBytes(file.size) : null,
@@ -235,6 +242,8 @@ export default function FeedbackPage() {
           if (docData[key] == null) delete docData[key];
         }
         await setDoc(doc(db, 'feedbacks', feedbackId), docData);
+        // Fire and forget: the ticket is filed either way.
+        void runTriage(feedbackId);
       }
 
       // Clear input values safely

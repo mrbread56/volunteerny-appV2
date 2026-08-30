@@ -114,9 +114,24 @@ export default function ReportsTab({
                   ? 'bg-paper-2 text-ink-muted border-line'
                   : 'bg-red-50 text-red-600 border-red-100 animate-pulse';
 
-              const isUserBanned = report.reportedUserRole === 'student'
-                ? students.find(s => s.uid === report.reportedUserId)?.isBanned || false
-                : orgs.find(o => o.uid === report.reportedUserId)?.isBanned || false;
+              /*
+               * Three states, not two. `find` returning undefined is NOT "not
+               * suspended".
+               *
+               * students and orgs are capped lists, so a reported party outside
+               * the cap simply is not in them — the lookup missed, this fell
+               * back to false, and the card showed SUSPEND OFFENDER forever.
+               * The suspension itself worked (it reads users/{uid} directly),
+               * but the card never changed, so a moderator could not tell
+               * whether it had landed and would press it again. On the safety
+               * queue "did my suspension take?" is the one question the screen
+               * has to answer.
+               */
+              const knownSubject = report.reportedUserRole === 'student'
+                ? students.find(s => s.uid === report.reportedUserId)
+                : orgs.find(o => o.uid === report.reportedUserId);
+              const isUserBanned = knownSubject?.isBanned === true;
+              const subjectUnknown = !knownSubject;
 
               return (
                 <Card key={report.id} className="rounded-lg border border-red-100 bg-white overflow-hidden relative animate-fadeIn">
@@ -260,7 +275,11 @@ export default function ReportsTab({
                       </div>
 
                       <div className="flex items-center gap-2">
-                        {isUserBanned ? (
+                        {subjectUnknown ? (
+                          <span className="text-xs font-semibold text-ink-muted bg-paper-2 border border-line px-3 py-1.5 rounded-lg">
+                            Account not in the loaded list — open the User Base tab to act on it
+                          </span>
+                        ) : isUserBanned ? (
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold uppercase text-red-600 bg-red-50 border border-red-100 px-3 py-1.5 rounded-lg inline-flex items-center gap-1"><ShieldAlert className="w-3 h-3" /> SUSPENDED</span>
                             <Button

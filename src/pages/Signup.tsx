@@ -58,7 +58,12 @@ const GRADES = [
 function normalizeWebsite(raw: string): string {
   const v = String(raw || '').trim();
   if (!v) return '';
-  if (/^https?:\/\//i.test(v)) return v;
+  // Lowercased scheme. firestore.rules matches('^https?://.*') is RE2 and
+  // case-SENSITIVE, so "HTTP://example.org" was written verbatim and the whole
+  // organizations create was denied — leaving an auth account with no profile
+  // and a retry that failed identically.
+  const scheme = v.match(/^(https?):\/\//i);
+  if (scheme) return scheme[1].toLowerCase() + v.slice(scheme[1].length);
   // A scheme we do not accept is dropped rather than coerced: turning
   // "javascript:..." into "https://javascript:..." would be worse than empty.
   if (/^[a-z][a-z0-9+.-]*:/i.test(v)) return '';

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { onIdTokenChanged, User } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../firebase/config';
@@ -51,6 +51,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [profileMissing, setProfileMissing] = useState(false);
   const [profilesLoaded, setProfilesLoaded] = useState(false);
+  // Which uid the profiles currently belong to. See the note in the listener.
+  const lastProfileUid = useRef<string | null>(null);
   const [authError, setAuthError] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
 
@@ -375,8 +377,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setMfaVerifiedState(false);
           }
           setAuthError(null);
-          await fetchProfiles(currentUser);
+          /*
+           * Profiles are re-read only when the USER changes.
+           *
+           * onIdTokenChanged fires on every token refresh — roughly hourly, and
+           * up to five times in a row during the 2FA-enable poll. The claim
+           * above must be re-derived on each of those, which is the whole
+           * reason for the switch, but re-reading the profiles is not: it flips
+           * profilesLoaded false and back and hands out new object identities,
+           * which are dependencies of the student dashboard's six-query load
+           * and of the org create-page gate. Refreshing a token would have
+           * silently re-run all of it and blinked the gate off and on.
+           */
+          if (lastProfileUid.current !== currentUser.uid) {
+            lastProfileUid.current = currentUser.uid;
+            await fetchProfiles(currentUser);
+          }
         } else {
+          lastProfileUid.current = null;
           localStorage.removeItem('isLoggedIn');
           setUserProfile(null);
           setStudentProfile(null);

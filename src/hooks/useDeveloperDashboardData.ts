@@ -214,14 +214,47 @@ export function useDeveloperDashboardData(
            * createdAt is now required by firestore.rules, so nothing can be
            * filed that this ordering would hide.
            */
-          const repSnap = await getDocs(
+          /*
+           * PENDING ones first, unbounded, then recent history to fill in.
+           *
+           * "Newest 200" is not the same queue as "the ones still open". An
+           * unactioned report about an adult, filed before 200 newer ones
+           * arrived, fell outside every screen in the console — there is no
+           * "older", no cursor, and ReportsTab filters this page down to
+           * pending afterwards, so the moderator saw an empty queue while the
+           * Metrics tab counted the open reports across the whole collection
+           * and disagreed with it.
+           *
+           * Open reports are the work. There is no sensible cap on those, and
+           * in practice there are few; the history below it is what gets
+           * capped.
+           */
+          // In its own try: this needs a (status, createdAt) composite index, and
+          // an index that has not finished building THROWS. Falling back to the
+          // capped list keeps the queue working rather than replacing it with an
+          // error, which on the safety queue is the difference between "older
+          // ones are hidden" and "nothing loads at all".
+          let pendingDocs: any[] = [];
+          try {
+            const pendingSnap = await getDocs(
+              query(collection(db, 'reports'), where('status', '==', 'pending'), orderBy('createdAt', 'desc')),
+            );
+            pendingDocs = pendingSnap.docs;
+          } catch (idxErr) {
+            console.error('[reports] open-report query failed, falling back to the capped list:', idxErr);
+          }
+          const settledSnap = await getDocs(
             query(collection(db, 'reports'), orderBy('createdAt', 'desc'), limit(200)),
           );
-          repList = repSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-          if (repSnap.size === 200) {
-            // Say so rather than letting a full page read as the whole queue.
+          const byId = new Map<string, any>();
+          for (const d of pendingDocs) byId.set(d.id, { id: d.id, ...d.data() });
+          for (const d of settledSnap.docs) if (!byId.has(d.id)) byId.set(d.id, { id: d.id, ...d.data() });
+          repList = [...byId.values()];
+          if (settledSnap.size === 200) {
+            // Only the HISTORY is capped now, so say that rather than implying
+            // something open might be missing.
             setConsoleNotice(
-              'Showing the 200 most recent reports. There may be older ones not listed.',
+              `Every open report is listed. Older resolved reports beyond the most recent 200 are not shown.`,
             );
           }
         } catch (dbErr) {

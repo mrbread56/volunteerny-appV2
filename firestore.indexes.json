@@ -1,13 +1,19 @@
 {
-  "//": "Composite indexes required by this app. Firestore auto-creates single-field indexes, and serves an equality-only conjunction by MERGING them, so two equality filters need no entry here — an earlier version of this note said they did, which is why hoursRequests (coordinatorContact, status) is provisioned while its sibling (orgId, status) in the same Promise.all is not, and both work. What genuinely needs an entry is an equality filter combined with an orderBy on a DIFFERENT field. Without those, the query throws 'The query requires an index' the first time it runs against real data (demo mode never hits Firestore, which is why they pass locally). Deploy with: firebase deploy --only firestore:indexes",
+  "//": "Composite indexes required by this app. Firestore auto-creates single-field indexes, and serves an equality-only conjunction by MERGING them, so two equality filters need no entry here \u2014 an earlier version of this note said they did, which is why hoursRequests (coordinatorContact, status) is provisioned while its sibling (orgId, status) in the same Promise.all is not, and both work. What genuinely needs an entry is an equality filter combined with an orderBy on a DIFFERENT field. Without those, the query throws 'The query requires an index' the first time it runs against real data (demo mode never hits Firestore, which is why they pass locally). Deploy with: firebase deploy --only firestore:indexes",
   "indexes": [
     {
       "//": "StudentDashboard: applications where studentId == uid, ordered by appliedAt desc, limit 50",
       "collectionGroup": "applications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "appliedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "appliedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
@@ -15,8 +21,14 @@
       "collectionGroup": "applications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "opportunityId", "order": "ASCENDING" },
-        { "fieldPath": "appliedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "opportunityId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "appliedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
@@ -24,9 +36,18 @@
       "collectionGroup": "applications",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "opportunityId", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" },
-        { "fieldPath": "appliedAt", "order": "ASCENDING" }
+        {
+          "fieldPath": "opportunityId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "appliedAt",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
@@ -34,8 +55,14 @@
       "collectionGroup": "hoursRequests",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "coordinatorContact", "order": "ASCENDING" },
-        { "fieldPath": "status", "order": "ASCENDING" }
+        {
+          "fieldPath": "coordinatorContact",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
@@ -43,8 +70,14 @@
       "collectionGroup": "savedOpportunities",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "opportunityId", "order": "ASCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "opportunityId",
+          "order": "ASCENDING"
+        }
       ]
     },
     {
@@ -52,8 +85,14 @@
       "collectionGroup": "savedOpportunities",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "studentId", "order": "ASCENDING" },
-        { "fieldPath": "savedAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "studentId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "savedAt",
+          "order": "DESCENDING"
+        }
       ]
     },
     {
@@ -61,8 +100,29 @@
       "collectionGroup": "opportunities",
       "queryScope": "COLLECTION",
       "fields": [
-        { "fieldPath": "orgId", "order": "ASCENDING" },
-        { "fieldPath": "createdAt", "order": "DESCENDING" }
+        {
+          "fieldPath": "orgId",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
+      ]
+    },
+    {
+      "//": "Developer console: every OPEN safety report, newest first. Without this the queue was 'newest 200', so an unactioned report older than 200 newer ones was unreachable from every screen.",
+      "collectionGroup": "reports",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "status",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "createdAt",
+          "order": "DESCENDING"
+        }
       ]
     }
   ],

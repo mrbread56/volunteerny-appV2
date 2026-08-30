@@ -423,11 +423,15 @@ export default function OrgOpportunityCreate() {
     }
 
     try {
-      await addDoc(collection(db, 'opportunities'), opportunityData);
+      // The ref was created and thrown away. Landing on the posting itself
+      // beats landing on an overview whose only change is a counter ticking
+      // 0 to 1, which is all the confirmation an organisation used to get that
+      // their opportunity was live.
+      const created = await addDoc(collection(db, 'opportunities'), opportunityData);
       localStorage.removeItem('opportunity_draft');
       setShowSuccessAnim(true);
       setTimeout(() => {
-        navigate('/org/dashboard');
+        navigate(`/org/opportunities/${created.id}/applicants`);
       }, 3000);
     } catch (err: any) {
       // handleFirestoreError threw from inside this catch, so setIsLoading(false)

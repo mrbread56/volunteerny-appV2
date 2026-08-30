@@ -83,7 +83,18 @@ export const TORONTO_SCHOOLS = [
   "William Lyon Mackenzie Collegiate Institute",
   "Winston Churchill Collegiate Institute",
   "York Memorial Collegiate Institute",
-  "York Mills Collegiate Institute"
+  "York Mills Collegiate Institute",
+  /*
+   * "Other", like NEIGHBORHOODS and OPPORTUNITY_CATEGORIES below.
+   *
+   * Onboarding requires a school and offers only this list, with no free text.
+   * TDSB alone runs about 110 secondary schools against these 85, and none of
+   * the private, independent or French-board schools are here at all — so a
+   * student whose school was missing could not finish onboarding, and the
+   * dashboard sends them straight back to it. The account was permanently
+   * unusable, with no error explaining why.
+   */
+  "Other"
 ].sort();
 
 export const NEIGHBORHOODS = [

@@ -439,7 +439,40 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
  * that silently shows nothing when the read failed is the same lie this
  * codebase has been fixing all along.
  */
+/*
+ * In-flight de-duplication.
+ *
+ * Navbar mounts NotificationBell TWICE — once in the desktop group and once
+ * outside the collapsed mobile menu, deliberately, so the unread badge is
+ * visible without opening anything. CSS hides one of them; React mounts both,
+ * so both ran this and every signed-in page load paid for the bell's queries
+ * twice. That is around 190 document reads doubled, on a project where reads
+ * are a real bill.
+ *
+ * A short window is enough: the two mounts fire in the same tick. Anything
+ * later — opening the panel, a refresh — gets a fresh read, so nothing goes
+ * stale.
+ */
+let inFlight: { key: string; at: number; p: Promise<AppNotification[]> } | null = null;
+
 export async function fetchNotifications(
+  uid: string,
+  role: string | undefined,
+  email?: string,
+): Promise<AppNotification[]> {
+  const key = `${uid}|${role || ''}|${email || ''}`;
+  if (inFlight && inFlight.key === key && Date.now() - inFlight.at < 3000) {
+    return inFlight.p;
+  }
+  const p = fetchNotificationsUncached(uid, role, email);
+  inFlight = { key, at: Date.now(), p };
+  // A failure must not be cached: the next caller should try again rather than
+  // inherit an error for three seconds.
+  p.catch(() => { if (inFlight?.p === p) inFlight = null; });
+  return p;
+}
+
+async function fetchNotificationsUncached(
   uid: string,
   role: string | undefined,
   email?: string,
