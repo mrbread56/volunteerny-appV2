@@ -145,6 +145,23 @@ export function buildCertificateHtml(
           Use this sheet to help you fill in your board's form &mdash; the signature
           and pre-approval columns above are left blank for ink.
         </p>
+        <script>
+          /*
+           * Actually print it.
+           *
+           * The button is labelled "Print Hours Transcript" and the caller only
+           * ever wrote this HTML into a new tab — no print() anywhere in the
+           * file or at the call site. On desktop the student had to know
+           * Ctrl+P; on a phone there was no equivalent at all. The pop-up-
+           * blocked FALLBACK had a working print button, so the broken path was
+           * the primary one.
+           *
+           * onload rather than inline, so the table is laid out before the
+           * dialog opens. The window is left open: closing it would take the
+           * transcript away from a student who wanted to save it as a PDF.
+           */
+          window.onload = function () { window.print(); };
+        </script>
       </body>
     </html>
   `);

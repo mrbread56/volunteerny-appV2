@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { reportError } from '../lib/errors';
+import { describeEligibility } from '../lib/eligibility';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { db } from '../firebase/config';
 import { doc, getDoc, setDoc, collection, addDoc, serverTimestamp, query, where, getDocs, deleteDoc } from 'firebase/firestore';
@@ -555,6 +556,12 @@ export default function StudentOpportunityDetail() {
       </div>
     );
 
+  // Derived once, after the guards, so both the sidebar and the confirmation
+  // read the same values rather than recomputing the same condition twice.
+  const capacity = Number(opportunity.maxVolunteers) || 0;
+  const isFull = capacity > 0 && acceptedCount !== null && acceptedCount >= capacity;
+  const eligibilityNote = describeEligibility(opportunity, studentProfile?.grade);
+
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
       {/* Bookmark/share feedback banner. This was previously rendered only inside
@@ -745,8 +752,39 @@ export default function StudentOpportunityDetail() {
                     {hasApplied ? (
                       <div className="flex flex-col items-center gap-3 p-4 bg-blue-dark/5 rounded-lg border border-blue-dark/10">
                          <CheckCircle2 className="w-8 h-8 text-blue-dark" />
-                         <span className="font-bold text-blue-dark">You've Applied!</span>
+                         {/* Say WHICH thing happened. The sidebar already knows
+                             the posting is full and the write already sets
+                             status 'waitlist', but the confirmation said
+                             "You've Applied!" either way — so a waitlisted
+                             student learned it from the dashboard or the bell,
+                             never from the screen they were looking at. */}
+                         <span className="font-bold text-blue-dark">
+                           {isFull ? "You're on the waitlist" : "You've Applied!"}
+                         </span>
+                         <p className="text-xs text-ink-soft text-center max-w-[22rem] leading-relaxed">
+                           {isFull
+                             ? 'Every place is taken right now. If one frees up, the longest-waiting student is moved up automatically and emailed.'
+                             : 'You can withdraw any time from your dashboard.'}
+                         </p>
                          <Link to="/student/dashboard" className="text-xs text-blue-dark hover:underline">View in dashboard</Link>
+                      </div>
+                    ) : eligibilityNote ? (
+                      /* The browse card warns and this page did not, so a
+                         student clicked through a warning into a page that had
+                         forgotten it, applied, and was rejected days later.
+                         Shown, not enforced: the rule is a guideline the
+                         organisation set, not something we can decide for
+                         them. */
+                      <div className="space-y-3">
+                        <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-[13px] text-amber-900 leading-relaxed">
+                          {eligibilityNote}
+                        </div>
+                        <Button
+                          onClick={() => setShowApplyModal(true)}
+                          className="w-full h-14 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide"
+                        >
+                          Apply anyway
+                        </Button>
                       </div>
                     ) : opportunity.status === 'closed' ? (
                       /* Say so rather than offering a button that will be

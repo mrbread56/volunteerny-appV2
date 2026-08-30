@@ -34,7 +34,7 @@ export default function PrivacyPolicy() {
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">4. Third-Party Services</h2>
             <p>
-              We use the following third-party services to operate the Platform: <strong>Google Firebase</strong> for authentication, database, and file storage; <strong>Resend</strong> for transactional email delivery; and <strong>Google Gemini AI</strong> for automated feedback analysis (feedback text only, not personal data). Each of these services has its own privacy policy governing their use of data.
+              We use the following third-party services to operate the Platform: <strong>Google Firebase</strong> for authentication, database, and file storage; <strong>Resend</strong> for transactional email delivery; <strong>Google Gemini AI</strong> for automated triage of feedback and safety reports, which means the text you write in one is sent to it; <strong>OpenStreetMap</strong> to turn a typed address into map coordinates; and <strong>CARTO</strong> to serve the map tiles themselves. Opening any map sends your IP address to those last two. Each of these services has its own privacy policy governing their use of data.
             </p>
           </section>
 
@@ -91,8 +91,20 @@ export default function PrivacyPolicy() {
             <p className="mt-3">
               When you delete your account we delete it immediately, not within
               30 days: your profile, applications, saved opportunities, logged
-              hours, feedback and reports, ratings, and your sign-in itself.
-              Your name comes off the leaderboard at the same time.
+              hours, feedback, ratings, and your sign-in itself. Your name comes
+              off the leaderboard at the same time.
+            </p>
+            <p className="mt-3">
+              Safety reports are the one thing we keep. A report is another
+              person's account of what happened to them, so we do not let the
+              person it is about erase it by closing their account. We remove
+              the names and email addresses from it and keep the rest. If you
+              filed a report and then delete your account, your name comes off
+              it too, and what you wrote stays.
+            </p>
+            <p className="mt-3">
+              We also keep backups for a short period, so a copy of your data
+              can persist there briefly after deletion before it ages out.
             </p>
             <p className="mt-3">
               <strong>Print or save your hours record before you delete your

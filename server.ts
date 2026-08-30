@@ -2064,6 +2064,31 @@ app.use(express.json());
     // Reported client errors carry uid, path and user agent.
     await deleteWhere('clientErrors', 'uid', userId);
 
+    /*
+     * Seven uid-keyed collections deletion never touched.
+     *
+     * Each is a document whose ID is the person's uid, so none of them is
+     * reachable by any of the field queries above and all of them outlived the
+     * account. mfaBackupCodes holds hashed recovery codes; verification_otps is
+     * tombstoned on use and never removed; the four rate-limit collections are
+     * keyed by uid.
+     *
+     * password_reset_rate_limits is the one that matters most: its document ID
+     * is the raw lowercased EMAIL ADDRESS, so listing that collection is an
+     * address book of everyone who ever used password reset — no field read
+     * required. It survived a deletion request entirely.
+     */
+    for (const c of [
+      'mfaBackupCodes', 'verification_otps', 'otp_rate_limits',
+      'verify_email_rate_limits', 'backup_code_rate_limits', 'email_rate_limits',
+    ]) {
+      await adb.collection(c).doc(userId).delete().catch(() => {});
+    }
+    if (userEmail) {
+      await adb.collection('password_reset_rate_limits')
+        .doc(userEmail.trim().toLowerCase()).delete().catch(() => {});
+    }
+
     // ── Cloud Storage ────────────────────────────────────────────────────
     //
     // Deletion never touched it. Every upload lands under {collection}/{uid}/,
@@ -2088,7 +2113,13 @@ app.use(express.json());
       for (const prefix of [
         `students/${userId}/`,
         `organizations/${userId}/`,
-        `reports/${userId}/`,
+        // reports/ is NOT swept. redactReports deliberately keeps a report as
+        // another person's safety record, and the attachment is the evidence
+        // for it — sweeping the bucket left the preserved report pointing at a
+        // deleted photograph. A reporter deleting their own account is a
+        // self-serve call, so this was a one-click way to destroy the evidence
+        // for an open case. The reporter's own identifying fields are redacted
+        // on the document instead.
         `feedbacks/${userId}/`,
       ]) {
         try {

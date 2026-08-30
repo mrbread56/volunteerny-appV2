@@ -224,9 +224,20 @@ export default function HoursTracker({
                               when the organisation simply closed its account.
                               The student needs the real cause to know the hours
                               are still theirs to claim another way. */}
-                          {req.status === "declined" && (req as any).declinedReason && (
+                          {/* Always say something, because nothing on the
+                              coordinator path writes a reason: /api/hours/approve
+                              stores status, decidedAt, declinedBy and declinedAt
+                              and no explanation. The only writer of
+                              declinedReason is the account-deletion sweep. So a
+                              bare red "Declined" was the whole message on the
+                              graduation-critical path, while the explanation and
+                              the "you can submit it again" instruction existed
+                              only inside an email. Applications already do this
+                              properly. */}
+                          {req.status === "declined" && (
                             <p className="text-xs text-ink-muted leading-relaxed pt-2">
-                              {(req as any).declinedReason}
+                              {(req as any).declinedReason
+                                || 'Your coordinator did not approve this one. Talk to them and then submit the hours again from this page — a declined request cannot be reopened, so it has to be a new submission.'}
                             </p>
                           )}
                         </div>
