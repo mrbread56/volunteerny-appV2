@@ -329,7 +329,7 @@ export default function StudentProfile() {
             </p>
             <Badge
               variant="secondary"
-              className="px-4 py-1.5 font-semibold text-xs tracking-widest bg-paper-2 border-line italic"
+              className="px-4 py-1.5 font-semibold text-xs tracking-widest bg-paper-2 border-line"
             >
               School on file
             </Badge>
@@ -576,7 +576,7 @@ export default function StudentProfile() {
                       disabled
                       className="h-11 rounded-lg bg-paper border-line font-semibold opacity-75"
                     />
-                    <p className="text-xs text-ink-muted ml-2 mt-1 italic">Organizations will use this email to contact you regarding your applications.</p>
+                    <p className="text-xs text-ink-muted ml-2 mt-1">Organizations will use this email to contact you regarding your applications.</p>
                   </div>
               </div>
             </CardContent>
@@ -715,7 +715,7 @@ export default function StudentProfile() {
                   placeholder="Tell us where else you've volunteered and what motivates you to help..."
                   className="w-full min-h-[250px] p-6 rounded-lg bg-paper-2 border-line font-medium text-ink-soft focus:ring-2 focus:ring-blue-dark focus:outline-none transition-all"
                 />
-                <p className="text-xs text-ink-soft italic ml-2">
+                <p className="text-xs text-ink-soft ml-2">
                   This helps organizations understand your background and
                   passion.
                 </p>
@@ -736,7 +736,7 @@ export default function StudentProfile() {
             </CardHeader>
             <CardContent className="p-6 sm:p-8 space-y-8">
               <div className="bg-paper-2 p-6 rounded-lg border border-line text-center">
-                <p className="text-xs text-ink-soft mb-6 font-medium italic">
+                <p className="text-xs text-ink-soft mb-6 font-medium">
                   Upload your resume to share it automatically with
                   organizations when you apply. PDF files up to 5MB are
                   supported; files are stored securely in cloud storage, not in

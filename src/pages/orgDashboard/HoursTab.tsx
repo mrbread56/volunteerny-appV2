@@ -195,7 +195,7 @@ export default function HoursTab({
             </div>
 
             {hoursRequests.length === 0 ? (
-              <div className="py-6 text-center border-2 border-dashed border-line rounded-lg text-xs font-semibold text-ink-soft italic">
+              <div className="py-6 text-center border-2 border-dashed border-line rounded-lg text-xs font-semibold text-ink-soft">
                 No pending verification claims found.
               </div>
             ) : (

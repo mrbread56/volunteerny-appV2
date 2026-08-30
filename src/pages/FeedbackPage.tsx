@@ -541,7 +541,7 @@ export default function FeedbackPage() {
                         Attachment: {fb.attachmentName} ({fb.attachmentSize})
                       </span>
                       {fb.attachmentDescription && (
-                        <span className="text-ink-soft font-semibold font-sans italic text-xs border-l border-line pl-2">
+                        <span className="text-ink-soft font-semibold font-sans text-xs border-l border-line pl-2">
                           "{fb.attachmentDescription}"
                         </span>
                       )}

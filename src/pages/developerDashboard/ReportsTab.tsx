@@ -185,7 +185,7 @@ export default function ReportsTab({
 
                     <div className="prose">
                       <span className="text-xs text-ink-muted uppercase tracking-widest block font-semibold">Description of Violation</span>
-                      <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-rose-50/10 p-4 border border-red-50 rounded-lg italic">
+                      <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-rose-50/10 p-4 border border-red-50 rounded-lg">
                         "{report.description}"
                       </p>
                     </div>
@@ -198,7 +198,7 @@ export default function ReportsTab({
                           <span>Attached Safe Space Proof/Screenshot: <strong className="font-semibold text-[#FF6B35]">{report.attachmentName}</strong> ({report.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {report.attachmentDescription && (
-                          <div className="pl-6 border-l-2 border-slate-300 italic text-ink-muted">
+                          <div className="pl-6 border-l-2 border-slate-300 text-ink-muted">
                             "Attachment Description: {report.attachmentDescription}"
                           </div>
                         )}
@@ -241,7 +241,7 @@ export default function ReportsTab({
                           {report.aiOverview.suggestedFix && (
                             <div className="space-y-1 md:col-span-2 bg-paper-2 p-4 border border-line rounded-lg">
                               <span className="text-xs text-ink-muted uppercase tracking-widest block font-bold">AI Safety Action recommendations</span>
-                              <p className="text-ink-muted font-mono text-[10.5px] leading-relaxed italic">
+                              <p className="text-ink-muted font-mono text-[10.5px] leading-relaxed">
                                 {report.aiOverview.suggestedFix}
                               </p>
                             </div>

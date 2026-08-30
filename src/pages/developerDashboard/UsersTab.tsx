@@ -204,7 +204,7 @@ export default function UsersTab({
                           Type: {org.organizationType || 'Unassigned'}
                         </p>
                         {org.address && (
-                          <p className="text-xs text-ink-muted italic">
+                          <p className="text-xs text-ink-muted">
                             HQ Address: {org.address}
                           </p>
                         )}

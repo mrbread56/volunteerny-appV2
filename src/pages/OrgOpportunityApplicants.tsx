@@ -963,7 +963,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                         <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">
                           Personal Message
                         </p>
-                        <p className="text-sm text-ink-soft leading-relaxed italic font-medium">
+                        <p className="text-sm text-ink-soft leading-relaxed font-medium">
                           "{app.message ? (app.message.length > 100 && !expandedMsgs[app.id] ? app.message.substring(0, 100) + "..." : app.message) : "No message provided."}"
                         </p>
                         {app.message && app.message.length > 100 && (

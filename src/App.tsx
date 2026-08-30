@@ -36,7 +36,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
             </div>
-            <h1 className="text-2xl font-black uppercase tracking-tight text-ink">Something went wrong</h1>
+            <h1 className="text-2xl font-bold uppercase tracking-tight text-ink">Something went wrong</h1>
             <p className="text-sm font-medium text-ink-soft">Something went wrong while loading this page. The problem has been recorded. Refreshing usually fixes it, and if it keeps happening please let us know.</p>
             <button
               onClick={() => window.location.reload()}

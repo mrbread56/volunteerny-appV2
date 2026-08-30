@@ -209,14 +209,14 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
             </svg>
           </div>
-          <h2 className="text-3xl font-black text-ink tracking-tight uppercase">Account Locked</h2>
+          <h2 className="text-3xl font-bold text-ink tracking-tight uppercase">Account Locked</h2>
           <p className="text-ink-soft text-sm leading-relaxed font-semibold">
             Your account is locked while we look into a report. Email privacy@volunteernorthyork.indevs.in from this address and a person will reply.
           </p>
           <div className="p-4 bg-slate-50 border border-slate-100 rounded-sm text-xs text-ink-soft font-medium space-y-1.5 leading-relaxed">
             <p className="font-bold text-ink-soft">Appeal or Investigation:</p>
             <p>To request review or appeal records, contact our privacy desk directly:</p>
-            <a aria-label="Email privacy desk" href="mailto:privacy@volunteernorthyork.indevs.in" className="text-blue-dark font-extrabold hover:underline">privacy@volunteernorthyork.indevs.in</a>
+            <a aria-label="Email privacy desk" href="mailto:privacy@volunteernorthyork.indevs.in" className="text-blue-dark font-bold hover:underline">privacy@volunteernorthyork.indevs.in</a>
           </div>
         </div>
       </div>

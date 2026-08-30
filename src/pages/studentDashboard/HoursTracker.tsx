@@ -47,11 +47,11 @@ export default function HoursTracker({
               <Card className="p-8 border border-line/50 rounded-lg bg-white space-y-6">
                 {/* Hours Gauge */}
                 <div className="space-y-3">
-                  <div className="flex justify-between items-center text-sm font-extrabold">
-                    <span className="text-ink font-black tracking-wide ">
+                  <div className="flex justify-between items-center text-sm font-bold">
+                    <span className="text-ink font-bold tracking-wide ">
                       Volunteering Progress
                     </span>
-                    <span className="text-blue-dark font-black text-lg ">
+                    <span className="text-blue-dark font-bold text-lg ">
                       {totalCompletedHours} / {hourGoal} hrs
                     </span>
                   </div>

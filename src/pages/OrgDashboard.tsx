@@ -1397,7 +1397,7 @@ export default function OrgDashboard() {
                         </div>
                       ))
                     ) : (
-                      <p className="text-sm text-ink-soft italic text-center py-6">
+                      <p className="text-sm text-ink-soft text-center py-6">
                         No posted opportunities.
                       </p>
                     )}
@@ -1449,7 +1449,7 @@ export default function OrgDashboard() {
                           </div>
                         ))
                     ) : (
-                      <p className="text-sm text-ink-soft italic text-center py-6">
+                      <p className="text-sm text-ink-soft text-center py-6">
                         No applications in this category.
                       </p>
                     )}

@@ -537,7 +537,7 @@ export default function ApplicationReviewDialog({
    
                       <section>
                           <p className="text-xs font-semibold text-ink-soft tracking-wide mb-3">Application Message</p>
-                          <div className="bg-paper-2 p-6 rounded-lg border border-line text-sm text-ink-soft leading-relaxed italic relative">
+                          <div className="bg-paper-2 p-6 rounded-lg border border-line text-sm text-ink-soft leading-relaxed relative">
                              <MessageSquare className="w-8 h-8 text-slate-200 absolute -top-4 -right-4" />
                              "{application.message || "No message provided."}"
                           </div>

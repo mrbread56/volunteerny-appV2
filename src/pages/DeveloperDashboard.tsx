@@ -936,7 +936,7 @@ export default function DeveloperDashboard() {
                       </div>
                     </div>
 
-                    <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-paper-2 p-4 border border-line-light rounded-lg italic">
+                    <p className="text-ink-muted text-xs leading-relaxed font-semibold bg-paper-2 p-4 border border-line-light rounded-lg">
                       "{fb.message}"
                     </p>
 
@@ -948,7 +948,7 @@ export default function DeveloperDashboard() {
                           <span>Attached screenshot/document: <strong className="font-semibold text-[#FF6B35]">{fb.attachmentName}</strong> ({fb.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {fb.attachmentDescription && (
-                          <div className="pl-6 border-l-2 border-slate-300 italic text-ink-muted">
+                          <div className="pl-6 border-l-2 border-slate-300 text-ink-muted">
                             "File Context/Description: {fb.attachmentDescription}"
                           </div>
                         )}
@@ -988,7 +988,7 @@ export default function DeveloperDashboard() {
                           {fb.aiOverview.suggestedFix && (
                             <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-orange-100 rounded-lg">
                               <span className="text-xs text-amber-dark uppercase tracking-widest block font-bold">suggested resolve tip</span>
-                              <p className="text-orange-950 font-mono text-[10.5px] leading-relaxed italic">
+                              <p className="text-orange-950 font-mono text-[10.5px] leading-relaxed">
                                 {fb.aiOverview.suggestedFix}
                               </p>
                             </div>

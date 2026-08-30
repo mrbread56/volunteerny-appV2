@@ -164,7 +164,7 @@ export default function SearchableSelect({
           }}
           onFocus={() => setOpen(true)}
           onKeyDown={onKeyDown}
-          className="w-full h-12 rounded-lg border border-line bg-white px-4 pr-10 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-blue-dark/30 focus:border-blue-dark transition-all"
+          className="w-full h-12 rounded-lg border border-line-control bg-white px-4 pr-10 text-sm font-medium text-ink outline-none focus:ring-2 focus:ring-blue-dark/30 focus:border-blue-dark transition-all"
         />
         {/* Decorative: the input already announces itself as a combobox. */}
         <span aria-hidden="true" className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink-muted text-xs">

@@ -203,7 +203,7 @@ export default function ApplicationsTab({
                                 {app.rejectionReason}
                               </p>
                               {app.rejectionNote && (
-                                <p className="text-xs text-red-600/80 italic mt-1 leading-relaxed">
+                                <p className="text-xs text-red-600/80 mt-1 leading-relaxed">
                                   "{app.rejectionNote}"
                                 </p>
                               )}
@@ -215,7 +215,7 @@ export default function ApplicationsTab({
                 </div>
               ) : (
                 <Card className="p-8 text-center bg-white border-dashed">
-                  <p className="text-ink-soft italic">
+                  <p className="text-ink-soft">
                     No applications yet. Start exploring!
                   </p>
                   <Link to="/student/opportunities">

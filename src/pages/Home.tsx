@@ -319,13 +319,20 @@ export default function Home() {
                   />
 
                   {/* Oversized ghost numeral, low contrast so it never competes
-                      with the heading. Deepens slightly on hover. */}
+                      with the heading. Deepens slightly on hover.
+                      Drawn as a CSS ::after rather than as a text node. WCAG
+                      1.4.3 exempts text that is pure decoration, so this always
+                      passed the criterion — but it is a real text node at 4%
+                      opacity, so axe flags it as a contrast failure and it is
+                      not worth teaching the suite to ignore contrast findings.
+                      As generated content it is decoration to both. Only
+                      visible once this section was, which is why it surfaced
+                      the moment the reveal bug was fixed. */}
                   <span
                     aria-hidden="true"
-                    className="pointer-events-none select-none absolute -right-3 -bottom-8 text-[8rem] leading-none font-bold tracking-[-0.05em] text-blue-dark/[0.04] group-hover:text-blue-dark/[0.07] transition-colors duration-500"
-                  >
-                    {num}
-                  </span>
+                    data-step-numeral={num}
+                    className="step-numeral pointer-events-none select-none absolute -right-3 -bottom-8"
+                  />
 
                   <div className="relative">
                     <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-dark group-hover:bg-blue-dark group-hover:text-white transition-colors duration-500">

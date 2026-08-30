@@ -1407,7 +1407,7 @@ export default function StudentDashboard() {
                     </Link>
                   ))
                 ) : (
-                  <p className="text-xs text-ink-soft italic">
+                  <p className="text-xs text-ink-soft">
                     No saved posts.
                   </p>
                 )}
@@ -1915,7 +1915,7 @@ export default function StudentDashboard() {
                 <tbody className="divide-y divide-slate-100">
                   {loggedHoursList.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="p-6 text-center text-ink-soft italic">No volunteer hours logged in your tracking list yet.</td>
+                      <td colSpan={5} className="p-6 text-center text-ink-soft">No volunteer hours logged in your tracking list yet.</td>
                     </tr>
                   ) : (
                     loggedHoursList.map((lh, idx) => (

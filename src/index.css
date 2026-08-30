@@ -41,7 +41,11 @@
   /* ── Ink: text hierarchy (video 15: "don't use pure black, use dark gray") ── */
   --color-ink: #1A2B36;
   --color-ink-soft: #2D4A5A;
-  --color-ink-muted: #5C7483;
+  /* 5C7483 measured 4.38:1 on --color-paper-3 (#F3F2EE) — below the 4.5:1 that
+   * SC 1.4.3 requires for normal text, and card-on-tint layouts put it there.
+   * Two units darker clears it on all three grounds (white 5.05, paper-2 4.79,
+   * paper-3 4.51) and is visually indistinguishable. */
+  --color-ink-muted: #5A7281;
 
   /* ── Paper: background layers (video 12: "4 layers of backgrounds") ── */
   --color-paper: #FFFFFF;
@@ -50,7 +54,8 @@
 
   /* ── Accent: 10% of the UI only (video 1: "60/30/10 rule") ── */
   --color-amber: #E08A3C;
-  --color-amber-dark: #A85E22;
+  /* Same story: 4.37:1 on paper-3. #A55B1F is 4.55 there and 5.10 on white. */
+  --color-amber-dark: #A55B1F;
   --color-amber-light: #F5DFC5;
 
   --color-blue-accent: #2E6B8A;
@@ -60,6 +65,15 @@
 
   /* ── Lines: subtle, not bold (video 15: "use ~85% white for borders") ── */
   --color-line: #E5E2D9;
+  /* The border of a FORM CONTROL, which is a different job from a divider.
+   *
+   * SC 1.4.11 Non-text Contrast requires 3:1 for the visual information needed
+   * to identify a control's boundary. --color-line is 1.30:1 on white, which is
+   * right for a hairline rule and not enough for the only thing distinguishing
+   * a white input from a white card. 3.03:1, keeping the warm tint so it still
+   * belongs to the palette. Dividers stay light — this token is only for
+   * input, select and textarea. */
+  --color-line-control: #97948B;
   --color-line-light: #EDEAE3;
 
   /* ── Semantic (video 15: "red for danger, green for success") ── */
@@ -383,6 +397,22 @@ svg {
  *
  * When the transcript is open, print only the transcript.
  * ══════════════════════════════════════════════════════════════════════ */
+/* The step-card watermark on the home page. Generated content, not a text
+ * node, so it reads as decoration to an auditing tool as well as to a person —
+ * see the note at its call site in Home.tsx. */
+.step-numeral::after {
+  content: attr(data-step-numeral);
+  font-size: 8rem;
+  line-height: 1;
+  font-weight: 700;
+  letter-spacing: -0.05em;
+  color: color-mix(in srgb, var(--color-blue-dark) 4%, transparent);
+  transition: color 500ms ease;
+}
+.group:hover .step-numeral::after {
+  color: color-mix(in srgb, var(--color-blue-dark) 7%, transparent);
+}
+
 @media print {
   /* Hide the app behind the sheet without unmounting anything. */
   body:has([data-print-root]) > *:not(:has([data-print-root])) {
