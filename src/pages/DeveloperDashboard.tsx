@@ -585,7 +585,7 @@ export default function DeveloperDashboard() {
   if (!isDashboardActive) {
     return (
       <div className="min-h-[calc(100vh-140px)] flex flex-col items-center justify-center py-16 px-4 bg-paper-2">
-        <Card className="w-full max-w-xl mx-auto p-10 border border-line-light shadow-slate-200/60 rounded-lg bg-white text-center space-y-8 animate-fadeIn relative overflow-hidden">
+        <Card className="w-full max-w-xl mx-auto p-10 border border-line-light  rounded-lg bg-white text-center space-y-8 animate-fadeIn relative overflow-hidden">
           {/* Accent decoration */}
           <div className="absolute top-0 left-0 right-0 h-2" />
           
@@ -705,7 +705,7 @@ export default function DeveloperDashboard() {
             className={cn(
               "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-students-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showStudentsList
-                ? "bg-blue-dark border-blue-dark text-white  shadow-blue-500/20"
+                ? "bg-blue-dark border-blue-dark text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
@@ -732,7 +732,7 @@ export default function DeveloperDashboard() {
             className={cn(
               "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-orgs-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showOrgsList
-                ? "bg-blue-dark border-blue-dark text-white  shadow-blue-500/20"
+                ? "bg-blue-dark border-blue-dark text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
@@ -759,7 +759,7 @@ export default function DeveloperDashboard() {
             className={cn(
               "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-reports-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showReportsList && activeTab === 'reports'
-                ? "bg-red-600 border-red-500 text-white  shadow-red-500/20"
+                ? "bg-red-600 border-red-500 text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
@@ -1054,7 +1054,7 @@ export default function DeveloperDashboard() {
         <div className="space-y-6">
           <div className="bg-red-50 border border-red-100 rounded-lg p-6 flex flex-col sm:flex-row items-center gap-4 relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-red-100/30 rounded-lg blur-2xl pointer-events-none" />
-            <div className="w-12 h-12 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0 shadow-red-500/10">
+            <div className="w-12 h-12 rounded-lg bg-red-500 flex items-center justify-center text-white shrink-0 ">
               <Lock className="w-6 h-6" />
             </div>
             <div>
@@ -1069,7 +1069,7 @@ export default function DeveloperDashboard() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Suspended Students */}
-            <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
+            <Card className="rounded-lg border border-line-light bg-white  overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
                   <Users className="w-4 h-4 text-red-600" /> Suspended Students ({bannedStudents.length})
@@ -1115,7 +1115,7 @@ export default function DeveloperDashboard() {
             </Card>
 
             {/* Suspended Organizations */}
-            <Card className="rounded-lg border border-line-light bg-white shadow-slate-100/50 overflow-hidden flex flex-col animate-fadeIn">
+            <Card className="rounded-lg border border-line-light bg-white  overflow-hidden flex flex-col animate-fadeIn">
               <CardHeader className="border-b border-red-50 bg-red-50/10 p-6 md:p-8">
                 <CardTitle className="text-xs font-bold text-rose-950 flex items-center gap-2 text-red-600 uppercase tracking-widest">
                   <Building2 className="w-4 h-4 text-red-600" /> Suspended Partners ({bannedOrgs.length})
@@ -1290,7 +1290,7 @@ export default function DeveloperDashboard() {
                 type="button"
                 onClick={handleSendTestEmail}
                 disabled={isSendingTestEmail || !testEmailTo}
-                className="w-full bg-amber-dark text-white hover:bg-amber-dark font-semibold text-xs shadow-orange-500/10"
+                className="w-full bg-amber-dark text-white hover:bg-amber-dark font-semibold text-xs "
               >
                 {isSendingTestEmail ? "Dispatching Delivery..." : "Send Test Email"}
               </Button>

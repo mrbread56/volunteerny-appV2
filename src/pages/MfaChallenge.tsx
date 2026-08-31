@@ -235,7 +235,7 @@ export default function MfaChallenge() {
       >
         <Card className="w-full border-blue-dark/10 overflow-hidden rounded-lg">
           <CardHeader className="text-center pb-2 pt-10">
-            <div className="mx-auto w-16 h-16 bg-blue-dark rounded-lg flex items-center justify-center mb-6 shadow-blue-200">
+            <div className="mx-auto w-16 h-16 bg-blue-dark rounded-lg flex items-center justify-center mb-6 ">
               <ShieldAlert className="w-8 h-8 text-white" />
             </div>
             {/* as="h1": this card IS the page, and without it the outline starts at h3. */}

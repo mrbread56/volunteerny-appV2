@@ -61,7 +61,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", stiffness: 220, damping: 14 }}
-            className="w-16 h-16 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg shadow-emerald-500/20 z-10"
+            className="w-16 h-16 bg-emerald-600 rounded-lg flex items-center justify-center shadow-lg  z-10"
           >
             <svg
               className="w-8 h-8 text-white"
@@ -117,7 +117,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
             animate={{ opacity: 1 }}
             transition={{ delay: 0.5 }}
             onClick={onClose}
-            className="mt-6 px-8 py-3 bg-emerald-700 hover:opacity-90 text-white rounded-lg text-xs font-semibold uppercase transition-all shadow-lg shadow-emerald-500/10 cursor-pointer"
+            className="mt-6 px-8 py-3 bg-emerald-700 hover:opacity-90 text-white rounded-lg text-xs font-semibold uppercase transition-all shadow-lg  cursor-pointer"
           >
             Close
           </motion.button>

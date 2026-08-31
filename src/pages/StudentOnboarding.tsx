@@ -220,7 +220,7 @@ export default function StudentOnboarding() {
         <div className="max-w-2xl mx-auto">
           {/* Step 1: Academic Identity */}
           {step === 1 && (
-            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none  bg-white shadow-card">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
@@ -289,7 +289,7 @@ export default function StudentOnboarding() {
 
           {/* Step 2: Interests */}
           {step === 2 && (
-            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none  bg-white shadow-card">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
@@ -311,7 +311,7 @@ export default function StudentOnboarding() {
                       className={cn(
                         "px-6 py-3.5 rounded-lg text-xs font-semibold uppercase border-2 transition-all duration-200",
                         interests.includes(item)
-                          ? "bg-slate-900 border-slate-900 text-white scale-105  shadow-slate-200"
+                          ? "bg-slate-900 border-slate-900 text-white scale-105 "
                           : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-ink-soft"
                       )}
                     >
@@ -325,7 +325,7 @@ export default function StudentOnboarding() {
 
           {/* Step 3: Skills */}
           {step === 3 && (
-            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none  bg-white shadow-card">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
@@ -347,7 +347,7 @@ export default function StudentOnboarding() {
                       className={cn(
                         "px-6 py-3.5 rounded-lg text-xs font-semibold uppercase border-2 transition-all duration-200",
                         skills.includes(item)
-                          ? "bg-blue-dark border-blue-dark text-white scale-105  shadow-blue-100"
+                          ? "bg-blue-dark border-blue-dark text-white scale-105 "
                           : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-blue-dark"
                       )}
                     >
@@ -361,7 +361,7 @@ export default function StudentOnboarding() {
 
           {/* Step 4: Availability */}
           {step === 4 && (
-            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none  bg-white shadow-card">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
@@ -398,7 +398,7 @@ export default function StudentOnboarding() {
 
           {/* Step 5: Optional Experience & Resume */}
           {step === 5 && (
-            <Card className="rounded-lg border-none shadow-slate-100 bg-white">
+            <Card className="rounded-lg border-none  bg-white shadow-card">
               <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
@@ -488,7 +488,7 @@ export default function StudentOnboarding() {
                 <Button 
                   onClick={(e) => handleSubmit(e as any, false)}
                   isLoading={isSubmitting}
-                  className="h-12 bg-amber-dark hover:bg-amber-dark text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 shadow-orange-500/10"
+                  className="h-12 bg-amber-dark hover:bg-amber-dark text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 "
                 >
                   Complete Onboarding <Check className="w-3.5 h-3.5" />
                 </Button>

@@ -653,7 +653,16 @@ export default function StudentOpportunityDetail() {
             </div>
           </div>
 
-          <div className="prose prose-slate max-w-none">
+          {/* max-w-none removed: it opted OUT of Tailwind Typography's measure
+              cap, so the description ran the full width of a max-w-5xl column
+              at roughly 115-125 characters per line, against 45-75 (Bringhurst),
+              45-90 (USWDS) and 55 measured best for comprehension (Dyson and
+              Haselgrove 2001).
+
+              28.5em rather than 65ch: Outfit's "0" advance is 0.656em but its
+              real mean advance including spaces is 0.438em, so 65ch in this
+              font renders about 97 characters. The em value gives a true 65. */}
+          <div className="prose prose-slate max-w-[28.5em]">
             <h3 className="text-xl font-bold text-ink mb-4">Description</h3>
             <p className="text-ink-muted whitespace-pre-wrap leading-relaxed">
               {opportunity.description}
@@ -804,7 +813,7 @@ export default function StudentOpportunityDetail() {
                          </Link>
                       </div>
                     ) : (
-                      <Button size="lg" className="w-full text-lg font-bold shadow-blue-200" onClick={() => setShowApplyModal(true)}>
+                      <Button size="lg" className="w-full text-lg font-bold " onClick={() => setShowApplyModal(true)}>
                          Apply Now
                       </Button>
                     )}
@@ -902,7 +911,7 @@ export default function StudentOpportunityDetail() {
             // Clicks inside the card are not clicks outside it.
             onClick={(e) => e.stopPropagation()}
           >
-          <Card className="relative w-full rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300">
+          <Card className="relative w-full rounded-lg overflow-hidden border-none animate-in fade-in zoom-in duration-300 shadow-card">
             <button
               onClick={() => setShowApplyModal(false)}
               aria-label="Close"
@@ -953,7 +962,7 @@ export default function StudentOpportunityDetail() {
 
                   <Button 
                      type="submit" 
-                     className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide shadow-blue-200 transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                     className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide  transition-all hover:scale-[1.02] active:scale-[0.98]" 
                      disabled={isApplying}
                   >
                      {isApplying ? 'Submitting...' : 'Send Application'}

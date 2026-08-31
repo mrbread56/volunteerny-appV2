@@ -898,7 +898,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
               .map((app) => (
                 <Card
                 key={app.id}
-                className="overflow-hidden border-none shadow-slate-100 rounded-lg bg-white"
+                className="overflow-hidden border-none  rounded-lg bg-white shadow-card"
               >
                 <CardContent className="p-5 sm:p-10">
                   <div className="flex flex-col md:flex-row justify-between gap-8">
@@ -990,7 +990,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                                   ? "warning"
                                   : "warning"
                         }
-                        className="text-xs py-2 px-6 font-semibold tracking-wide rounded-lg border-none text-center block w-full"
+                        className="text-xs py-2 px-6 font-semibold tracking-wide rounded-lg border-none text-center block w-full shadow-card"
                       >
                         {app.status === "terminated"
                           ? "TERMINATED"
@@ -1095,7 +1095,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                           className={cn(
                             "w-full font-bold uppercase text-xs tracking-widest h-12 rounded-lg",
                             (app.status === "pending" || app.status === "reviewed")
-                              ? "bg-blue-dark hover:bg-[#153343] text-white shadow-blue-100"
+                              ? "bg-blue-dark hover:bg-[#153343] text-white "
                               : "text-ink-muted",
                           )}
                           onClick={() => openReview(app)}

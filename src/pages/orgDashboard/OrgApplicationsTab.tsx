@@ -80,7 +80,7 @@ export default function OrgApplicationsTab({
               ))}
             </div>
           </div>
-          <Card className="overflow-hidden border-none rounded-lg bg-white">
+          <Card className="overflow-hidden border-none rounded-lg bg-white shadow-card">
             <div className="divide-y divide-slate-100">
               {/* filteredApplications, not recentApplications. The memo and its
                   search state were fully written and consumed by nothing, so the

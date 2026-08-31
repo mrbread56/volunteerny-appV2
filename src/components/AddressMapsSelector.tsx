@@ -252,11 +252,18 @@ export default function AddressMapsSelector({
           scrollWheelZoom={false}
           className="w-full h-full"
         >
+{/* OpenStreetMap's own tiles, not CARTO's.
+              CARTO's basemaps.cartocdn.com now requires an API key, and
+              without one every tile is served with "API KEY REQUIRED"
+              stamped diagonally across it — which is what both maps in this
+              app were rendering to real users. OSM's standard tiles are free
+              and need no key; the CSP in vercel.json already allows
+              *.tile.openstreetmap.org, and the attribution below is the one
+              their usage policy requires. */}
           <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-            
-            maxZoom={20}
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+            maxZoom={19}
           />
           <Marker position={coords} icon={customPinIcon} />
           {userCoords && (

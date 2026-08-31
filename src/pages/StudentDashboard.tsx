@@ -1144,8 +1144,13 @@ export default function StudentDashboard() {
     // what is coming, so the page appears to snap into existence; a shape that
     // matches the finished layout reads as faster even when it is not. The
     // shimmer primitive already exists (--animate-shimmer, used by the navbar).
+    // Same rail as DashboardLayout, which is what renders once this resolves.
+    // The skeleton was max-w-6xl p-6 against the real page's max-w-7xl
+    // px-4/6/8 py-8/12, so content jumped 128px horizontally and about 24px
+    // vertically on every dashboard load — the skeleton was causing the layout
+    // shift it exists to prevent.
     return (
-      <div className="max-w-6xl mx-auto p-6 space-y-8" aria-busy="true" aria-live="polite">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 space-y-8" aria-busy="true" aria-live="polite">
         <span className="sr-only">Loading your dashboard</span>
         <div className="h-9 w-64 rounded-lg bg-line animate-shimmer" />
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1326,7 +1331,7 @@ export default function StudentDashboard() {
                 <ListPlus className="text-blue-dark w-5 h-5" />
                 Waiting List
               </h2>
-              <Card className="p-6 border-none rounded-lg bg-white">
+              <Card className="p-6 border-none rounded-lg bg-white shadow-card">
                 <p className="text-ink-soft text-xs font-medium mb-4">
                   Can't find a match? Join our waiting list for custom
                   placements.
@@ -1345,7 +1350,7 @@ export default function StudentDashboard() {
                           className={cn(
                             "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
                             selectedCategories.includes(cat)
-                              ? "bg-blue-dark border-blue-dark text-white  shadow-blue-100"
+                              ? "bg-blue-dark border-blue-dark text-white "
                               : "bg-white border-line text-ink-soft hover:border-blue-dark/20",
                           )}
                         >
@@ -1525,7 +1530,7 @@ export default function StudentDashboard() {
           aria-label="Log volunteer hours"
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
         >
-          <Card className="w-full max-w-lg rounded-lg border-none p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto">
+          <Card className="w-full max-w-lg rounded-lg border-none p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto shadow-card">
             <button 
               onClick={() => {
                 setShowLogForm(false);
@@ -1817,7 +1822,7 @@ export default function StudentDashboard() {
                 <Button
                   type="submit"
                   isLoading={isLogging}
-                  className="w-1/2 h-12 bg-blue-dark hover:bg-blue-dark text-white font-semibold uppercase text-xs tracking-widest rounded-lg shadow-blue-100 cursor-pointer"
+                  className="w-1/2 h-12 bg-blue-dark hover:bg-blue-dark text-white font-semibold uppercase text-xs tracking-widest rounded-lg  cursor-pointer"
                 >
                   Send Request
                 </Button>

@@ -605,7 +605,7 @@ export default function OrgOpportunityEdit() {
         <ArrowLeft className="w-4 h-4" /> Back to Dashboard
       </button>
 
-      <Card className="border-none rounded-lg overflow-hidden">
+      <Card className="border-none rounded-lg overflow-hidden shadow-card">
         <CardHeader className="bg-blue-dark text-white p-10 border-none">
           {/* as="h1": this card IS the page, and without it the outline starts at h3. */}
           <CardTitle as="h1" className="text-3xl font-bold uppercase tracking-tight text-white">Edit Opportunity</CardTitle>
@@ -731,7 +731,7 @@ export default function OrgOpportunityEdit() {
                        {geocodeNotice}
                      </p>
                    )}
-                   <Card className="h-[300px] overflow-hidden rounded-lg border-none">
+                   <Card className="h-[300px] overflow-hidden rounded-lg border-none shadow-card">
                       <MapContainer center={[coords.lat, coords.lng]} zoom={12} style={{ height: '100%', width: '100%' }}>
                          <TileLayer 
                             url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
@@ -768,7 +768,7 @@ export default function OrgOpportunityEdit() {
                    <label className="text-sm font-medium text-ink-soft block mb-4">Skills Needed</label>
                    <div className="flex flex-wrap gap-2">
                      {SKILLS.map(skill => (
-                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white shadow-blue-100" : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
+                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white " : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
                          {skill}
                        </button>
                      ))}
@@ -794,7 +794,7 @@ export default function OrgOpportunityEdit() {
                          className={cn(
                            "px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all",
                            selectedExclusives.includes(exc)
-                             ? "bg-amber-600 border-amber-600 text-white shadow-amber-100"
+                             ? "bg-amber-600 border-amber-600 text-white "
                              : "bg-white border-line-light text-ink-muted hover:border-amber-300"
                          )}
                        >
@@ -855,7 +855,7 @@ export default function OrgOpportunityEdit() {
 
              <div className="pt-10 flex gap-4">
                <Button type="button" variant="outline" className="flex-1 h-16 rounded-lg font-semibold uppercase text-xs" onClick={() => navigate(-1)}>Cancel</Button>
-               <Button type="submit" className="flex-[2] text-sm h-16 font-semibold uppercase bg-blue-dark hover:bg-[#153343] shadow-blue-100 rounded-lg" isLoading={isSaving}>Update Opportunity</Button>
+               <Button type="submit" className="flex-[2] text-sm h-16 font-semibold uppercase bg-blue-dark hover:bg-[#153343]  rounded-lg" isLoading={isSaving}>Update Opportunity</Button>
              </div>
           </form>
         </CardContent>

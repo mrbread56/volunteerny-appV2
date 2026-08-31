@@ -137,7 +137,7 @@ export default function LeaderboardTab({
                     </p>
                   </div>
                   <div
-                    className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-amber/20 shadow-orange-500/5"
+                    className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-amber/20 "
                     style={{ height: "95px" }}
                   >
                     <span className="text-3xl font-medium text-amber-dark ">
@@ -177,7 +177,7 @@ export default function LeaderboardTab({
             </div>
 
             {/* Complete Leaderboard list */}
-            <Card className="overflow-hidden border-none rounded-lg bg-white p-6 space-y-4">
+            <Card className="overflow-hidden border-none rounded-lg bg-white p-6 space-y-4 shadow-card">
               <h3 className="text-xs font-semibold tracking-wide text-ink-soft ">
                 Complete Standings
               </h3>

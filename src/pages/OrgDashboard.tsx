@@ -961,7 +961,7 @@ export default function OrgDashboard() {
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide shadow-rose-200 flex items-center gap-2"
+          className="fixed top-24 left-1/2 -translate-x-1/2 z-50 bg-rose-600 text-white px-6 py-3 rounded-lg font-semibold text-xs tracking-wide  flex items-center gap-2"
         >
           <XCircle className="w-4 h-4 shrink-0" />
           <span className="leading-relaxed">{errorMessage}</span>
@@ -1000,7 +1000,7 @@ export default function OrgDashboard() {
           </p>
         </div>
         <Link to="/org/opportunities/new">
-          <Button className="gap-2 shadow-blue-100 h-12 rounded-lg px-6 font-semibold text-xs tracking-wide bg-blue-dark hover:bg-[#153343]">
+          <Button className="gap-2  h-12 rounded-lg px-6 font-semibold text-xs tracking-wide bg-blue-dark hover:bg-[#153343]">
             <PlusCircle className="w-5 h-5" /> Post Opportunity
           </Button>
         </Link>
@@ -1078,7 +1078,7 @@ export default function OrgDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           onClick={() => setSelectedStatPopup("opportunities")}
-          className="p-8 bg-blue-dark text-white border-none shadow-blue-100 rounded-lg cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-8 bg-blue-dark text-white border-none  rounded-lg cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
         >
           <div className="flex justify-between items-start">
             <div>
@@ -1178,7 +1178,7 @@ export default function OrgDashboard() {
               filteredOpportunities.map((opp) => (
                 <Card
                   key={opp.id}
-                  className="p-8 hover:border-blue-dark/20 transition-all group border-none rounded-lg bg-white"
+                  className="p-8 hover:border-blue-dark/20 transition-all group border-none rounded-lg bg-white shadow-card"
                 >
                   <div className="space-y-4">
                     <div className="space-y-2">

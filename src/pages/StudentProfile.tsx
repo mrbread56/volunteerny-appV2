@@ -308,7 +308,7 @@ export default function StudentProfile() {
       transition={{ duration: 0.35, ease: "easeOut" }}
       className="max-w-7xl mx-auto py-12 px-6 md:px-10 space-y-12 bg-paper-2 min-h-screen"
     >
-      <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-6 sm:p-8 rounded-lg border-none relative overflow-hidden group">
+      <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-6 sm:p-8 rounded-lg border-none relative overflow-hidden group shadow-card">
         <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 scale-150 transform group-hover:scale-175 transition-transform duration-700">
           <UserCheck className="w-48 h-48 text-ink" />
         </div>
@@ -442,7 +442,7 @@ export default function StudentProfile() {
         className="grid grid-cols-1 lg:grid-cols-12 gap-12"
       >
         <div className="lg:col-span-8 space-y-12">
-          <Card className="border-none rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white shadow-card">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
@@ -582,7 +582,7 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white shadow-card">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
@@ -679,7 +679,7 @@ export default function StudentProfile() {
                       className={cn(
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
-                          ? "bg-amber-dark border-amber-dark text-white shadow-orange-500/15 scale-105"
+                          ? "bg-amber-dark border-amber-dark text-white  scale-105"
                           : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark hover:scale-[1.02]",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
@@ -692,7 +692,7 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white shadow-card">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
@@ -723,7 +723,7 @@ export default function StudentProfile() {
             </CardContent>
           </Card>
 
-          <Card className="border-none rounded-lg overflow-hidden bg-white">
+          <Card className="border-none rounded-lg overflow-hidden bg-white shadow-card">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">

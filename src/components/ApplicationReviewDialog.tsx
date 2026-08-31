@@ -142,7 +142,7 @@ export default function ApplicationReviewDialog({
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="w-full max-w-2xl"
         >
-          <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col">
+          <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col shadow-card">
             <CardHeader className="p-8 border-b border-line-light flex flex-row items-center justify-between shrink-0">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-blue-dark/10 bg-blue-dark/5 rounded-lg flex items-center justify-center text-blue-dark">
@@ -281,7 +281,7 @@ export default function ApplicationReviewDialog({
                       </Button>
                       <Button 
                         onClick={onClose}
-                        className="flex-[1.2] bg-blue-dark hover:bg-[#153343] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest  shadow-blue-100"
+                        className="flex-[1.2] bg-blue-dark hover:bg-[#153343] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest "
                       >
                         Done
                       </Button>

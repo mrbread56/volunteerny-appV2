@@ -399,7 +399,7 @@ export default function StudentOpportunities() {
             onClick={() => setView('list')}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
-              view === 'list' ? "bg-blue-dark text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
+              view === 'list' ? "bg-blue-dark text-white " : "text-ink-muted hover:text-ink"
             )}
           >
             <List className="w-4 h-4" /> List
@@ -408,7 +408,7 @@ export default function StudentOpportunities() {
             onClick={() => setView('map')}
             className={cn(
               "px-4 py-2 rounded-lg text-sm font-bold flex items-center gap-2 transition-all",
-              view === 'map' ? "bg-blue-dark text-white  shadow-blue-200" : "text-ink-muted hover:text-ink"
+              view === 'map' ? "bg-blue-dark text-white " : "text-ink-muted hover:text-ink"
             )}
           >
             <MapIcon className="w-4 h-4" /> Map
@@ -615,7 +615,7 @@ export default function StudentOpportunities() {
               )}
             </div>
           ) : null}
-          <Card className="h-[300px] sm:h-[450px] md:h-[600px] rounded-lg overflow-hidden relative border-none ">
+          <Card className="h-[300px] sm:h-[450px] md:h-[600px] rounded-lg overflow-hidden relative border-none  shadow-card">
              <Suspense
                 fallback={
                   <div className="h-full w-full grid place-items-center bg-paper-2 text-sm text-ink-muted">
@@ -648,7 +648,7 @@ export default function StudentOpportunities() {
              aria-label="Share this opportunity"
              className="relative w-full max-w-md"
            >
-           <Card className="relative w-full bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden">
+           <Card className="relative w-full bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden shadow-card">
               <button aria-label="Close dialog" 
                 onClick={() => setSharingOpp(null)}
                 className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"

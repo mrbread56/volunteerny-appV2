@@ -76,7 +76,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
           className="w-full max-w-lg"
         >
-          <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col">
+          <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col shadow-card">
             <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between shrink-0">
               <div>
                 <CardTitle className="text-xl font-bold text-ink uppercase tracking-tight">Reject Application</CardTitle>
@@ -156,7 +156,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
                <Button 
                  form="rejection-form"
                  type="submit" 
-                 className="flex-[2] bg-red-600 hover:bg-red-700 text-white rounded-lg h-14 font-semibold text-xs  shadow-red-100"
+                 className="flex-[2] bg-red-600 hover:bg-red-700 text-white rounded-lg h-14 font-semibold text-xs "
                  disabled={!selectedReason && !isOther}
                >
                   Confirm Rejection

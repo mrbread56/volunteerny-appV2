@@ -545,7 +545,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                 </Button>
                 <Button 
                   type="submit" 
-                  className="bg-red-600 text-white border-none hover:bg-red-700 rounded-lg text-xs font-semibold uppercase  shadow-red-600/10"
+                  className="bg-red-600 text-white border-none hover:bg-red-700 rounded-lg text-xs font-semibold uppercase "
                   isLoading={isSubmitting}
                 >
                   Submit Violation Report
