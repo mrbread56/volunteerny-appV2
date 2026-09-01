@@ -440,3 +440,11 @@ svg {
 
   @page { margin: 16mm; }
 }
+
+/*
+ * Safari draws the disclosure triangle from its own pseudo-element, which
+ * `list-style: none` (Tailwind's `list-none`) does not reach. Without this,
+ * a <summary> that supplies its own chevron shows two markers on iOS and
+ * macOS Safari and one everywhere else.
+ */
+summary::-webkit-details-marker { display: none; }
