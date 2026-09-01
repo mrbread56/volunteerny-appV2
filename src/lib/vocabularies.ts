@@ -112,5 +112,5 @@ export const COMMITMENTS: { value: string; label: string }[] = [
    * organization to a duration it may not know yet, and the only way to post
    * without one was to guess — which is a worse answer than saying so.
    */
-  { value: 'Arranged with the organization', label: 'Arranged with the organization' },
+  { value: 'Arranged with the office', label: 'Arranged with the office' },
 ];
