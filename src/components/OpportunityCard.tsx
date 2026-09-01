@@ -144,7 +144,7 @@ export default function OpportunityCard({
             </div>
             <span className="text-xs font-semibold text-ink-soft">
               {opportunity.scheduleType === 'flexible' ? (
-                'Hours arranged with the organization'
+                'Hours arranged with the office'
               ) : opportunity.scheduleType === 'recurring' ? (
                 <span className="flex items-center gap-1 hover:text-blue-dark">
                   Recurring <span className="bg-blue-dark/5 text-blue-dark font-semibold text-xs px-1 rounded">Weekly</span>

@@ -68,7 +68,7 @@ const SCHEDULE_TYPES = [
    * which showed students a "Weekly" badge over an empty list, and quietly
    * pinned the posting to whatever weekday and hour the form was submitted on.
    */
-  { value: 'flexible', label: 'Hours arranged with the organization' },
+  { value: 'flexible', label: 'Hours arranged with the office' },
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];

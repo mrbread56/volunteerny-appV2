@@ -106,4 +106,11 @@ export const COMMITMENTS: { value: string; label: string }[] = [
   { value: 'One-time', label: 'One-time' },
   { value: 'Short-term (1-3 months)', label: 'Short-term (1-3 months)' },
   { value: 'Long-term (6+ months)', label: 'Long-term (6+ months)' },
+  /*
+   * For a role where the length is settled between the student and the office
+   * rather than fixed in advance. Every other option here commits the
+   * organization to a duration it may not know yet, and the only way to post
+   * without one was to guess — which is a worse answer than saying so.
+   */
+  { value: 'Arranged with the organization', label: 'Arranged with the organization' },
 ];

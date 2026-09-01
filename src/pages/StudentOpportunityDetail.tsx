@@ -709,7 +709,7 @@ export default function StudentOpportunityDetail() {
                     {opportunity.scheduleType === 'flexible' ? (
                        <div className="flex items-center justify-between text-sm gap-4">
                           <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Calendar className="w-4 h-4" /> Schedule</span>
-                          <span className="font-semibold text-ink text-right">Hours arranged with the organization</span>
+                          <span className="font-semibold text-ink text-right">Hours arranged with the office</span>
                        </div>
                     ) : opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
                        <div className="flex items-center justify-between text-sm">

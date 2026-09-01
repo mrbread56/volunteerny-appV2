@@ -25,7 +25,7 @@ import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { promoteWaitlistedApplicant } from '../lib/waitlistService';
 import { resolveOpportunityDate } from '../lib/opportunityDate';
 import { deleteOpportunityWithDependents } from '../lib/deleteAccount';
-import { SKILLS } from '../lib/vocabularies';
+import { SKILLS, COMMITMENTS } from '../lib/vocabularies';
 
 const userLocationIcon = L.divIcon({
   html: `
@@ -62,12 +62,6 @@ const customPinIcon = L.divIcon({
 });
 
 
-const COMMITMENTS = [
-  { value: 'One-time', label: 'One-time' },
-  { value: 'Short-term (1-3 months)', label: 'Short-term (1-3 months)' },
-  { value: 'Long-term (6+ months)', label: 'Long-term (6+ months)' },
-];
-
 const SCHEDULE_TYPES = [
   { value: 'single', label: 'Single Event' },
   { value: 'multiple', label: 'Multiple Occurrences' },
@@ -79,7 +73,7 @@ const SCHEDULE_TYPES = [
    * which showed students a "Weekly" badge over an empty list, and quietly
    * pinned the posting to whatever weekday and hour the form was submitted on.
    */
-  { value: 'flexible', label: 'Hours arranged with the organization' },
+  { value: 'flexible', label: 'Hours arranged with the office' },
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
