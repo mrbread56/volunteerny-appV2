@@ -1,4 +1,5 @@
 import { Eye } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
@@ -152,8 +153,28 @@ export default function OrgApplicationsTab({
                     </div>
                   ))
               ) : (
-                <div className="p-20 text-center text-ink-soft font-bold tracking-wide text-xs">
-                  No applications to review yet.
+                /*
+                 * This is the coordinator's landing screen now, so it has to do
+                 * more than report nothing. NN/g's requirement for an empty
+                 * state is three parts: say what the state IS, say what would
+                 * appear here and how, and offer the action that resolves it.
+                 * A bare "No applications" satisfies one of the three and reads
+                 * as a broken account rather than a new one.
+                 */
+                <div className="px-6 py-16 text-center space-y-3">
+                  <p className="text-[15px] font-semibold text-ink">
+                    No applications yet
+                  </p>
+                  <p className="text-[13px] text-ink-soft leading-relaxed max-w-sm mx-auto">
+                    When a student applies to one of your postings, they appear here
+                    with their school, availability and resume so you can decide.
+                  </p>
+                  <Link
+                    to="/org/opportunities/new"
+                    className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-[15px] font-medium hover:bg-[#153343] transition-colors"
+                  >
+                    Post an opportunity
+                  </Link>
                 </div>
               )}
             </div>
