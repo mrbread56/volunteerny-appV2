@@ -992,7 +992,7 @@ export default function OrgDashboard() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-line">
         <div>
-          <h1 className="text-3xl font-mono font-medium text-ink tracking-tight leading-none">
+          <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight leading-tight">
             {orgProfile?.organizationName || "Organization"} Dashboard
           </h1>
           <p className="text-ink-soft mt-2 font-medium">
@@ -1078,66 +1078,66 @@ export default function OrgDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card
           onClick={() => setSelectedStatPopup("opportunities")}
-          className="p-8 bg-blue-dark text-white border-none  rounded-lg cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-4xl font-mono font-medium leading-none">
+              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
                 {stats.totalOpps}
               </p>
-              <p className="text-blue-100 text-xs font-semibold tracking-wide mt-2 font-mono">
+              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
                 Opportunities
               </p>
             </div>
-            <ClipboardList className="text-blue-400 w-10 h-10 opacity-50" />
+            <ClipboardList className="text-ink-muted w-6 h-6 shrink-0" />
           </div>
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("pending")}
-          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-yellow-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
                 {stats.pendingApps}
               </p>
-              <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
+              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
                 Pending Review
               </p>
             </div>
-            <Clock className="text-amber-dark w-10 h-10" />
+            <Clock className="text-ink-muted w-6 h-6 shrink-0" />
           </div>
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("accepted")}
-          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-blue-dark cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
                 {stats.acceptedApps}
               </p>
-              <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
+              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
                 Accepted
               </p>
             </div>
-            <CheckCircle className="text-blue-dark w-10 h-10" />
+            <CheckCircle className="text-ink-muted w-6 h-6 shrink-0" />
           </div>
         </Card>
         <Card
           onClick={() => setSelectedStatPopup("rejected")}
-          className="p-8 bg-white border-0 rounded-lg border-b-2 border-b-red-500 cursor-pointer hover:scale-[1.02] active:scale-[0.98] transition-all duration-200"
+          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
         >
           <div className="flex justify-between items-start">
             <div>
-              <p className="text-4xl font-mono font-medium text-ink leading-none">
+              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
                 {stats.rejectedApps}
               </p>
-              <p className="text-ink-soft text-xs font-semibold tracking-wide mt-2 font-mono">
+              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
                 Rejected
               </p>
             </div>
-            <XCircle className="text-red-600 w-10 h-10" />
+            <XCircle className="text-ink-muted w-6 h-6 shrink-0" />
           </div>
         </Card>
       </div>

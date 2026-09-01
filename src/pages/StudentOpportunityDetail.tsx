@@ -668,10 +668,17 @@ export default function StudentOpportunityDetail() {
               {opportunity.description}
             </p>
 
-            <h3 className="text-xl font-bold text-ink mt-10 mb-4">Requirements</h3>
-            <p className="text-ink-muted whitespace-pre-wrap leading-relaxed">
-              {opportunity.requirements}
-            </p>
+            {/* Only when there is something to put under it. Requirements is
+                optional on the create form, so this rendered a heading above an
+                empty paragraph on every posting that left it blank. */}
+            {opportunity.requirements?.trim() && (
+              <>
+                <h3 className="text-xl font-bold text-ink mt-10 mb-4">Requirements</h3>
+                <p className="text-ink-muted whitespace-pre-wrap leading-relaxed">
+                  {opportunity.requirements}
+                </p>
+              </>
+            )}
 
             {/* Guarded, and the whole section is dropped when empty.
                 `opportunity.skillsNeeded.map(...)` threw for any document

@@ -679,7 +679,7 @@ export default function DeveloperDashboard() {
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-dark/20 text-blue-400 border border-blue-dark/30 text-xs font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4" /> Administrator Verified
           </div>
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight uppercase">Control Room</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Control Room</h1>
           <p className="text-ink-muted font-semibold text-xs max-w-md">
             Administrative panel. Click any of the zero metrics below to load all corresponding live data entries and reports.
           </p>

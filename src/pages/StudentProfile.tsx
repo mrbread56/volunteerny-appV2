@@ -782,81 +782,14 @@ export default function StudentProfile() {
         </div>
 
         <div className="lg:col-span-4 space-y-8">
-          {/* Leaderboard Preferences Card */}
-          <Card className="rounded-lg border border-line bg-white p-8 space-y-6">
-            <div>
-              <h3 className="text-lg font-bold text-ink mb-1">
-                Leaderboard Options
-              </h3>
-              <p className="text-xs text-ink-soft font-semibold leading-relaxed">
-                Configure your preference for public student recognition.
-              </p>
-            </div>
-
-            <div className="space-y-4 pt-1 ">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h4 className="text-xs font-bold text-ink-soft">
-                    Participate in Rankings
-                  </h4>
-                  <p className="text-xs text-ink-soft">
-                    Toggle leaderboard visibility
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={trackerEnabled}
-                  aria-label="Participate in rankings"
-                  onClick={() => setTrackerEnabled(!trackerEnabled)}
-                  className={cn(
-                    "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                    trackerEnabled ? "bg-blue-dark" : "bg-slate-200",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
-                      trackerEnabled ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between border-t border-line pt-4">
-                <div>
-                  <h4 className="text-xs font-bold text-ink-soft">
-                    Remain Anonymous
-                  </h4>
-                  <p className="text-xs text-ink-soft">
-                    Hide your display name
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  role="switch"
-                  aria-checked={trackerAnonymous}
-                  aria-label="Remain anonymous on the leaderboard"
-                  disabled={!trackerEnabled}
-                  onClick={() => setTrackerAnonymous(!trackerAnonymous)}
-                  className={cn(
-                    "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                    trackerAnonymous && trackerEnabled
-                      ? "bg-amber"
-                      : "bg-slate-200",
-                    !trackerEnabled && "opacity-50 cursor-not-allowed",
-                  )}
-                >
-                  <span
-                    className={cn(
-                      "bg-white w-5 h-5 rounded-lg  transform transition-transform duration-250",
-                      trackerAnonymous && trackerEnabled ? "translate-x-5" : "translate-x-0"
-                    )}
-                  />
-                </button>
-              </div>
-            </div>
-          </Card>
+          {/* The leaderboard toggles used to be duplicated here.
+              They live on the Settings tab instead, and this copy was a
+              data-loss bug rather than a convenience: Settings writes each
+              toggle immediately, while this one only held local state and
+              persisted on "Save Profile". Two identical-looking controls with
+              opposite commit semantics, so a student who flipped it here and
+              navigated away silently lost the change. The labels disagreed too
+              ("Leaderboard Options" vs "Community Listings Preference"). */}
           <Card className="rounded-lg border border-line bg-white p-5 sm:p-8 space-y-8 sticky top-24">
             <div>
               <h3 className="text-lg font-bold text-ink mb-2">

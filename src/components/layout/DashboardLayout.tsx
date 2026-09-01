@@ -31,7 +31,7 @@ export default function DashboardLayout({
         {/* Page Header */}
         <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
           <div>
-            <h1 className="font-display text-2xl sm:text-3xl font-semibold text-primary-950 tracking-tight">{title}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">{title}</h1>
             {subtitle && <p className="text-ink-muted mt-1.5 text-[15px]">{subtitle}</p>}
           </div>
           {headerAction && <div className="shrink-0">{headerAction}</div>}

@@ -733,11 +733,16 @@ export default function OrgOpportunityEdit() {
                    )}
                    <Card className="h-[300px] overflow-hidden rounded-lg border-none shadow-card">
                       <MapContainer center={[coords.lat, coords.lng]} zoom={12} style={{ height: '100%', width: '100%' }}>
-                         <TileLayer 
-                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> Contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-                             
-                            maxZoom={20}
+                         {/* OSM, not CARTO. CARTO requires an API key now and
+                            stamps "API KEY REQUIRED" across every tile without
+                            one. The same fix was applied to AddressMapsSelector
+                            and OpportunitiesMap; these two pages inline their
+                            own TileLayer and were missed, so the coordinator's
+                            map still showed the watermark. */}
+                        <TileLayer
+                            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
+                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                            maxZoom={19}
                          />
                          <MapController center={coords} />
                          <LocationMarker coords={coords} setCoords={setCoords} />
