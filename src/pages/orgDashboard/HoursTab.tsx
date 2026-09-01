@@ -1,4 +1,5 @@
 import React from 'react';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { Button } from '../../components/ui/Button';
 
 /**
@@ -195,9 +196,10 @@ export default function HoursTab({
             </div>
 
             {hoursRequests.length === 0 ? (
-              <div className="py-6 text-center border-2 border-dashed border-line rounded-lg text-xs font-semibold text-ink-soft">
-                No pending verification claims found.
-              </div>
+              <EmptyState
+                title="Nothing waiting on you"
+                body="When a student submits hours they worked with your organisation, the claim appears here for you to confirm or decline."
+              />
             ) : (
               <div className="space-y-4">
                 {hoursRequests.map((req) => (

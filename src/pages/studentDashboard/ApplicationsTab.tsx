@@ -3,6 +3,7 @@ import { Calendar, FileText, Globe, Mail, Phone, Sparkles, Star } from 'lucide-r
 import { Badge } from '../../components/ui/Badge';
 import { Button } from '../../components/ui/Button';
 import { Card } from '../../components/ui/Card';
+import { EmptyState } from '../../components/ui/EmptyState';
 import { formatDate } from '../../lib/utils';
 import type { Application } from '../../types';
 
@@ -214,16 +215,11 @@ export default function ApplicationsTab({
                   ))}
                 </div>
               ) : (
-                <Card className="p-8 text-center bg-white border-dashed">
-                  <p className="text-ink-soft">
-                    No applications yet. Start exploring!
-                  </p>
-                  <Link to="/student/opportunities">
-                    <Button variant="outline" className="mt-4">
-                      Browse Opportunities
-                    </Button>
-                  </Link>
-                </Card>
+                <EmptyState
+                  title="No applications yet"
+                  body="When you apply to an opportunity it appears here, with where it is up to and anything the organisation has said."
+                  action={{ label: 'Browse opportunities', to: '/student/opportunities' }}
+                />
               )}
             </section>
   );

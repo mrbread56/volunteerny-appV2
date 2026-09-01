@@ -78,13 +78,13 @@ export default function ReportsTab({
           >
             {showAll
               ? `Showing all ${reports.length} — show only the ${open.length} open`
-              : `Showing the ${open.length} open — show all ${reports.length}`}
+              : `Showing ${open.length} open. Show all ${reports.length}`}
           </button>
         </div>
 
         {shown.length === 0 ? (
-          <Card className="p-16 text-center border-2 border-dashed border-line-light rounded-lg bg-white space-y-4">
-            <ShieldCheck className="w-12 h-12 text-blue-dark mx-auto" />
+          <Card className="px-6 py-14 text-center border border-line rounded-lg bg-white space-y-3">
+            <ShieldCheck className="w-8 h-8 text-ink-muted mx-auto" aria-hidden="true" />
             {/* "Zero reports in the system" was said whenever the LIST was
                 empty, which now includes "every report has been dealt with".
                 And "Secure Safe Space Guaranteed" is a guarantee nobody can
@@ -94,10 +94,10 @@ export default function ReportsTab({
                 `reports` was empty — including while the read was still in
                 flight and when it had FAILED. On the safety queue that is the
                 worst possible thing to be wrong about. */}
-            <h3 className="text-base font-semibold text-ink uppercase">
+            <h3 className="text-[15px] font-semibold text-ink">
               {unloaded ? 'Reports not loaded' : reports.length === 0 ? 'No reports have been filed' : 'Nothing waiting'}
             </h3>
-            <p className="text-ink-muted text-xs font-semibold max-w-sm mx-auto leading-relaxed">
+            <p className="text-ink-soft text-[13px] max-w-sm mx-auto leading-relaxed">
               {unloaded
                 ? 'We could not load the safety queue, so this is not a statement that it is empty. Refresh to try again.'
                 : reports.length === 0
