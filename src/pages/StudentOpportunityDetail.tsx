@@ -969,7 +969,7 @@ export default function StudentOpportunityDetail() {
 
                   <Button 
                      type="submit" 
-                     className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide  transition-all hover:scale-[1.02] active:scale-[0.98]" 
+                     className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide  transition-all" 
                      disabled={isApplying}
                   >
                      {isApplying ? 'Submitting...' : 'Send Application'}

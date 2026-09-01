@@ -18,7 +18,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
      * animating after the user had already judged the app slow. `all` also
      * animates layout properties and anything added later.
      *
-     * active:scale-[0.98] is gone. None of Material, Carbon, Fluent, Polaris,
+     * is gone. None of Material, Carbon, Fluent, Polaris,
      * Apple or GOV.UK scales a button on press — the physical metaphor is a
      * button moving DOWN, not shrinking. It also opts into WCAG 2.3.3, whose
      * definition of motion animation excludes colour and opacity but includes

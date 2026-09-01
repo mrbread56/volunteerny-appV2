@@ -252,15 +252,22 @@ test('every organisation route renders with no console error and no error bounda
 test('the dashboard shows their listing rather than an empty state', async ({ page }) => {
   test.setTimeout(180000);
   await signInThroughTheGate(page);
-  // The landing tab is a summary, not a list. What an organisation sees first
-  // is a COUNT, so a count that says zero while a live posting exists is the
-  // version of this bug they would actually report.
+
+  /*
+   * The landing tab is Applications now, not a summary.
+   *
+   * This used to assert a stat tile reading "1 Opportunities" on an overview
+   * tab. That tab was four counters and nothing else - three of them zero on a
+   * new account - so a coordinator's first screen contained no work to do. The
+   * tiles are gone and the dashboard lands on the applicant list instead.
+   *
+   * What this test is really for still holds: a live posting must not be
+   * invisible to the organisation that made it.
+   */
   await page.goto('/org/dashboard');
   await page.waitForLoadState('domcontentloaded');
-  await expect(page.getByRole('button', { name: /1 Opportunities/ }))
-    .toBeVisible({ timeout: 30000 });
+  await expect(page).toHaveURL(/\/org\/dashboard/);
 
-  // The posting itself lives one tab across.
   await page.goto('/org/dashboard?tab=opportunities');
   await page.waitForLoadState('domcontentloaded');
   await expect(page.getByText(OPP_TITLE)).toBeVisible({ timeout: 30000 });

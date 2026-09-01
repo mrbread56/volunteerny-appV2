@@ -80,7 +80,7 @@ export default function ApplicationsTab({
                           {app.status === "accepted" && (
                             <button
                               title="Placement receipt"
-                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-white hover:bg-paper-3 text-ink border border-line rounded-lg flex items-center gap-1 hover:scale-[1.03] transition-all duration-200 whitespace-nowrap rounded-full shadow-sm"
+                              className="px-3 py-1.5 text-xs font-semibold tracking-wide bg-white hover:bg-paper-3 text-ink border border-line rounded-lg flex items-center gap-1 transition-all duration-200 whitespace-nowrap rounded-full shadow-sm"
                               onClick={() => onOpenReceipt(app)}
                             >
                               <FileText className="w-3.5 h-3.5 text-amber-dark animate-pulse" />

@@ -1765,7 +1765,7 @@ export default function StudentDashboard() {
                 <Button
                   type="submit"
                   isLoading={isLogging}
-                  className="w-1/2 h-12 bg-blue-dark hover:bg-blue-dark text-white font-semibold uppercase text-xs tracking-widest rounded-lg  cursor-pointer"
+                  className="w-1/2 h-12 bg-blue-dark text-white font-semibold uppercase text-xs tracking-widest rounded-lg  cursor-pointer"
                 >
                   Send Request
                 </Button>
@@ -1908,7 +1908,7 @@ export default function StudentDashboard() {
                 Close Certificate
               </Button>
               <Button
-                className="px-5 h-11 text-xs uppercase bg-blue-dark hover:bg-blue-dark font-semibold text-white rounded-lg cursor-pointer flex items-center gap-1.5"
+                className="px-5 h-11 text-xs uppercase bg-blue-dark font-semibold text-white rounded-lg cursor-pointer flex items-center gap-1.5"
                 onClick={() => window.print()}
               >
                 <Printer className="w-4 h-4" /> Print Document

@@ -467,7 +467,7 @@ export default function StudentOnboarding() {
             {step < 5 ? (
               <Button 
                 onClick={handleNextStep}
-                className="h-12 bg-blue-dark hover:bg-blue-dark text-white px-8 rounded-lg font-bold uppercase text-xs tracking-widest gap-2"
+                className="h-12 bg-blue-dark text-white px-8 rounded-lg font-bold uppercase text-xs tracking-widest gap-2"
               >
                 Continue <ArrowRight className="w-3.5 h-3.5" />
               </Button>
@@ -488,7 +488,7 @@ export default function StudentOnboarding() {
                 <Button 
                   onClick={(e) => handleSubmit(e as any, false)}
                   isLoading={isSubmitting}
-                  className="h-12 bg-amber-dark hover:bg-amber-dark text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 "
+                  className="h-12 bg-amber-dark text-white px-10 rounded-lg font-bold uppercase text-xs tracking-widest gap-2 "
                 >
                   Complete Onboarding <Check className="w-3.5 h-3.5" />
                 </Button>

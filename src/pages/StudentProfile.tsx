@@ -616,7 +616,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         interests.includes(interest)
                           ? "bg-slate-900 border-slate-900 text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark hover:scale-[1.02]",
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark",
                         errors.interests && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -648,7 +648,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         skills.includes(skill)
                           ? "bg-blue-dark border-blue-dark text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark hover:scale-[1.02]",
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark",
                         errors.skills && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -680,7 +680,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
                           ? "bg-amber-dark border-amber-dark text-white  scale-105"
-                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark hover:scale-[1.02]",
+                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -854,7 +854,7 @@ export default function StudentProfile() {
               ) : (
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-blue-dark hover:bg-blue-dark rounded-lg font-semibold text-xs"
+                  className="w-full h-14 bg-blue-dark rounded-lg font-semibold text-xs"
                   isLoading={isSaving}
                 >
                   Save Profile

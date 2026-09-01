@@ -102,7 +102,9 @@ export default function OrgDashboard() {
     setErrorMessage, setOpportunities, setRecentApplications,
   } = useOrgDashboardData(user, isDemoMode);
   const [searchParams] = useSearchParams();
-  const activeTab = searchParams.get("tab") || "overview";
+  // Applications, not overview. The overview tab was four stat tiles and
+  // nothing else, so a coordinator's first screen contained no work.
+  const activeTab = searchParams.get("tab") || "applications";
 
   const getGoogleCalendarFallbackUrl = (opp: any) => {
     try {
@@ -1074,74 +1076,15 @@ export default function OrgDashboard() {
         );
       })()}
 
-      {activeTab === "overview" && (
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card
-          onClick={() => setSelectedStatPopup("opportunities")}
-          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
-                {stats.totalOpps}
-              </p>
-              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
-                Opportunities
-              </p>
-            </div>
-            <ClipboardList className="text-ink-muted w-6 h-6 shrink-0" />
-          </div>
-        </Card>
-        <Card
-          onClick={() => setSelectedStatPopup("pending")}
-          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
-                {stats.pendingApps}
-              </p>
-              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
-                Pending Review
-              </p>
-            </div>
-            <Clock className="text-ink-muted w-6 h-6 shrink-0" />
-          </div>
-        </Card>
-        <Card
-          onClick={() => setSelectedStatPopup("accepted")}
-          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
-                {stats.acceptedApps}
-              </p>
-              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
-                Accepted
-              </p>
-            </div>
-            <CheckCircle className="text-ink-muted w-6 h-6 shrink-0" />
-          </div>
-        </Card>
-        <Card
-          onClick={() => setSelectedStatPopup("rejected")}
-          className="p-6 bg-white border border-line rounded-lg shadow-subtle cursor-pointer transition-colors duration-150 hover:border-blue-dark"
-        >
-          <div className="flex justify-between items-start">
-            <div>
-              <p className="text-3xl font-bold text-ink leading-none tabular-nums">
-                {stats.rejectedApps}
-              </p>
-              <p className="text-ink-soft text-[13px] font-medium mt-1.5">
-                Rejected
-              </p>
-            </div>
-            <XCircle className="text-ink-muted w-6 h-6 shrink-0" />
-          </div>
-        </Card>
-      </div>
-      )}
+      {/* The four stat tiles used to sit here.
+          Three of them read 0 on a new coordinator's home screen, above about
+          620px of empty space, so the first thing an organisation saw was a
+          product that looked broken rather than one waiting on them. A number
+          with no comparison, no trend and no time window is not information
+          (Few, Information Dashboard Design); these were four of them.
+
+          The counts that matter are now on the tab labels, where they are read
+          in passing rather than occupying the whole first screen. */}
 
       {/* Opportunities + Applications grid */}
       {(activeTab === "opportunities" || activeTab === "applications") && (

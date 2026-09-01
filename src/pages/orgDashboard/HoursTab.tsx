@@ -144,7 +144,7 @@ export default function HoursTab({
               <Button
                 type="submit"
                 isLoading={isSubmittingLog}
-                className="w-full h-12 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold text-xs tracking-wide hover:scale-[1.01] active:scale-[0.99] transition-all"
+                className="w-full h-12 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold text-xs tracking-wide transition-all"
               >
                 Log these hours
               </Button>

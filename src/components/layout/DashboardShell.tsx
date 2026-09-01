@@ -22,37 +22,44 @@ interface NavItem {
  * items are always visible, rarely-used ones are pushed to the bottom
  * where users expect "meta" actions to live.
  */
+/*
+ * Four destinations, not eight.
+ *
+ * This advertised eight entries of which FIVE resolved to /student/dashboard
+ * with a different ?tab=. A sidebar is a promise about how big the product is,
+ * and this one promised eight places while delivering four.
+ *
+ * Browse leads, because finding a placement is what a student came for and it
+ * was previously the second item under a "Dashboard" that mostly summarised
+ * the other tabs. Hours is second because getting them signed off is the other
+ * half of the job. Applications and the old Dashboard summary now live as one
+ * entry, since the summary existed to point at them.
+ */
 const studentMain: NavItem[] = [
-  // Explicit ?tab=dashboard (not bare '/student/dashboard') so that navigating
-  // here from another tab actually resets StudentDashboard's activeTab state.
-  // That state only updates when the URL's tab param matches one of its five
-  // known values — a bare URL with no tab param never matches, so a bare link
-  // left the previous tab's content showing under a highlighted "Dashboard" nav
-  // item.
-  { to: '/student/dashboard?tab=dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/student/opportunities', label: 'Browse', icon: Search },
-  // This dashboard used to also render its own second, full-height sidebar
-  // (Overview / My Applications / Hours & Verification / Leaderboard /
-  // Settings) for switching these same tabs, stacked beside this one. That is
-  // now gone — every StudentDashboard tab is reachable from here instead, so
-  // 'My Applications' needed an entry that didn't exist before.
-  { to: '/student/dashboard?tab=applications', label: 'My Applications', icon: Calendar },
-  { to: '/student/dashboard?tab=leaderboard', label: 'Leaderboard', icon: Trophy },
-  { to: '/student/dashboard?tab=hours', label: 'Hours', icon: Clock },
+  { to: '/student/dashboard?tab=hours', label: 'My hours', icon: Clock },
+  { to: '/student/dashboard?tab=applications', label: 'Applications', icon: Calendar },
 ];
 const studentBottom: NavItem[] = [
   { to: '/student/profile', label: 'Profile', icon: UserCircle },
+  { to: '/student/dashboard?tab=leaderboard', label: 'Leaderboard', icon: Trophy },
   { to: '/student/dashboard?tab=settings', label: 'Settings', icon: Settings },
   { to: '/feedback', label: 'Feedback', icon: Send },
 ];
 
+/*
+ * Three destinations. Applications leads, because reviewing applicants is the
+ * job a coordinator signs in to do.
+ *
+ * Overview is gone: it rendered four stat tiles, three of them reading 0, and
+ * nothing else. "Post New" is gone from the sidebar because the Opportunities
+ * page already carries a Post button, so one destination had two names in two
+ * places.
+ */
 const orgMain: NavItem[] = [
-  { to: '/org/dashboard', label: 'Overview', icon: LayoutDashboard },
-  { to: '/org/dashboard?tab=opportunities', label: 'Opportunities', icon: ClipboardList },
   { to: '/org/dashboard?tab=applications', label: 'Applications', icon: Search },
+  { to: '/org/dashboard?tab=opportunities', label: 'Opportunities', icon: ClipboardList },
   { to: '/org/dashboard?tab=hours', label: 'Hours', icon: Clock },
-  { to: '/org/opportunities/new', label: 'Post New', icon: PlusCircle },
-
 ];
 const orgBottom: NavItem[] = [
   { to: '/org/profile', label: 'Profile', icon: UserCircle },

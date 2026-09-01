@@ -624,7 +624,7 @@ export default function DeveloperDashboard() {
           <div>
             <Button 
               onClick={() => setIsDashboardActive(true)}
-              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-blue-dark text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all hover:scale-[1.02]"
+              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-blue-dark text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all"
             >
               <Plus className="w-4 h-4" /> Create Control Room Dashboard
             </Button>
@@ -703,7 +703,7 @@ export default function DeveloperDashboard() {
               }
             }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-students-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-students-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showStudentsList
                 ? "bg-blue-dark border-blue-dark text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
@@ -730,7 +730,7 @@ export default function DeveloperDashboard() {
               }
             }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-orgs-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-orgs-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showOrgsList
                 ? "bg-blue-dark border-blue-dark text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
@@ -757,7 +757,7 @@ export default function DeveloperDashboard() {
               }
             }}
             className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 hover:scale-[1.03] select-reports-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-reports-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               showReportsList && activeTab === 'reports'
                 ? "bg-red-600 border-red-500 text-white "
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"

@@ -189,17 +189,19 @@ export default function OpportunityCard({
           </div>
         )}
 
-        {/* High-Converting CTA action orange button as specified */}
-        <div className="mt-auto pt-2">
-          <Link to={`/student/opportunities/${opportunity.id}`} className="block">
-            {/* White on #E08A3C measured 2.67:1 — this is the primary CTA on
-                every card. amber-dark (#A85E22) clears AA at 4.87:1. */}
-            <Button className="w-full bg-amber-dark hover:bg-amber-dark text-white font-bold py-3 text-xs uppercase tracking-wide rounded-lg cursor-pointer transition-all active:scale-[0.98] group-hover:bg-blue-dark flex items-center justify-center gap-2">
-              <span>View details</span>
-              <span className="opacity-0 group-hover:opacity-100 -translate-x-2 group-hover:translate-x-0 transition-all duration-300">→</span>
-            </Button>
-          </Link>
-        </div>
+        {/* The "View details" button is gone.
+            The whole card is already a link to the same place (line 102), so
+            this was a second target for one destination. Its className was also
+            the clearest example of a page routing around the design system: it
+            overrode the primary variant's navy with orange so the list CTA and
+            the detail CTA were different colours in one funnel, then nulled its
+            own hover with `hover:bg-amber-dark` (identical to the base), then
+            changed colour on CARD hover rather than button hover, then
+            reinstated the press-scale Button.tsx deliberately removed, and
+            overrode the size token's type. Nine such overrides in one string.
+
+            Removing it also gives the card back its bottom padding rather than
+            a full-width block a student must aim at. */}
 
       </div>
     </Card>

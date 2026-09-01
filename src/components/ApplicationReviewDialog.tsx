@@ -632,7 +632,7 @@ export default function ApplicationReviewDialog({
                   </Button>
                 )}
                 <Button 
-                  className="flex-[1.5] bg-blue-dark hover:bg-[#0F1E29] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest transition-all hover:scale-[1.02] active:scale-[0.98]"
+                  className="flex-[1.5] bg-blue-dark hover:bg-[#0F1E29] text-white rounded-lg h-14 font-semibold uppercase text-xs tracking-widest transition-all"
                   onClick={handleAcceptClick}
                 >
                   Confirm & Accept Volunteer

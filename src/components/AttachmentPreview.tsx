@@ -168,7 +168,7 @@ export default function AttachmentPreview({
             loading="lazy"
             width={800}
             height={600}
-            className="w-full aspect-video max-h-72 object-contain rounded-lg hover:scale-[1.02] transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
+            className="w-full aspect-video max-h-72 object-contain rounded-lg transition-transform duration-300 border border-line/60 cursor-pointer mx-auto"
           />
         </a>
       ) : looksLikePdf ? (
