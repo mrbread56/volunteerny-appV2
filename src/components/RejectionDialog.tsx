@@ -89,7 +89,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
              <CardContent className="p-8 space-y-6 overflow-y-auto custom-scrollbar flex-grow min-h-0">
                <div className="bg-red-50 p-6 rounded-lg border border-red-100 flex gap-4 shrink-0">
                   <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                  <p className="text-xs text-red-700 leading-relaxed font-medium">
+                  <p className="text-sm text-red-700 leading-relaxed font-medium">
                      Please provide a reason for the rejection. This helps students improve their future applications.
                   </p>
                </div>
@@ -134,7 +134,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
 
                  {(isOther || selectedReason) && (
                     <div className="space-y-3 animate-in fade-in slide-in- duration-300">
-                       <p className="text-xs font-bold text-ink-muted uppercase tracking-widest pl-1">
+                       <p className="text-sm font-bold text-ink-muted uppercase tracking-widest pl-1">
                          {isOther ? "Typed Reason" : "Additional Note (Optional)"}
                        </p>
                        <textarea

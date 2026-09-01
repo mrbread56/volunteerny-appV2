@@ -7,7 +7,6 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 import { Select } from "../components/ui/Select";
-import { Badge } from "../components/ui/Badge";
 import { FileUpload } from "../components/ui/FileUpload";
 import { deleteOwnAccount } from "../lib/deleteAccount";
 import ChangePassword from "../components/ChangePassword";
@@ -32,6 +31,7 @@ import {
   Sparkles,
   Lock,
   ShieldCheck,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "../lib/utils";
 import { TORONTO_SCHOOLS, NEIGHBORHOODS } from "../constants";
@@ -308,52 +308,49 @@ export default function StudentProfile() {
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, ease: "easeOut" }}
-      className="max-w-7xl mx-auto py-12 px-6 md:px-10 space-y-12 bg-paper-2 min-h-screen"
+      className="max-w-7xl mx-auto py-10 px-6 md:px-10 space-y-8 bg-paper-2 min-h-screen"
     >
-      <div className="flex flex-col md:flex-row items-center gap-8 bg-white p-6 sm:p-8 rounded-lg border-none relative overflow-hidden group shadow-card">
-        <div className="absolute top-0 right-0 p-10 opacity-[0.03] rotate-12 scale-150 transform group-hover:scale-175 transition-transform duration-700">
-          <UserCheck className="w-48 h-48 text-ink" />
-        </div>
+      {/*
+        This page is a form. It used to open with a 6xl uppercase wordmark, a
+        192px rotated background glyph, a 128px avatar tile and the line
+        "SHOWCASE YOUR POTENTIAL" — roughly a full phone screen of decoration
+        before the first thing a student could actually edit.
 
-        <div className="w-24 h-24 md:w-32 md:h-32 bg-blue-dark rounded-lg flex items-center justify-center shrink-0 relative z-10 group-hover:scale-105 transition-transform duration-500">
-          <UserCheck className="text-white w-12 h-12 md:w-16 md:h-16" />
-        </div>
-
-        <div className="text-center md:text-left relative z-10">
-          <div className="flex flex-col md:flex-row md:items-center gap-4 mb-4">
-            <h1 className="text-4xl md:text-6xl font-bold text-ink tracking-tight leading-none uppercase">
-              Student Profile
-            </h1>
-          </div>
-          <div className="flex flex-wrap justify-center md:justify-start gap-4">
-            <p className="text-lg text-ink-soft font-bold uppercase tracking-wide">
-              Showcase Your Potential
-            </p>
-            <Badge
-              variant="secondary"
-              className="px-4 py-1.5 font-semibold text-xs tracking-widest bg-paper-2 border-line"
-            >
-              School on file
-            </Badge>
-          </div>
-        </div>
+        The heading is now a heading. The tab title carries the name too, so
+        this is not the only place the page identifies itself.
+      */}
+      <div>
+        <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+          Your profile
+        </h1>
+        <p className="text-sm text-ink-soft mt-1.5">
+          What organizations see when you apply.
+        </p>
       </div>
 
-      {/* Milestone Badges & Achievements */}
-      <div className="bg-white p-8 md:p-10 border border-line space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-lg font-bold text-ink flex items-center gap-2">
-              <Trophy className="text-blue-dark w-5 h-5" />
-              Badges
-            </h2>
-            <p className="text-sm text-ink-soft mt-1">
-              {evaluateBadges(studentProfile).filter(b => b.isUnlocked).length} of {evaluateBadges(studentProfile).length} unlocked
-            </p>
-          </div>
-        </div>
+      {/*
+        Badges, collapsed.
+        Eight cards, each carrying an icon, a category, a name, a description
+        and a requirement: about forty separate text groups, and the number of
+        text groups is the strongest single predictor of perceived complexity
+        (Reinecke et al., CHI 2013, beta = .344). All forty sat above the first
+        input on a page nobody opens to read badges.
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        A native <details> keeps them one click away with no JavaScript, no
+        state and no library. The summary still shows the score, which is the
+        part worth glancing at.
+      */}
+      <details className="bg-white border border-line rounded-lg group">
+        <summary className="flex items-center gap-3 p-5 cursor-pointer list-none marker:hidden select-none rounded-lg focus-visible:outline-3 focus-visible:outline-blue-dark focus-visible:outline-offset-2">
+          <Trophy className="text-blue-dark w-5 h-5 shrink-0" />
+          <span className="text-base font-semibold text-ink">Badges</span>
+          <span className="text-sm text-ink-soft">
+            {evaluateBadges(studentProfile).filter(b => b.isUnlocked).length} of {evaluateBadges(studentProfile).length} unlocked
+          </span>
+          <ChevronDown className="w-4 h-4 text-ink-muted ml-auto shrink-0 transition-transform duration-200 group-open:rotate-180" />
+        </summary>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 p-5 pt-0">
           {evaluateBadges(studentProfile).map(({ badge, isUnlocked }) => {
 
             const categoryColor = (cat: string) => {
@@ -437,13 +434,13 @@ export default function StudentProfile() {
             );
           })}
         </div>
-      </div>
+      </details>
 
       <form
         onSubmit={handleUpdate}
-        className="grid grid-cols-1 lg:grid-cols-12 gap-12"
+        className="grid grid-cols-1 lg:grid-cols-12 gap-8"
       >
-        <div className="lg:col-span-8 space-y-12">
+        <div className="lg:col-span-8 space-y-8">
           <Card className="border-none rounded-lg overflow-hidden bg-white shadow-card">
             <CardHeader className="p-6 sm:p-8 border-b border-line-light">
               <div className="flex items-center gap-4">
@@ -451,14 +448,14 @@ export default function StudentProfile() {
                   <School className="w-6 h-6" />
                 </div>
                 <CardTitle className="text-xl font-semibold text-ink tracking-tight">
-                  School
+                  About you
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 space-y-10">
+            <CardContent className="p-6 sm:p-8 space-y-8">
               <div className="space-y-3">
-                <label className="text-xs font-semibold text-ink-soft ml-2">
-                  Full Name
+                <label className="text-sm font-semibold text-ink">
+                  Full name
                 </label>
                 <Input
                   aria-label="Full name"
@@ -474,15 +471,15 @@ export default function StudentProfile() {
                   )}
                 />
                 {errors.fullName && (
-                  <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-sm text-red-600 font-semibold mt-1.5 flex items-center gap-1">
                     ⚠️ {errors.fullName}
                   </p>
                 )}
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
                 <div className="space-y-3">
-                  <label className="text-xs font-semibold text-ink-soft ml-2">
-                    Academic Institution
+                  <label className="text-sm font-semibold text-ink">
+                    School
                   </label>
                   <Select
                     aria-label="Academic institution"
@@ -501,13 +498,13 @@ export default function StudentProfile() {
                     )}
                   />
                   {errors.school && (
-                    <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                    <p className="text-sm text-red-600 font-semibold mt-1.5 flex items-center gap-1">
                       ⚠️ {errors.school}
                     </p>
                   )}
                 </div>
                 <div className="space-y-3">
-                  <label className="text-xs font-semibold text-ink-soft ml-2">
+                  <label className="text-sm font-semibold text-ink">
                     Gender
                   </label>
                   <Select
@@ -519,8 +516,8 @@ export default function StudentProfile() {
                   />
                 </div>
                 <div className="space-y-3">
-                  <label className="text-xs font-semibold text-ink-soft ml-2">
-                    Grade Level
+                  <label className="text-sm font-semibold text-ink">
+                    Grade
                   </label>
                   <Select
                     aria-label="Grade level"
@@ -537,7 +534,7 @@ export default function StudentProfile() {
                     )}
                   />
                   {errors.grade && (
-                    <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                    <p className="text-sm text-red-600 font-semibold mt-1.5 flex items-center gap-1">
                       ⚠️ {errors.grade}
                     </p>
                   )}
@@ -559,7 +556,7 @@ export default function StudentProfile() {
                   )}
                 />
                 {errors.neighborhood && (
-                  <p className="text-xs text-red-600 font-bold ml-2 mt-1 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-sm text-red-600 font-semibold mt-1.5 flex items-center gap-1">
                     ⚠️ {errors.neighborhood}
                   </p>
                 )}
@@ -567,7 +564,7 @@ export default function StudentProfile() {
 
               <div className="pt-6 border-t border-line">
                   <div className="space-y-3">
-                    <label className="text-xs font-semibold text-ink-soft ml-2 flex items-center gap-1.5">
+                    <label className="text-sm font-semibold text-ink flex items-center gap-1.5">
                       <Mail className="w-3.5 h-3.5 text-blue-dark" /> Verified School Email (read-only)
                     </label>
                     <Input
@@ -578,7 +575,7 @@ export default function StudentProfile() {
                       disabled
                       className="h-11 rounded-lg bg-paper border-line font-semibold opacity-75"
                     />
-                    <p className="text-xs text-ink-muted ml-2 mt-1">Organizations will use this email to contact you regarding your applications.</p>
+                    <p className="text-sm text-ink-muted ml-2 mt-1">Organizations will use this email to contact you regarding your applications.</p>
                   </div>
               </div>
             </CardContent>
@@ -595,13 +592,13 @@ export default function StudentProfile() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 space-y-12">
+            <CardContent className="p-6 sm:p-8 space-y-8">
               <div>
-                <label className="text-xs font-semibold text-ink-soft block mb-4 ml-2">
+                <label className="text-sm font-semibold text-ink block mb-3">
                   What you care about
                 </label>
                 {errors.interests && (
-                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-sm text-red-600 font-semibold mb-3 flex items-center gap-1">
                     ⚠️ {errors.interests}
                   </p>
                 )}
@@ -615,10 +612,10 @@ export default function StudentProfile() {
                         if (errors.interests) setErrors(prev => ({ ...prev, interests: "" }));
                       }}
                       className={cn(
-                        "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
+                        "px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors duration-[120ms] cursor-pointer",
                         interests.includes(interest)
-                          ? "bg-ink border-ink text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark",
+                          ? "bg-blue-dark border-blue-dark text-white"
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/40 hover:text-blue-dark",
                         errors.interests && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -629,11 +626,11 @@ export default function StudentProfile() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-ink-soft block mb-4 ml-2">
-                  Skills You Bring to the table
+                <label className="text-sm font-semibold text-ink block mb-3">
+                  Skills you bring
                 </label>
                 {errors.skills && (
-                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-sm text-red-600 font-semibold mb-3 flex items-center gap-1">
                     ⚠️ {errors.skills}
                   </p>
                 )}
@@ -647,10 +644,10 @@ export default function StudentProfile() {
                         if (errors.skills) setErrors(prev => ({ ...prev, skills: "" }));
                       }}
                       className={cn(
-                        "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
+                        "px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors duration-[120ms] cursor-pointer",
                         skills.includes(skill)
-                          ? "bg-blue-dark border-blue-dark text-white  scale-105"
-                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark",
+                          ? "bg-blue-dark border-blue-dark text-white"
+                          : "bg-white border-line-light text-ink-soft hover:border-blue-dark/40 hover:text-blue-dark",
                         errors.skills && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -661,11 +658,11 @@ export default function StudentProfile() {
               </div>
 
               <div>
-                <label className="text-xs font-semibold text-ink-soft block mb-4 ml-2">
-                  Availability & Time Preferences
+                <label className="text-sm font-semibold text-ink block mb-3">
+                  When you are free
                 </label>
                 {errors.availability && (
-                  <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
+                  <p className="text-sm text-red-600 font-semibold mb-3 flex items-center gap-1">
                     ⚠️ {errors.availability}
                   </p>
                 )}
@@ -679,10 +676,10 @@ export default function StudentProfile() {
                         if (errors.availability) setErrors(prev => ({ ...prev, availability: "" }));
                       }}
                       className={cn(
-                        "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
+                        "px-4 py-2.5 rounded-lg text-sm font-medium border-2 transition-colors duration-[120ms] cursor-pointer",
                         availability.includes(slot)
-                          ? "bg-amber-dark border-amber-dark text-white  scale-105"
-                          : "bg-white border-line text-ink-soft hover:border-amber/30 hover:text-amber-dark",
+                          ? "bg-blue-dark border-blue-dark text-white"
+                          : "bg-white border-line text-ink-soft hover:border-blue-dark/40 hover:text-blue-dark",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
                     >
@@ -705,19 +702,19 @@ export default function StudentProfile() {
                 </CardTitle>
               </div>
             </CardHeader>
-            <CardContent className="p-6 sm:p-8 space-y-10">
+            <CardContent className="p-6 sm:p-8 space-y-8">
               <div className="space-y-3">
-                <label className="text-xs font-semibold text-ink-soft ml-2">
-                  Previous Volunteering (Other Communities & Reasons)
+                <label className="text-sm font-semibold text-ink">
+                  Where else you have volunteered
                 </label>
                 <textarea
                   aria-label="Previous volunteering experience"
                   value={previousExperience}
                   onChange={(e) => setPreviousExperience(e.target.value)}
                   placeholder="Tell us where else you've volunteered and what motivates you to help..."
-                  className="w-full min-h-[250px] p-6 rounded-lg bg-paper-2 border-line font-medium text-ink-soft focus:ring-2 focus:ring-blue-dark focus:outline-none transition-all"
+                  className="w-full min-h-[140px] p-6 rounded-lg bg-paper-2 border-line font-medium text-ink-soft focus:ring-2 focus:ring-blue-dark focus:outline-none transition-all"
                 />
-                <p className="text-xs text-ink-soft ml-2">
+                <p className="text-sm text-ink-soft">
                   This helps organizations understand your background and
                   passion.
                 </p>
@@ -737,16 +734,14 @@ export default function StudentProfile() {
               </div>
             </CardHeader>
             <CardContent className="p-6 sm:p-8 space-y-8">
-              <div className="bg-paper-2 p-6 rounded-lg border border-line text-center">
-                <p className="text-xs text-ink-soft mb-6 font-medium">
-                  Upload your resume to share it automatically with
-                  organizations when you apply. PDF files up to 5MB are
-                  supported; files are stored securely in cloud storage, not in
-                  your profile record.
+              <div className="bg-paper-2 p-6 rounded-lg border border-line">
+                <p className="text-sm text-ink-soft mb-6">
+                  Optional. If you add one, it goes out with every application
+                  you send. PDF, up to 5MB.
                 </p>
                 <div className="max-w-sm mx-auto">
                   <FileUpload
-                    label="Upload Resume (PDF)"
+                    label="Upload a PDF"
                     storagePath={`students/${user?.uid}`}
                     onFileSelect={(url) => {
                       setFileUploadError("");
@@ -788,78 +783,39 @@ export default function StudentProfile() {
               They live on the Settings tab instead, and this copy was a
               data-loss bug rather than a convenience: Settings writes each
               toggle immediately, while this one only held local state and
-              persisted on "Save Profile". Two identical-looking controls with
+              persisted on "Save profile". Two identical-looking controls with
               opposite commit semantics, so a student who flipped it here and
               navigated away silently lost the change. The labels disagreed too
               ("Leaderboard Options" vs "Community Listings Preference"). */}
           <Card className="rounded-lg border border-line bg-white p-5 sm:p-8 space-y-8 sticky top-24">
-            <div>
-              <h3 className="text-lg font-bold text-ink mb-2">
-                My Profile
-              </h3>
-              <p className="text-xs text-ink-soft leading-relaxed font-semibold">
-                Keeping your profile complete makes it much easier for
-                registered Toronto community groups and charities to discover
-                your skills and invite you to help with their events.
-              </p>
-            </div>
-            <div className="p-5 border border-line bg-paper-2 rounded-lg space-y-3">
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-ink-soft font-semibold">
-                  Selected Causes
-                </span>
-                <span className="font-semibold text-ink">
-                  {interests.length} selected
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-ink-soft font-semibold">
-                  Selected Skills
-                </span>
-                <span className="font-semibold text-ink">
-                  {skills.length} selected
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-ink-soft font-semibold">
-                  Availability Slots
-                </span>
-                <span className="font-semibold text-ink">
-                  {availability.length} selected
-                </span>
-              </div>
-              <div className="flex justify-between items-center text-xs">
-                <span className="text-ink-soft font-semibold">
-                  Resume Status
-                </span>
-                <span
-                  className={cn(
-                    "font-semibold",
-                    resumeUrl ? "text-blue-dark" : "text-amber-dark",
-                  )}
-                >
-                  {resumeUrl ? "Uploaded" : "Optional"}
-                </span>
-              </div>
-            </div>
+            {/*
+              A "My Profile" blurb and four counter rows lived here: Selected
+              Causes, Selected Skills, Availability Slots, Resume Status. Every
+              one of them restated something already on screen — the chips show
+              their own selected state a column away, and the resume card says
+              whether a file is attached. Eight text groups of pure restatement
+              in a sticky panel that followed the student down the whole page.
 
+              What a form's rail is for is the commit action, which is what is
+              left here.
+            */}
             <div className="pt-2 gap-4 flex flex-col">
               {saveError && (
-                <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-xs border border-red-200">
+                <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-sm rounded-lg border border-red-200">
                   {saveError}
                 </div>
               )}
               {success ? (
-                <div className="bg-blue-dark text-white h-14 rounded-lg flex items-center justify-center text-xs font-semibold tracking-wide animate-in zoom-in duration-300">
-                  <UserCheck className="w-4 h-4 mr-2" /> Changes Saved!
+                <div className="bg-blue-dark text-white h-14 rounded-lg flex items-center justify-center text-sm font-semibold animate-in zoom-in duration-300">
+                  <UserCheck className="w-4 h-4 mr-2" /> Changes saved
                 </div>
               ) : (
                 <Button
                   type="submit"
-                  className="w-full h-14 bg-blue-dark rounded-lg font-semibold text-xs"
+                  className="w-full h-14 bg-blue-dark rounded-lg font-semibold text-sm"
                   isLoading={isSaving}
                 >
-                  Save Profile
+                  Save profile
                 </Button>
               )}
 
@@ -871,17 +827,17 @@ export default function StudentProfile() {
                     <button
                       type="button"
                       onClick={() => setShowConfirmDelete(true)}
-                      className="w-full text-center text-red-600 hover:text-red-700 font-semibold text-xs py-3 hover:bg-red-50 rounded-lg border border-dashed border-red-200 transition-all cursor-pointer"
+                      className="w-full text-center text-red-600 hover:text-red-700 font-semibold text-sm py-3 hover:bg-red-50 rounded-lg border border-red-200 transition-colors cursor-pointer"
                     >
-                      ⚠️ Permanently Delete Account (Start Over)
+                      Delete my account
                     </button>
                   ) : (
                     <div className="space-y-3 text-left">
-                      <p className="text-xs font-bold text-red-700 leading-normal">
-                        ⚠️ WARNING: Are you sure you want to PERMANENTLY delete your account? All profiles, files, and hours tracking data will be deleted forever. You cannot undo this.
+                      <p className="text-sm font-semibold text-red-700 leading-relaxed">
+                        This deletes your profile, your uploaded files and every hour you have logged. It cannot be undone.
                       </p>
                       <div>
-                        <label className="block text-xs font-semibold uppercase text-ink-soft mb-1">
+                        <label className="block text-sm font-semibold text-ink mb-1.5">
                           Type email to confirm ({user?.email})
                         </label>
                         {/* Named explicitly: the visible label carries a JSX expression, so it
@@ -898,7 +854,7 @@ export default function StudentProfile() {
                       </div>
                       
                       {deleteError && (
-                        <p className="text-xs font-semibold uppercase text-red-600">
+                        <p className="text-sm font-semibold text-red-600">
                           {deleteError}
                         </p>
                       )}
@@ -911,7 +867,7 @@ export default function StudentProfile() {
                             setDeleteConfirmEmail("");
                             setDeleteError("");
                           }}
-                          className="px-4 py-2 text-ink-soft hover:text-ink-soft font-semibold text-xs rounded-lg hover:bg-paper-3"
+                          className="px-4 py-2.5 text-ink-soft hover:text-ink font-semibold text-sm rounded-lg hover:bg-paper-3"
                         >
                           Cancel
                         </button>
@@ -919,7 +875,7 @@ export default function StudentProfile() {
                           type="button"
                           disabled={isDeleting}
                           onClick={handleDeleteAccountInput}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-semibold text-xs rounded-lg rounded-full"
+                          className="px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold text-sm rounded-lg"
                         >
                           {isDeleting ? "Deleting..." : "Delete Account"}
                         </button>

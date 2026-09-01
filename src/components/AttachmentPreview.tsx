@@ -79,7 +79,7 @@ export default function AttachmentPreview({
   // apart here.
   if (raw === 'storage:unavailable' || resolveFailed) {
     return (
-      <p className="mt-2 text-xs text-amber-700 font-semibold">
+      <p className="mt-2 text-sm text-amber-700 font-semibold">
         We could not load this attachment right now. It is still stored; try again shortly.
       </p>
     );
@@ -108,7 +108,7 @@ export default function AttachmentPreview({
    */
   if (!/^(https?:|data:|blob:)/i.test(resolved)) {
     return (
-      <p className="mt-2 text-xs text-amber-700 font-semibold">
+      <p className="mt-2 text-sm text-amber-700 font-semibold">
         This attachment could not be shown because its link is not a file we can open.
       </p>
     );
@@ -195,7 +195,7 @@ export default function AttachmentPreview({
               className="w-full h-64 rounded-lg border border-line bg-paper-2"
             />
           ) : (
-            <p className="text-xs text-ink-muted font-medium p-3 bg-paper-2 rounded-lg border border-line">
+            <p className="text-sm text-ink-muted font-medium p-3 bg-paper-2 rounded-lg border border-line">
               Preview is off for files stored outside this site. Use the download link below.
             </p>
           )}

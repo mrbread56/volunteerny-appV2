@@ -702,12 +702,12 @@ export default function OrgOpportunityCreate() {
                     <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest">
                        <Globe className="w-4 h-4 text-blue-dark" /> Virtual Opportunity
                     </p>
-                    <p className="text-xs text-ink-muted mt-0.5 font-medium">Volunteers can participate from anywhere via internet.</p>
+                    <p className="text-sm text-ink-muted mt-0.5 font-medium">Volunteers can participate from anywhere via internet.</p>
                   </div>
                </label>
                
                <div className="space-y-2">
-                  <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Place Map Pin (drag it, or click the map)</p>
+                  <p className="text-sm font-bold text-ink-muted uppercase tracking-widest ml-1">Place Map Pin (drag it, or click the map)</p>
                   {geocodeNotice && (
                     <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
                       {geocodeNotice}

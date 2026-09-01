@@ -99,7 +99,7 @@ export default function ChangePassword() {
         <h4 className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
           <KeyRound className="w-3.5 h-3.5" /> Password
         </h4>
-        <p className="text-xs text-ink-soft leading-relaxed">
+        <p className="text-sm text-ink-soft leading-relaxed">
           You sign in with Google, so there is no password on this account to change.
           Manage it in your Google account settings.
         </p>
@@ -131,7 +131,7 @@ export default function ChangePassword() {
         <h4 className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
           <KeyRound className="w-3.5 h-3.5" /> Change password
         </h4>
-        <p className="text-xs text-ink-soft mt-1 leading-relaxed">
+        <p className="text-sm text-ink-soft mt-1 leading-relaxed">
           Set your own password here. You stay signed in, and if your account uses two-step sign-in you will be asked for a fresh code afterwards.
         </p>
       </div>
@@ -169,7 +169,7 @@ export default function ChangePassword() {
       </button>
 
       {isDemoMode && (
-        <p className="text-xs text-ink-muted">
+        <p className="text-sm text-ink-muted">
           The demo account cannot change its password.
         </p>
       )}

@@ -858,7 +858,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
           </div>
 
           {opportunity.status === 'closed' && (
-            <p className="text-xs text-ink-muted text-right">
+            <p className="text-sm text-ink-muted text-right">
               This opportunity is closed — it no longer appears in browse and cannot receive new applications.
             </p>
           )}
@@ -912,7 +912,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                             <h3 className="text-2xl font-bold text-ink leading-none mb-2 break-words">
                               {app.studentName || "Student Volunteer"}
                             </h3>
-                            <p className="text-xs text-ink-muted font-bold flex items-center gap-1 uppercase tracking-widest leading-none">
+                            <p className="text-sm text-ink-muted font-bold flex items-center gap-1 uppercase tracking-widest leading-none">
                               Applied{" "}
                               {app.appliedAt 
                                   ? (app.appliedAt.toDate ? app.appliedAt.toDate() : new Date(app.appliedAt)).toLocaleDateString() 

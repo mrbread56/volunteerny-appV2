@@ -275,7 +275,7 @@ export default function AddressMapsSelector({
             )}
           </span>
         </div>
-        <p className="text-xs text-ink-muted mt-1.5">
+        <p className="text-sm text-ink-muted mt-1.5">
           Search for it, or drag the pin on the map below.
         </p>
 

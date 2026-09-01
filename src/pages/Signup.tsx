@@ -652,7 +652,7 @@ export default function Signup() {
                       <legend className="text-xs font-medium text-ink">
                         Are you a CRA-registered charity? <span className="text-red-600">*</span>
                       </legend>
-                      <p className="text-xs text-ink-soft leading-relaxed">
+                      <p className="text-sm text-ink-soft leading-relaxed">
                         Registered charities are reviewed by our team. You can join without one.
                       </p>
                       <div className="flex gap-3">

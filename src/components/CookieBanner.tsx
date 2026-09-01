@@ -115,7 +115,7 @@ export default function CookieBanner() {
                   are <strong>no advertising or analytics trackers</strong> on
                   this site, and nothing here follows you to other websites.
                 </p>
-                <p className="text-xs leading-relaxed text-paper-3">
+                <p className="text-sm leading-relaxed text-paper-3">
                   There is nothing to turn off, so we are not going to pretend to
                   offer you a choice about it.
                 </p>

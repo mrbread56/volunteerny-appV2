@@ -22,7 +22,7 @@ export default function Footer() {
                 Volunteer North York
               </span>
             </div>
-            <p className="text-paper/70 text-xs leading-[1.7] max-w-[240px]">
+            <p className="text-paper/70 text-sm leading-[1.7] max-w-[240px]">
               Volunteer hours for Toronto high school students, tracked properly and signed off by the organisation.
             </p>
           </div>
@@ -71,7 +71,7 @@ export default function Footer() {
 
         {/* Bottom */}
         <div className="border-t border-paper/[0.06] py-8 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-paper/60">
+          <p className="text-sm text-paper/60">
             © {year} Volunteer North York. All rights reserved.
           </p>
           <p className="text-xs text-paper/60">

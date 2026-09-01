@@ -311,7 +311,7 @@ export default function ApplicationReviewDialog({
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'database' ? 'text-blue-dark' : dbVerified ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             1. Saving the decision
                           </p>
-                          <p className="text-xs text-ink-soft font-medium">
+                          <p className="text-sm text-ink-soft font-medium">
                             Recording that you accepted this applicant.
                           </p>
                         </div>
@@ -341,7 +341,7 @@ export default function ApplicationReviewDialog({
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'receipt' ? 'text-blue-dark' : receiptCompiled ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             2. Preparing the receipt
                           </p>
-                          <p className="text-xs text-ink-soft font-medium">
+                          <p className="text-sm text-ink-soft font-medium">
                             Getting the placement record ready to open or print.
                           </p>
                         </div>
@@ -362,7 +362,7 @@ export default function ApplicationReviewDialog({
                           <p className={`text-sm font-semibold uppercase tracking-tight transition-colors ${submittingState === 'email' ? 'text-blue-dark' : emailDispatched ? 'text-ink-soft' : 'text-ink-soft'}`}>
                             3. Emailing the student
                           </p>
-                          <p className="text-xs text-ink-soft font-medium font-sans">
+                          <p className="text-sm text-ink-soft font-medium font-sans">
                             Sending the decision to the address on their account.
                           </p>
                         </div>
@@ -463,7 +463,7 @@ export default function ApplicationReviewDialog({
                     } else {
                       return (
                         <div className="text-center space-y-4 max-w-sm">
-                           <p className="text-ink-soft text-xs font-semibold leading-relaxed">
+                           <p className="text-ink-soft text-sm font-semibold leading-relaxed">
                               This resume document type cannot be displayed directly inline in this browser container. You can download and inspect it natively.
                            </p>
                            <a aria-label="Download PDF" 

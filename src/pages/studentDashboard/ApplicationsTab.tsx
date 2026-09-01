@@ -67,7 +67,7 @@ export default function ApplicationsTab({
                           <h4 className="font-bold text-ink text-lg break-words">
                             {app.opportunityTitle || "Opportunity"}
                           </h4>
-                          <p className="text-xs text-ink-soft font-medium tracking-wide mt-1">
+                          <p className="text-sm text-ink-soft font-medium tracking-wide mt-1">
                             Applied{" "}
                             {formatDate(
                               app.appliedAt

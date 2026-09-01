@@ -321,7 +321,7 @@ export default function MfaChallenge() {
                   ? 'Use the code sent to my email instead'
                   : 'Use a recovery code instead'}
               </button>
-              <p className="text-xs text-ink-muted leading-relaxed">
+              <p className="text-sm text-ink-muted leading-relaxed">
                 Code still not arriving? Check your spam folder first. If you saved
                 recovery codes when you set up your account, use one above. Otherwise
                 email us from the address on this account and we can verify

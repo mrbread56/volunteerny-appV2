@@ -781,7 +781,7 @@ export default function StudentOpportunityDetail() {
                          <span className="font-bold text-blue-dark">
                            {isFull ? "You're on the waitlist" : "You've Applied!"}
                          </span>
-                         <p className="text-xs text-ink-soft text-center max-w-[22rem] leading-relaxed">
+                         <p className="text-sm text-ink-soft text-center max-w-[22rem] leading-relaxed">
                            {isFull
                              ? 'Every place is taken right now. If one frees up, the longest-waiting student is moved up automatically and emailed.'
                              : 'You can withdraw any time from your dashboard.'}
@@ -812,7 +812,7 @@ export default function StudentOpportunityDetail() {
                          bookmark or a shared link after it closes. */
                       <div className="flex flex-col items-center gap-2 p-4 bg-paper-2 rounded-lg border border-line text-center">
                          <span className="font-bold text-ink">Applications are closed</span>
-                         <p className="text-xs text-ink-muted leading-relaxed">
+                         <p className="text-sm text-ink-muted leading-relaxed">
                            This organization has the volunteers it needs. Browse other opportunities.
                          </p>
                          <Link to="/student/opportunities" className="text-xs text-blue-dark hover:underline">
@@ -938,7 +938,7 @@ export default function StudentOpportunityDetail() {
                      </div>
                   )}
                   <div className="space-y-3">
-                     <p className="text-xs text-ink-muted bg-blue-dark/5 p-4 rounded-lg">
+                     <p className="text-sm text-ink-muted bg-blue-dark/5 p-4 rounded-lg">
                         Applying shares your name, school, grade, neighbourhood, interests, skills,
                 availability, previous experience, and your resume if you uploaded one.
                      </p>

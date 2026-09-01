@@ -379,10 +379,10 @@ export default function OrgProfile() {
                   placeholder="e.g. 123456789RR0001"
                 />
                 <div className="p-4 bg-paper-2 border border-line rounded-lg space-y-1">
-                  <p className="text-xs font-semibold uppercase text-ink-soft tracking-wider flex items-center gap-1">
+                  <p className="text-sm font-semibold uppercase text-ink-soft tracking-wider flex items-center gap-1">
                     🇨🇦 Canada Revenue Agency Validation (Optional)
                   </p>
-                  <p className="text-xs text-ink-soft leading-relaxed font-medium">
+                  <p className="text-sm text-ink-soft leading-relaxed font-medium">
                     Providing your 15-character CRA Registration Number consists of 9 digits, 2 letters, and 4 digits (e.g. 123456789RR0001) is optional, but verifies non-profit or charitable status with a badge.
                   </p>
                 </div>
@@ -496,7 +496,7 @@ export default function OrgProfile() {
                   Required
                 </span>
               </h3>
-              <p className="text-xs text-ink-soft mt-1 leading-relaxed font-semibold">
+              <p className="text-sm text-ink-soft mt-1 leading-relaxed font-semibold">
                 A 6-digit confirmation key is sent to your contact address every time you sign in.
                 This is required for organisation accounts, because your dashboard holds the names,
                 schools and contact details of students under 18.
@@ -508,7 +508,7 @@ export default function OrgProfile() {
                 <h4 className="text-xs font-semibold text-ink-soft">
                   MFA Login Gate
                 </h4>
-                <p className="text-xs text-ink-soft font-bold">
+                <p className="text-sm text-ink-soft font-bold">
                   {(userProfile?.twoFactorEnabled ?? true) ? "Active" : "Not yet active"}
                 </p>
               </div>
@@ -692,7 +692,7 @@ export default function OrgProfile() {
                     </button>
                   ) : (
                     <div className="space-y-3 text-left">
-                      <p className="text-xs font-bold text-red-600 leading-normal">
+                      <p className="text-sm font-bold text-red-600 leading-normal">
                         ⚠️ WARNING: Are you sure you want to PERMANENTLY delete your organization? All postings, applicants, and archives will be deleted from the registry. You cannot undo this.
                       </p>
                       <div>

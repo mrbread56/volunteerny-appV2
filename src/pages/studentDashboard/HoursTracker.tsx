@@ -141,13 +141,13 @@ export default function HoursTracker({
 
                 {hoursRequests.length > 0 && (
                   <div className="pt-6 border-t border-line space-y-4">
-                    <p className="text-xs font-semibold uppercase text-ink-soft tracking-wider ml-1">
+                    <p className="text-sm font-semibold uppercase text-ink-soft tracking-wider ml-1">
                       Submitted Claims ({hoursRequests.length})
                     </p>
                     {/* One line, not a bordered amber panel with an emoji. The
                         advice is real and worth keeping; the packaging was the
                         third warning box on one card. */}
-                    <p className="text-xs text-ink-soft leading-relaxed">
+                    <p className="text-sm text-ink-soft leading-relaxed">
                       Pending claims do not count toward your total until the
                       coordinator approves them. If they say the email never
                       arrived, ask them to check spam, then use Remind.
@@ -228,7 +228,7 @@ export default function HoursTracker({
                               only inside an email. Applications already do this
                               properly. */}
                           {req.status === "declined" && (
-                            <p className="text-xs text-ink-muted leading-relaxed pt-2">
+                            <p className="text-sm text-ink-muted leading-relaxed pt-2">
                               {(req as any).declinedReason
                                 || 'Your coordinator did not approve this one. Talk to them and then submit the hours again from this page. A declined request cannot be reopened, so it has to be a new submission.'}
                             </p>

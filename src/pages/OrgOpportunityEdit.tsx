@@ -725,7 +725,7 @@ export default function OrgOpportunityEdit() {
                    </div>
                 </label>
                 <div className="space-y-2">
-                   <p className="text-xs font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin (drag it, or click the map)</p>
+                   <p className="text-sm font-bold text-ink-muted uppercase tracking-widest ml-1">Update Map Pin (drag it, or click the map)</p>
                    {geocodeNotice && (
                      <p role="status" className="text-xs text-amber-800 bg-amber/10 border border-amber/40 rounded-lg p-2.5 leading-relaxed">
                        {geocodeNotice}
@@ -822,7 +822,7 @@ export default function OrgOpportunityEdit() {
                         <p className="font-bold text-ink text-sm uppercase tracking-widest flex items-center gap-2">
                           <AlertTriangle className="w-4 h-4 text-red-600" /> Delete This Opportunity
                         </p>
-                        <p className="text-xs text-ink-muted mt-1 font-medium max-w-lg">
+                        <p className="text-sm text-ink-muted mt-1 font-medium max-w-lg">
                           Permanently removes this posting and every application to it. Anyone
                           still waiting on a decision is emailed to say it was withdrawn.
                         </p>
@@ -834,7 +834,7 @@ export default function OrgOpportunityEdit() {
                   ) : (
                     <div className="space-y-3">
                       <p className="font-bold text-red-700 text-sm">Are you sure? This can't be undone.</p>
-                      <p className="text-xs text-ink-muted font-medium">
+                      <p className="text-sm text-ink-muted font-medium">
                         This will delete "{title}" and every application to it. Applicants awaiting
                         a decision will be emailed. This cannot be undone.
                       </p>

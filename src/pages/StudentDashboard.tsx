@@ -1505,7 +1505,7 @@ export default function StudentDashboard() {
                 Official Involvement Request
               </span>
               <CardTitle className="text-2xl font-bold text-ink tracking-tight">Request Hours Verification</CardTitle>
-              <p className="text-xs text-ink-soft font-semibold leading-relaxed">
+              <p className="text-sm text-ink-soft font-semibold leading-relaxed">
                 Fill in the details below. We will send an automatic email notification directly to your supervisor's email coordinates to authorize these hours.
               </p>
               
@@ -1537,10 +1537,10 @@ export default function StudentDashboard() {
                   <p className="text-xs font-semibold tracking-wide flex items-center gap-1.5 text-ink-soft">
                     Highlighted Most Recent Volunteering
                   </p>
-                  <p className="text-xs font-semibold text-ink">
+                  <p className="text-sm font-semibold text-ink">
                     {applications[0].opportunityTitle || "Volunteer Session"}
                   </p>
-                  <p className="text-xs text-ink-soft font-semibold leading-relaxed">
+                  <p className="text-sm text-ink-soft font-semibold leading-relaxed">
                     Select this option in the dropdown below to automatically pre-fill your supervisor email and coordinate approval.
                   </p>
                 </div>
@@ -1802,7 +1802,7 @@ export default function StudentDashboard() {
           message="Your hours request was submitted. We are asking your coordinator to confirm it. If you do not hear back, send a reminder from Submitted Claims."
           note={
             <div className="space-y-2">
-              <p className="text-xs leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
+              <p className="text-sm leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
                 ⚠️ These hours do NOT count toward your total yet. They are
                 added only after your coordinator approves the request — track
                 the status under Submitted Claims.
@@ -1834,7 +1834,7 @@ export default function StudentDashboard() {
             {/* Certificate Header */}
             <div className="border-b-4 border-blue-dark pb-5 text-center sm:text-left">
               <h2 className="text-xl md:text-2xl font-semibold text-ink uppercase tracking-tight">Community Involvement Hours: Personal Record</h2>
-              <p className="text-xs text-ink-soft mt-1">A summary of hours confirmed on Volunteer North York. Not an official school document.</p>
+              <p className="text-sm text-ink-soft mt-1">A summary of hours confirmed on Volunteer North York. Not an official school document.</p>
             </div>
 
             {/*

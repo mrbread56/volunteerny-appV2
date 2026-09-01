@@ -228,7 +228,7 @@ export default function StudentOnboarding() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-ink tracking-tight">Your school</CardTitle>
-                    <p className="text-xs text-ink-muted font-semibold mt-1">Specify your schooling details and current neighborhood.</p>
+                    <p className="text-sm text-ink-muted font-semibold mt-1">Specify your schooling details and current neighborhood.</p>
                   </div>
                 </div>
               </CardHeader>
@@ -297,7 +297,7 @@ export default function StudentOnboarding() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-ink tracking-tight">What you care about</CardTitle>
-                    <p className="text-xs text-ink-muted font-semibold mt-1">Select the main cause categories that interest you.</p>
+                    <p className="text-sm text-ink-muted font-semibold mt-1">Select the main cause categories that interest you.</p>
                   </div>
                 </div>
               </CardHeader>
@@ -333,7 +333,7 @@ export default function StudentOnboarding() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-ink tracking-tight">Your skills</CardTitle>
-                    <p className="text-xs text-ink-muted font-semibold mt-1">Choose the specific skillsets/contributions you bring.</p>
+                    <p className="text-sm text-ink-muted font-semibold mt-1">Choose the specific skillsets/contributions you bring.</p>
                   </div>
                 </div>
               </CardHeader>
@@ -369,7 +369,7 @@ export default function StudentOnboarding() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-ink tracking-tight">When you're free</CardTitle>
-                    <p className="text-xs text-ink-muted font-semibold mt-1">When can you usually join community placements?</p>
+                    <p className="text-sm text-ink-muted font-semibold mt-1">When can you usually join community placements?</p>
                   </div>
                 </div>
               </CardHeader>
@@ -406,7 +406,7 @@ export default function StudentOnboarding() {
                   </div>
                   <div>
                     <CardTitle className="text-xl font-bold text-ink tracking-tight">Experience and resume</CardTitle>
-                    <p className="text-xs text-ink-muted font-semibold mt-1">This step is completely optional. You can skip if you want.</p>
+                    <p className="text-sm text-ink-muted font-semibold mt-1">This step is completely optional. You can skip if you want.</p>
                   </div>
                 </div>
               </CardHeader>

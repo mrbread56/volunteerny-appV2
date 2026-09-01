@@ -94,7 +94,7 @@ export default function RecoveryCodes() {
         <h4 className="text-xs font-semibold text-ink-soft flex items-center gap-1.5">
           <KeyRound className="w-3.5 h-3.5" /> Recovery codes
         </h4>
-        <p className="text-xs text-ink-soft mt-1 leading-relaxed">
+        <p className="text-sm text-ink-soft mt-1 leading-relaxed">
           If you ever cannot reach the email on this account, a recovery code lets you
           sign in anyway. Without one, getting back in means contacting us and waiting.
         </p>
@@ -102,7 +102,7 @@ export default function RecoveryCodes() {
 
       {codes ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
-          <p className="text-xs font-semibold text-amber-900">
+          <p className="text-sm font-semibold text-amber-900">
             Save these now — this is the only time they are shown.
           </p>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-sm text-ink">
@@ -118,7 +118,7 @@ export default function RecoveryCodes() {
         </div>
       ) : (
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs text-ink-muted">
+          <p className="text-sm text-ink-muted">
             {status?.exists
               ? `${status.remaining} of 10 unused`
               : 'You have not created any yet.'}
@@ -135,7 +135,7 @@ export default function RecoveryCodes() {
       )}
 
       {status?.exists && !codes && (
-        <p className="text-xs text-ink-muted">
+        <p className="text-sm text-ink-muted">
           Creating new codes cancels the old ones.
         </p>
       )}

@@ -62,7 +62,7 @@ export default function HoursTab({
         <h2 className="text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
           <span>Student hours</span>
         </h2>
-        <p className="text-xs font-bold text-ink-soft tracking-wide font-mono">
+        <p className="text-sm font-bold text-ink-soft tracking-wide font-mono">
           Log hours you supervised, and approve hours students have sent you
         </p>
       </div>
@@ -152,7 +152,7 @@ export default function HoursTab({
             </div>
 
             {logResultStatus === "success" && (
-              <p className="text-xs font-semibold text-blue-dark uppercase text-center ">
+              <p className="text-sm font-semibold text-blue-dark uppercase text-center ">
                 ✓ Hours successfully recorded onto Student Hour Log!
               </p>
             )}
@@ -162,7 +162,7 @@ export default function HoursTab({
               </p>
             )}
             {logResultStatus === "error" && (
-              <p className="text-xs font-semibold text-red-600 uppercase text-center">
+              <p className="text-sm font-semibold text-red-600 uppercase text-center">
                 ❌ Failed to save hours log. Please try again.
               </p>
             )}
@@ -190,7 +190,7 @@ export default function HoursTab({
               <h3 className="text-base font-semibold uppercase text-ink tracking-wide">
                 Hours Claims Inbox
               </h3>
-              <p className="text-xs uppercase font-semibold tracking-widest text-blue-dark font-mono">
+              <p className="text-sm uppercase font-semibold tracking-widest text-blue-dark font-mono">
                 Pending Verification Requests ({hoursRequests.length})
               </p>
             </div>

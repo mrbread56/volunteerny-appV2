@@ -255,7 +255,7 @@ export function FileUpload({
               "Upload failed. Please try again." which does not mention size.
               Offering a way through that does not exist wastes the upload and
               leaves the student with no idea what was wrong. */}
-          <p className="text-xs text-ink-soft leading-relaxed max-w-sm font-semibold">
+          <p className="text-sm text-ink-soft leading-relaxed max-w-sm font-semibold">
             This file is {(pendingFile.size / (1024 * 1024)).toFixed(1)}MB and the limit is {maxSizeMB}MB.
             Save it as a smaller PDF, or export at a lower quality, and try again.
           </p>

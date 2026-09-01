@@ -75,7 +75,7 @@ export default function SettingsTab({
           <h3 className="text-xl font-bold text-ink mt-1 ">
             Community Listings Preference
           </h3>
-          <p className="text-xs text-ink-soft mt-2 leading-relaxed">
+          <p className="text-sm text-ink-soft mt-2 leading-relaxed">
             Configure how your high school volunteer hours display on leadership indices.
           </p>
         </div>
@@ -86,7 +86,7 @@ export default function SettingsTab({
               <h4 className="text-sm font-bold text-ink">
                 Participate in Rankings
               </h4>
-              <p className="text-xs text-ink-soft mt-1 font-semibold">
+              <p className="text-sm text-ink-soft mt-1 font-semibold">
                 Toggle whether peers see your hours leaderboard
               </p>
             </div>
@@ -114,7 +114,7 @@ export default function SettingsTab({
               <h4 className="text-sm font-bold text-ink">
                 Anonymous Display Format
               </h4>
-              <p className="text-xs text-ink-soft mt-1 font-semibold">
+              <p className="text-sm text-ink-soft mt-1 font-semibold">
                 Hide your full name on high achievement boards
               </p>
             </div>
@@ -153,7 +153,7 @@ export default function SettingsTab({
                 Highly Recommended
               </span>
             </h3>
-            <p className="text-xs text-ink-soft mt-2 leading-relaxed font-semibold">
+            <p className="text-sm text-ink-soft mt-2 leading-relaxed font-semibold">
               Secure your account from brute force attacks by verifying your identity via email during sign-in.
             </p>
           </div>
@@ -164,7 +164,7 @@ export default function SettingsTab({
                 <h4 className="text-sm font-bold text-ink">
                   Email Passcode Gate
                 </h4>
-                <p className="text-xs text-ink-soft mt-1 font-semibold">
+                <p className="text-sm text-ink-soft mt-1 font-semibold">
                   Require a 6-digit confirmation PIN on login
                 </p>
               </div>
@@ -199,7 +199,7 @@ export default function SettingsTab({
               <p className="text-xs text-ink-soft font-medium leading-relaxed">
                 We send a 6-digit code to <span className="text-xs text-ink-soft font-semibold">{user?.email}</span> each time you sign in. Staying signed in on this device won't ask again — only a new sign-in will.
               </p>
-              <p className="text-xs text-ink-soft font-medium leading-relaxed">
+              <p className="text-sm text-ink-soft font-medium leading-relaxed">
                 Turning this on asks for a code right away, so you can confirm you
                 can receive it before your account starts depending on it.
               </p>
@@ -215,7 +215,7 @@ export default function SettingsTab({
                   <label htmlFor="twofa-confirm" className="block text-xs font-semibold text-ink">
                     Enter the 6-digit code we just emailed you
                   </label>
-                  <p className="text-xs text-ink-muted">
+                  <p className="text-sm text-ink-muted">
                     The passcode gate stays off until you do. If it does not arrive,
                     check your spam folder.
                   </p>

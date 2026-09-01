@@ -270,7 +270,7 @@ export default function FeedbackPage() {
     <div className="max-w-6xl mx-auto py-12 px-6 space-y-8 bg-white">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[1.5rem] font-bold text-ink tracking-[-0.02em]">Feedback & Support</h1>
-        <p className="text-ink-soft text-xs leading-relaxed">
+        <p className="text-ink-soft text-sm leading-relaxed">
           Found a bug or have a feature suggestion? Submit a ticket and track responses below.
         </p>
       </div>
@@ -288,7 +288,7 @@ export default function FeedbackPage() {
                   <p className="text-ink-soft text-sm leading-relaxed max-w-md mx-auto font-medium">
                     This feedback has been submitted successfully. It will be reviewed by admin or our developer team shortly.
                   </p>
-                  <p className="text-xs text-ink-soft font-mono">
+                  <p className="text-sm text-ink-soft font-mono">
                     Ticket ID reference: #{submittedFeedback.id}
                   </p>
                 </div>
@@ -443,7 +443,7 @@ export default function FeedbackPage() {
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
               <Clock className="w-4 h-4 text-blue-dark" /> Response Expectations
             </h3>
-            <p className="text-xs leading-relaxed text-ink-soft font-semibold">
+            <p className="text-sm leading-relaxed text-ink-soft font-semibold">
               Our team operates standard hours. Tickets generally receive manual diagnostic responses within 24 to 48 hours. Please check the "My Submitted Tickets" index below regularly to check feedback outcomes and messages.
             </p>
           </Card>
@@ -452,7 +452,7 @@ export default function FeedbackPage() {
             <h3 className="font-bold text-ink text-sm flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 text-amber-dark" /> Service Policy
             </h3>
-            <p className="text-xs leading-relaxed text-ink-soft font-semibold">
+            <p className="text-sm leading-relaxed text-ink-soft font-semibold">
               We strictly audit spam or duplicate submissions. Ensure detailed reports to help maintain an accessible community environment for all high school students and public organizations around York region.
             </p>
           </Card>
@@ -464,7 +464,7 @@ export default function FeedbackPage() {
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h2 className="text-[1.25rem] font-bold text-ink tracking-[-0.02em]">My Tickets</h2>
-            <p className="text-xs text-ink-muted">
+            <p className="text-sm text-ink-muted">
               Track progress and view replies from administrators.
             </p>
           </div>
