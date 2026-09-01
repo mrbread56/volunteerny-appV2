@@ -139,7 +139,7 @@ export default function MetricsTab() {
       )}
 
       {loading && !metrics && (
-        <p className="text-sm text-ink-muted">Reading every collection — this takes a moment.</p>
+        <p className="text-sm text-ink-muted">Reading every collection. This takes a moment.</p>
       )}
 
       {s && c && (

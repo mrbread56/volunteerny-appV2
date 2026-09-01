@@ -70,12 +70,12 @@ export default function RecoveryCodes() {
   const download = () => {
     if (!codes) return;
     const body = [
-      'Volunteer North York — recovery codes',
+      'Volunteer North York recovery codes',
       `Account: ${auth.currentUser?.email || ''}`,
       `Generated: ${new Date().toLocaleString()}`,
       '',
       'Each code works once. Use one in place of the emailed sign-in code if',
-      'you cannot reach your email. Keep this somewhere safe and private —',
+      'you cannot reach your email. Keep this somewhere safe and private.',
       'anyone holding a code can sign in as this account.',
       '',
       ...codes.map((c, i) => `${String(i + 1).padStart(2, ' ')}.  ${c}`),

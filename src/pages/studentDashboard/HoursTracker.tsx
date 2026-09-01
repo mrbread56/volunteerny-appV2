@@ -89,76 +89,69 @@ export default function HoursTracker({
                       </span>
                     )}
                   </p>
-                  <div className="pt-1 flex items-center justify-center">
-                    <Button
-                      onClick={onPrintCertificate}
-                      variant="outline"
-                      className="w-full h-10 border-blue-dark/20 text-blue-dark hover:bg-blue-dark/5 hover:text-[#153343] font-semibold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer flex items-center justify-center"
-                    >
-                      <Printer className="w-4 h-4 shrink-0 text-blue-dark" />
-                      Print Hours Transcript
-                    </Button>
-                  </div>
                 </div>
 
-                {/* Disclaimer box */}
-                <div className="bg-amber/10 border-2 border-dashed border-amber p-6 rounded-lg space-y-3">
-                  <h3 className="text-amber-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-2">
-                    <span>⚠️</span> REQUIREMENT DISCLAIMER
-                  </h3>
+                {/*
+                  * Order: what you have, what to do next, the caveat, then the
+                  * secondary action.
+                  *
+                  * This card used to run gauge, Print, an 85-word dashed
+                  * disclaimer in three font sizes, a second bordered box whose
+                  * heading was orange-800 on orange-700 body, and a third
+                  * amber box about spam folders. Request Hours Verification —
+                  * the single action this product exists to enable — was the
+                  * small uppercase button inside the SECOND box, set smaller
+                  * than the disclaimer directly above it telling the student
+                  * the hours do not officially count. Roughly 165 words of
+                  * caveat wrapped around two buttons.
+                  *
+                  * Three nested bordered boxes also defeat the grouping they
+                  * were meant to create: common region is stronger than
+                  * proximity (Palmer 1992), so the innermost box owns the
+                  * grouping and the card stops reading as one thing.
+                  *
+                  * The disclaimer is not softened, only shortened. A student
+                  * who believes this page replaces their board's form finds out
+                  * in their graduating year.
+                  */}
+                <Button
+                  onClick={() => onOpenLogForm()}
+                  size="lg"
+                  className="w-full mt-5"
+                >
+                  Request hours verification
+                </Button>
 
-                  {/* Deliberately larger than the copy around it, and phrased
-                      without hedging. "may still require" reads as "probably
-                      not" — and a student who believes this page replaces their
-                      board's form finds out in their graduating year, when it is
-                      far too late to go back and collect signatures. */}
-                  <p className="text-[13px] text-amber-950 leading-relaxed font-bold">
-                    <strong className="text-[15px]">You still need your school's own community involvement form, signed by your supervisor.</strong>
-                  </p>
-                  <p className="text-[12px] text-amber-900 leading-relaxed font-semibold mt-2">
-                    Volunteer North York tracks your hours here so you can see your
-                    progress and your leaderboard position. It is <strong>not</strong> an
-                    official record and no school board accepts it in place of their
-                    own form. Print your hours from here to help you fill that form
-                    in — then get it signed.
-                  </p>
-                </div>
+                <p className="mt-3 text-[13px] text-ink-soft leading-relaxed">
+                  Your coordinator confirms these hours here, so you can see your
+                  progress. <strong className="text-ink">It is not an official record.</strong> You
+                  still need your school&apos;s own community involvement form, signed
+                  by your supervisor. Print your hours to help you fill it in.
+                </p>
 
-                 {/* Unofficial Disclaimer Warning Box */}
-                <div className="bg-white border border-line rounded-lg p-5 text-center space-y-3 shadow-sm">
-                  <div>
-                    <p className="text-orange-800 font-semibold text-xs uppercase tracking-wide">
-                      Hour Verification Info
-                    </p>
-                    <p className="text-xs text-orange-700 leading-relaxed font-semibold mt-1">
-                      Volunteer hours must be verified and logged directly by your
-                      coordinators or supervisors. Only they can verify and approve your hours online.
-                    </p>
-                  </div>
-                  <div className="pt-1.5 border-t border-amber/20">
-                    <Button
-                      onClick={() => onOpenLogForm()}
-                      className="w-full h-10 bg-blue-dark hover:bg-blue-dark hover:scale-[1.02] text-white font-bold text-xs uppercase tracking-wider rounded-lg transition-all gap-1.5 cursor-pointer"
-                    >
-                      Request Hours Verification
-                    </Button>
-                  </div>
-                </div>
+                <Button
+                  onClick={onPrintCertificate}
+                  variant="outline"
+                  size="sm"
+                  className="w-full mt-3 gap-1.5"
+                >
+                  <Printer className="w-4 h-4 shrink-0" />
+                  Print my hours
+                </Button>
 
                 {hoursRequests.length > 0 && (
                   <div className="pt-6 border-t border-line space-y-4">
                     <p className="text-xs font-semibold uppercase text-ink-soft tracking-wider ml-1">
                       Submitted Claims ({hoursRequests.length})
                     </p>
-                    <div className="flex items-start gap-2 p-3 bg-amber/10 border border-amber/40 rounded-lg">
-                      <span aria-hidden="true" className="text-sm leading-none mt-px">⚠️</span>
-                      <p className="text-[11px] text-amber-900 font-semibold leading-relaxed">
-                        Pending claims do not count toward your hour total until
-                        the coordinator approves them. If your coordinator says
-                        they never received the verification email, ask them to
-                        check their spam or junk folder, then use Remind.
-                      </p>
-                    </div>
+                    {/* One line, not a bordered amber panel with an emoji. The
+                        advice is real and worth keeping; the packaging was the
+                        third warning box on one card. */}
+                    <p className="text-[13px] text-ink-soft leading-relaxed">
+                      Pending claims do not count toward your total until the
+                      coordinator approves them. If they say the email never
+                      arrived, ask them to check spam, then use Remind.
+                    </p>
                     <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
                       {hoursRequests.map((req) => (
                         <div
@@ -237,7 +230,7 @@ export default function HoursTracker({
                           {req.status === "declined" && (
                             <p className="text-xs text-ink-muted leading-relaxed pt-2">
                               {(req as any).declinedReason
-                                || 'Your coordinator did not approve this one. Talk to them and then submit the hours again from this page — a declined request cannot be reopened, so it has to be a new submission.'}
+                                || 'Your coordinator did not approve this one. Talk to them and then submit the hours again from this page. A declined request cannot be reopened, so it has to be a new submission.'}
                             </p>
                           )}
                         </div>

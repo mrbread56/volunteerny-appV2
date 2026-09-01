@@ -1325,71 +1325,14 @@ export default function StudentDashboard() {
               onPrintCertificate={handlePrintCertificate}
             />
 
-            {/* Interest Matching / Waiting List in Sidebar */}
-            <section className={activeTab !== "dashboard" ? "hidden" : ""}>
-              <h2 className="text-xl font-bold text-ink flex items-center gap-2 mb-6">
-                <ListPlus className="text-blue-dark w-5 h-5" />
-                Waiting List
-              </h2>
-              <Card className="p-6 border-none rounded-lg bg-white shadow-card">
-                <p className="text-ink-soft text-xs font-medium mb-4">
-                  Can't find a match? Join our waiting list for custom
-                  placements.
-                </p>
-                <form onSubmit={handleInterestSubmit} className="space-y-4">
-                  <div className="space-y-2">
-                    <p className="text-xs font-semibold text-ink-soft tracking-wide ml-1">
-                      Categories of interest
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {OPPORTUNITY_CATEGORIES.map((cat) => (
-                        <button
-                          key={cat}
-                          type="button"
-                          onClick={() => toggleCategory(cat)}
-                          className={cn(
-                            "px-3 py-1.5 rounded-lg text-xs font-bold border transition-all",
-                            selectedCategories.includes(cat)
-                              ? "bg-blue-dark border-blue-dark text-white "
-                              : "bg-white border-line text-ink-soft hover:border-blue-dark/20",
-                          )}
-                        >
-                          {cat}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <textarea
-                    aria-label="Specific interests or goals for the waiting list"
-                    placeholder="Specific interests or goals..."
-                    className="w-full min-h-[60px] p-3 rounded-lg bg-paper-2 border border-transparent focus:bg-white focus:border-blue-dark/10 outline-none h-10 text-xs font-bold transition-all"
-                    value={interestNote}
-                    onChange={(e) => setInterestNote(e.target.value)}
-                  />
-
-                  <AnimatePresence>
-                    {showSuccess && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="text-xs text-blue-dark font-bold"
-                      >
-                        Added to waitlist!
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
-                  <Button
-                    type="submit"
-                    size="sm"
-                    className="w-full rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-semibold uppercase text-xs tracking-widest"
-                    disabled={isSubmitting}
-                  >
-                    {isSubmitting ? "Joining..." : "Join List"}
-                  </Button>
-                </form>
-              </Card>
-            </section>
+            {/* The Waiting List panel used to sit here.
+                It was 14 category chips, a textarea and a full-width button in
+                the dashboard's prime right rail, offered to a student who has
+                not yet been given a reason to want it. The same vocabulary is
+                already collected on the profile and offered as a filter on
+                Browse, so it asked a third time for something it already knew.
+                It belongs at the bottom of an empty Browse result, where a
+                student who genuinely found nothing is actually looking. */}
 
             <section className={activeTab !== "applications" ? "hidden" : ""}>
               <h2 className="text-xl font-bold text-ink mb-4 flex items-center gap-2">

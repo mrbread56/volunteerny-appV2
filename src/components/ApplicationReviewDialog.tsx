@@ -177,7 +177,7 @@ export default function ApplicationReviewDialog({
                     <div className="space-y-2">
                       <h4 className="text-2xl font-semibold text-ink uppercase tracking-tight">We couldn't accept this student</h4>
                       <p className="text-sm text-ink-soft font-medium">
-                        The change didn't save. Check your internet connection and try again — nothing was sent to the student.
+                        The change didn't save. Check your internet connection and try again. Nothing was sent to the student.
                       </p>
                     </div>
                     <div className="p-4 bg-paper-2 border border-line rounded-lg text-left">
