@@ -1042,7 +1042,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                       {app.status === "terminated" && (
                         <Button 
                           variant="outline" 
-                          className="w-full font-bold uppercase text-xs tracking-widest h-11 rounded-lg border-blue-dark/20 text-blue-dark bg-blue-dark/5 hover:bg-blue-dark/5 flex items-center justify-center gap-2 animate-fadeIn"
+                          className="w-full border-blue-dark/20 text-blue-dark bg-blue-dark/5 gap-2"
                           onClick={() => updateStatus(app.id, "accepted")}
                         >
                           Un-terminate Placement

@@ -41,6 +41,7 @@ import { approveStudentHours } from "../lib/approveHours";
 import { fetchReviewProfile } from "../lib/reviewProfile";
 import { toUserMessage } from "../lib/errors";
 import HoursTab from './orgDashboard/HoursTab';
+import { EmptyState } from '../components/ui/EmptyState';
 import { useOrgDashboardData } from '../hooks/useOrgDashboardData';
 import OrgApplicationsTab from './orgDashboard/OrgApplicationsTab';
 
@@ -1206,16 +1207,11 @@ export default function OrgDashboard() {
                 </Card>
               ))
             ) : (
-              <div className="py-20 text-center bg-white rounded-lg border border-dashed border-line">
-                <p className="text-ink-soft font-bold">
-                  No opportunities posted yet.
-                </p>
-                <Link to="/org/opportunities/new">
-                  <Button variant="ghost" className="mt-2 text-blue-dark">
-                    Post your first one ➜
-                  </Button>
-                </Link>
-              </div>
+              <EmptyState
+                title="No opportunities posted yet"
+                body="Post one and students can find it straight away. You will see who applied here."
+                action={{ label: 'Post an opportunity', to: '/org/opportunities/new' }}
+              />
             )}
           </div>
         </section>
