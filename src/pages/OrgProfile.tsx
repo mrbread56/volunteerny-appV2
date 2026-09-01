@@ -459,12 +459,12 @@ export default function OrgProfile() {
               <label className="flex items-center gap-4 p-6 rounded-lg bg-blue-dark/5 border border-blue-dark/10 cursor-pointer transition-all hover:bg-blue-dark/10">
                 <input
                   type="checkbox"
-                  className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark border-slate-300"
+                  className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark border-line"
                   checked={isNorthYork}
                   onChange={(e) => setIsNorthYork(e.target.checked)}
                 />
                 <div>
-                  <p className="font-bold text-blue-900 text-lg tracking-tight">
+                  <p className="font-bold text-blue-dark text-lg tracking-tight">
                     Located in Toronto / North York
                   </p>
                   <p className="text-sm text-[#153343]/70 leading-relaxed font-medium">
@@ -519,7 +519,7 @@ export default function OrgProfile() {
                 aria-checked={userProfile?.twoFactorEnabled ?? true}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0",
-                  (userProfile?.twoFactorEnabled ?? true) ? "bg-emerald-600" : "bg-slate-200",
+                  (userProfile?.twoFactorEnabled ?? true) ? "bg-emerald-600" : "bg-line",
                 )}
               >
                 <span

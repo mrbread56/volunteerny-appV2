@@ -242,7 +242,7 @@ export default function Login() {
         )}
         
         {resetNotice && (
-          <div role="status" className="bg-blue-50 text-blue-dark p-3.5 text-[13px] border border-blue-105 mb-6 leading-relaxed">
+          <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-[13px] border border-blue-dark/20 mb-6 leading-relaxed">
             {resetNotice}
           </div>
         )}

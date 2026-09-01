@@ -207,7 +207,7 @@ export default function HoursTab({
                         <p className="text-xs font-semibold text-ink">{req.studentName}</p>
                         <p className="text-xs text-ink-soft font-mono font-bold">{req.studentEmail}</p>
                       </div>
-                      <span className="p-2 py-1 bg-blue-dark/5 text-blue-800 text-xs font-semibold tracking-wide rounded-lg font-mono border border-blue-dark/10 shrink-0">
+                      <span className="p-2 py-1 bg-blue-dark/5 text-blue-dark text-xs font-semibold tracking-wide rounded-lg font-mono border border-blue-dark/10 shrink-0">
                         {req.hours} hrs
                       </span>
                     </div>

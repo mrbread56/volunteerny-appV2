@@ -374,7 +374,7 @@ export default function StudentOpportunities() {
               drops the pair to 3.62:1. A token that is accessible on paper is not
               automatically accessible on a tint of itself. */}
           <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-900 text-xs font-semibold tracking-wide leading-none">
-            <MapPin className="w-3 h-3 text-amber-dark fill-orange-500/10 animate-pulse" />
+            <MapPin className="w-3 h-3 text-amber-dark fill-amber/10 animate-pulse" />
             North York, Toronto
           </div>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
@@ -638,7 +638,7 @@ export default function StudentOpportunities() {
 
       {sharingOpp && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" onClick={() => setSharingOpp(null)} />
+           <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" onClick={() => setSharingOpp(null)} />
            {/* Wrapper carries the ref and dialog role — Card neither forwards a
                ref nor accepts ARIA props. */}
            <div
@@ -651,7 +651,7 @@ export default function StudentOpportunities() {
            <Card className="relative w-full bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden shadow-card">
               <button aria-label="Close dialog" 
                 onClick={() => setSharingOpp(null)}
-                className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
+                className="absolute top-6 right-6 p-2 rounded-lg hover:bg-paper-3 transition-colors text-ink-muted z-10"
               >
                 <X className="w-5 h-5" />
               </button>

@@ -624,7 +624,7 @@ export default function DeveloperDashboard() {
           <div>
             <Button 
               onClick={() => setIsDashboardActive(true)}
-              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-blue-dark text-white hover:bg-slate-800 flex items-center justify-center gap-2 transition-all"
+              className="w-full h-14 rounded-lg font-semibold uppercase text-xs bg-blue-dark text-white hover:bg-ink-soft flex items-center justify-center gap-2 transition-all"
             >
               <Plus className="w-4 h-4" /> Create Control Room Dashboard
             </Button>
@@ -676,7 +676,7 @@ export default function DeveloperDashboard() {
       {/* Header info bar */}
       <div className="bg-blue-dark text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
         <div className="space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-blue-dark/20 text-blue-400 border border-blue-dark/30 text-xs font-bold uppercase tracking-wider">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/10 text-white border border-white/20 text-xs font-bold uppercase tracking-wider">
             <ShieldCheck className="w-4 h-4" /> Administrator Verified
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Control Room</h1>
@@ -709,7 +709,7 @@ export default function DeveloperDashboard() {
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
-            <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white" : "text-blue-400")} />
+            <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white" : "text-white/60")} />
             <span className="block text-2xl font-bold">{showStudentsList ? realStudentCount : 0}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">STUDENTS</span>
           </div>
@@ -736,7 +736,7 @@ export default function DeveloperDashboard() {
                 : "bg-white/5 border-white/5 text-white hover:bg-white/10"
             )}
           >
-            <Building2 className={cn("w-5 h-5 mx-auto mb-1.5", showOrgsList ? "text-white animate-pulse" : "text-blue-400")} />
+            <Building2 className={cn("w-5 h-5 mx-auto mb-1.5", showOrgsList ? "text-white" : "text-white/60")} />
             <span className="block text-2xl font-bold">{showOrgsList ? realOrgCount : 0}</span>
             <span className="text-xs uppercase font-bold tracking-widest block opacity-70">ORGS</span>
           </div>
@@ -948,7 +948,7 @@ export default function DeveloperDashboard() {
                           <span>Attached screenshot/document: <strong className="font-semibold text-[#FF6B35]">{fb.attachmentName}</strong> ({fb.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {fb.attachmentDescription && (
-                          <div className="pl-6 border-l-2 border-slate-300 text-ink-muted">
+                          <div className="pl-6 border-l-2 border-line text-ink-muted">
                             "File Context/Description: {fb.attachmentDescription}"
                           </div>
                         )}
@@ -963,14 +963,14 @@ export default function DeveloperDashboard() {
 
                     {/* Gemini AI Overview annotation frame */}
                     {fb.aiOverview && (
-                      <div className="border border-orange-100 bg-amber/10 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
-                        <div className="flex items-center gap-2 text-orange-900 border-b border-orange-100/40 pb-2">
+                      <div className="border border-amber/30 bg-amber/10 p-5 rounded-lg space-y-3 relative overflow-hidden animate-fadeIn">
+                        <div className="flex items-center gap-2 text-amber-dark border-b border-amber/30/40 pb-2">
                           <Sparkles className="w-4 h-4 text-amber-dark" />
                           <span className="text-xs uppercase tracking-widest font-bold">AI Overview Analysis</span>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold leading-relaxed">
                           <div className="space-y-1">
-                            <span className="text-xs text-orange-900/45 uppercase tracking-widest block font-bold">AI urgency prediction</span>
+                            <span className="text-xs text-amber-dark/45 uppercase tracking-widest block font-bold">AI urgency prediction</span>
                             <span className={`inline-block text-xs font-bold uppercase px-2 py-0.5 rounded ${
                               fb.aiOverview.urgency === 'critical' || fb.aiOverview.urgency === 'high'
                                 ? 'bg-red-500/10 text-red-600 border border-red-200'
@@ -981,14 +981,14 @@ export default function DeveloperDashboard() {
                           </div>
                           
                           <div className="space-y-1 md:col-span-2">
-                            <span className="text-xs text-orange-900/45 uppercase tracking-widest block font-bold">Issue synopsis</span>
+                            <span className="text-xs text-amber-dark/45 uppercase tracking-widest block font-bold">Issue synopsis</span>
                             <p className="text-ink-soft font-bold leading-relaxed">{fb.aiOverview.summary}</p>
                           </div>
                           
                           {fb.aiOverview.suggestedFix && (
-                            <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-orange-100 rounded-lg">
+                            <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-amber/30 rounded-lg">
                               <span className="text-xs text-amber-dark uppercase tracking-widest block font-bold">suggested resolve tip</span>
-                              <p className="text-orange-950 font-mono text-[10.5px] leading-relaxed">
+                              <p className="text-amber-dark font-mono text-[10.5px] leading-relaxed">
                                 {fb.aiOverview.suggestedFix}
                               </p>
                             </div>
@@ -1209,7 +1209,7 @@ export default function DeveloperDashboard() {
           </div>
         </Card>
         <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
-          <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
+          <CardHeader className="border-b border-line-light bg-paper-2/40 p-6 md:p-8">
             <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
               <Settings className="w-5 h-5 text-blue-dark" /> MASTER SYSTEM VARIABLES
             </CardTitle>
@@ -1228,9 +1228,9 @@ export default function DeveloperDashboard() {
                 message kept sending. A control that lies is worse than no
                 control, so both are gone; the live send test below is real. */}
             {/* Live Email Testing Form */}
-            <div className="border border-orange-100 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
+            <div className="border border-amber/30 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
               <div className="space-y-1">
-                <p className="font-semibold text-orange-950 text-sm flex items-center gap-1.5 font-sans uppercase tracking-wide">
+                <p className="font-semibold text-amber-dark text-sm flex items-center gap-1.5 font-sans uppercase tracking-wide">
                   <Mail className="w-4 h-4 text-amber-dark animate-pulse" /> Send Live / Simulated Test Email
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
@@ -1277,8 +1277,8 @@ export default function DeveloperDashboard() {
                   <div className={cn(
                     "p-3 rounded-lg text-xs font-semibold leading-relaxed animate-fadeIn border",
                     testEmailStatus.success
-                      ? "bg-blue-dark/5 border-blue-dark/10 text-blue-800"
-                      : "bg-amber/10 border-orange-100 text-orange-800"
+                      ? "bg-blue-dark/5 border-blue-dark/10 text-blue-dark"
+                      : "bg-amber/10 border-amber/30 text-amber-dark"
                   )}>
                     {testEmailStatus.message}
                   </div>
@@ -1431,7 +1431,7 @@ export default function DeveloperDashboard() {
                     <p className="text-xs text-ink-muted mt-1">{org.contactEmail} · {org.address || 'No address'}</p>
                   </div>
                   <span className={`text-xs font-semibold uppercase px-2 py-1 ${
-                    org.craNumber ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-ink-soft'
+                    org.craNumber ? 'bg-amber-100 text-amber-700' : 'bg-paper-3 text-ink-soft'
                   }`}>{org.craNumber ? 'Charity' : 'No CRA'}</span>
                 </div>
                 {org.craNumber ? (

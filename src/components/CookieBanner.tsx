@@ -104,33 +104,34 @@ export default function CookieBanner() {
           aria-label="What this site stores"
           className="fixed bottom-6 left-6 right-6 md:left-auto md:max-w-md z-[100]"
         >
-          <div className="bg-slate-900/95 text-white p-6 rounded-lg shadow-card border border-slate-800 backdrop-blur-md">
+          <div className="bg-ink/95 text-white p-6 rounded-lg shadow-card border border-ink-soft backdrop-blur-md">
             <div className="flex items-start gap-3">
               <Shield className="w-5 h-5 shrink-0 mt-0.5 text-white/80" aria-hidden="true" />
               <div className="space-y-3">
                 <h2 className="font-bold text-sm">What this site stores</h2>
-                <p className="text-xs leading-relaxed text-slate-200">
+                <p className="text-xs leading-relaxed text-paper-2">
                   We keep you signed in, remember your theme, and save a draft of
                   an opportunity while you are writing one. That is all — there
                   are <strong>no advertising or analytics trackers</strong> on
                   this site, and nothing here follows you to other websites.
                 </p>
-                <p className="text-xs leading-relaxed text-slate-300">
+                <p className="text-xs leading-relaxed text-paper-3">
                   There is nothing to turn off, so we are not going to pretend to
                   offer you a choice about it.
                 </p>
                 <div className="flex items-center gap-4 pt-1">
                   <Button
                     onClick={dismiss}
-                    className="bg-white hover:bg-slate-100 text-primary-950 font-bold h-11 px-6 rounded-lg uppercase text-xs tracking-wide cursor-pointer transition-all"
+                    className="bg-white hover:bg-paper-3 text-primary-950 font-bold h-11 px-6 rounded-lg uppercase text-xs tracking-wide cursor-pointer transition-all"
                   >
                     Got it
                   </Button>
-                  {/* slate-300, not ink-muted: ink-muted is a token for muted
-                      text on the PAPER background and measures 3.3:1 here. */}
+                  {/* paper-3, not ink-muted: ink-muted is a token for muted
+                      text on the PAPER background and measures 3.3:1 against
+                      this dark panel. */}
                   <Link
                     to="/privacy"
-                    className="text-xs text-slate-300 hover:text-white font-bold underline underline-offset-2"
+                    className="text-xs text-paper-3 hover:text-white font-bold underline underline-offset-2"
                   >
                     Read the privacy policy
                   </Link>

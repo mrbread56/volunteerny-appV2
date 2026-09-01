@@ -313,7 +313,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
       role="dialog"
       aria-modal="true"
       aria-label="Report a user"
-      className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
+      className="fixed inset-0 bg-ink/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fadeIn"
     >
       <Card className="w-full max-w-lg rounded-lg border border-line-light  bg-white overflow-hidden relative max-h-[90vh] flex flex-col">
         {/* Header decoration */}
@@ -335,7 +335,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
           <button aria-label="Close modal" 
             type="button" 
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-slate-100 text-ink-muted hover:text-ink-muted transition-colors rounded-full"
+            className="p-1.5 rounded-lg hover:bg-paper-3 text-ink-muted hover:text-ink-muted transition-colors rounded-full"
           >
             <X className="w-5 h-5" />
           </button>
@@ -474,7 +474,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
                     className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-1.5 focus-within:ring-2 focus-within:ring-red-500 ${
                       isDragging 
                         ? 'border-red-500 bg-red-50/10' 
-                        : 'border-line hover:border-slate-300 bg-paper-2/40 hover:bg-paper-2'
+                        : 'border-line hover:border-line bg-paper-2/40 hover:bg-paper-2'
                     }`}
                     onClick={() => document.getElementById('report-file-uploader')?.click()}
                   >

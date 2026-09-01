@@ -47,7 +47,7 @@ export default function UsersTab({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* STUDENTS CONTROL BLOCK */}
           <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
-            <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
+            <CardHeader className="border-b border-line-light bg-paper-2/40 p-6 md:p-8">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
                 <Users className="w-5 h-5 text-blue-dark" /> Students Audit Base
               </CardTitle>
@@ -72,7 +72,7 @@ export default function UsersTab({
                 </Button>
               </CardContent>
             ) : (
-              <CardContent className="p-0 divide-y divide-slate-50">
+              <CardContent className="p-0 divide-y divide-line-light">
                 {students.length === 0 ? (
                   <p className="text-center py-10 text-ink-muted text-xs font-bold">No registered student lists logs found.</p>
                 ) : (
@@ -166,7 +166,7 @@ export default function UsersTab({
 
           {/* ORGANIZATIONS CONTROL BLOCK */}
           <Card className="rounded-lg border border-line-light bg-white overflow-hidden flex flex-col">
-            <CardHeader className="border-b border-slate-50 bg-paper-2/40 p-6 md:p-8">
+            <CardHeader className="border-b border-line-light bg-paper-2/40 p-6 md:p-8">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
                 <Building2 className="w-5 h-5 text-blue-dark" /> Organizations Audit Base
               </CardTitle>
@@ -191,7 +191,7 @@ export default function UsersTab({
                 </Button>
               </CardContent>
             ) : (
-              <CardContent className="p-0 divide-y divide-slate-50">
+              <CardContent className="p-0 divide-y divide-line-light">
                 {orgs.length === 0 ? (
                   <p className="text-center py-10 text-ink-muted text-xs font-bold">No organization registers found.</p>
                 ) : (

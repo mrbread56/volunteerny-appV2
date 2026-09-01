@@ -153,7 +153,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
 
   if (loading) return <LoadingFallback />;
   if (authError) return (
-    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">
+    <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-paper-2">
       <div className="w-full max-w-md bg-white border border-red-200 p-8 rounded-sm text-center space-y-6 shadow-sm">
         <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto">
           <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -166,7 +166,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
         </p>
         <button
           onClick={() => window.location.reload()}
-          className="w-full h-11 bg-slate-900 text-white rounded-sm font-semibold hover:bg-slate-800 transition-colors"
+          className="w-full h-11 bg-ink text-white rounded-sm font-semibold hover:bg-ink-soft transition-colors"
         >
           Try Again
         </button>
@@ -202,7 +202,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
   const isDev = isDeveloperUser(user?.email, userProfile?.role);
   if (userProfile?.isBanned && !isDev) {
     return (
-      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-slate-50">
+      <div className="min-h-[calc(100vh-64px)] flex items-center justify-center p-6 bg-paper-2">
         <div className="w-full max-w-md bg-white border border-red-200 p-8 rounded-sm  text-center space-y-6">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-sm flex items-center justify-center mx-auto ">
             <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -213,7 +213,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
           <p className="text-ink-soft text-sm leading-relaxed font-semibold">
             Your account is locked while we look into a report. Email privacy@volunteernorthyork.indevs.in from this address and a person will reply.
           </p>
-          <div className="p-4 bg-slate-50 border border-slate-100 rounded-sm text-xs text-ink-soft font-medium space-y-1.5 leading-relaxed">
+          <div className="p-4 bg-paper-2 border border-line-light rounded-sm text-xs text-ink-soft font-medium space-y-1.5 leading-relaxed">
             <p className="font-bold text-ink-soft">Appeal or Investigation:</p>
             <p>To request review or appeal records, contact our privacy desk directly:</p>
             <a aria-label="Email privacy desk" href="mailto:privacy@volunteernorthyork.indevs.in" className="text-blue-dark font-bold hover:underline">privacy@volunteernorthyork.indevs.in</a>

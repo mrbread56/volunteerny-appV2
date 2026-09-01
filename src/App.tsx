@@ -29,7 +29,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50 font-sans text-ink">
+        <div className="min-h-screen flex items-center justify-center p-6 bg-paper-2 font-sans text-ink">
           <div className="max-w-md w-full bg-white p-8 rounded-sm  text-center space-y-6 border border-red-100">
             <div className="w-16 h-16 bg-red-50 text-red-600 rounded-sm flex items-center justify-center mx-auto mb-4">
               <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,7 +40,7 @@ class ErrorBoundary extends React.Component<{children: React.ReactNode}, {hasErr
             <p className="text-sm font-medium text-ink-soft">Something went wrong while loading this page. The problem has been recorded. Refreshing usually fixes it, and if it keeps happening please let us know.</p>
             <button
               onClick={() => window.location.reload()}
-              className="mt-6 w-full h-12 bg-slate-900 hover:bg-slate-800 text-white rounded-full font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer"
+              className="mt-6 w-full h-12 bg-ink hover:bg-ink-soft text-white rounded-full font-bold uppercase tracking-widest text-xs transition-colors cursor-pointer"
             >
               Refresh Page
             </button>

@@ -609,7 +609,7 @@ export default function OrgOpportunityEdit() {
         <CardHeader className="bg-blue-dark text-white p-10 border-none">
           {/* as="h1": this card IS the page, and without it the outline starts at h3. */}
           <CardTitle as="h1" className="text-3xl font-bold uppercase tracking-tight text-white">Edit Opportunity</CardTitle>
-          <p className="text-blue-100 mt-2 font-medium">Keep your volunteer posting up to date.</p>
+          <p className="text-white/80 mt-2 font-medium">Keep your volunteer posting up to date.</p>
         </CardHeader>
         <CardContent className="p-10">
           <form onSubmit={handleSubmit} className="space-y-10">
@@ -717,7 +717,7 @@ export default function OrgOpportunityEdit() {
                      </div>
                    )}
                 </div>
-                <label className="flex items-center gap-3 p-6 rounded-lg bg-paper-2 border border-line cursor-pointer hover:border-blue-300 transition-all">
+                <label className="flex items-center gap-3 p-6 rounded-lg bg-paper-2 border border-line cursor-pointer hover:border-blue-dark/20 transition-all">
                    <input type="checkbox" className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark" checked={isVirtual} onChange={(e) => setIsVirtual(e.target.checked)} />
                    <div>
                      <p className="font-bold text-ink flex items-center gap-2 uppercase text-xs tracking-widest"><Globe className="w-4 h-4 text-blue-dark" /> Virtual Opportunity</p>
@@ -773,7 +773,7 @@ export default function OrgOpportunityEdit() {
                    <label className="text-sm font-medium text-ink-soft block mb-4">Skills Needed</label>
                    <div className="flex flex-wrap gap-2">
                      {SKILLS.map(skill => (
-                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white " : "bg-white border-line-light text-ink-muted hover:border-blue-300")}>
+                       <button key={skill} type="button" onClick={() => toggleSkill(skill)} className={cn("px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all", selectedSkills.includes(skill) ? "bg-blue-dark border-blue-dark text-white " : "bg-white border-line-light text-ink-muted hover:border-blue-dark/20")}>
                          {skill}
                        </button>
                      ))}

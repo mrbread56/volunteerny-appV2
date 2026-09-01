@@ -141,7 +141,7 @@ export function FileUpload({
           onDrop={onDrop}
           className={cn(
             "relative group transition-all duration-300 rounded-xl border-2 border-dashed p-8 text-center overflow-hidden",
-            dragActive ? "border-blue-dark bg-blue-dark/10" : "border-line bg-paper-2 hover:border-slate-300 hover:bg-paper-3/50",
+            dragActive ? "border-blue-dark bg-blue-dark/10" : "border-line bg-paper-2 hover:border-line hover:bg-paper-3/50",
             isTooLarge ? "border-amber-400 bg-amber/10" : fileName ? "border-blue-dark bg-blue-dark/5" : ""
           )}
         >

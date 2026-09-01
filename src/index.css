@@ -89,31 +89,18 @@
   --color-primary-950: #1E2B22;
   --color-accent-500: #E08A3C;
 
-  /* ── Legacy scales (preserved for existing pages) ── */
-  --color-blue-50: #f0f7ff;
-  --color-blue-100: #e0f0fe;
-  --color-blue-105: #bfdbfe;
-  --color-blue-200: #93c5fd;
-  --color-blue-300: #60a5fa;
-  --color-blue-400: #3b82f6;
-  --color-blue-500: #2563eb;
-  --color-blue-600: #1d4ed8;
-  --color-blue-700: #1e40af;
-  --color-blue-800: #1e3a8a;
-  --color-blue-900: #172554;
-
-  --color-orange-50: #fff7ed;
-  --color-orange-100: #ffedd5;
-  --color-orange-200: #fed7aa;
-  --color-orange-300: #fdba74;
-  --color-orange-400: #fb923c;
-  --color-orange-500: #ff6b35;
-  --color-orange-600: #ea580c;
-  --color-orange-700: #c2410c;
-  --color-orange-850: #9a3412;
-  --color-orange-900: #7c2d12;
-
-  --color-slate-50: #fafafb;
+  /* The legacy blue-*, orange-* and slate-50 ramps used to live here.
+   *
+   * They were a second palette running alongside the token set above, and they
+   * were the single biggest reason this app rendered 42 distinct background
+   * colours and 44 text colours: any given surface could be painted from
+   * either system, so nothing was authoritative. Roughly fifty call sites have
+   * been migrated onto the tokens (blue-dark, blue-accent, amber, amber-dark,
+   * ink, paper, line), which is where they should have been drawn from.
+   *
+   * Do not reintroduce a parallel scale. If a shade is missing, it belongs in
+   * the token block above with a name that says what it is for.
+   */
 
   /* ── Typography ──
    * Outfit states. Fraunces inflects.

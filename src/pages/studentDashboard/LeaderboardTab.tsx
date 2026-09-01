@@ -137,7 +137,7 @@ export default function LeaderboardTab({
                     </p>
                   </div>
                   <div
-                    className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-orange-300 border-amber/20 "
+                    className="w-full bg-amber/10 rounded-t-2xl flex flex-col items-center justify-center p-5 border border-amber/30 border-amber/20 "
                     style={{ height: "95px" }}
                   >
                     <span className="text-3xl font-medium text-amber-dark ">
@@ -152,7 +152,7 @@ export default function LeaderboardTab({
                 {/* 3rd Place (Bronze) */}
                 <div className="flex flex-col items-center animate-in fade-in slide-in- duration-300">
                   <div className="text-center mb-2">
-                    <p className="text-xs font-bold text-orange-700 truncate max-w-[80px] sm:max-w-none">
+                    <p className="text-xs font-bold text-amber-dark truncate max-w-[80px] sm:max-w-none">
                       {leaderboard[2] ? leaderboard[2].name : "---"}
                     </p>
                     <p className="text-xs font-semibold text-amber-dark/80 ">
@@ -162,13 +162,13 @@ export default function LeaderboardTab({
                     </p>
                   </div>
                   <div
-                    className="w-full bg-[#fdf2e9] rounded-t-2xl flex flex-col items-center justify-center p-4 border border-orange-100"
+                    className="w-full bg-[#fdf2e9] rounded-t-2xl flex flex-col items-center justify-center p-4 border border-amber/30"
                     style={{ height: "55px" }}
                   >
                     <span className="text-xl font-semibold text-amber-dark/80 ">
                       3
                     </span>
-                    <span className="text-xs font-semibold text-orange-400 uppercase tracking-widest mt-1">
+                    <span className="text-xs font-semibold text-amber uppercase tracking-widest mt-1">
                       Bronze
                     </span>
                   </div>
@@ -313,7 +313,7 @@ export default function LeaderboardTab({
 
             <Link 
               to="/student/profile"
-              className="flex items-center justify-center gap-1.5 w-full bg-paper-3 hover:bg-slate-200 text-ink-soft py-2.5 rounded-lg text-xs font-bold transition-all text-center mt-2"
+              className="flex items-center justify-center gap-1.5 w-full bg-paper-3 hover:bg-line text-ink-soft py-2.5 rounded-lg text-xs font-bold transition-all text-center mt-2"
             >
               <span>See all badges</span>
               <ArrowRight className="w-3.5 h-3.5" />

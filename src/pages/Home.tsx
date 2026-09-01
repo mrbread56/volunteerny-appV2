@@ -334,7 +334,7 @@ export default function Home() {
                   />
 
                   <div className="relative">
-                    <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-50 text-blue-dark group-hover:bg-blue-dark group-hover:text-white transition-colors duration-500">
+                    <span className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-dark/5 text-blue-dark group-hover:bg-blue-dark group-hover:text-white transition-colors duration-500">
                       <Icon className="w-[22px] h-[22px]" strokeWidth={1.9} />
                     </span>
 

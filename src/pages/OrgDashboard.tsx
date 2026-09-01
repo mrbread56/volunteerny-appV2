@@ -1267,7 +1267,7 @@ export default function OrgDashboard() {
 
       <AnimatePresence>
         {selectedStatPopup && (
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
             <motion.div
               ref={statDialogRef}
               role="dialog"
@@ -1302,7 +1302,7 @@ export default function OrgDashboard() {
                 <button
                   onClick={() => setSelectedStatPopup(null)}
                   aria-label="Close statistics popup"
-                  className="w-10 h-10 rounded-lg hover:bg-slate-200 flex items-center justify-center text-ink-soft hover:text-ink transition-colors"
+                  className="w-10 h-10 rounded-lg hover:bg-line flex items-center justify-center text-ink-soft hover:text-ink transition-colors"
                 >
                   <XCircle className="w-6 h-6" />
                 </button>

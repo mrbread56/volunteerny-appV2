@@ -40,7 +40,7 @@ export default function OpportunityCard({
               {opportunity.category}
             </span>
             {opportunity.exclusives?.map(exc => (
-              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber/10 text-amber-dark border border-orange-100">
+              <span key={exc} className="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-amber/10 text-amber-dark border border-amber/30">
                 {exc}
               </span>
             ))}
@@ -69,7 +69,7 @@ export default function OpportunityCard({
               title="Save to favorites"
               aria-label="Save to favorites"
             >
-              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-blue-600' : ''}`} />
+              <Bookmark className={`w-4 h-4 ${isSaved ? 'fill-blue-dark' : ''}`} />
             </button>
           </div>
         </div>

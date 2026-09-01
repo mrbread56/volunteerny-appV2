@@ -1414,7 +1414,7 @@ export default function StudentDashboard() {
           role="dialog"
           aria-modal="true"
           aria-label="Rate this organization"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm"
         >
           <div className="w-full max-w-md bg-white p-8 space-y-5 relative">
             <button onClick={() => { setRatingApp(null); setRatingError(""); }} className="absolute top-4 right-4 text-ink-muted hover:text-ink-soft">
@@ -1471,7 +1471,7 @@ export default function StudentDashboard() {
           role="dialog"
           aria-modal="true"
           aria-label="Log volunteer hours"
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm animate-fadeIn"
         >
           <Card className="w-full max-w-lg rounded-lg border-none p-8 bg-white space-y-6 relative max-h-[90vh] overflow-y-auto shadow-card">
             <button 
@@ -1682,7 +1682,7 @@ export default function StudentDashboard() {
                 </>
               ) : (
                 <div className="p-3.5 bg-blue-dark/5 border border-blue-dark/20 rounded-lg space-y-1.5 animate-fadeIn">
-                  <p className="text-xs font-semibold uppercase text-blue-900 tracking-wider flex items-center gap-1">
+                  <p className="text-xs font-semibold uppercase text-blue-dark tracking-wider flex items-center gap-1">
                     🇨🇦 Pre-selected Match Verified
                   </p>
                   <p className="text-xs font-semibold text-ink">
@@ -1691,7 +1691,7 @@ export default function StudentDashboard() {
                   <p className="text-xs text-ink-soft font-semibold">
                     Hosted by: <span className="text-ink font-bold">{logOrg}</span>
                   </p>
-                  <p className="text-xs text-blue-800 leading-normal font-medium">
+                  <p className="text-xs text-blue-dark leading-normal font-medium">
                     Organization contact email was automatically mapped to <span className="font-bold">{logContact}</span>.
                   </p>
                 </div>
@@ -1804,7 +1804,7 @@ export default function StudentDashboard() {
           role="dialog"
           aria-modal="true"
           aria-label="Your community involvement hours"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-ink/60 backdrop-blur-md p-4 overflow-y-auto animate-fadeIn"
         >
           <Card data-print-sheet className="w-full max-w-4xl bg-white border border-line/80 rounded-lg p-6 md:p-10 space-y-8 relative overflow-hidden my-8 text-ink">
             <button
@@ -1852,7 +1852,7 @@ export default function StudentDashboard() {
             <div className="overflow-x-auto border border-line rounded-lg">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="bg-slate-900 text-white uppercase text-xs tracking-wider">
+                  <tr className="bg-ink text-white uppercase text-xs tracking-wider">
                     <th className="p-4 font-semibold">Activity Description</th>
                     <th className="p-4 font-semibold text-center">Hours</th>
                     <th className="p-4 font-semibold">Completion Date</th>
@@ -1860,7 +1860,7 @@ export default function StudentDashboard() {
                     <th className="p-4 font-semibold text-right">Verification</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-line-light">
                   {loggedHoursList.length === 0 ? (
                     <tr>
                       <td colSpan={5} className="p-6 text-center text-ink-soft">No volunteer hours logged in your tracking list yet.</td>

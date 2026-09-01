@@ -198,7 +198,7 @@ export default function ReportsTab({
                           <span>Attached Safe Space Proof/Screenshot: <strong className="font-semibold text-[#FF6B35]">{report.attachmentName}</strong> ({report.attachmentSize || 'Unknown size'})</span>
                         </div>
                         {report.attachmentDescription && (
-                          <div className="pl-6 border-l-2 border-slate-300 text-ink-muted">
+                          <div className="pl-6 border-l-2 border-line text-ink-muted">
                             "Attachment Description: {report.attachmentDescription}"
                           </div>
                         )}

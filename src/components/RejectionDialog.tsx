@@ -68,7 +68,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
       role="dialog"
       aria-modal="true"
       aria-label="Decline application"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm"
     >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -77,12 +77,12 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
           className="w-full max-w-lg"
         >
           <Card className="border-none  rounded-lg overflow-hidden bg-white max-h-[90vh] flex flex-col shadow-card">
-            <CardHeader className="p-8 border-b border-slate-50 flex flex-row items-center justify-between shrink-0">
+            <CardHeader className="p-8 border-b border-line-light flex flex-row items-center justify-between shrink-0">
               <div>
                 <CardTitle className="text-xl font-bold text-ink uppercase tracking-tight">Reject Application</CardTitle>
                 <p className="text-xs text-ink-muted font-bold mt-1 uppercase tracking-widest leading-none">For {studentName}</p>
               </div>
-              <button aria-label="Close" onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg transition-colors rounded-full">
+              <button aria-label="Close" onClick={onClose} className="p-2 hover:bg-paper-3 rounded-lg transition-colors rounded-full">
                 <X className="w-5 h-5 text-ink-muted" />
               </button>
             </CardHeader>
@@ -149,7 +149,7 @@ export default function RejectionDialog({ isOpen, onClose, onConfirm, studentNam
                </form>
             </CardContent>
 
-            <div className="p-8 border-t border-slate-50 bg-paper-2/50 flex gap-4 shrink-0">
+            <div className="p-8 border-t border-line-light bg-paper-2/50 flex gap-4 shrink-0">
                <Button type="button" variant="ghost" onClick={onClose} className="flex-1 rounded-lg h-14 font-semibold text-xs">
                   Cancel
                </Button>

@@ -224,7 +224,7 @@ export default function AddressMapsSelector({
 
         {/* Dynamic drop down suggestions */}
         {showDropdown && suggestions.length > 0 && (
-          <div className="absolute z-60 w-full bg-white mt-1.5 border border-line-light rounded-lg  max-h-60 overflow-y-auto divide-y divide-slate-50">
+          <div className="absolute z-60 w-full bg-white mt-1.5 border border-line-light rounded-lg  max-h-60 overflow-y-auto divide-y divide-line-light">
             {suggestions.map((item, idx) => (
               <button
                 key={idx}

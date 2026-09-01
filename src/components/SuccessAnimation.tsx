@@ -29,7 +29,7 @@ export default function SuccessAnimation({ message, note, onClose }: SuccessAnim
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-ink/40 backdrop-blur-sm"
     >
       <motion.div
         initial={{ scale: 0.85, y: 15 }}

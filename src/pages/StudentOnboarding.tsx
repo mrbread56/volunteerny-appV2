@@ -187,7 +187,7 @@ export default function StudentOnboarding() {
             <div key={i} className="flex flex-col items-center space-y-2">
               <div className={cn(
                 "h-2 w-full rounded-lg transition-all duration-300",
-                step >= i ? "bg-blue-dark" : "bg-slate-200"
+                step >= i ? "bg-blue-dark" : "bg-line"
               )} />
               <span className={cn(
                 "text-xs font-semibold uppercase hidden sm:block",
@@ -221,7 +221,7 @@ export default function StudentOnboarding() {
           {/* Step 1: Academic Identity */}
           {step === 1 && (
             <Card className="rounded-lg border-none  bg-white shadow-card">
-              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
+              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-line-light">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <SchoolIcon className="w-6 h-6" />
@@ -290,7 +290,7 @@ export default function StudentOnboarding() {
           {/* Step 2: Interests */}
           {step === 2 && (
             <Card className="rounded-lg border-none  bg-white shadow-card">
-              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
+              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-line-light">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Award className="w-6 h-6" />
@@ -311,8 +311,8 @@ export default function StudentOnboarding() {
                       className={cn(
                         "px-6 py-3.5 rounded-lg text-xs font-semibold uppercase border-2 transition-all duration-200",
                         interests.includes(item)
-                          ? "bg-slate-900 border-slate-900 text-white scale-105 "
-                          : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-ink-soft"
+                          ? "bg-ink border-ink text-white scale-105 "
+                          : "bg-white border-line-light text-ink-muted hover:border-line hover:text-ink-soft"
                       )}
                     >
                       {item}
@@ -326,7 +326,7 @@ export default function StudentOnboarding() {
           {/* Step 3: Skills */}
           {step === 3 && (
             <Card className="rounded-lg border-none  bg-white shadow-card">
-              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
+              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-line-light">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Sparkles className="w-6 h-6" />
@@ -348,7 +348,7 @@ export default function StudentOnboarding() {
                         "px-6 py-3.5 rounded-lg text-xs font-semibold uppercase border-2 transition-all duration-200",
                         skills.includes(item)
                           ? "bg-blue-dark border-blue-dark text-white scale-105 "
-                          : "bg-white border-line-light text-ink-muted hover:border-slate-300 hover:text-blue-dark"
+                          : "bg-white border-line-light text-ink-muted hover:border-line hover:text-blue-dark"
                       )}
                     >
                       {item}
@@ -362,7 +362,7 @@ export default function StudentOnboarding() {
           {/* Step 4: Availability */}
           {step === 4 && (
             <Card className="rounded-lg border-none  bg-white shadow-card">
-              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
+              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-line-light">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <Calendar className="w-6 h-6" />
@@ -383,7 +383,7 @@ export default function StudentOnboarding() {
                       className={cn(
                         "p-5 rounded-lg text-xs font-bold text-left border-2 transition-all flex items-center justify-between",
                         availability.includes(item)
-                          ? "bg-amber/10 border-amber text-orange-900 "
+                          ? "bg-amber/10 border-amber text-amber-dark "
                           : "bg-white border-line-light text-ink-muted hover:border-line"
                       )}
                     >
@@ -399,7 +399,7 @@ export default function StudentOnboarding() {
           {/* Step 5: Optional Experience & Resume */}
           {step === 5 && (
             <Card className="rounded-lg border-none  bg-white shadow-card">
-              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-slate-50">
+              <CardHeader className="p-5 sm:p-10 md:p-12 border-b border-line-light">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-blue-dark/5 text-blue-dark rounded-lg flex items-center justify-center">
                     <FileText className="w-6 h-6" />
@@ -421,13 +421,13 @@ export default function StudentOnboarding() {
                   />
                 </div>
 
-                <div className="flex items-start gap-3 p-4 bg-blue-50/50 rounded-lg border border-blue-100">
+                <div className="flex items-start gap-3 p-4 bg-blue-dark/[0.03] rounded-lg border border-blue-dark/20">
                   <input
                     type="checkbox"
                     id="leaderboardConsent"
                     checked={leaderboardConsent}
                     onChange={(e) => setLeaderboardConsent(e.target.checked)}
-                    className="mt-1 shrink-0 w-4 h-4 rounded border-slate-300 text-blue-dark focus:ring-blue-dark"
+                    className="mt-1 shrink-0 w-4 h-4 rounded border-line text-blue-dark focus:ring-blue-dark"
                   />
                   <label htmlFor="leaderboardConsent" className="text-sm text-ink-soft leading-relaxed">
                     <span className="font-bold text-ink block mb-0.5">Leaderboard Participation</span>

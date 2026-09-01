@@ -774,7 +774,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
         </div>
         <div className="flex flex-col gap-3 max-w-full shrink-0 items-end">
           <div className="max-w-full overflow-x-auto scrollbar-none pb-1 shrink-0">
-            <div className="flex bg-slate-100 p-1 rounded-lg w-max">
+            <div className="flex bg-paper-3 p-1 rounded-lg w-max">
               {/* "waitlist" was missing. Applications are auto-created with that
                   status once an opportunity is full, so a full posting collected
                   waitlisted students who appeared under no tab but "all", with no
@@ -959,7 +959,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                       </div>
 
                       <div className="bg-paper-2 p-6 rounded-lg border border-line-light relative overflow-hidden">
-                        <MessageSquare className="absolute -right-2 -bottom-2 w-16 h-16 text-slate-200 opacity-20" />
+                        <MessageSquare className="absolute -right-2 -bottom-2 w-16 h-16 text-paper-2 opacity-20" />
                         <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">
                           Personal Message
                         </p>
@@ -1174,7 +1174,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
 
       {/* Write Reference Modal */}
       {recApp && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm">
           <div
             ref={refDialogRef}
             role="dialog"
@@ -1190,7 +1190,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
             <div className="flex gap-1 py-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setRecRating(s)} className="p-1 transition-transform hover:scale-110">
-                  <Star className={cn("w-7 h-7", s <= recRating ? "fill-amber-400 text-amber-400" : "text-slate-300")} />
+                  <Star className={cn("w-7 h-7", s <= recRating ? "fill-amber-400 text-amber-400" : "text-paper-3")} />
                 </button>
               ))}
             </div>

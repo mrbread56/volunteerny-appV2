@@ -225,7 +225,7 @@ export default function MfaChallenge() {
 
   return (
     <div className="min-h-[100vh] flex flex-col items-center justify-center p-4 bg-paper-2 relative overflow-hidden">
-      <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-400 rounded-lg mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
+      <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-accent rounded-lg mix-blend-multiply filter blur-3xl opacity-10 animate-blob"></div>
       
       <motion.div
         initial={{ opacity: 0, y: 15 }}

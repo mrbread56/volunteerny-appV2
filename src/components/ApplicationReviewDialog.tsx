@@ -134,7 +134,7 @@ export default function ApplicationReviewDialog({
         role="dialog"
         aria-modal="true"
         aria-label="Review volunteer application"
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm"
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-ink/60 backdrop-blur-sm"
       >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -186,7 +186,7 @@ export default function ApplicationReviewDialog({
                     </div>
                     <Button 
                       onClick={() => setSubmittingState('idle')}
-                      className="w-full h-12 bg-slate-900 hover:bg-slate-800 text-white font-semibold uppercase text-xs tracking-widest rounded-lg transition-all"
+                      className="w-full h-12 bg-ink hover:bg-ink-soft text-white font-semibold uppercase text-xs tracking-widest rounded-lg transition-all"
                     >
                       Back to the application
                     </Button>
@@ -303,7 +303,7 @@ export default function ApplicationReviewDialog({
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'database' 
                               ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
-                              : "border-slate-300 border-line text-ink-soft"
+                              : "border-line border-line text-ink-soft"
                         }`}>
                           {dbVerified ? "✓" : "1"}
                         </div>
@@ -333,7 +333,7 @@ export default function ApplicationReviewDialog({
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'receipt' 
                               ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
-                              : "border-slate-300 border-line text-ink-soft"
+                              : "border-line border-line text-ink-soft"
                         }`}>
                           {receiptCompiled ? "✓" : "2"}
                         </div>
@@ -354,7 +354,7 @@ export default function ApplicationReviewDialog({
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'email' 
                               ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
-                              : "border-slate-300 border-line text-ink-soft"
+                              : "border-line border-line text-ink-soft"
                         }`}>
                           {emailDispatched ? "✓" : "3"}
                         </div>
@@ -401,7 +401,7 @@ export default function ApplicationReviewDialog({
                      </button>
                      <button aria-label="Back to Details" 
                        onClick={() => setShowResumeInline(false)}
-                       className="px-4 py-2 bg-paper-3 hover:bg-slate-200 text-ink-soft text-xs font-semibold uppercase tracking-wider rounded-lg transition-all border border-line/40"
+                       className="px-4 py-2 bg-paper-3 hover:bg-line text-ink-soft text-xs font-semibold uppercase tracking-wider rounded-lg transition-all border border-line/40"
                      >
                        Back to Details
                      </button>
@@ -436,7 +436,7 @@ export default function ApplicationReviewDialog({
                               download={`${student?.fullName || application?.studentName || 'student'}_resume.pdf`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-xs font-semibold uppercase text-blue-800 hover:underline"
+                              className="text-xs font-semibold uppercase text-blue-dark hover:underline"
                             >
                               Download PDF directly
                             </a>
@@ -538,7 +538,7 @@ export default function ApplicationReviewDialog({
                       <section>
                           <p className="text-xs font-semibold text-ink-soft tracking-wide mb-3">Application Message</p>
                           <div className="bg-paper-2 p-6 rounded-lg border border-line text-sm text-ink-soft leading-relaxed relative">
-                             <MessageSquare className="w-8 h-8 text-slate-200 absolute -top-4 -right-4" />
+                             <MessageSquare className="w-8 h-8 text-paper-2 absolute -top-4 -right-4" />
                              "{application.message || "No message provided."}"
                           </div>
                       </section>

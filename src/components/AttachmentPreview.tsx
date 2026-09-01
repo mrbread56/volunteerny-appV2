@@ -221,7 +221,7 @@ export default function AttachmentPreview({
             download={fileName}
             target={isUrl ? '_blank' : undefined}
             rel={isUrl ? 'noopener noreferrer' : undefined}
-            className="px-3.5 py-2 bg-paper-3 hover:bg-slate-200 rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
+            className="px-3.5 py-2 bg-paper-3 hover:bg-line rounded-lg text-ink-soft font-semibold text-xs inline-flex items-center gap-1.5 w-fit"
           >
             Download File ({fileName})
           </a>

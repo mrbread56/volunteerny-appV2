@@ -453,7 +453,7 @@ export default function Signup() {
           </CardHeader>
           <CardContent className="space-y-6 pt-6 pb-10">
             {handoffMessage && (
-              <div role="status" className="bg-blue-50 text-blue-dark p-3.5 text-[13px] border border-blue-105 leading-relaxed">
+              <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-[13px] border border-blue-dark/20 leading-relaxed">
                 {handoffMessage}
               </div>
             )}

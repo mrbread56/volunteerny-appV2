@@ -276,9 +276,9 @@ export default function FeedbackPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
           {submittedFeedback ? (
-            <Card className="rounded-lg border border-orange-100 overflow-hidden bg-white animate-fadeIn">
+            <Card className="rounded-lg border border-amber/30 overflow-hidden bg-white animate-fadeIn">
               <div className="p-8 text-center space-y-5">
-                <div className="w-16 h-16 bg-amber/10 text-amber-dark rounded-lg flex items-center justify-center mx-auto border border-orange-100 animate-pulse">
+                <div className="w-16 h-16 bg-amber/10 text-amber-dark rounded-lg flex items-center justify-center mx-auto border border-amber/30 animate-pulse">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div className="space-y-2">
@@ -293,7 +293,7 @@ export default function FeedbackPage() {
                 <div className="pt-2">
                   <Button 
                     onClick={() => setSubmittedFeedback(null)} 
-                    className="bg-slate-900 border-none text-white hover:bg-slate-800 rounded-lg px-6 py-2.5 text-xs font-semibold"
+                    className="bg-ink border-none text-white hover:bg-ink-soft rounded-lg px-6 py-2.5 text-xs font-semibold"
                   >
                     Send Another Ticket
                   </Button>
@@ -321,7 +321,7 @@ export default function FeedbackPage() {
                   />
 
                   {type === 'ux' && (
-                    <div className="p-4 bg-blue-dark/5 text-blue-900 text-xs rounded-lg border border-blue-dark/10 leading-relaxed font-semibold animate-fadeIn">
+                    <div className="p-4 bg-blue-dark/5 text-blue-dark text-xs rounded-lg border border-blue-dark/10 leading-relaxed font-semibold animate-fadeIn">
                       <span className="font-semibold block mb-1">What does "UX" mean?</span> 
                       <strong>UX</strong> stands for <strong>User Experience</strong>. It represents how easy, natural, and friendly the website is to navigate. Submit a UX ticket if you feel a page is confusing, if buttons are hard to click on a phone, or if you have suggestions on how we can improve the layout styling!
                     </div>
@@ -360,7 +360,7 @@ export default function FeedbackPage() {
                         className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 ${
                           isDragging 
                             ? 'border-blue-dark bg-blue-dark/10'
-                            : 'border-line hover:border-slate-300 bg-paper-2/40 hover:bg-paper-2'
+                            : 'border-line hover:border-line bg-paper-2/40 hover:bg-paper-2'
                         }`}
                         onClick={() => document.getElementById('file-uploader-element')?.click()}
                       >
@@ -500,7 +500,7 @@ export default function FeedbackPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
                           fb.type === 'bug' ? 'bg-red-50 text-red-600 border border-red-100' :
-                          fb.type === 'feature' ? 'bg-amber/10 text-amber-dark border border-orange-100' :
+                          fb.type === 'feature' ? 'bg-amber/10 text-amber-dark border border-amber/30' :
                           fb.type === 'ux' ? 'bg-blue-dark/5 text-blue-dark border border-blue-dark/10' :
                           'bg-paper-3 text-ink-soft border border-line'
                         }`}>
@@ -562,7 +562,7 @@ export default function FeedbackPage() {
                       </span>
                     </div>
                   ) : (
-                    <div className="bg-[#FAF9F6] border border-orange-100/60 rounded-lg px-5 py-4 text-xs text-ink-soft font-semibold flex flex-col gap-2 relative overflow-hidden">
+                    <div className="bg-[#FAF9F6] border border-amber/30/60 rounded-lg px-5 py-4 text-xs text-ink-soft font-semibold flex flex-col gap-2 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-amber/10 rounded-lg blur-xl" />
                       <div className="flex items-center gap-2 font-semibold text-xs text-amber-dark">
                         <span className="w-2 h-2 rounded-lg bg-amber animate-pulse" />

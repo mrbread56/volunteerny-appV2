@@ -519,7 +519,7 @@ export default function OrgOpportunityCreate() {
           {/* The page had no <h1> at all — its title rendered as an <h3>, so the
               heading outline started three levels deep. */}
           <CardTitle as="h1" className="text-3xl text-white">Post New Opportunity</CardTitle>
-          <p className="text-blue-100 mt-2">Fill out the details to attract the best student volunteers.</p>
+          <p className="text-white/80 mt-2">Fill out the details to attract the best student volunteers.</p>
         </CardHeader>
         <CardContent className="p-10">
           {/* Draft Auto-save Banner */}
@@ -689,7 +689,7 @@ export default function OrgOpportunityCreate() {
                     </div>
                   )}
                </div>
-               <label className="flex items-center gap-3 p-6 rounded-lg bg-paper-2 border border-line cursor-pointer hover:border-blue-300 transition-all">
+               <label className="flex items-center gap-3 p-6 rounded-lg bg-paper-2 border border-line cursor-pointer hover:border-blue-dark/20 transition-all">
                   <input
                     type="checkbox"
                     className="w-6 h-6 rounded-lg text-blue-dark focus:ring-blue-dark"
@@ -777,7 +777,7 @@ export default function OrgOpportunityCreate() {
                           "px-6 py-2 rounded-lg text-xs font-semibold uppercase border transition-all",
                           selectedSkills.includes(skill) 
                             ? "bg-blue-dark border-blue-dark text-white "
-                            : "bg-white border-line-light text-ink-muted hover:border-blue-300"
+                            : "bg-white border-line-light text-ink-muted hover:border-blue-dark/20"
                         )}
                       >
                         {skill}

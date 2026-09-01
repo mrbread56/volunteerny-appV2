@@ -97,7 +97,7 @@ export default function SettingsTab({
               aria-checked={studentProfile?.trackerEnabled ?? false}
               className={cn(
                 "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                (studentProfile?.trackerEnabled ?? false) ? "bg-blue-dark" : "bg-slate-200",
+                (studentProfile?.trackerEnabled ?? false) ? "bg-blue-dark" : "bg-line",
               )}
             >
               <span
@@ -126,7 +126,7 @@ export default function SettingsTab({
               disabled={!(studentProfile?.trackerEnabled ?? false)}
               className={cn(
                 "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                (studentProfile?.trackerAnonymous ?? false) ? "bg-amber" : "bg-slate-200",
+                (studentProfile?.trackerAnonymous ?? false) ? "bg-amber" : "bg-line",
                 !(studentProfile?.trackerEnabled ?? false) && "opacity-40 cursor-not-allowed",
               )}
             >
@@ -175,7 +175,7 @@ export default function SettingsTab({
                 aria-checked={userProfile?.twoFactorEnabled ?? false}
                 className={cn(
                   "w-11 h-6 rounded-lg transition-all flex items-center p-0.5 outline-none cursor-pointer duration-250 shrink-0 self-center",
-                  (userProfile?.twoFactorEnabled ?? false) ? "bg-emerald-600" : "bg-slate-200",
+                  (userProfile?.twoFactorEnabled ?? false) ? "bg-emerald-600" : "bg-line",
                 )}
               >
                 <span

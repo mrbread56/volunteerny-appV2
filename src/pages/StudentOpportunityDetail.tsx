@@ -569,7 +569,7 @@ export default function StudentOpportunityDetail() {
           Save and Share cannot be clicked — so on the real page both buttons
           gave zero feedback and appeared completely dead. */}
       {notice && (
-        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-50 border-blue-105 text-blue-dark'}`}>
+        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-dark/5 border-blue-dark/20 text-blue-dark'}`}>
           {notice.text}
         </div>
       )}
@@ -621,7 +621,7 @@ export default function StudentOpportunityDetail() {
                </div>
                {organization?.contactEmail && (
                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12 bg-paper-3 rounded-lg flex items-center justify-center">
                       <Mail className="text-ink-muted w-6 h-6" />
                     </div>
                     <div>
@@ -632,7 +632,7 @@ export default function StudentOpportunityDetail() {
                )}
                {organization?.phone && (
                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                    <div className="w-12 h-12 bg-paper-3 rounded-lg flex items-center justify-center">
                       <Phone className="text-ink-muted w-6 h-6" />
                     </div>
                     <div>
@@ -642,7 +642,7 @@ export default function StudentOpportunityDetail() {
                  </div>
                )}
                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 bg-slate-100 rounded-lg flex items-center justify-center">
+                  <div className="w-12 h-12 bg-paper-3 rounded-lg flex items-center justify-center">
                     <MapPin className="text-ink-muted w-6 h-6" />
                   </div>
                   <div>
@@ -703,7 +703,7 @@ export default function StudentOpportunityDetail() {
 
         {/* Sidebar Actions */}
         <div className="lg:col-span-1 space-y-6">
-           <Card className="sticky top-24 border-blue-dark/10 ring-4 ring-blue-50 overflow-hidden">
+           <Card className="sticky top-24 border-blue-dark/10 ring-4 ring-blue-dark/10 overflow-hidden">
               <CardContent className="p-8 space-y-6">
                  <div className="space-y-4">
                     {opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
@@ -830,7 +830,7 @@ export default function StudentOpportunityDetail() {
                          className={cn("flex-1 gap-2", isSaved && "bg-blue-dark/5 text-[#153343] border-blue-dark/20")} 
                          onClick={handleToggleSave}
                        >
-                         <Bookmark className={cn("w-4 h-4", isSaved && "fill-blue-600 text-blue-dark")} /> 
+                         <Bookmark className={cn("w-4 h-4", isSaved && "fill-blue-dark text-blue-dark")} /> 
                          {isSaved ? 'Saved' : 'Save'}
                        </Button>
                        <Button variant="outline" className="flex-1 gap-2" onClick={handleShare}>
@@ -890,7 +890,7 @@ export default function StudentOpportunityDetail() {
         <div className="fixed inset-0 z-[100] overflow-y-auto overscroll-contain">
           {/* fixed, not absolute: the backdrop must cover the viewport rather
               than the first screenful of a scrolling container. */}
-          <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm" />
+          <div className="fixed inset-0 bg-ink/60 backdrop-blur-sm" />
           {/* The dismiss handler lives HERE, not on the backdrop.
               Making the overlay scrollable turned the backdrop and this
               centring wrapper into siblings, both positioned and both at
@@ -922,7 +922,7 @@ export default function StudentOpportunityDetail() {
             <button
               onClick={() => setShowApplyModal(false)}
               aria-label="Close"
-              className="absolute top-6 right-6 p-2 rounded-lg hover:bg-slate-100 transition-colors text-ink-muted z-10"
+              className="absolute top-6 right-6 p-2 rounded-lg hover:bg-paper-3 transition-colors text-ink-muted z-10"
             >
               <X className="w-5 h-5" />
             </button>

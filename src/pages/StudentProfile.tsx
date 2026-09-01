@@ -357,7 +357,7 @@ export default function StudentProfile() {
             const categoryColor = (cat: string) => {
               if (cat === "milestone") return "bg-blue-dark";
               if (cat === "skill") return "bg-amber";
-              return "bg-slate-600";
+              return "bg-ink-muted";
             };
 
             const renderBadgeIcon = (name: string, className = "w-5 h-5") => {
@@ -396,7 +396,7 @@ export default function StudentProfile() {
                       "w-9 h-9 flex items-center justify-center shrink-0",
                       isUnlocked
                         ? `${categoryColor(badge.category)} text-white`
-                        : "bg-slate-200 text-ink-muted"
+                        : "bg-line text-ink-muted"
                     )}>
                       {isUnlocked ? (
                         renderBadgeIcon(badge.iconName, "w-4.5 h-4.5 text-white")
@@ -615,7 +615,7 @@ export default function StudentProfile() {
                       className={cn(
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         interests.includes(interest)
-                          ? "bg-slate-900 border-slate-900 text-white  scale-105"
+                          ? "bg-ink border-ink text-white  scale-105"
                           : "bg-white border-line-light text-ink-soft hover:border-blue-dark/10 hover:text-blue-dark",
                         errors.interests && "border-red-200 hover:border-red-300"
                       )}
@@ -680,7 +680,7 @@ export default function StudentProfile() {
                         "px-6 py-3 rounded-lg text-xs font-semibold tracking-wide border-2 transition-all duration-300 cursor-pointer",
                         availability.includes(slot)
                           ? "bg-amber-dark border-amber-dark text-white  scale-105"
-                          : "bg-white border-line text-ink-soft hover:border-orange-100 hover:text-amber-dark",
+                          : "bg-white border-line text-ink-soft hover:border-amber/30 hover:text-amber-dark",
                         errors.availability && "border-red-200 hover:border-red-300"
                       )}
                     >
