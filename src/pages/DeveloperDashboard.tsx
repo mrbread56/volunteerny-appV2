@@ -1,4 +1,8 @@
 import  { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
+
+/** The console's tabs. Kept in the URL so each one is a real address. */
+type DevTab = 'feedbacks' | 'reports' | 'interests' | 'users' | 'terminated' | 'settings' | 'verification' | 'metrics';
 import { API_BASE_URL } from '../lib/config';
 import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 // Without this import `reportError` silently resolved to the DOM's global
@@ -163,7 +167,25 @@ export default function DeveloperDashboard() {
   const [showReportsList, setShowReportsList] = useState(true);
 
   // General dashboard controls
-  const [activeTab, setActiveTab] = useState<'feedbacks' | 'reports' | 'interests' | 'users' | 'terminated' | 'settings' | 'verification' | 'metrics'>('feedbacks');
+  /*
+   * The tab lives in the URL, not in local state.
+   *
+   * Eight tab states sat behind one route, so no console screen was linkable,
+   * bookmarkable, or survivable across a refresh: a moderator part-way through
+   * a safety queue who reloaded landed back on Feedback. It also meant the
+   * back button did nothing on the one surface where stepping back through
+   * what you just looked at matters most.
+   *
+   * Same ?tab= convention the student and organisation dashboards already use,
+   * so all three consoles now behave the same way.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeTab = (searchParams.get('tab') || 'feedbacks') as DevTab;
+  const setActiveTab = (tab: DevTab) => {
+    const next = new URLSearchParams(searchParams);
+    next.set('tab', tab);
+    setSearchParams(next, { replace: false });
+  };
   // "Join List" requests. Students pick categories they want opportunities in
   // and get "Added to waitlist!" — and until this tab existed, nothing in the
   // app ever read the collection, so no human saw a single one of them.
@@ -673,104 +695,19 @@ export default function DeveloperDashboard() {
         </div>
       )}
 
-      {/* Header info bar */}
-      <div className="bg-blue-dark text-white rounded-lg p-8 md:p-12 relative overflow-hidden flex flex-col md:flex-row md:items-center md:justify-between gap-6">
-        <div className="space-y-3 relative z-10">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/10 text-white border border-white/20 text-xs font-bold uppercase tracking-wider">
-            <ShieldCheck className="w-4 h-4" /> Administrator Verified
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Control Room</h1>
-          <p className="text-ink-muted font-semibold text-xs max-w-md">
-            Administrative panel. Click any of the zero metrics below to load all corresponding live data entries and reports.
-          </p>
-        </div>
+      {/* The Control Room hero used to sit here.
+          A navy banner carrying an "Administrator Verified" badge, a pulsing
+          blur blob, three counter tiles and a subtitle set in text-ink-muted on
+          bg-blue-dark, which measures 1.83:1 and was therefore invisible. Its
+          text read "Click any of the zero metrics below to load all
+          corresponding live data entries" - describing, in implementation
+          voice, that the counters render 0 until clicked.
 
-        {/* Stats HUD Block with Drill-down Action */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-6 relative z-10 w-full md:w-auto shrink-0 select-hud">
-          {/* Students counter */}
-          <div
-            onClick={() => {
-              setShowStudentsList(true);
-              setActiveTab('users');
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setShowStudentsList(true);
-                setActiveTab('users');
-              }
-            }}
-            className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-students-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-              showStudentsList
-                ? "bg-blue-dark border-blue-dark text-white "
-                : "bg-white/5 border-white/5 text-white hover:bg-white/10"
-            )}
-          >
-            <Users className={cn("w-5 h-5 mx-auto mb-1.5", showStudentsList ? "text-white" : "text-white/60")} />
-            <span className="block text-2xl font-bold">{showStudentsList ? realStudentCount : 0}</span>
-            <span className="text-xs uppercase font-bold tracking-widest block opacity-70">STUDENTS</span>
-          </div>
-
-          {/* Orgs counter */}
-          <div
-            onClick={() => {
-              setShowOrgsList(true);
-              setActiveTab('users');
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setShowOrgsList(true);
-                setActiveTab('users');
-              }
-            }}
-            className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-orgs-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-              showOrgsList
-                ? "bg-blue-dark border-blue-dark text-white "
-                : "bg-white/5 border-white/5 text-white hover:bg-white/10"
-            )}
-          >
-            <Building2 className={cn("w-5 h-5 mx-auto mb-1.5", showOrgsList ? "text-white" : "text-white/60")} />
-            <span className="block text-2xl font-bold">{showOrgsList ? realOrgCount : 0}</span>
-            <span className="text-xs uppercase font-bold tracking-widest block opacity-70">ORGS</span>
-          </div>
-
-          {/* Reports counter */}
-          <div
-            onClick={() => {
-              setShowReportsList(true);
-              setActiveTab('reports');
-            }}
-            role="button"
-            tabIndex={0}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                setShowReportsList(true);
-                setActiveTab('reports');
-              }
-            }}
-            className={cn(
-              "border rounded-lg p-4 text-center cursor-pointer transition-all duration-300 select-reports-metric focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
-              showReportsList && activeTab === 'reports'
-                ? "bg-red-600 border-red-500 text-white "
-                : "bg-white/5 border-white/5 text-white hover:bg-white/10"
-            )}
-          >
-            <ShieldAlert className={cn("w-5 h-5 mx-auto mb-1.5", showReportsList && activeTab === 'reports' ? "text-white" : "text-red-400 animate-pulse")} />
-            <span className="block text-2xl font-bold">{reports.length}</span>
-            <span className="text-xs uppercase font-bold tracking-widest block opacity-70">REPORTS</span>
-          </div>
-        </div>
-
-        <div className="absolute -bottom-24 -left-20 w-80 h-80 bg-blue-dark/10 rounded-lg blur-3xl -z-5 animate-pulse" />
-      </div>
+          The three tiles switched to the users and reports tabs, duplicating
+          two tab buttons sitting directly beneath them: twelve controls before
+          the first ticket, three of them redundant. The counts they showed are
+          already on the tab labels. */}
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">Control Room</h1>
 
       {/* Primary tab bar controls */}
       <div className="border-b border-line overflow-x-auto scrollbar-none">
