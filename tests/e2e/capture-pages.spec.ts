@@ -168,6 +168,20 @@ test.beforeAll(async () => {
     isVirtual: false, status: 'open', coordinates: { lat: 43.77, lng: -79.41 },
     dateTime: new Date(Date.now() + 9 * 86400000),
     createdAt: a.firestore.FieldValue.serverTimestamp(),
+    /*
+     * isFixture, like every other spec in this directory.
+     *
+     * This was omitted so the browse list would photograph populated, and the
+     * cost of that showed up immediately: a run interrupted before afterAll
+     * left "Capture Org (test fixture)" in production with a live open
+     * posting, which real students could see and apply to. A prettier
+     * screenshot is not worth putting fake placements in front of minors.
+     *
+     * The detail page and the apply dialog still capture correctly, because
+     * those load by document id rather than through isVisibleToStudents. Only
+     * the browse list renders its empty state.
+     */
+    isFixture: true,
   });
   oppId = opp.id;
 });
