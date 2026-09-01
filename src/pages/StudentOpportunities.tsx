@@ -69,9 +69,6 @@ export default function StudentOpportunities() {
   const [exclusive, setExclusive] = useState('');
   const [commitment, setCommitment] = useState('');
   const [virtualOnly, setVirtualOnly] = useState(false);
-  const [sharingOpp, setSharingOpp] = useState<Opportunity | null>(null);
-  const closeShareDialog = useCallback(() => setSharingOpp(null), []);
-  const shareDialogRef = useDialog(!!sharingOpp, closeShareDialog);
   const [saveError, setSaveError] = useState<string | null>(null);
   /** Kilometres. 0 means "anywhere" — the default, so nothing is hidden by surprise. */
   const [maxKm, setMaxKm] = useState(0);
@@ -552,7 +549,6 @@ export default function StudentOpportunities() {
                 opportunity={opp} 
                 isSaved={savedIds.includes(opp.id)}
                 onSave={handleSave}
-                onShare={(o) => setSharingOpp(o)}
                 matchReasons={matchById[opp.id]?.reasons}
                 eligibility={matchById[opp.id]?.eligibility}
               />
@@ -657,45 +653,11 @@ export default function StudentOpportunities() {
         </div>
       )}
 
-      {sharingOpp && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-           <div className="absolute inset-0 bg-ink/60 backdrop-blur-sm" onClick={() => setSharingOpp(null)} />
-           {/* Wrapper carries the ref and dialog role — Card neither forwards a
-               ref nor accepts ARIA props. */}
-           <div
-             ref={shareDialogRef}
-             role="dialog"
-             aria-modal="true"
-             aria-label="Share this opportunity"
-             className="relative w-full max-w-md"
-           >
-           <Card className="relative w-full bg-white rounded-lg animate-in fade-in zoom-in duration-300 border-none overflow-hidden shadow-card">
-              <button aria-label="Close dialog" 
-                onClick={() => setSharingOpp(null)}
-                className="absolute top-6 right-6 p-2 rounded-lg hover:bg-paper-3 transition-colors text-ink-muted z-10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-
-              <div className="p-6 sm:p-10 space-y-6">
-                 <div className="w-16 h-16 bg-blue-dark/5 rounded-lg flex items-center justify-center mx-auto text-blue-dark mb-2">
-                    <Share2 className="w-8 h-8" />
-                 </div>
-                 <div className="text-center">
-                    <h3 className="text-xl font-bold text-ink uppercase tracking-tight">Share Opportunity</h3>
-                    <p className="text-sm text-ink-muted mt-2">Help others find <strong>{sharingOpp.title}</strong></p>
-                 </div>
-
-                 <div className="space-y-3">
-                    <Button className="w-full h-12 bg-[#1877F2] hover:bg-[#166fe5]" onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(window.location.origin + '/student/opportunities/' + sharingOpp.id)}`, '_blank', 'noopener,noreferrer')}>Share on Facebook</Button>
-                    <Button className="w-full h-12 bg-[#1DA1F2] hover:bg-[#1a91da]" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Check out this volunteer opportunity: ' + sharingOpp.title)}&url=${encodeURIComponent(window.location.origin + '/student/opportunities/' + sharingOpp.id)}`, '_blank', 'noopener,noreferrer')}>Share on Twitter</Button>
-                    <Button variant="outline" className="w-full h-12 border-line" onClick={async () => { const ok = await copyToClipboard(`${window.location.origin}/student/opportunities/${sharingOpp.id}`); if (ok) alert('Link copied to clipboard!'); }}>Copy Link</Button>
-                 </div>
-              </div>
-           </Card>
-           </div>
-        </div>
-      )}
+      {/* The share sheet used to live here.
+          It was only reachable from a Share icon on every browse card, which
+          was removed: sharing is something a student does after reading a
+          posting, and the detail page already offers it. With nothing able to
+          set sharingOpp this dialog became unreachable UI. */}
     </div>
   );
 }

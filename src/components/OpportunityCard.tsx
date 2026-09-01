@@ -2,7 +2,7 @@ import React from 'react';
 import { Opportunity } from '../types';
 import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
-import { MapPin, Calendar, Clock, Bookmark, Share2, Sparkles } from 'lucide-react';
+import { MapPin, Calendar, Clock, Bookmark, Sparkles } from 'lucide-react';
 import { formatDate } from '../lib/utils';
 import { Link } from 'react-router-dom';
 
@@ -10,7 +10,6 @@ interface OpportunityCardProps {
   opportunity: Opportunity;
   isSaved?: boolean;
   onSave?: (id: string) => void | Promise<void>;
-  onShare?: (opp: Opportunity) => void;
   /** Sentences from getMatchResult, in contribution order. */
   matchReasons?: string[];
   eligibility?: 'eligible' | 'likely-ineligible' | 'unknown';
@@ -21,7 +20,6 @@ export default function OpportunityCard({
   opportunity, 
   isSaved, 
   onSave, 
-  onShare,
   matchReasons,
   eligibility,
 }: OpportunityCardProps) {
@@ -47,17 +45,12 @@ export default function OpportunityCard({
           </div>
 
           <div className="flex items-center gap-1 shrink-0">
-            <button 
-              onClick={(e) => {
-                e.preventDefault();
-                onShare?.(opportunity);
-              }}
-              className="p-1.5 rounded-lg text-ink-soft hover:text-ink-soft hover:bg-paper-2 transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center"
-              title="Share Opportunity"
-              aria-label="Share Opportunity"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
+            {/* Share lives on the detail page, not on every card.
+                Sharing is something you do after reading a posting, so on a
+                list it was a second icon competing with Save for the same
+                corner while duplicating a control one tap away. Save stays:
+                scanning a list is exactly when a student wants to keep one for
+                later, which is the opposite case. */}
             <button 
               onClick={(e) => {
                 e.preventDefault();
@@ -76,7 +69,13 @@ export default function OpportunityCard({
 
         {/* Brand Group (Organization + Safety badge) */}
         <div className="flex items-center gap-1.5 mb-2.5">
-          <span className="text-xs font-bold text-ink-soft uppercase tracking-wide truncate max-w-[150px]">
+          {/* No fixed 150px cap and no uppercase.
+              "Community Share Food Bank" rendered as "COMMUNITY SHARE ..." on a
+              phone: the organisation's name is how a student decides whether
+              they have heard of it, and it was the one thing being cut. Caps
+              also inflate the width of the very string that was overflowing.
+              min-w-0 lets it shrink inside the flex row instead. */}
+          <span className="text-[13px] font-semibold text-ink-soft truncate min-w-0">
             {opportunity.orgName || 'Community Partner'}
           </span>
           {/*
