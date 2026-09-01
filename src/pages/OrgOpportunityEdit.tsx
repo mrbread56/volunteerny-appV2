@@ -30,7 +30,7 @@ import { SKILLS } from '../lib/vocabularies';
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
+      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg "></div>
       <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />
@@ -47,7 +47,7 @@ const userLocationIcon = L.divIcon({
 const customPinIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-blue-dark/30 rounded-lg animate-ping"></div>
+      <div class="absolute w-8 h-8 bg-blue-dark/30 rounded-lg "></div>
       <div class="w-7 h-7 bg-blue-dark border-2 border-white rounded-lg flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M12 21s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 7.2c0 7.3-8 11.8-8 11.8z" />
@@ -712,7 +712,7 @@ export default function OrgOpportunityEdit() {
                      required 
                    />
                    {isGeocoding && (
-                     <div className="absolute right-4 top-[40px] flex items-center gap-2 text-xs font-bold text-blue-dark animate-pulse uppercase tracking-widest">
+                     <div className="absolute right-4 top-[40px] flex items-center gap-2 text-xs font-bold text-blue-dark  uppercase tracking-widest">
                         <div className="w-2 h-2 bg-blue-dark rounded-lg" /> Updating Map...
                      </div>
                    )}

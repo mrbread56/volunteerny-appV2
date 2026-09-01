@@ -19,6 +19,7 @@ import { useGeolocation } from '../hooks/useGeolocation';
 import { COMMITMENTS } from '../lib/vocabularies';
 import { coordsForNeighborhood } from '../lib/neighborhoods';
 import { getMatchResult } from '../lib/matchScore';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 // Leaflet lives in src/components/OpportunitiesMap.tsx and is reached through
 // React.lazy below, so the 154 kB map bundle is fetched only when a student
@@ -27,6 +28,7 @@ const OpportunitiesMap = lazy(() => import('../components/OpportunitiesMap'));
 
 
 export default function StudentOpportunities() {
+  usePageTitle('Browse opportunities');
   const { user, studentProfile, isDemoMode } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();

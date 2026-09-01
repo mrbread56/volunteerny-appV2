@@ -147,7 +147,7 @@ export default function SettingsTab({
           <div>
             <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Account Security</span>
             <h3 className="text-xl font-bold text-ink mt-1 flex items-center gap-2 flex-wrap">
-              <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
+              <ShieldCheck className="w-5 h-5 text-emerald-600 " />
               <span>Two-Factor Shield (2FA)</span>
               <span className="text-xs font-semibold tracking-wide bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded-lg border border-emerald-200/50">
                 Highly Recommended

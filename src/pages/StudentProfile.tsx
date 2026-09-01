@@ -448,8 +448,8 @@ export default function StudentProfile() {
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <School className="w-6 h-6" />
                 </div>
-                <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
-                  School Details
+                <CardTitle className="text-xl font-semibold text-ink tracking-tight">
+                  School
                 </CardTitle>
               </div>
             </CardHeader>
@@ -588,15 +588,15 @@ export default function StudentProfile() {
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <GraduationCap className="w-6 h-6" />
                 </div>
-                <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
-                  Passion & Mastery
+                <CardTitle className="text-xl font-semibold text-ink tracking-tight">
+                  Interests and skills
                 </CardTitle>
               </div>
             </CardHeader>
             <CardContent className="p-6 sm:p-8 space-y-12">
               <div>
                 <label className="text-xs font-semibold text-ink-soft block mb-4 ml-2">
-                  Causes That Ignite You
+                  What you care about
                 </label>
                 {errors.interests && (
                   <p className="text-xs text-red-600 font-bold ml-2 mb-4 flex items-center gap-1 animate-fadeIn">
@@ -698,8 +698,8 @@ export default function StudentProfile() {
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <FileText className="w-6 h-6" />
                 </div>
-                <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
-                  Experience & Why
+                <CardTitle className="text-xl font-semibold text-ink tracking-tight">
+                  Previous experience
                 </CardTitle>
               </div>
             </CardHeader>
@@ -729,8 +729,8 @@ export default function StudentProfile() {
                 <div className="w-12 h-12 bg-blue-dark/10 rounded-lg flex items-center justify-center text-blue-dark">
                   <FileText className="w-6 h-6" />
                 </div>
-                <CardTitle className="text-xl font-semibold text-ink uppercase tracking-tight">
-                  Professional Resume
+                <CardTitle className="text-xl font-semibold text-ink tracking-tight">
+                  Resume
                 </CardTitle>
               </div>
             </CardHeader>

@@ -152,7 +152,7 @@ export default function HoursTab({
             </div>
 
             {logResultStatus === "success" && (
-              <p className="text-xs font-semibold text-blue-dark uppercase text-center animate-pulse">
+              <p className="text-xs font-semibold text-blue-dark uppercase text-center ">
                 ✓ Hours successfully recorded onto Student Hour Log!
               </p>
             )}

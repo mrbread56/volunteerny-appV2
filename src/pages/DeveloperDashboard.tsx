@@ -735,7 +735,7 @@ export default function DeveloperDashboard() {
           >
             {/* OPEN reports. This counted every status, so the badge never fell and
                 said nothing about whether there was work waiting. */}
-            <ShieldAlert className="w-4 h-4 text-red-600 animate-pulse" /> Safety Reports ({reports.filter((r: any) => (r.status ?? 'pending') === 'pending').length})
+            <ShieldAlert className="w-4 h-4 text-red-600 " /> Safety Reports ({reports.filter((r: any) => (r.status ?? 'pending') === 'pending').length})
           </button>
           <button
             onClick={() => setActiveTab('interests')}
@@ -797,7 +797,7 @@ export default function DeveloperDashboard() {
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
           <div className="w-10 h-10 border-4 border-blue-dark/30 border-t-blue-dark rounded-lg animate-spin mx-auto" />
-          <p className="text-xs font-bold uppercase text-ink-muted tracking-widest animate-pulse">Retrieving system registries...</p>
+          <p className="text-xs font-bold uppercase text-ink-muted tracking-widest ">Retrieving system registries...</p>
         </div>
       ) : activeTab === 'feedbacks' ? (
         <div className="space-y-6">
@@ -1173,7 +1173,7 @@ export default function DeveloperDashboard() {
             <div className="border border-amber/30 p-6 rounded-lg bg-amber/10 flex flex-col gap-4 animate-fadeIn">
               <div className="space-y-1">
                 <p className="font-semibold text-amber-dark text-sm flex items-center gap-1.5 font-sans uppercase tracking-wide">
-                  <Mail className="w-4 h-4 text-amber-dark animate-pulse" /> Send Live / Simulated Test Email
+                  <Mail className="w-4 h-4 text-amber-dark " /> Send Live / Simulated Test Email
                 </p>
                 <p className="text-xs text-ink-muted leading-relaxed font-semibold">
                   Test the transactional system live! If your third-party credentials (Resend or SMTP) are invalid or unconfigured, the system will gracefully drop into the **Sandbox Fallback Mode** and generate a fully styled HTML email preview inside the dev log response below.

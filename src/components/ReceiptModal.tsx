@@ -203,7 +203,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
               <div className="space-y-0.5">
                 <span className="text-xs text-ink-soft tracking-wide font-semibold block">PLACEMENT STATUS</span>
                 <span className="text-blue-dark font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-lg bg-blue-dark animate-ping" />
+                  <span className="w-1.5 h-1.5 rounded-lg bg-blue-dark " />
                   CONFIRMED & ACCEPTED
                 </span>
               </div>

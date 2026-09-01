@@ -46,7 +46,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 const userLocationIcon = L.divIcon({
   html: `
     <div class="relative flex items-center justify-center">
-      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg animate-ping"></div>
+      <div class="absolute w-8 h-8 bg-amber/40 rounded-lg "></div>
       <div class="w-7 h-7 bg-amber border-2 border-white rounded-lg  flex items-center justify-center">
         <svg class="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <circle cx="12" cy="12" r="8" fill="white" fill-opacity="0.2" />

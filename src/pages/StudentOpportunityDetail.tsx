@@ -821,7 +821,7 @@ export default function StudentOpportunityDetail() {
                       </div>
                     ) : (
                       <Button size="lg" className="w-full text-lg font-bold " onClick={() => setShowApplyModal(true)}>
-                         Apply Now
+                         Apply
                       </Button>
                     )}
                     <div className="flex gap-2">
@@ -913,7 +913,7 @@ export default function StudentOpportunityDetail() {
             ref={applyDialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label="Express interest in this opportunity"
+            aria-label="Apply to this opportunity"
             className="relative w-full max-w-xl mx-auto"
             // Clicks inside the card are not clicks outside it.
             onClick={(e) => e.stopPropagation()}
@@ -927,7 +927,7 @@ export default function StudentOpportunityDetail() {
               <X className="w-5 h-5" />
             </button>
             <CardHeader className="px-6 sm:px-10 pt-10 sm:pt-12 pb-6">
-               <CardTitle className="text-2xl font-bold text-ink uppercase tracking-tight">Express Interest</CardTitle>
+               <CardTitle className="text-2xl font-bold text-ink tracking-tight">Apply to this opportunity</CardTitle>
                <p className="text-ink-muted text-sm">Apply for <strong>{opportunity.title}</strong></p>
             </CardHeader>
             <CardContent className="px-6 sm:px-10 pb-10 sm:pb-12">
@@ -972,7 +972,7 @@ export default function StudentOpportunityDetail() {
                      className="w-full h-16 rounded-lg bg-blue-dark hover:bg-[#153343] text-white font-bold text-xs uppercase tracking-wide  transition-all" 
                      disabled={isApplying}
                   >
-                     {isApplying ? 'Submitting...' : 'Send Application'}
+                     {isApplying ? 'Sending…' : 'Apply'}
                   </Button>
                </form>
             </CardContent>

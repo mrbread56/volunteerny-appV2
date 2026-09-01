@@ -931,7 +931,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                                 setShowReceiptModal(true);
                               }}
                             >
-                              <FileText className="w-5 h-5 text-blue-dark animate-pulse" />
+                              <FileText className="w-5 h-5 text-blue-dark " />
                             </Button>
                           )}
                           <Button

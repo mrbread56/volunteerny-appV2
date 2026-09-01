@@ -260,7 +260,11 @@ for (const vp of VIEWPORTS) {
         await capture(page, vp.name, route);
       }
       // Each console tab, which is where the least-reviewed screens live.
-      for (const tab of ['users', 'reports', 'orgs', 'metrics', 'settings']) {
+      // The real DevTab values. 'orgs' was not one of them, so that capture
+      // silently fell back to the default tab and produced a duplicate of the
+      // dashboard screenshot — which read as "six developer routes render the
+      // same page" when the app was fine and the spec was wrong.
+      for (const tab of ['feedbacks', 'reports', 'interests', 'users', 'terminated', 'verification', 'metrics', 'settings']) {
         await page.goto(`/developer/dashboard?tab=${tab}`);
         await capture(page, vp.name, `developer-${tab}`);
       }

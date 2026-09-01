@@ -322,7 +322,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
         <CardHeader className="bg-paper-2/60 pb-4 pt-6 px-6 md:px-8 border-b border-line-light flex items-center justify-between shrink-0">
           <div className="flex items-center gap-2.5">
             <div className="w-10 h-10 rounded-lg bg-red-100/80 text-red-600 flex items-center justify-center border border-red-200/40 shrink-0">
-              <ShieldAlert className="w-5 h-5 animate-pulse" />
+              <ShieldAlert className="w-5 h-5 " />
             </div>
             <div className="text-left">
               <CardTitle className="text-base font-bold text-ink uppercase">Report Violation</CardTitle>

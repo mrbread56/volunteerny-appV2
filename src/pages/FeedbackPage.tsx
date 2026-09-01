@@ -278,7 +278,7 @@ export default function FeedbackPage() {
           {submittedFeedback ? (
             <Card className="rounded-lg border border-amber/30 overflow-hidden bg-white animate-fadeIn">
               <div className="p-8 text-center space-y-5">
-                <div className="w-16 h-16 bg-amber/10 text-amber-dark rounded-lg flex items-center justify-center mx-auto border border-amber/30 animate-pulse">
+                <div className="w-16 h-16 bg-amber/10 text-amber-dark rounded-lg flex items-center justify-center mx-auto border border-amber/30 ">
                   <CheckCircle2 className="w-8 h-8" />
                 </div>
                 <div className="space-y-2">
@@ -377,7 +377,7 @@ export default function FeedbackPage() {
                           onChange={handleFileChange}
                           accept="image/*,application/pdf"
                         />
-                        <UploadCloud className="w-8 h-8 text-ink-soft animate-pulse" />
+                        <UploadCloud className="w-8 h-8 text-ink-soft " />
                         <p className="text-xs font-bold text-ink-soft">
                           Drag and drop file here, or{' '}
                           <label htmlFor="file-uploader-element" className="text-blue-dark underline cursor-pointer">
@@ -482,7 +482,7 @@ export default function FeedbackPage() {
           </div>
         ) : myFeedbacks.length === 0 ? (
           <div className="text-center py-12 bg-paper-2 border border-line rounded-lg text-ink-soft font-semibold text-xs max-w-md mx-auto space-y-3">
-            <MessageSquare className="w-8 h-8 mx-auto text-ink-soft animate-pulse" />
+            <MessageSquare className="w-8 h-8 mx-auto text-ink-soft " />
             <h4 className="text-ink-soft font-bold">No tickets logged yet</h4>
             <p className="text-ink-soft font-medium px-4">
               Your submitted support inquiries, feature ideas, and system bugs will render here instantly alongside admin replies.
@@ -523,7 +523,7 @@ export default function FeedbackPage() {
                     <span className={`self-start text-xs font-semibold px-2.5 py-1 rounded-lg ${
                       fb.developerReply 
                         ? 'bg-blue-dark/10 text-blue-dark border border-blue-dark/20' 
-                        : 'bg-amber/10 text-amber-800 border-amber-200/40 border animate-pulse'
+                        : 'bg-amber/10 text-amber-800 border-amber-200/40 border '
                     }`}>
                       {fb.developerReply ? 'Replied' : 'Pending Review'}
                     </span>
@@ -565,7 +565,7 @@ export default function FeedbackPage() {
                     <div className="bg-[#FAF9F6] border border-amber/30/60 rounded-lg px-5 py-4 text-xs text-ink-soft font-semibold flex flex-col gap-2 relative overflow-hidden">
                       <div className="absolute top-0 right-0 w-24 h-24 bg-amber/10 rounded-lg blur-xl" />
                       <div className="flex items-center gap-2 font-semibold text-xs text-amber-dark">
-                        <span className="w-2 h-2 rounded-lg bg-amber animate-pulse" />
+                        <span className="w-2 h-2 rounded-lg bg-amber " />
                         <span>Logged safely under review</span>
                       </div>
                       <p className="leading-relaxed">

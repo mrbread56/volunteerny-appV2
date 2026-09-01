@@ -227,7 +227,7 @@ export default function StudentOnboarding() {
                     <SchoolIcon className="w-6 h-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold uppercase text-ink tracking-tight">School Details</CardTitle>
+                    <CardTitle className="text-xl font-bold text-ink tracking-tight">Your school</CardTitle>
                     <p className="text-xs text-ink-muted font-semibold mt-1">Specify your schooling details and current neighborhood.</p>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ export default function StudentOnboarding() {
                     <Award className="w-6 h-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold uppercase text-ink tracking-tight">Causes & Passions</CardTitle>
+                    <CardTitle className="text-xl font-bold text-ink tracking-tight">What you care about</CardTitle>
                     <p className="text-xs text-ink-muted font-semibold mt-1">Select the main cause categories that interest you.</p>
                   </div>
                 </div>
@@ -332,7 +332,7 @@ export default function StudentOnboarding() {
                     <Sparkles className="w-6 h-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold uppercase text-ink tracking-tight">Your Core Skills</CardTitle>
+                    <CardTitle className="text-xl font-bold text-ink tracking-tight">Your skills</CardTitle>
                     <p className="text-xs text-ink-muted font-semibold mt-1">Choose the specific skillsets/contributions you bring.</p>
                   </div>
                 </div>
@@ -368,7 +368,7 @@ export default function StudentOnboarding() {
                     <Calendar className="w-6 h-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold uppercase text-ink tracking-tight">Time Availability</CardTitle>
+                    <CardTitle className="text-xl font-bold text-ink tracking-tight">When you're free</CardTitle>
                     <p className="text-xs text-ink-muted font-semibold mt-1">When can you usually join community placements?</p>
                   </div>
                 </div>
@@ -405,7 +405,7 @@ export default function StudentOnboarding() {
                     <FileText className="w-6 h-6" />
                   </div>
                   <div>
-                    <CardTitle className="text-xl font-bold uppercase text-ink tracking-tight">Experience & Resume</CardTitle>
+                    <CardTitle className="text-xl font-bold text-ink tracking-tight">Experience and resume</CardTitle>
                     <p className="text-xs text-ink-muted font-semibold mt-1">This step is completely optional. You can skip if you want.</p>
                   </div>
                 </div>
@@ -481,7 +481,7 @@ export default function StudentOnboarding() {
                   onClick={(e) => handleSubmit(e as any, true)}
                   disabled={isSubmitting}
                   variant="outline" 
-                  className="h-12 px-6 rounded-lg font-bold uppercase text-xs tracking-widest text-ink-muted hover:bg-paper-2 border border-line cursor-pointer animate-pulse"
+                  className="h-12 px-6 rounded-lg font-bold uppercase text-xs tracking-widest text-ink-muted hover:bg-paper-2 border border-line cursor-pointer "
                 >
                   Skip this step and finish
                 </Button>

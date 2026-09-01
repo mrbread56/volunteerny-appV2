@@ -65,7 +65,7 @@ export default function ReportsTab({
         <div className="flex flex-col sm:flex-row gap-4 items-center justify-between pb-4 border-b border-line-light">
           <div>
             <h2 className="text-xl font-bold text-ink uppercase tracking-tight flex items-center gap-2">
-              <ShieldAlert className="w-5 h-5 text-red-600 animate-pulse" /> Inbound Violations Queue
+              <ShieldAlert className="w-5 h-5 text-red-600 " /> Inbound Violations Queue
             </h2>
             <p className="text-xs text-ink-muted font-semibold mt-1">
               Review and act on reported safe space violations from our students and organizations.
@@ -112,7 +112,7 @@ export default function ReportsTab({
                 ? 'bg-blue-dark/5 text-blue-dark border-blue-dark/10' 
                 : report.status === 'dismissed'
                   ? 'bg-paper-2 text-ink-muted border-line'
-                  : 'bg-red-50 text-red-600 border-red-100 animate-pulse';
+                  : 'bg-red-50 text-red-600 border-red-100 ';
 
               /*
                * Three states, not two. `find` returning undefined is NOT "not

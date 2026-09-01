@@ -5,7 +5,7 @@ import NotificationBell from '../NotificationBell';
 import {
   LayoutDashboard, Search, MessageCircle, UserCircle, Trophy,
   Calendar, Settings, PlusCircle, ClipboardList, Clock, LogOut,
-  Menu, X, Shield, HelpCircle, Send,
+  Menu, X, Shield, HelpCircle, Send, Users,
 } from 'lucide-react';
 import React, { useState } from 'react';
 import { useDialog } from '../../hooks/useDialog';
@@ -37,7 +37,7 @@ interface NavItem {
  */
 const studentMain: NavItem[] = [
   { to: '/student/opportunities', label: 'Browse', icon: Search },
-  { to: '/student/dashboard?tab=hours', label: 'My hours', icon: Clock },
+  { to: '/student/dashboard?tab=hours', label: 'Hours', icon: Clock },
   { to: '/student/dashboard?tab=applications', label: 'Applications', icon: Calendar },
 ];
 const studentBottom: NavItem[] = [
@@ -57,7 +57,12 @@ const studentBottom: NavItem[] = [
  * places.
  */
 const orgMain: NavItem[] = [
-  { to: '/org/dashboard?tab=applications', label: 'Applications', icon: Search },
+  // "Applicants", not "Applications". The coordinator's object is a person to
+  // review; the student's is a form they sent. Furnas 1987 found under 0.20
+  // agreement between any two people on a single term, and the remedy is to
+  // use each side's own word rather than impose one on both. The Search icon
+  // also disagreed with the label it sat beside.
+  { to: '/org/dashboard?tab=applications', label: 'Applicants', icon: Users },
   { to: '/org/dashboard?tab=opportunities', label: 'Opportunities', icon: ClipboardList },
   { to: '/org/dashboard?tab=hours', label: 'Hours', icon: Clock },
 ];

@@ -484,7 +484,7 @@ export default function OrgProfile() {
             <div>
               <span className="text-xs font-semibold uppercase tracking-wide text-blue-dark">Account Security</span>
               <h3 className="text-lg font-bold text-ink mt-1 font-sans flex items-center gap-1.5 flex-wrap">
-                <ShieldCheck className="w-5 h-5 text-emerald-600 animate-pulse" />
+                <ShieldCheck className="w-5 h-5 text-emerald-600 " />
                 <span>Two-step sign-in</span>
                 {/* "Required", not "Highly Recommended". firestore.rules refuses
                     any non-student write of twoFactorEnabled: false, so this has

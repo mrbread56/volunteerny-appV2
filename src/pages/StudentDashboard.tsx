@@ -1171,8 +1171,8 @@ export default function StudentDashboard() {
 
   const sidebarItems = [
     { id: "dashboard", label: "Overview", icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: "applications", label: "My Applications", icon: <Calendar className="w-4 h-4" /> },
-    { id: "hours", label: "Hours & Verification", icon: <Clock className="w-4 h-4" /> },
+    { id: "applications", label: "Applications", icon: <Calendar className="w-4 h-4" /> },
+    { id: "hours", label: "Hours", icon: <Clock className="w-4 h-4" /> },
     { id: "leaderboard", label: "Leaderboard", icon: <Trophy className="w-4 h-4" /> },
     { id: "settings", label: "Settings", icon: <Settings className="w-4 h-4" /> },
   ];

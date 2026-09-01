@@ -193,7 +193,7 @@ export default function ApplicationReviewDialog({
                   </div>
                 ) : submittingState === 'success' ? (
                   <div className="p-8 space-y-8 max-w-lg w-full mx-auto overflow-y-auto custom-scrollbar flex-grow my-4">
-                    <div className="w-20 h-20 bg-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto  animate-pulse">
+                    <div className="w-20 h-20 bg-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto ">
                       <CheckCircle className="w-10 h-10" />
                     </div>
                     <div className="space-y-2">
@@ -302,7 +302,7 @@ export default function ApplicationReviewDialog({
                           dbVerified 
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'database' 
-                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark  font-bold" 
                               : "border-line border-line text-ink-soft"
                         }`}>
                           {dbVerified ? "✓" : "1"}
@@ -332,7 +332,7 @@ export default function ApplicationReviewDialog({
                           receiptCompiled 
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'receipt' 
-                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark  font-bold" 
                               : "border-line border-line text-ink-soft"
                         }`}>
                           {receiptCompiled ? "✓" : "2"}
@@ -353,7 +353,7 @@ export default function ApplicationReviewDialog({
                           emailDispatched 
                             ? "bg-blue-dark/10 border-blue-dark text-blue-dark font-bold" 
                             : submittingState === 'email' 
-                              ? "border-blue-dark text-blue-dark animate-pulse font-bold" 
+                              ? "border-blue-dark text-blue-dark  font-bold" 
                               : "border-line border-line text-ink-soft"
                         }`}>
                           {emailDispatched ? "✓" : "3"}
@@ -375,7 +375,7 @@ export default function ApplicationReviewDialog({
               <CardContent className="p-8 space-y-8 overflow-y-auto custom-scrollbar flex-grow flex flex-col justify-between">
                 <div className="flex items-center justify-between pb-3 border-b border-line">
                   <div className="flex items-center gap-2">
-                     <FileText className="w-5 h-5 text-blue-dark animate-pulse" />
+                     <FileText className="w-5 h-5 text-blue-dark " />
                      <h4 className="font-semibold text-ink-soft text-sm tracking-tight uppercase">Resume Document Viewer</h4>
                   </div>
                   <div className="flex items-center gap-2">

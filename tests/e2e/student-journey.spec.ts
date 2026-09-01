@@ -136,8 +136,12 @@ test('a student can apply through the UI, and the organization can accept it', a
   await page.goto(`/student/opportunities/${OPP.id}`);
   await expect(page.getByRole('heading', { name: OPP.title })).toBeVisible({ timeout: 20000 });
 
-  await page.getByRole('button', { name: 'Apply Now' }).click();
-  await page.getByRole('button', { name: 'Send Application' }).click();
+  // One name for one action. The detail button, the dialog title and the
+  // submit button all said something different ("Apply Now" / "Express
+  // Interest" / "Send Application"); they are all "Apply" now, so the exact
+  // name is used here to catch a regression if one of them drifts again.
+  await page.getByRole('button', { name: 'Apply', exact: true }).click();
+  await page.getByRole('button', { name: 'Apply', exact: true }).last().click();
 
   // The UI must confirm it, not just appear to submit.
   await expect(page.getByText("You've Applied!")).toBeVisible({ timeout: 30000 });
@@ -156,7 +160,7 @@ test('a student can apply through the UI, and the organization can accept it', a
   // Re-opening the page must not offer to apply again.
   await page.reload();
   await expect(page.getByText("You've Applied!")).toBeVisible({ timeout: 30000 });
-  await expect(page.getByRole('button', { name: 'Apply Now' })).toHaveCount(0);
+  await expect(page.getByRole('button', { name: 'Apply', exact: true })).toHaveCount(0);
 
   // ── Organization accepts ─────────────────────────────────────────────────
   await signIn(page, ORG.email);
