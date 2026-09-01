@@ -291,9 +291,16 @@ export default function OrgProfile() {
 
       <form
         onSubmit={handleUpdate}
-        className="grid grid-cols-1 md:grid-cols-3 gap-8"
+        /* A fixed 340px rail rather than one third of the grid.
+           md:grid-cols-3 gave the side column about 190px, which is why
+           "Create recovery codes" wrapped onto three lines inside its own
+           button, "Delete Organization Profile" onto two, and the two-step
+           sign-in explanation became a wall of 13px text in a 20-character
+           measure. 340px is inside the 240-400px band the major systems use
+           for a secondary rail. */
+        className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8" 
       >
-        <div className="md:col-span-2 space-y-8">
+        <div className="space-y-8">
           <Card className="rounded-lg border border-line bg-white overflow-hidden">
             <CardHeader className="border-b border-line-light">
               <CardTitle className="text-lg flex items-center gap-2 font-bold text-ink">
@@ -414,7 +421,11 @@ export default function OrgProfile() {
                 <p className="text-xs font-semibold text-ink-soft ml-1">
                   Social Media Links or Handles
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                {/* Two columns, not three. The form column is about 476px
+                    now that the rail is a fixed 340px, so three columns gave
+                    each field roughly 140px — every label wrapped onto two
+                    lines and every placeholder truncated mid-word. */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-5">
                   <Input
                     label="Twitter / X Handle"
                     value={socialTwitter}
@@ -466,7 +477,7 @@ export default function OrgProfile() {
           </Card>
         </div>
 
-        <div className="md:col-span-1 space-y-6">
+        <div className="space-y-6">
 
           {/* Account Security Card */}
           <Card className="rounded-lg border border-blue-dark/10 bg-white p-6 md:p-8 space-y-5">
@@ -621,30 +632,35 @@ export default function OrgProfile() {
               })()}
             </div>
 
-            <div className="space-y-4">
+            {/* What a student actually sees, not YES/NO tiles.
+                This was two stat-shaped cards reading "YES EMAILS" and
+                "NO PHONE", which restate whether the two fields above are
+                filled in. A big YES in a tile implies a measurement; this was
+                form completeness. Showing the real values, and naming what is
+                missing, is the version an organisation can act on. */}
+            <div className="space-y-3">
               <p className="text-xs text-ink-soft uppercase tracking-wide font-semibold">
-                Public Reach
+                How students can reach you
               </p>
-              <div className="flex gap-4">
-                <div className="flex-1 text-center p-4 bg-paper-2 border border-line-light rounded-lg">
-                  <Mail className="w-4 h-4 mx-auto mb-2 text-blue-dark" />
-                  <span className="block text-xl font-semibold text-ink">
-                    {contactEmail ? "YES" : "NO"}
-                  </span>
-                  <span className="text-xs text-ink-soft font-bold uppercase">
-                    EMAILS
-                  </span>
-                </div>
-                <div className="flex-1 text-center p-4 bg-paper-2 border border-line-light rounded-lg">
-                  <Phone className="w-4 h-4 mx-auto mb-2 text-blue-dark" />
-                  <span className="block text-xl font-semibold text-ink">
-                    {phone ? "YES" : "NO"}
-                  </span>
-                  <span className="text-xs text-ink-soft font-bold uppercase">
-                    PHONE
-                  </span>
-                </div>
-              </div>
+              <ul className="space-y-2">
+                {[
+                  { Icon: Mail, label: 'Email', value: contactEmail, required: true },
+                  { Icon: Phone, label: 'Phone', value: phone, required: false },
+                  { Icon: Globe, label: 'Website', value: website, required: false },
+                ].map(({ Icon, label, value, required }) => (
+                  <li key={label} className="flex items-start gap-2.5 text-[13px]">
+                    <Icon className="w-4 h-4 mt-0.5 shrink-0 text-ink-muted" aria-hidden="true" />
+                    <span className="min-w-0">
+                      <span className="text-ink-soft">{label}: </span>
+                      {value
+                        ? <span className="text-ink break-words">{value}</span>
+                        : <span className="text-ink-muted">
+                            not added{required ? '' : ' (optional)'}
+                          </span>}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div className="pt-4 flex flex-col gap-3">

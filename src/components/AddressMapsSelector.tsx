@@ -190,13 +190,18 @@ export default function AddressMapsSelector({
     <div className="space-y-4">
       {/* Search Bar Input */}
       <div className="relative">
-        <label className="text-xs font-semibold text-ink-muted uppercase tracking-wider block mb-1.5">
-          Organization Address (Search or Tap Pin on Map)
+        {/* Sentence case, and the instruction moved out of the label.
+            "ORGANIZATION ADDRESS (SEARCH OR TAP PIN ON MAP)" is a 46-character
+            all-caps label with +tracking; it wrapped onto two lines in the form
+            column and read as a heading rather than a field name. The hint sits
+            under the input where hint text belongs. */}
+        <label className="text-[13px] font-medium text-ink block mb-1.5">
+          Organization address
         </label>
         <div className="relative flex items-center">
           <input
             type="text"
-            className="w-full pr-10 pl-4 py-3 rounded-lg border border-line text-sm focus:ring-2 focus:ring-blue-dark focus:border-blue-dark bg-white"
+            className="w-full pr-10 pl-4 py-3 rounded-lg border border-line-control text-sm focus:ring-2 focus:ring-blue-dark focus:border-blue-dark bg-white"
             aria-label="Search for an address"
             placeholder="Type address, e.g., 5075 Yonge St..."
             value={searchQuery}
@@ -213,6 +218,9 @@ export default function AddressMapsSelector({
             )}
           </span>
         </div>
+        <p className="text-[13px] text-ink-muted mt-1.5">
+          Search for it, or drag the pin on the map below.
+        </p>
 
         {/* Dynamic drop down suggestions */}
         {showDropdown && suggestions.length > 0 && (

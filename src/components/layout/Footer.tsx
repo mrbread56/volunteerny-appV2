@@ -23,7 +23,7 @@ export default function Footer() {
               </span>
             </div>
             <p className="text-paper/70 text-[13px] leading-[1.7] max-w-[240px]">
-              Connecting Ontario high school students with meaningful volunteer opportunities.
+              Volunteer hours for Toronto high school students, tracked properly and signed off by the organisation.
             </p>
           </div>
 

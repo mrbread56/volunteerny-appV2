@@ -222,7 +222,7 @@ export default function Home() {
               <Reveal>
                 <span className="inline-flex items-center gap-2.5 text-[13px] font-semibold tracking-[0.14em] uppercase text-blue-accent">
                   <span aria-hidden="true" className="w-7 h-px bg-blue-accent" />
-                  Our Purpose
+                  Why we built this
                 </span>
               </Reveal>
               <Reveal delay={0.08}>
@@ -231,7 +231,7 @@ export default function Home() {
                     so the landing page had no top level to jump to. Visual size
                     is unchanged; only the tag differs. */}
                 <h1 className="mt-5 text-[2rem] sm:text-[2.6rem] lg:text-[3rem] font-bold text-ink leading-[1.05]">
-                  Connecting students with communities that need them
+                  Volunteering in Toronto, without the runaround
                 </h1>
               </Reveal>
             </div>
@@ -239,10 +239,9 @@ export default function Home() {
             <div className="lg:pt-2">
               <Reveal delay={0.14}>
                 <p className="text-[17px] sm:text-[19px] text-ink-soft leading-[1.65]">
-                  A Toronto-wide platform rooted in North York, connecting high school
-                  students with local nonprofits. Whether you&apos;re in our home
-                  community or anywhere across the city, join us to build skills, fulfill
-                  your 40 mandatory hours, and make a real impact.
+                  We&apos;re based in North York and open to students across Toronto.
+                  Find a place that actually needs you, get your 40 hours signed off
+                  without chasing anyone, and keep the record in one place.
                 </p>
               </Reveal>
 
@@ -293,7 +292,7 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-6">
           <Reveal className="mb-20">
             <h2 className="text-[1.75rem] sm:text-[2.5rem] font-bold text-ink tracking-[-0.035em] leading-tight">
-              Three steps to<br className="hidden sm:block" /> real impact.
+              How it<br className="hidden sm:block" /> works.
             </h2>
           </Reveal>
 
@@ -304,9 +303,9 @@ export default function Home() {
               rather than only for people who have animation switched on. */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { num: '01', Icon: UserCircle, title: 'Create your profile', body: 'Tell us your school, interests, and availability. It takes under two minutes to get started.' },
-              { num: '02', Icon: Search, title: 'Discover opportunities', body: 'Browse volunteer roles near you. Filter by category, distance, or schedule to find the right fit.' },
-              { num: '03', Icon: BadgeCheck, title: 'Make a real impact', body: 'Show up, contribute, and build skills that matter. Organisations verify your work, and your portfolio grows with every role.' },
+              { num: '01', Icon: UserCircle, title: 'Make a profile', body: 'Your school, what you are interested in, and when you are free. Takes about two minutes.' },
+              { num: '02', Icon: Search, title: 'Find something nearby', body: 'Filter by what you care about, how far you are willing to go, and which days you can actually make.' },
+              { num: '03', Icon: BadgeCheck, title: 'Get your hours signed off', body: 'Show up and do the work. The organisation confirms your hours here, so you are not chasing anyone for a signature later.' },
             ].map(({ num, Icon, title, body }, i) => (
               <Reveal key={num} delay={i * 0.1}>
                 <article className="group relative h-full overflow-hidden rounded-2xl border border-line bg-white p-8 lg:p-9 shadow-[0_1px_2px_rgba(26,43,54,0.05)] hover:border-blue-dark/25 hover:shadow-[0_2px_4px_rgba(26,43,54,0.06),0_14px_32px_-12px_rgba(26,43,54,0.20)] transition-[border-color,box-shadow] duration-500">
