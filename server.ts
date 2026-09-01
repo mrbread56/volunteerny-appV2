@@ -4823,6 +4823,20 @@ app.use(express.json());
    */
   function recordEmailLog(entry: Omit<EmailLogEntry, 'id' | 'at'>): void {
     try {
+      /*
+       * Fixture recipients are not logged.
+       *
+       * The Playwright suites send to @example.com addresses, which Resend
+       * refuses at validation, so every run wrote a handful of guaranteed
+       * failures into the same collection the Control Room reads. Measured on
+       * the live database: 493 of the last 500 entries were fixtures, so the
+       * genuine sends had been pushed clean out of the window and the email
+       * history showed nothing but test noise.
+       *
+       * isTestAddress is the same matcher cleanup:test-data and computeMetrics
+       * already use, so a fixture is defined in exactly one place.
+       */
+      if (isTestAddress(entry.to)) return;
       const full: EmailLogEntry = {
         ...entry,
         id: 'em_' + crypto.randomBytes(6).toString('hex'),

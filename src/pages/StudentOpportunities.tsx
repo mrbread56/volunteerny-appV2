@@ -12,7 +12,7 @@ import { Select } from '../components/ui/Select';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import OpportunityCard from '../components/OpportunityCard';
-import { Map as MapIcon, List, Search, X, MapPin, Share2 } from 'lucide-react';
+import { Map as MapIcon, List, Search, X, MapPin, Share2, SlidersHorizontal } from 'lucide-react';
 import { OPPORTUNITY_CATEGORIES, OPPORTUNITY_EXCLUSIVES } from '../constants';
 import { cn, copyToClipboard } from '../lib/utils';
 import { useGeolocation } from '../hooks/useGeolocation';
@@ -81,6 +81,8 @@ export default function StudentOpportunities() {
   // Shared by the toolbar button and the empty state, so "clear filters" cannot
   // drift between the two places that offer it.
   const hasActiveFilters = !!(searchTerm || category || exclusive || commitment || virtualOnly || maxKm || hideIneligible);
+  // Collapsed on a phone, always open from md up. See the note on the control.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const clearAllFilters = useCallback(() => {
     setSearchTerm(''); setCategory(''); setExclusive(''); setCommitment(''); setVirtualOnly(false); setMaxKm(0); setHideIneligible(false);
   }, []);
@@ -364,34 +366,24 @@ export default function StudentOpportunities() {
         </div>
       )}
 
-      {/* Local Community Involvement Banner card */}
-      <div className="relative overflow-hidden rounded-lg bg-blue-dark/5 text-ink border border-blue-dark/10 p-6 sm:p-10">
-        <div className="absolute top-0 right-0 w-80 h-80 bg-blue-dark/15 rounded-lg blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-10 w-60 h-60 bg-[#FF6B35]/10 rounded-lg blur-3xl pointer-events-none" />
-        <div className="relative max-w-2xl space-y-4">
-          {/* amber-900, not amber-dark. amber-dark (#A85E22) clears 4.5:1 on white,
-              but this chip sits on bg-amber/10, which composites to #EEDACD and
-              drops the pair to 3.62:1. A token that is accessible on paper is not
-              automatically accessible on a tint of itself. */}
-          <div className="inline-flex items-center gap-2 bg-amber/10 border border-amber/20 px-3 py-1 rounded-lg text-amber-900 text-xs font-semibold tracking-wide leading-none">
-            <MapPin className="w-3 h-3 text-amber-dark fill-amber/10 animate-pulse" />
-            North York, Toronto
-          </div>
-          <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-ink tracking-tight leading-none">
-            Find Opportunities
-          </h1>
-          {/* ink-soft, not ink-muted: this paragraph sits on bg-blue-dark/5, which
-              composites to #EEF0F0 and leaves ink-muted at 4.28:1. */}
-          <p className="text-ink-soft text-sm sm:text-base leading-relaxed font-semibold">
-            Discover ways to share your skills, earn high-school community hours, and connect with volunteer coordinators, student organizers, and mutual aid spaces across Greater Toronto.
-          </p>
-        </div>
-      </div>
+      {/* The gradient hero used to sit here.
+          A location pill, an h1 reading "Find Opportunities", and a paragraph
+          beginning "Discover ways to share your skills, earn high-school
+          community hours, and connect with volunteer coordinators, student
+          organizers, and mutual aid spaces across Greater Toronto." Roughly
+          240px on a phone, followed immediately by a SECOND heading saying
+          "Opportunities" and a third paragraph.
+
+          On a 390x844 screen that put about 1,005px of chrome above the first
+          result: a browse page that showed nothing to browse without
+          scrolling, for a userbase that is mostly on phones. The page title
+          below does the same job in one line. */}
 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="space-y-1">
-          <h2 className="text-xl font-bold text-ink tracking-tight">Opportunities</h2>
-          <p className="text-ink-muted text-xs font-semibold">Volunteer roles posted by local organisations. Get your school's pre-approval before you start, so the hours count toward graduation.</p>
+          {/* h1, since removing the hero took the page's only one with it. */}
+          <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">Opportunities</h1>
+          <p className="text-ink-soft text-sm">Get your school's pre-approval before you start, so the hours count.</p>
         </div>
         
         <div className="bg-white p-1.5 rounded-lg border border-line flex w-fit">
@@ -416,8 +408,37 @@ export default function StudentOpportunities() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <Card className="p-6 md:p-8 rounded-lg border border-line border-line/40 bg-white/60 backdrop-blur-md ">
+      {/* Filters: one button on a phone, open on a desktop.
+          Eight controls expanded by default cost about 530px on a 390px
+          screen, which is most of the reason a student saw no results without
+          scrolling. Collapsed here and summarised, so the control still says
+          what it is currently doing. */}
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((v) => !v)}
+        aria-expanded={filtersOpen}
+        aria-controls="browse-filters"
+        className="md:hidden w-full min-h-[48px] px-4 rounded-lg border border-line bg-white flex items-center justify-between text-[15px] font-medium text-ink"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4 text-ink-muted" aria-hidden="true" />
+          Filters
+          {hasActiveFilters && (
+            <span className="ml-1 px-2 py-0.5 rounded-full bg-blue-dark text-white text-xs font-semibold">
+              on
+            </span>
+          )}
+        </span>
+        <span className="text-ink-muted text-sm">{filtersOpen ? 'Hide' : 'Show'}</span>
+      </button>
+
+      <Card
+        id="browse-filters"
+        className={cn(
+          'p-6 md:p-8 rounded-lg border border-line bg-white',
+          filtersOpen ? 'block' : 'hidden md:block',
+        )}
+      >
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
           <div className="relative">
              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted" />

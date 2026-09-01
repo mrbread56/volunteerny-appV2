@@ -1,11 +1,18 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-export function Card({ children, className, onClick, style }: { children: React.ReactNode; className?: string, onClick?: () => void, key?: React.Key, style?: React.CSSProperties }) {
+// `id` is accepted so a Card can be the target of aria-controls or a skip
+// link. It was previously impossible to reference one from another element.
+export function Card({ children, className, onClick, style, id }: { children: React.ReactNode; className?: string, onClick?: () => void, key?: React.Key, style?: React.CSSProperties, id?: string }) {
   return (
     <div
+      id={id}
       className={cn(
-        'bg-white border border-line rounded-lg shadow-[0_1px_2px_rgba(15,30,41,0.04)] overflow-hidden transition-all duration-200',
+        // --shadow-subtle, not a hardcoded near-duplicate of it. This was
+        // rgba(15,30,41,0.04) against the token's rgba(26,43,54,0.05): a
+        // different tint and a different alpha for the same visual role, so
+        // the base card and everything using the token disagreed slightly.
+        'bg-white border border-line rounded-lg shadow-subtle overflow-hidden transition-all duration-200',
         onClick && 'cursor-pointer hover:border-ink/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-dark',
         className
       )}

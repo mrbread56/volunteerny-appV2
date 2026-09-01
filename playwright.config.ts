@@ -2,6 +2,9 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  // Sweeps fixtures stranded by a previous run that was killed before its
+  // afterAll could fire. See tests/global-setup.ts.
+  globalSetup: './tests/global-setup.ts',
   testMatch: '**/*.spec.ts',
   // The rules suite talks to the Firestore EMULATOR, not to a browser or the
   // dev server, and the emulator is a Java process that only `npm run
