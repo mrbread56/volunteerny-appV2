@@ -706,7 +706,12 @@ export default function StudentOpportunityDetail() {
            <Card className="sticky top-24 border-blue-dark/10 ring-4 ring-blue-dark/10 overflow-hidden">
               <CardContent className="p-8 space-y-6">
                  <div className="space-y-4">
-                    {opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
+                    {opportunity.scheduleType === 'flexible' ? (
+                       <div className="flex items-center justify-between text-sm gap-4">
+                          <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Calendar className="w-4 h-4" /> Schedule</span>
+                          <span className="font-semibold text-ink text-right">Hours arranged with the organization</span>
+                       </div>
+                    ) : opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
                        <div className="flex items-center justify-between text-sm">
                           <span className="text-ink-muted font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Date</span>
                           <span className="font-bold text-ink">{formatDate(opportunity.dateTime?.toDate ? opportunity.dateTime.toDate() : opportunity.dateTime)}</span>

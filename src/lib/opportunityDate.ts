@@ -24,7 +24,7 @@ export type Shift = { date?: string; day?: string; startTime: string; endTime: s
  * behaviour and no worse than it.
  */
 export function resolveOpportunityDate(
-  scheduleType: 'single' | 'multiple' | 'recurring',
+  scheduleType: 'single' | 'multiple' | 'recurring' | 'flexible',
   dateTimeLocal: string,
   shifts: Shift[],
   from: Date = new Date(),
@@ -33,6 +33,14 @@ export function resolveOpportunityDate(
     const d = new Date(dateTimeLocal);
     return Number.isNaN(d.getTime()) ? from : d;
   }
+
+  /*
+   * A flexible posting has no date to resolve — that is the whole point of it.
+   * `from` keeps the document sortable and out of the stale bucket; nothing
+   * renders it, because the card and the detail page both branch on
+   * scheduleType before they reach for a date.
+   */
+  if (scheduleType === 'flexible') return from;
 
   if (scheduleType === 'multiple') {
     const dated = (shifts || [])

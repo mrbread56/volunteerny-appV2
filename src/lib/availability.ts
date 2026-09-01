@@ -88,6 +88,18 @@ export function slotsForOpportunity(opp: Pick<Opportunity, 'shifts' | 'dateTime'
     if (slot) out.add(slot);
   }
 
+  /*
+   * A flexible posting occupies no slot, and must not be given one.
+   *
+   * Without this it fell into the dateTime fallback below and was classified
+   * by the moment the organization pressed save. A real partner's listing was
+   * being matched as a Wednesday-evening commitment for exactly that reason,
+   * so students free only on weekends never saw hours they could have worked
+   * any day of the week. An empty slot list matches every student, which is
+   * what availabilityOverlaps already does with it.
+   */
+  if (opp.scheduleType === 'flexible') return [];
+
   // A one-off posting has no USABLE shifts, only a dateTime. `out` is empty
   // when every shift row was dayless, which is exactly the seeded default.
   if (out.size === 0 && opp.dateTime) {

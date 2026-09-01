@@ -61,6 +61,14 @@ const SCHEDULE_TYPES = [
   { value: 'single', label: 'Single Event' },
   { value: 'multiple', label: 'Multiple Occurrences' },
   { value: 'recurring', label: 'Weekly Recurring' },
+  /*
+   * For roles with no fixed schedule, where a student settles their hours
+   * directly with the organization. The three options above could not express
+   * that, so such a posting had to be filed as 'recurring' with no shifts —
+   * which showed students a "Weekly" badge over an empty list, and quietly
+   * pinned the posting to whatever weekday and hour the form was submitted on.
+   */
+  { value: 'flexible', label: 'Hours arranged with the organization' },
 ];
 
 const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -157,7 +165,7 @@ export default function OrgOpportunityCreate() {
   const [geocodeNotice, setGeocodeNotice] = useState<string | null>(null);
 
   // Advanced Timeline
-  const [scheduleType, setScheduleType] = useState<'single' | 'recurring' | 'multiple'>('single');
+  const [scheduleType, setScheduleType] = useState<'single' | 'recurring' | 'multiple' | 'flexible'>('single');
   const [shifts, setShifts] = useState<Array<{ date?: string; day?: string; startTime: string; endTime: string }>>([
     { startTime: '09:00', endTime: '12:00' }
   ]);
@@ -407,7 +415,9 @@ export default function OrgOpportunityCreate() {
       createdAt: serverTimestamp(),
       coordinates: coords,
       scheduleType,
-      shifts: shifts.map(s => ({
+      // Flexible means there is no schedule, so nothing may be carried over
+      // from a type the organization tried first and switched away from.
+      shifts: scheduleType === 'flexible' ? [] : shifts.map(s => ({
         ...s,
         date: s.date || null,
         day: s.day || null

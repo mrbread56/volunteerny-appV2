@@ -368,3 +368,42 @@ test.describe('regressions the ranking tests did not previously reach', () => {
     expect(a.reasons.join(' ')).not.toMatch(/m|km/);
   });
 });
+
+test.describe('a posting with no fixed schedule', () => {
+  /*
+   * Regression. Before 'flexible' existed, a role where hours are settled
+   * directly with the organization had to be filed as 'recurring' with no
+   * shifts. slotsForOpportunity found no usable shift, fell through to its
+   * dateTime fallback, and dateTime for a shiftless recurring posting is the
+   * moment the form was submitted — so the posting was classified by whatever
+   * weekday and hour the coordinator happened to press save on.
+   *
+   * A live partner's listing was pinned to Weekday Evenings that way. Students
+   * free only at weekends were scored against it and never shown hours they
+   * could have worked any day of the week.
+   */
+  test('occupies no slot, so no student is filtered out by it', async () => {
+    const { slotsForOpportunity, availabilityOverlaps } = await import('../src/lib/availability');
+    // A Wednesday 22:22 creation stamp, which is exactly how the bug arose.
+    const created = new Date(2026, 7, 26, 22, 22);
+
+    expect(slotsForOpportunity({ scheduleType: 'recurring', shifts: [], dateTime: created } as any))
+      .toEqual(['Weekday Evenings']);
+    expect(slotsForOpportunity({ scheduleType: 'flexible', shifts: [], dateTime: created } as any))
+      .toEqual([]);
+
+    for (const student of [['Weekend Mornings'], ['Weekday Mornings'], ['Weekend Evenings']]) {
+      expect(availabilityOverlaps(student, slotsForOpportunity(
+        { scheduleType: 'flexible', shifts: [], dateTime: created } as any))).toBe(true);
+    }
+    // The old shape excluded them, which is the behaviour being fixed.
+    expect(availabilityOverlaps(['Weekend Mornings'], slotsForOpportunity(
+      { scheduleType: 'recurring', shifts: [], dateTime: created } as any))).toBe(false);
+  });
+
+  test('resolves to a sortable date without inventing an event', async () => {
+    const { resolveOpportunityDate } = await import('../src/lib/opportunityDate');
+    const from = new Date(2026, 8, 1, 12, 0);
+    expect(resolveOpportunityDate('flexible', '', [], from).getTime()).toBe(from.getTime());
+  });
+});

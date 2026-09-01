@@ -106,7 +106,7 @@ export interface Opportunity {
     lat: number;
     lng: number;
   };
-  scheduleType?: 'single' | 'recurring' | 'multiple';
+  scheduleType?: 'single' | 'recurring' | 'multiple' | 'flexible';
   shifts?: Array<{ 
     date?: string; 
     day?: string; 
