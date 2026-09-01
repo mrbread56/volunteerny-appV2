@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { API_BASE_URL } from '../lib/config';
 import { useNavigate, useLocation, Link } from "react-router-dom";
 // No signInWithPopup / GoogleAuthProvider here on purpose — registration is
@@ -71,6 +72,7 @@ function normalizeWebsite(raw: string): string {
 }
 
 export default function Signup() {
+  usePageTitle('Create an account');
   const [role, setRole] = useState<"student" | "organization" | null>(null);
   const [setupStage, setSetupStage] = useState<"role-select" | "form">("role-select");
   const [email, setEmail] = useState("");

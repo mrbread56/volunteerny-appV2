@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useAuth } from "../contexts/AuthContext";
 import { db } from "../firebase/config";
 import { doc, updateDoc } from "firebase/firestore";
@@ -60,6 +61,7 @@ const GRADES = [
 
 
 export default function StudentProfile() {
+  usePageTitle('Your profile');
   const { user, studentProfile, refreshProfile, isDemoMode, logout } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);

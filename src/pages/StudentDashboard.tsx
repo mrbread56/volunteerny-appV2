@@ -1,4 +1,5 @@
 import { useDialog } from '../hooks/useDialog';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { isMfaClaimCurrent } from '../lib/mfa';
 import React, { useState, useEffect } from "react";
 import { API_BASE_URL } from '../lib/config';
@@ -171,6 +172,21 @@ export default function StudentDashboard() {
   const loggedHoursList = studentProfile?.loggedHours || [];
   const totalCompletedHours = totalLoggedHours(loggedHoursList);
   const hourGoal = 40;
+
+  /*
+   * The title carries the number, so a returning student reads their progress
+   * from the browser tab without opening anything. NN/g's microcontent
+   * guidance puts the information-carrying words first; the count IS the
+   * information here. It also does, for free, the job the deleted overview
+   * screen was trying to do.
+   */
+  usePageTitle(
+    activeTab === 'hours' ? `Hours: ${totalCompletedHours} of ${hourGoal}`
+    : activeTab === 'applications' ? 'Applications'
+    : activeTab === 'leaderboard' ? 'Leaderboard'
+    : activeTab === 'settings' ? 'Settings'
+    : 'Dashboard',
+  );
 
   const [selectedVolunteeringId, setSelectedVolunteeringId] = useState("");
   const [selectedPartnerId, setSelectedPartnerId] = useState("");

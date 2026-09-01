@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { API_BASE_URL } from '../lib/config';
 import { useAuth } from '../contexts/AuthContext';
 import { reportError } from '../lib/errors';
@@ -31,6 +32,7 @@ const FEEDBACK_TYPES = [
 ];
 
 export default function FeedbackPage() {
+  usePageTitle('Feedback');
   const { user, userProfile, isDemoMode } = useAuth();
   const [type, setType] = useState('');
   const [subject, setSubject] = useState('');

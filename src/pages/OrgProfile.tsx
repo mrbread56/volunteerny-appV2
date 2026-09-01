@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { reportError } from "../lib/errors";
 import { ORGANIZATION_TYPES } from '../constants';
 import { useAuth } from "../contexts/AuthContext";
@@ -25,6 +26,7 @@ import ChangePassword from '../components/ChangePassword';
 
 
 export default function OrgProfile() {
+  usePageTitle('Organisation profile');
   const { user, userProfile, orgProfile, refreshProfile, isDemoMode, logout } = useAuth();
   const navigate = useNavigate();
   const [isSaving, setIsSaving] = useState(false);

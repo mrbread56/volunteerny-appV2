@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useAuth } from '../contexts/AuthContext';
 
 /**
@@ -19,6 +20,7 @@ import { useAuth } from '../contexts/AuthContext';
  * for the marketing page.
  */
 export default function NotFound() {
+  usePageTitle('Page not found');
   const { userProfile } = useAuth();
 
   const home =

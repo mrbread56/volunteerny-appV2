@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, deleteUser } from "firebase/auth";
 import { doc, getDoc } from "firebase/firestore";
@@ -12,6 +13,7 @@ import { AlertCircle } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function Login() {
+  usePageTitle('Sign in');
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");

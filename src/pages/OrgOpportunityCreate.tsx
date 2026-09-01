@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePageTitle } from '../hooks/usePageTitle';
 import { useNavigate, Link } from 'react-router-dom';
 import SuccessAnimation from '../components/SuccessAnimation';
 import { db } from '../firebase/config';
@@ -128,6 +129,7 @@ function LocationMarker({
 }
 
 export default function OrgOpportunityCreate() {
+  usePageTitle('Post an opportunity');
   const { user, isDemoMode, orgProfile, profilesLoaded } = useAuth();
   const navigate = useNavigate();
   const { coords: userCoords } = useGeolocation();

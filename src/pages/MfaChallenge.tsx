@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { API_BASE_URL } from "../lib/config";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
@@ -12,6 +13,7 @@ import { ShieldAlert, AlertCircle, KeyRound, ArrowRight } from "lucide-react";
 import { motion } from "motion/react";
 
 export default function MfaChallenge() {
+  usePageTitle('Security check');
   const [code, setCode] = useState("");
   /** Switches the form between the emailed 6-digit code and a recovery code. */
   const [usingRecoveryCode, setUsingRecoveryCode] = useState(false);

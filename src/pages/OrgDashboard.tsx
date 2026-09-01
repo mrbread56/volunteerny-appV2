@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { usePageTitle } from '../hooks/usePageTitle';
 import { API_BASE_URL } from '../lib/config';
 import { useDialog } from "../hooks/useDialog";
 import { useAuth } from "../contexts/AuthContext";
@@ -106,6 +107,14 @@ export default function OrgDashboard() {
   // Applications, not overview. The overview tab was four stat tiles and
   // nothing else, so a coordinator's first screen contained no work.
   const activeTab = searchParams.get("tab") || "applications";
+
+  // Same reasoning as the student side: name the screen, so history,
+  // bookmarks and the tab strip say which one you were on.
+  usePageTitle(
+    activeTab === 'opportunities' ? 'Opportunities'
+    : activeTab === 'hours' ? 'Hours to confirm'
+    : 'Applicants',
+  );
 
   const getGoogleCalendarFallbackUrl = (opp: any) => {
     try {
