@@ -584,7 +584,7 @@ export default function ApplicationReviewDialog({
                         <p className="text-xs font-semibold text-ink-soft tracking-wide mb-4">Skills</p>
                         <div className="flex flex-wrap gap-2">
                            {(student.skills ?? []).length === 0 ? (
-                             <span className="text-[13px] text-ink-muted">Not listed</span>
+                             <span className="text-xs text-ink-muted">Not listed</span>
                            ) : (student.skills ?? []).map(skill => (
                              <Badge key={skill} variant="secondary" className="bg-blue-dark/5 text-[#153343] border-none font-bold uppercase text-xs tracking-widest px-3 py-1">
                                 {skill}
@@ -596,7 +596,7 @@ export default function ApplicationReviewDialog({
                         <p className="text-xs font-semibold text-ink-soft tracking-wide mb-4">Interests</p>
                         <div className="flex flex-wrap gap-2">
                            {(student.interests ?? []).length === 0 ? (
-                             <span className="text-[13px] text-ink-muted">Not listed</span>
+                             <span className="text-xs text-ink-muted">Not listed</span>
                            ) : (student.interests ?? []).map(interest => (
                              <Badge key={interest} variant="secondary" className="border-line text-ink-soft font-bold uppercase text-xs tracking-widest px-3 py-1">
                                 {interest}

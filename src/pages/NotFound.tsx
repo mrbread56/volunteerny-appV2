@@ -30,13 +30,13 @@ export default function NotFound() {
   return (
     <main id="main" tabIndex={-1} className="min-h-[70vh] flex items-center justify-center px-6 py-20">
       <div className="max-w-md text-center space-y-5">
-        <p className="text-[13px] font-semibold uppercase tracking-[0.14em] text-ink-muted">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted">
           Page not found
         </p>
         <h1 className="text-3xl sm:text-4xl font-bold text-ink tracking-tight leading-tight">
           We couldn't find that page
         </h1>
-        <p className="text-[15px] text-ink-soft leading-relaxed">
+        <p className="text-base text-ink-soft leading-relaxed">
           The link may be out of date, or the opportunity behind it may have been
           withdrawn by the organization. Nothing has gone wrong with your account.
         </p>

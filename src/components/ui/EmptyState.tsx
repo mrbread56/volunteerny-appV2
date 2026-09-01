@@ -40,9 +40,9 @@ export function EmptyState({
           {icon}
         </div>
       )}
-      <p className="text-[15px] font-semibold text-ink">{title}</p>
+      <p className="text-base font-semibold text-ink">{title}</p>
       {body && (
-        <p className="mt-2 text-[13px] text-ink-soft leading-relaxed max-w-sm mx-auto">
+        <p className="mt-2 text-xs text-ink-soft leading-relaxed max-w-sm mx-auto">
           {body}
         </p>
       )}
@@ -51,14 +51,14 @@ export function EmptyState({
           {action.to ? (
             <Link
               to={action.to}
-              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-[15px] font-medium hover:bg-[#153343] transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-base font-medium hover:bg-[#153343] transition-colors"
             >
               {action.label}
             </Link>
           ) : (
             <button
               onClick={action.onClick}
-              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-[15px] font-medium hover:bg-[#153343] transition-colors"
+              className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-base font-medium hover:bg-[#153343] transition-colors"
             >
               {action.label}
             </button>

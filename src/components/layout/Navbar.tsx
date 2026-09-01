@@ -60,7 +60,7 @@ export default function Navbar() {
 
   const close = () => setOpen(false);
 
-  const navLink = 'text-ink-soft hover:text-ink px-3 py-2 text-[13px] font-medium tracking-[-0.01em] transition-colors duration-200 relative after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-blue-dark after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300 after:origin-left';
+  const navLink = 'text-ink-soft hover:text-ink px-3 py-2 text-xs font-medium tracking-[-0.01em] transition-colors duration-200 relative after:absolute after:bottom-0 after:left-3 after:right-3 after:h-px after:bg-blue-dark after:scale-x-0 hover:after:scale-x-100 after:transition-transform after:duration-300 after:origin-left';
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-white/80 backdrop-blur-xl border-b border-line/60">
@@ -90,7 +90,7 @@ export default function Navbar() {
               alt=""
               className="w-8 h-8 object-contain transition-transform duration-300 group-hover:scale-105"
             />
-            <span className="text-[15px] font-semibold tracking-[-0.03em] text-ink hidden sm:inline">
+            <span className="text-base font-semibold tracking-[-0.03em] text-ink hidden sm:inline">
               Volunteer North York
             </span>
           </Link>
@@ -141,7 +141,7 @@ export default function Navbar() {
                 <NotificationBell />
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-[13px] font-medium px-3 py-2 transition-colors rounded-full"
+                  className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-xs font-medium px-3 py-2 transition-colors rounded-full"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </button>
@@ -157,19 +157,19 @@ export default function Navbar() {
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-[13px] font-medium px-3 py-2 transition-colors rounded-full border border-line hover:bg-paper-2"
+                  className="flex items-center gap-1.5 text-ink-soft hover:text-ink text-xs font-medium px-3 py-2 transition-colors rounded-full border border-line hover:bg-paper-2"
                 >
                   <LogOut className="w-3.5 h-3.5" /> Sign Out
                 </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
-                <Link to="/login" className="text-ink-soft hover:text-ink text-[13px] font-medium px-4 py-2 transition-colors">
+                <Link to="/login" className="text-ink-soft hover:text-ink text-xs font-medium px-4 py-2 transition-colors">
                   Log in
                 </Link>
                 <Link
                   to="/signup"
-                  className="bg-blue-dark text-paper text-[13px] font-medium px-5 py-2 rounded-full hover:bg-[#153343] transition-all duration-300 shadow-[0_1px_2px_rgba(31,76,99,0.15)]"
+                  className="bg-blue-dark text-paper text-xs font-medium px-5 py-2 rounded-full hover:bg-[#153343] transition-all duration-300 shadow-[0_1px_2px_rgba(31,76,99,0.15)]"
                 >
                   Sign Up
                 </Link>

@@ -122,7 +122,7 @@ export default function HoursTracker({
                   Request hours verification
                 </Button>
 
-                <p className="mt-3 text-[13px] text-ink-soft leading-relaxed">
+                <p className="mt-3 text-xs text-ink-soft leading-relaxed">
                   Your coordinator confirms these hours here, so you can see your
                   progress. <strong className="text-ink">It is not an official record.</strong> You
                   still need your school&apos;s own community involvement form, signed
@@ -147,7 +147,7 @@ export default function HoursTracker({
                     {/* One line, not a bordered amber panel with an emoji. The
                         advice is real and worth keeping; the packaging was the
                         third warning box on one card. */}
-                    <p className="text-[13px] text-ink-soft leading-relaxed">
+                    <p className="text-xs text-ink-soft leading-relaxed">
                       Pending claims do not count toward your total until the
                       coordinator approves them. If they say the email never
                       arrived, ask them to check spam, then use Remind.

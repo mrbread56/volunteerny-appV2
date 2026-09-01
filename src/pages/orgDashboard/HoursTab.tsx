@@ -179,7 +179,7 @@ export default function HoursTab({
 
             <p className="text-xs text-amber-900 leading-relaxed font-semibold">
               While logging hours on Volunteer NY updates the student's digital
-              portal metrics instantly, <strong className="text-[14px]">students still need their school's own community involvement form, signed by you.</strong>
+              portal metrics instantly, <strong className="text-sm">students still need their school's own community involvement form, signed by you.</strong>
               <span className="block mt-1 font-semibold">What you confirm here is for their tracking and leaderboard on this site. It is not an official record, and no school board accepts it in place of their own form — so expect to sign a paper form as well.</span>
             </p>
           </div>

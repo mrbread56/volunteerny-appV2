@@ -30,7 +30,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            'flex h-11 w-full border border-line-control rounded-lg bg-white px-3.5 py-2 text-[14px] text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+            'flex h-11 w-full border border-line-control rounded-lg bg-white px-3.5 py-2 text-sm text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
             error ? 'border-red-500 focus:ring-red-500' : '',
             className
           )}
@@ -44,7 +44,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             </option>
           ))}
         </select>
-        {error && <p id={errorId} className="text-[12px] text-red-600 mt-0.5">{error}</p>}
+        {error && <p id={errorId} className="text-xs text-red-600 mt-0.5">{error}</p>}
       </div>
     );
   }

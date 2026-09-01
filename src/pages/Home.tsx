@@ -220,7 +220,7 @@ export default function Home() {
           <div className="grid lg:grid-cols-[0.92fr_1.08fr] gap-10 lg:gap-16 items-start">
             <div>
               <Reveal>
-                <span className="inline-flex items-center gap-2.5 text-[13px] font-semibold tracking-[0.14em] uppercase text-blue-accent">
+                <span className="inline-flex items-center gap-2.5 text-xs font-semibold tracking-[0.14em] uppercase text-blue-accent">
                   <span aria-hidden="true" className="w-7 h-px bg-blue-accent" />
                   Why we built this
                 </span>
@@ -238,7 +238,7 @@ export default function Home() {
 
             <div className="lg:pt-2">
               <Reveal delay={0.14}>
-                <p className="text-[17px] sm:text-[19px] text-ink-soft leading-[1.65]">
+                <p className="text-base sm:text-lg text-ink-soft leading-[1.65]">
                   We&apos;re based in North York and open to students across Toronto.
                   Find a place that actually needs you, get your 40 hours signed off
                   without chasing anyone, and keep the record in one place.
@@ -259,13 +259,13 @@ export default function Home() {
                       keyboard behaviour. The anchor now carries the styling. */}
                   <Link
                     to="/signup"
-                    className="group bg-blue-dark text-white px-6 py-3.5 rounded-[10px] text-[16px] font-semibold tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 inline-flex items-center justify-center gap-2.5 shadow-[0_3px_6px_rgba(0,0,0,0.15)]"
+                    className="group bg-blue-dark text-white px-6 py-3.5 rounded-[10px] text-base font-semibold tracking-[-0.01em] hover:bg-[#153343] transition-all duration-300 inline-flex items-center justify-center gap-2.5 shadow-[0_3px_6px_rgba(0,0,0,0.15)]"
                   >
                     Continue as a student <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
                   <Link
                     to="/signup"
-                    className="group bg-white border border-line text-ink px-6 py-3.5 rounded-[10px] text-[16px] font-semibold tracking-[-0.01em] hover:border-blue-dark/40 hover:bg-paper-2 transition-all duration-300 inline-flex items-center justify-center gap-2 shadow-[0_1px_10px_rgba(0,0,0,0.06)]"
+                    className="group bg-white border border-line text-ink px-6 py-3.5 rounded-[10px] text-base font-semibold tracking-[-0.01em] hover:border-blue-dark/40 hover:bg-paper-2 transition-all duration-300 inline-flex items-center justify-center gap-2 shadow-[0_1px_10px_rgba(0,0,0,0.06)]"
                   >
                     Continue as an organization <ChevronRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
                   </Link>
@@ -338,11 +338,11 @@ export default function Home() {
                       <Icon className="w-[22px] h-[22px]" strokeWidth={1.9} />
                     </span>
 
-                    <p className="mt-6 text-[12px] font-semibold uppercase tracking-[0.14em] text-ink-muted group-hover:text-blue-accent transition-colors duration-500">
+                    <p className="mt-6 text-xs font-semibold uppercase tracking-[0.14em] text-ink-muted group-hover:text-blue-accent transition-colors duration-500">
                       Step {num}
                     </p>
-                    <h3 className="mt-2 text-[21px] font-bold text-ink">{title}</h3>
-                    <p className="mt-3 text-[16px] text-ink-soft leading-[1.65]">{body}</p>
+                    <h3 className="mt-2 text-xl font-bold text-ink">{title}</h3>
+                    <p className="mt-3 text-base text-ink-soft leading-[1.65]">{body}</p>
                   </div>
                 </article>
               </Reveal>
@@ -383,11 +383,11 @@ export default function Home() {
                     <span className="text-[3.5rem] sm:text-[4.5rem] lg:text-[5rem] font-display font-bold text-blue-dark tracking-[-0.04em] leading-none">
                       {FACTS[facts.index].stat}
                     </span>
-                    <span className="text-[16px] sm:text-[18px] font-medium text-ink-soft tracking-[-0.02em]">
+                    <span className="text-base sm:text-lg font-medium text-ink-soft tracking-[-0.02em]">
                       {FACTS[facts.index].label}
                     </span>
                   </div>
-                  <p className="text-ink-soft text-[15px] sm:text-[17px] leading-[1.7] max-w-xl mb-8">
+                  <p className="text-ink-soft text-base sm:text-base leading-[1.7] max-w-xl mb-8">
                     {FACTS[facts.index].text}
                   </p>
                   <p className="text-xs font-medium text-ink-muted tracking-[-0.01em]">
@@ -459,12 +459,12 @@ export default function Home() {
                   <figure
                     className={`h-full rounded-xl p-6 sm:p-7 shadow-[0_1px_2px_rgba(26,43,54,0.05),0_10px_24px_-14px_rgba(26,43,54,0.25)] hover:shadow-[0_2px_4px_rgba(26,43,54,0.07),0_16px_34px_-14px_rgba(26,43,54,0.32)] transition-shadow duration-500 ${NOTE_TINTS[i % NOTE_TINTS.length]}`}
                   >
-                    <blockquote className="text-[15.5px] sm:text-[16px] text-ink leading-[1.6]">
+                    <blockquote className="text-base sm:text-base text-ink leading-[1.6]">
                       {t.quote}
                     </blockquote>
                     <figcaption className="mt-5 pt-4 border-t border-ink/10">
-                      <span className="block text-[14px] font-semibold text-ink">{t.name}</span>
-                      <span className="block text-[13px] text-ink/80 leading-[1.45] mt-0.5 whitespace-pre-line">
+                      <span className="block text-sm font-semibold text-ink">{t.name}</span>
+                      <span className="block text-xs text-ink/80 leading-[1.45] mt-0.5 whitespace-pre-line">
                         {t.role}
                       </span>
                     </figcaption>

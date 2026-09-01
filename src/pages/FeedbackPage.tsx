@@ -268,7 +268,7 @@ export default function FeedbackPage() {
     <div className="max-w-6xl mx-auto py-12 px-6 space-y-8 bg-white">
       <div className="max-w-xl space-y-2">
         <h1 className="text-[1.5rem] font-bold text-ink tracking-[-0.02em]">Feedback & Support</h1>
-        <p className="text-ink-soft text-[13px] leading-relaxed">
+        <p className="text-ink-soft text-xs leading-relaxed">
           Found a bug or have a feature suggestion? Submit a ticket and track responses below.
         </p>
       </div>
@@ -303,10 +303,10 @@ export default function FeedbackPage() {
           ) : (
             <Card className="rounded-lg border border-line overflow-hidden bg-white">
               <CardHeader className="border-b border-line py-6">
-                <CardTitle className="text-[16px] flex items-center gap-2 text-ink font-semibold">
+                <CardTitle className="text-base flex items-center gap-2 text-ink font-semibold">
                   <MessageSquare className="w-4 h-4 text-blue-dark" /> Support Ticket
                 </CardTitle>
-                <p className="text-[12px] text-ink-muted mt-1">
+                <p className="text-xs text-ink-muted mt-1">
                   Categorize and detail your report.
                 </p>
               </CardHeader>
@@ -336,12 +336,12 @@ export default function FeedbackPage() {
                   />
 
                   <div className="flex flex-col gap-2">
-                    <label className="text-[13px] font-medium text-ink">Detailed Description</label>
+                    <label className="text-xs font-medium text-ink">Detailed Description</label>
                     <textarea
                       rows={5}
                       aria-label="Detailed description"
                       placeholder="Please describe the issue or suggestion in detail..."
-                      className="w-full border border-line p-3.5 text-[14px] text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+                      className="w-full border border-line p-3.5 text-sm text-ink focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
                       value={message}
                       onChange={(e) => setMessage(e.target.value)}
                       required
@@ -462,7 +462,7 @@ export default function FeedbackPage() {
         <div className="flex items-center justify-between">
           <div className="space-y-1">
             <h2 className="text-[1.25rem] font-bold text-ink tracking-[-0.02em]">My Tickets</h2>
-            <p className="text-[12px] text-ink-muted">
+            <p className="text-xs text-ink-muted">
               Track progress and view replies from administrators.
             </p>
           </div>

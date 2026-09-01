@@ -648,7 +648,7 @@ export default function OrgProfile() {
                   { Icon: Phone, label: 'Phone', value: phone, required: false },
                   { Icon: Globe, label: 'Website', value: website, required: false },
                 ].map(({ Icon, label, value, required }) => (
-                  <li key={label} className="flex items-start gap-2.5 text-[13px]">
+                  <li key={label} className="flex items-start gap-2.5 text-xs">
                     <Icon className="w-4 h-4 mt-0.5 shrink-0 text-ink-muted" aria-hidden="true" />
                     <span className="min-w-0">
                       <span className="text-ink-soft">{label}: </span>

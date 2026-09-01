@@ -25,7 +25,7 @@ export default function EmailDeliveryNote({
   return (
     <p
       className={cn(
-        'flex items-start gap-1.5 text-[11px] leading-relaxed text-ink-muted font-medium',
+        'flex items-start gap-1.5 text-xs leading-relaxed text-ink-muted font-medium',
         className,
       )}
       role="note"

@@ -586,7 +586,7 @@ export default function StudentOpportunities() {
               clear the filters. The map is a view of the same data, so it says
               the same things. */}
           {loadError ? (
-            <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 rounded-lg">
+            <div role="alert" className="bg-red-50 text-red-700 p-4 text-sm border border-red-200 rounded-lg">
               {loadError}
             </div>
           ) : filteredOpps.length === 0 ? (

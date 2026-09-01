@@ -326,7 +326,7 @@ export default function ReportModal({ isOpen, onClose, reportedUserId, reportedU
             </div>
             <div className="text-left">
               <CardTitle className="text-base font-bold text-ink uppercase">Report Violation</CardTitle>
-              <p className="text-[10.5px] font-bold text-ink-muted text-ink-muted mt-0.5 uppercase tracking-wider">
+              <p className="text-xs font-bold text-ink-muted text-ink-muted mt-0.5 uppercase tracking-wider">
                 Safe space policy enforcement
               </p>
             </div>

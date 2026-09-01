@@ -445,7 +445,7 @@ export default function Signup() {
             <CardTitle as="h1" className="text-[1.5rem] font-semibold tracking-[-0.02em] text-ink">
               {completingExistingAccount ? "Finish setting up your account" : "Create an Account"}
             </CardTitle>
-            <p className="text-ink-soft text-[14px] mt-2">
+            <p className="text-ink-soft text-sm mt-2">
               {completingExistingAccount
                 ? `Signed in as ${user?.email || "your Google account"}`
                 : "Join Volunteer North York"}
@@ -453,12 +453,12 @@ export default function Signup() {
           </CardHeader>
           <CardContent className="space-y-6 pt-6 pb-10">
             {handoffMessage && (
-              <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-[13px] border border-blue-dark/20 leading-relaxed">
+              <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-xs border border-blue-dark/20 leading-relaxed">
                 {handoffMessage}
               </div>
             )}
             {error && (
-              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200 flex items-start gap-2">
+              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-xs border border-red-200 flex items-start gap-2">
                 <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
                 <p className="leading-relaxed">{error}</p>
               </div>
@@ -506,7 +506,7 @@ export default function Signup() {
                     Continue
                   </Button>
                 )}
-                <div className="mt-6 text-center text-[13px] text-ink-soft">
+                <div className="mt-6 text-center text-xs text-ink-soft">
 
                   <div className="pt-4">
                     Already have an account?{" "}
@@ -578,7 +578,7 @@ export default function Signup() {
                     )}
                     
                     <div className="space-y-1.5">
-                      <label className="text-[13px] font-medium text-ink">Organization Address <span className="text-red-600">*</span></label>
+                      <label className="text-xs font-medium text-ink">Organization Address <span className="text-red-600">*</span></label>
                       <AddressMapsSelector
                         value={address}
                         onChange={setAddress}
@@ -610,7 +610,7 @@ export default function Signup() {
                         onChange={(e) => setIsNorthYork(e.target.checked)}
                         className="mt-0.5 w-4 h-4 accent-[#1F4C63]"
                       />
-                      <span className="text-[13px] text-ink-soft leading-relaxed">
+                      <span className="text-xs text-ink-soft leading-relaxed">
                         We operate in or near North York.
                       </span>
                     </label>
@@ -625,7 +625,7 @@ export default function Signup() {
                         plenty of small charities genuinely have none, but asking
                         is what makes the review possible. */}
                     <div className="space-y-1.5">
-                      <label htmlFor="org-website" className="text-[13px] font-medium text-ink">
+                      <label htmlFor="org-website" className="text-xs font-medium text-ink">
                         Website <span className="font-normal text-ink-muted">(optional, but it speeds up your review)</span>
                       </label>
                       <input
@@ -635,7 +635,7 @@ export default function Signup() {
                         placeholder="https://example.org"
                         value={website}
                         onChange={(e) => setWebsite(e.target.value)}
-                        className="w-full h-11 px-3.5 text-[14px] bg-white border border-line rounded-lg text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+                        className="w-full h-11 px-3.5 text-sm bg-white border border-line rounded-lg text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
                       />
                     </div>
 
@@ -647,7 +647,7 @@ export default function Signup() {
                         verified — the whole verification feature was unreachable,
                         even though its validation and its reviewer UI both existed. */}
                     <fieldset className="space-y-2.5">
-                      <legend className="text-[13px] font-medium text-ink">
+                      <legend className="text-xs font-medium text-ink">
                         Are you a CRA-registered charity? <span className="text-red-600">*</span>
                       </legend>
                       <p className="text-xs text-ink-soft leading-relaxed">
@@ -661,7 +661,7 @@ export default function Signup() {
                             onClick={() => setHasCra(val)}
                             aria-pressed={hasCra === val}
                             className={cn(
-                              "flex-1 h-11 rounded-lg border text-[13px] font-semibold transition-colors",
+                              "flex-1 h-11 rounded-lg border text-xs font-semibold transition-colors",
                               hasCra === val
                                 ? "border-blue-dark bg-blue-dark text-white"
                                 : "border-line bg-white text-ink hover:border-blue-dark/40",
@@ -690,7 +690,7 @@ export default function Signup() {
                     credentials that cannot be applied to it. */}
                 {!completingExistingAccount && (
                   <div className="pt-4 border-t border-line">
-                    <div className="text-[14px] font-medium text-ink mb-4">Account Details</div>
+                    <div className="text-sm font-medium text-ink mb-4">Account Details</div>
                     <div className="space-y-4">
                       <Input
                         label="Email Address"
@@ -719,7 +719,7 @@ export default function Signup() {
                     onChange={(e) => setConsent(e.target.checked)}
                     className="w-4 h-4 rounded-full border-line text-blue-dark focus:ring-blue-dark"
                   />
-                  <label htmlFor="consent" className="text-[12px] text-ink-soft">
+                  <label htmlFor="consent" className="text-xs text-ink-soft">
                     I agree to the{' '}
                     <a href="/terms" target="_blank" rel="noopener noreferrer" className="underline font-semibold text-blue-dark hover:no-underline">
                       Terms of Service

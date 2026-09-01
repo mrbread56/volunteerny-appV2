@@ -416,7 +416,7 @@ export default function StudentProfile() {
                     {badge.name}
                   </h3>
                   <p className={cn(
-                    "text-[12px] mt-1 leading-relaxed",
+                    "text-xs mt-1 leading-relaxed",
                     isUnlocked ? "text-ink-soft" : "text-ink-muted"
                   )}>
                     {badge.description}
@@ -843,7 +843,7 @@ export default function StudentProfile() {
 
             <div className="pt-2 gap-4 flex flex-col">
               {saveError && (
-                <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200">
+                <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-xs border border-red-200">
                   {saveError}
                 </div>
               )}

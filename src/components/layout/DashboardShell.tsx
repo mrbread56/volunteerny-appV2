@@ -96,7 +96,7 @@ function NavGroup({ items, location, onNavigate }: {
             to={to}
             onClick={onNavigate}
             className={cn(
-              "flex items-center gap-3 px-3 py-2 text-[13px] font-medium rounded-lg transition-colors",
+              "flex items-center gap-3 px-3 py-2 text-xs font-medium rounded-lg transition-colors",
               active
                 ? "bg-blue-dark text-white"
                 : "text-ink-muted hover:bg-paper-3 hover:text-ink"
@@ -138,7 +138,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       {/* Logo — compact, no border, just spacing */}
       <Link to="/" onClick={closeMobile} className="flex items-center gap-2.5 px-5 py-4">
         <img src="/logo.png" alt="" className="w-7 h-7 object-contain" />
-        <span className="text-[14px] font-semibold tracking-[-0.02em] text-ink">
+        <span className="text-sm font-semibold tracking-[-0.02em] text-ink">
           Volunteer NY
         </span>
       </Link>
@@ -166,7 +166,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
             {(userProfile?.email || 'U')[0].toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="text-[13px] font-medium text-ink truncate">
+            <p className="text-xs font-medium text-ink truncate">
               {userProfile?.email || 'User'}
             </p>
             <p className="text-xs text-ink-muted capitalize">
@@ -176,7 +176,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
         <button
           onClick={handleLogout}
-          className="flex items-center gap-3 px-3 py-2 text-[13px] font-medium text-ink-muted hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors w-full mt-1"
+          className="flex items-center gap-3 px-3 py-2 text-xs font-medium text-ink-muted hover:bg-red-50 hover:text-red-600 rounded-lg transition-colors w-full mt-1"
         >
           <LogOut className="w-4 h-4" />
           Sign out
@@ -206,7 +206,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       <div className="lg:hidden fixed top-0 left-0 right-0 z-40 bg-white border-b border-line-light flex items-center justify-between px-4 h-14">
         <Link to="/" className="flex items-center gap-2">
           <img src="/logo.png" alt="" className="w-6 h-6" />
-          <span className="text-[13px] font-semibold text-ink">VNY</span>
+          <span className="text-xs font-semibold text-ink">VNY</span>
         </Link>
         {/* Outside the collapsed menu on purpose: an unread badge that only
             appears after you open a menu defeats the point of a badge. */}

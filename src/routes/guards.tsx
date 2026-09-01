@@ -50,14 +50,14 @@ export const LoadingFallback = ({ timeoutMs = 10000 }: { timeoutMs?: number }) =
       <Spinner size="lg" className="text-ink" />
       {stalled && (
         <div className="space-y-3 max-w-sm" role="status">
-          <p className="text-[14px] text-ink-soft leading-relaxed">
+          <p className="text-sm text-ink-soft leading-relaxed">
             This is taking longer than it should. Your connection may have dropped, or an
             ad blocker may be blocking the sign-in service.
           </p>
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="text-[14px] font-semibold text-blue-dark underline underline-offset-4"
+            className="text-sm font-semibold text-blue-dark underline underline-offset-4"
           >
             Reload the page
           </button>
@@ -89,25 +89,25 @@ const AccountSetupIncomplete: React.FC = () => {
         <h2 className="text-2xl font-semibold text-ink tracking-[-0.02em]">
           Let's finish setting up your account
         </h2>
-        <p className="text-[14px] text-ink-soft leading-relaxed">
+        <p className="text-sm text-ink-soft leading-relaxed">
           You're signed in, but your profile was never finished — usually because an
           earlier sign-up was interrupted. You can complete it now; you won't need to
           create a new account or use a different email address.
         </p>
         <Link
           to="/signup"
-          className="block w-full h-11 leading-[2.75rem] bg-blue-dark text-paper text-[14px] font-medium hover:bg-ink transition-colors"
+          className="block w-full h-11 leading-[2.75rem] bg-blue-dark text-paper text-sm font-medium hover:bg-ink transition-colors"
         >
           Finish setting up my account
         </Link>
         <button
           type="button"
           onClick={() => { void logout(); }}
-          className="w-full h-11 border border-line text-ink text-[14px] font-medium hover:bg-paper-2 transition-colors"
+          className="w-full h-11 border border-line text-ink text-sm font-medium hover:bg-paper-2 transition-colors"
         >
           Sign out
         </button>
-        <p className="text-[12px] text-ink-muted leading-relaxed pt-1">
+        <p className="text-xs text-ink-muted leading-relaxed pt-1">
           Still stuck?{' '}
           <a
             href="mailto:privacy@volunteernorthyork.indevs.in"
@@ -161,7 +161,7 @@ export const PrivateRoute = ({ children, role }: { children: React.ReactNode, ro
           </svg>
         </div>
         <h2 className="text-2xl font-bold text-ink tracking-tight">Connection Error</h2>
-        <p className="text-ink-soft text-[15px] leading-relaxed">
+        <p className="text-ink-soft text-base leading-relaxed">
           {authError}
         </p>
         <button

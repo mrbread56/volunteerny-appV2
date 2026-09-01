@@ -298,7 +298,7 @@ export default function ReceiptModal({ isOpen, onClose, application, organizatio
               <span className="font-mono text-xs tracking-widest text-ink-soft block">
                 Reference: {applicationRef}
               </span>
-              <p className="text-[11px] text-ink-muted leading-relaxed max-w-sm mx-auto">
+              <p className="text-xs text-ink-muted leading-relaxed max-w-sm mx-auto">
                 This is a record of an accepted placement. It is not an official
                 school document. You still need your school board's own community
                 involvement form, signed by your supervisor.

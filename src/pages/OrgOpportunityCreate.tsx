@@ -809,7 +809,7 @@ export default function OrgOpportunityCreate() {
             </section>
 
             {saveError && (
-              <div role="alert" aria-live="assertive" className="mt-8 bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200">
+              <div role="alert" aria-live="assertive" className="mt-8 bg-red-50 text-red-700 p-3.5 text-xs border border-red-200">
                 {saveError}
               </div>
             )}

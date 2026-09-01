@@ -241,7 +241,7 @@ export default function NotificationBell() {
                       <span className="min-w-0">
                         <span className="block text-sm font-semibold text-ink">{n.title}</span>
                         <span className="block text-xs text-ink-muted leading-relaxed mt-0.5">{n.body}</span>
-                        <span className="block text-[11px] text-ink-muted mt-1">{relativeTime(n.at)}</span>
+                        <span className="block text-xs text-ink-muted mt-1">{relativeTime(n.at)}</span>
                       </span>
                     </button>
                   </li>

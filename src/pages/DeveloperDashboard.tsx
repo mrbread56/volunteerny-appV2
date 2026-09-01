@@ -673,7 +673,7 @@ export default function DeveloperDashboard() {
         <div
           role="alert"
           aria-live="assertive"
-          className="px-4 py-3 text-[13px] font-semibold bg-red-50 border border-red-200 text-red-700 rounded-lg"
+          className="px-4 py-3 text-xs font-semibold bg-red-50 border border-red-200 text-red-700 rounded-lg"
         >
           <span className="leading-relaxed">{consoleNotice}</span>
           <button
@@ -791,7 +791,7 @@ export default function DeveloperDashboard() {
 
       {isLoading ? (
         <div className="py-20 text-center space-y-3">
-          <div className="w-10 h-10 border-4 border-blue-dark/30 border-t-blue-600 rounded-lg animate-spin mx-auto" />
+          <div className="w-10 h-10 border-4 border-blue-dark/30 border-t-blue-dark rounded-lg animate-spin mx-auto" />
           <p className="text-xs font-bold uppercase text-ink-muted tracking-widest animate-pulse">Retrieving system registries...</p>
         </div>
       ) : activeTab === 'feedbacks' ? (
@@ -925,7 +925,7 @@ export default function DeveloperDashboard() {
                           {fb.aiOverview.suggestedFix && (
                             <div className="space-y-1 md:col-span-2 bg-amber/5 p-4 border border-amber/30 rounded-lg">
                               <span className="text-xs text-amber-dark uppercase tracking-widest block font-bold">suggested resolve tip</span>
-                              <p className="text-amber-dark font-mono text-[10.5px] leading-relaxed">
+                              <p className="text-amber-dark font-mono text-xs leading-relaxed">
                                 {fb.aiOverview.suggestedFix}
                               </p>
                             </div>
@@ -1031,7 +1031,7 @@ export default function DeveloperDashboard() {
                       <div key={st.uid} className="pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-ink-soft">{st.fullName || st.name || 'Anonymous Student'}</p>
-                          <p className="text-[10.5px] text-ink-muted font-mono font-medium leading-none">{st.email || 'No email registered'}</p>
+                          <p className="text-xs text-ink-muted font-mono font-medium leading-none">{st.email || 'No email registered'}</p>
                           <span className="inline-block text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-paper-2 text-ink-muted border border-line mt-1">
                             {st.school || 'York Region'}
                           </span>
@@ -1071,7 +1071,7 @@ export default function DeveloperDashboard() {
                       <div key={org.uid} className="pt-4 first:pt-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-fadeIn">
                         <div className="space-y-1">
                           <p className="text-sm font-bold text-ink-soft">{org.organizationName || 'Partner Agency'}</p>
-                          <p className="text-[10.5px] text-ink-muted font-mono font-medium leading-none">{org.contactEmail || 'No contact email'}</p>
+                          <p className="text-xs text-ink-muted font-mono font-medium leading-none">{org.contactEmail || 'No contact email'}</p>
                           <span className="inline-block text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-paper-2 text-ink-muted border border-line mt-1">
                             {org.organizationType || 'Trust Partner'}
                           </span>

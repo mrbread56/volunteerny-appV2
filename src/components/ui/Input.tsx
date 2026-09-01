@@ -34,7 +34,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             aria-describedby={error ? errorId : helperText ? helperId : undefined}
             type={isPassword && showPassword ? 'text' : type}
             className={cn(
-              'flex h-11 w-full border border-line-control rounded-lg bg-white px-3.5 py-2 text-[14px] text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
+              'flex h-11 w-full border border-line-control rounded-lg bg-white px-3.5 py-2 text-sm text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark disabled:cursor-not-allowed disabled:opacity-50 transition-colors',
               isPassword && 'pr-10',
               error ? 'border-red-500 focus:ring-red-500' : '',
               className
@@ -53,8 +53,8 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
             </button>
           )}
         </div>
-        {error && <p id={errorId} className="text-[12px] text-red-600 mt-0.5">{error}</p>}
-        {helperText && !error && <p id={helperId} className="text-[12px] text-ink-muted mt-0.5">{helperText}</p>}
+        {error && <p id={errorId} className="text-xs text-red-600 mt-0.5">{error}</p>}
+        {helperText && !error && <p id={helperId} className="text-xs text-ink-muted mt-0.5">{helperText}</p>}
       </div>
     );
   }

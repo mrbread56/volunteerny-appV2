@@ -195,7 +195,7 @@ export default function AddressMapsSelector({
             all-caps label with +tracking; it wrapped onto two lines in the form
             column and read as a heading rather than a field name. The hint sits
             under the input where hint text belongs. */}
-        <label className="text-[13px] font-medium text-ink block mb-1.5">
+        <label className="text-xs font-medium text-ink block mb-1.5">
           Organization address
         </label>
         <div className="relative flex items-center">
@@ -212,13 +212,13 @@ export default function AddressMapsSelector({
           />
           <span className="absolute right-3 text-ink-muted">
             {isSearching ? (
-              <div className="w-5 h-5 border-2 border-blue-dark/20 border-t-blue-600 rounded-lg animate-spin"></div>
+              <div className="w-5 h-5 border-2 border-blue-dark/20 border-t-blue-dark rounded-lg animate-spin"></div>
             ) : (
               <Search className="w-5 h-5" />
             )}
           </span>
         </div>
-        <p className="text-[13px] text-ink-muted mt-1.5">
+        <p className="text-xs text-ink-muted mt-1.5">
           Search for it, or drag the pin on the map below.
         </p>
 

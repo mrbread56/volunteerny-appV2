@@ -1423,7 +1423,7 @@ export default function StudentDashboard() {
             <h3 className="text-lg font-bold text-ink">Rate your experience</h3>
             <p className="text-sm text-ink-soft">{ratingApp.opportunityTitle || ratingApp.orgName || 'Organization'}</p>
             {ratingError && (
-              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3 text-[13px] border border-red-200 leading-relaxed">
+              <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3 text-xs border border-red-200 leading-relaxed">
                 {ratingError}
               </div>
             )}
@@ -1498,10 +1498,10 @@ export default function StudentDashboard() {
                 <h3 className="text-amber-950 font-semibold text-xs uppercase tracking-wider flex items-center gap-1.5">
                   <span>⚠️</span> REQUIREMENT DISCLAIMER
                 </h3>
-                <p className="text-[13px] text-amber-950 leading-relaxed font-bold">
-                  <strong className="text-[15px]">You still need your school's own community involvement form, signed by your supervisor.</strong>
+                <p className="text-xs text-amber-950 leading-relaxed font-bold">
+                  <strong className="text-base">You still need your school's own community involvement form, signed by your supervisor.</strong>
                 </p>
-                <p className="text-[12px] text-amber-900 leading-relaxed font-semibold mt-2">
+                <p className="text-xs text-amber-900 leading-relaxed font-semibold mt-2">
                   These hours are tracked here for your own progress and your
                   leaderboard position. This is <strong>not</strong> an official record
                   and no school board accepts it in place of their form.
@@ -1786,7 +1786,7 @@ export default function StudentDashboard() {
           message="Your hours request was submitted. We are asking your coordinator to confirm it. If you do not hear back, send a reminder from Submitted Claims."
           note={
             <div className="space-y-2">
-              <p className="text-[11px] leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
+              <p className="text-xs leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
                 ⚠️ These hours do NOT count toward your total yet. They are
                 added only after your coordinator approves the request — track
                 the status under Submitted Claims.

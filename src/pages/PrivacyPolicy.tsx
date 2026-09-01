@@ -9,7 +9,7 @@ export default function PrivacyPolicy() {
         </h1>
         <p className="text-sm text-ink-muted font-medium mb-16">Last updated July 20, 2026</p>
 
-        <div className="space-y-12 text-[15px] leading-[1.8] text-ink-muted">
+        <div className="space-y-12 text-base leading-[1.8] text-ink-muted">
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">1. Information We Collect</h2>
             <p>

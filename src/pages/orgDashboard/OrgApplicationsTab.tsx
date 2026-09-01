@@ -162,16 +162,16 @@ export default function OrgApplicationsTab({
                  * as a broken account rather than a new one.
                  */
                 <div className="px-6 py-16 text-center space-y-3">
-                  <p className="text-[15px] font-semibold text-ink">
+                  <p className="text-base font-semibold text-ink">
                     No applications yet
                   </p>
-                  <p className="text-[13px] text-ink-soft leading-relaxed max-w-sm mx-auto">
+                  <p className="text-xs text-ink-soft leading-relaxed max-w-sm mx-auto">
                     When a student applies to one of your postings, they appear here
                     with their school, availability and resume so you can decide.
                   </p>
                   <Link
                     to="/org/opportunities/new"
-                    className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-[15px] font-medium hover:bg-[#153343] transition-colors"
+                    className="inline-flex items-center justify-center min-h-[44px] px-5 rounded-lg bg-blue-dark text-white text-base font-medium hover:bg-[#153343] transition-colors"
                   >
                     Post an opportunity
                   </Link>

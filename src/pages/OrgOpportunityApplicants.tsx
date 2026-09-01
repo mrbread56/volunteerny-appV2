@@ -678,7 +678,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
   if (!opportunity)
     return (
       <div className="max-w-4xl mx-auto px-4 py-20">
-        <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 text-center">
+        <div role="alert" className="bg-red-50 text-red-700 p-4 text-sm border border-red-200 text-center">
           We couldn't load this opportunity. It may have been removed, or your connection dropped.
         </div>
       </div>

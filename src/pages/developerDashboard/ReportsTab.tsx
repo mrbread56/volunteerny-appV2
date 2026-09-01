@@ -94,10 +94,10 @@ export default function ReportsTab({
                 `reports` was empty — including while the read was still in
                 flight and when it had FAILED. On the safety queue that is the
                 worst possible thing to be wrong about. */}
-            <h3 className="text-[15px] font-semibold text-ink">
+            <h3 className="text-base font-semibold text-ink">
               {unloaded ? 'Reports not loaded' : reports.length === 0 ? 'No reports have been filed' : 'Nothing waiting'}
             </h3>
-            <p className="text-ink-soft text-[13px] max-w-sm mx-auto leading-relaxed">
+            <p className="text-ink-soft text-xs max-w-sm mx-auto leading-relaxed">
               {unloaded
                 ? 'We could not load the safety queue, so this is not a statement that it is empty. Refresh to try again.'
                 : reports.length === 0
@@ -241,7 +241,7 @@ export default function ReportsTab({
                           {report.aiOverview.suggestedFix && (
                             <div className="space-y-1 md:col-span-2 bg-paper-2 p-4 border border-line rounded-lg">
                               <span className="text-xs text-ink-muted uppercase tracking-widest block font-bold">AI Safety Action recommendations</span>
-                              <p className="text-ink-muted font-mono text-[10.5px] leading-relaxed">
+                              <p className="text-ink-muted font-mono text-xs leading-relaxed">
                                 {report.aiOverview.suggestedFix}
                               </p>
                             </div>

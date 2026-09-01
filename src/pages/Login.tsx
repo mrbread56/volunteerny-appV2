@@ -212,7 +212,7 @@ export default function Login() {
     return (
       <div className="min-h-[calc(100vh-64px)] flex flex-col items-center justify-center gap-4 bg-white">
         <Spinner size="lg" className="text-ink" label={null} />
-        <p role="status" className="text-[13px] text-ink-soft">Signing you in…</p>
+        <p role="status" className="text-xs text-ink-soft">Signing you in…</p>
       </div>
     );
   }
@@ -230,19 +230,19 @@ export default function Login() {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-[1.75rem] font-bold text-ink tracking-[-0.03em]">Sign in</h1>
-          <p className="text-[14px] text-ink-soft mt-1.5">Welcome back to Volunteer North York.</p>
+          <p className="text-sm text-ink-soft mt-1.5">Welcome back to Volunteer North York.</p>
         </div>
 
         {/* Error */}
         {displayError && (
-          <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200 flex items-start gap-2 mb-6">
+          <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-xs border border-red-200 flex items-start gap-2 mb-6">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <p className="leading-relaxed">{displayError}</p>
           </div>
         )}
         
         {resetNotice && (
-          <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-[13px] border border-blue-dark/20 mb-6 leading-relaxed">
+          <div role="status" className="bg-blue-dark/5 text-blue-dark p-3.5 text-xs border border-blue-dark/20 mb-6 leading-relaxed">
             {resetNotice}
           </div>
         )}
@@ -250,7 +250,7 @@ export default function Login() {
         {/* Form */}
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="login-email" className="block text-[13px] font-medium text-ink mb-1.5">Email</label>
+            <label htmlFor="login-email" className="block text-xs font-medium text-ink mb-1.5">Email</label>
             <input
               id="login-email"
               name="email"
@@ -260,17 +260,17 @@ export default function Login() {
               required
               placeholder="student@example.com"
               autoComplete="username"
-              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+              className="w-full h-11 px-3.5 text-sm bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
             />
           </div>
           <div>
             <div className="flex items-baseline justify-between mb-1.5">
-              <label htmlFor="login-password" className="block text-[13px] font-medium text-ink">Password</label>
+              <label htmlFor="login-password" className="block text-xs font-medium text-ink">Password</label>
               <button
                 type="button"
                 onClick={handlePasswordReset}
                 disabled={isResetting}
-                className="text-[12px] font-medium text-blue-dark hover:text-ink disabled:opacity-50"
+                className="text-xs font-medium text-blue-dark hover:text-ink disabled:opacity-50"
               >
                 {isResetting ? 'Sending…' : 'Forgot password?'}
               </button>
@@ -284,13 +284,13 @@ export default function Login() {
               required
               placeholder="••••••••"
               autoComplete="current-password"
-              className="w-full h-11 px-3.5 text-[14px] bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
+              className="w-full h-11 px-3.5 text-sm bg-white border border-line text-ink placeholder:text-ink-muted focus:outline-none focus:border-blue-dark focus:ring-1 focus:ring-blue-dark transition-colors"
             />
           </div>
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full h-11 bg-blue-dark text-paper text-[14px] font-medium rounded-full hover:bg-ink transition-colors duration-200 disabled:opacity-50 mt-2"
+            className="w-full h-11 bg-blue-dark text-paper text-sm font-medium rounded-full hover:bg-ink transition-colors duration-200 disabled:opacity-50 mt-2"
           >
             {isLoading ? 'Signing in…' : 'Sign In'}
           </button>
@@ -308,7 +308,7 @@ export default function Login() {
           type="button"
           onClick={handleGoogleLogin}
           disabled={isGoogleLoading}
-          className="w-full h-11 bg-white border border-line text-ink text-[14px] font-medium rounded-full hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50"
+          className="w-full h-11 bg-white border border-line text-ink text-sm font-medium rounded-full hover:bg-gray-50 transition-colors duration-200 flex items-center justify-center gap-2.5 disabled:opacity-50"
         >
           {isGoogleLoading ? (
             <Spinner size="sm" className="text-ink-soft" label={null} />
@@ -322,14 +322,14 @@ export default function Login() {
           <button 
             type="button"
             onClick={() => setIsGoogleLoading(false)}
-            className="w-full text-center mt-3 text-[12px] text-ink-muted hover:text-ink underline rounded-full"
+            className="w-full text-center mt-3 text-xs text-ink-muted hover:text-ink underline rounded-full"
           >
             Cancel
           </button>
         )}
 
         {/* Sign up link */}
-        <p className="text-center text-[13px] text-ink-soft mt-8">
+        <p className="text-center text-xs text-ink-soft mt-8">
           Don't have an account?{" "}
           <Link to="/signup" className="text-blue-dark hover:text-ink font-medium">
             Create one

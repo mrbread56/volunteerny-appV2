@@ -550,7 +550,7 @@ export default function StudentOpportunityDetail() {
   if (!opportunity)
     return (
       <div className="max-w-3xl mx-auto px-4 py-20">
-        <div role="alert" className="bg-red-50 text-red-700 p-4 text-[14px] border border-red-200 text-center">
+        <div role="alert" className="bg-red-50 text-red-700 p-4 text-sm border border-red-200 text-center">
           We couldn't load this opportunity. It may have been removed, or your connection dropped.
         </div>
       </div>
@@ -569,7 +569,7 @@ export default function StudentOpportunityDetail() {
           Save and Share cannot be clicked — so on the real page both buttons
           gave zero feedback and appeared completely dead. */}
       {notice && (
-        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-[13px] border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-dark/5 border-blue-dark/20 text-blue-dark'}`}>
+        <div role="status" aria-live="polite" className={`fixed top-20 left-1/2 -translate-x-1/2 z-50 px-4 py-2.5 text-xs border ${notice.kind === 'error' ? 'bg-red-50 border-red-200 text-red-700' : 'bg-blue-dark/5 border-blue-dark/20 text-blue-dark'}`}>
           {notice.text}
         </div>
       )}
@@ -796,7 +796,7 @@ export default function StudentOpportunityDetail() {
                          organisation set, not something we can decide for
                          them. */
                       <div className="space-y-3">
-                        <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-[13px] text-amber-900 leading-relaxed">
+                        <div className="p-3.5 rounded-lg bg-amber-50 border border-amber-200 text-xs text-amber-900 leading-relaxed">
                           {eligibilityNote}
                         </div>
                         <Button
@@ -933,7 +933,7 @@ export default function StudentOpportunityDetail() {
             <CardContent className="px-6 sm:px-10 pb-10 sm:pb-12">
                <form onSubmit={handleApply} className="space-y-6">
                   {applyError && (
-                     <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-[13px] border border-red-200">
+                     <div role="alert" aria-live="assertive" className="bg-red-50 text-red-700 p-3.5 text-xs border border-red-200">
                         {applyError}
                      </div>
                   )}
@@ -951,7 +951,7 @@ export default function StudentOpportunityDetail() {
                       the organization's "Personal Message" panel always read
                       "No message provided." */}
                   <div className="space-y-2">
-                     <label htmlFor="application-message" className="text-[13px] font-semibold text-ink">
+                     <label htmlFor="application-message" className="text-xs font-semibold text-ink">
                         Anything you'd like to add? <span className="font-normal text-ink-muted">(optional)</span>
                      </label>
                      <textarea

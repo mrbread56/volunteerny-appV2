@@ -268,7 +268,7 @@ export default function LeaderboardTab({
             <h4 className="text-xs font-semibold tracking-wide text-blue-dark">
               My Milestones
             </h4>
-            <p className="text-[12px] text-ink-soft font-semibold mt-1">
+            <p className="text-xs text-ink-soft font-semibold mt-1">
               Your current community badge collection stats.
             </p>
           </div>
