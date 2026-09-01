@@ -1,6 +1,6 @@
 # Product roadmap
 
-**Last updated:** 17 August 2026
+**Last updated:** 1 September 2026
 
 This is the half of the plan that is not about code. `ROADMAP.md` tracks the
 engineering; this tracks whether anyone uses what the engineering produced.
@@ -13,22 +13,46 @@ you does something they did not have to do.
 
 ## The situation, stated plainly
 
-| | |
-|---|---|
-| Students registered | **3** |
-| Organisations registered | **0** |
-| Organisations verified | **0** |
-| Opportunities posted | **0** |
-| Applications | **0** |
-| Hours confirmed | **0** |
+| | 17 Aug | 1 Sep |
+|---|---|---|
+| Students registered | 3 | **4** |
+| Organisations registered | 0 | **4** |
+| Organisations verified | 0 | **4** |
+| Opportunities posted | 0 | **2** (1 open) |
+| Applications | 0 | **0** |
+| Hours confirmed | 0 | **0** |
 
-The software is tested to a standard most shipped products do not reach. None of
-that matters yet, because the number that decides whether this is a product or a
-prototype is the second row, and it is zero.
+The second row moved off zero, which is the single most important thing that has
+happened to this project. Four real organisations are registered and verified:
+**Tirgan Centre for Art & Culture**, **Trusted Medical Clinic**, **Flemingdon
+Food Bank** and **Community Share Food Bank**.
 
-**No amount of further engineering moves that row.** This document exists to
-stop the reflex of building another feature when the actual blocker is that
-nobody has been asked to use the platform.
+Do not over-read it. The bottom two rows are still zero, and they are the rows
+that decide whether this is a product or a prototype. Four organisations with no
+applications is a platform nobody has completed a transaction on.
+
+The realistic next failure is no longer "nobody has been asked". It is that an
+organisation signs up, posts nothing, and is never heard from again — which is
+where three of the four currently are. One open posting exists.
+
+**No amount of further engineering moves the bottom two rows.** This document
+exists to stop the reflex of building another feature when the actual blocker is
+elsewhere.
+
+### What the first real organisation taught us
+
+Tirgan's posting could not be described by the software. Asked when the hours
+happen, they answered "hours arranged with the office" — and the schedule
+picker offered only Single Event, Multiple Occurrences and Weekly Recurring. The
+posting had to be filed as *recurring with no shifts*, which silently pinned it
+to a Weekday Evenings availability slot derived from the minute the form was
+submitted, so students free only at weekends were never shown it.
+
+The lesson is not the bug. It is that **the first real organisation broke the
+schema within one posting**, and the schema had been reviewed repeatedly by
+people who had never watched an organisation fill the form in. Expect more of
+this from organisations two, three and four. Treat the first posting from each
+as a test of the model, not of the organisation.
 
 ---
 
