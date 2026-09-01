@@ -30,9 +30,11 @@ export default function OrgApplicationsTab({
   /** Opens the review dialog; the page owns the server-side profile fetch. */
   onOpenReview: (app: Application) => void;
 }) {
+  // lg:col-span-3 was left over from a grid that no longer wraps this tab, so
+  // on a wide screen the applicant list rendered at about half the available
+  // width with the rest of the page empty.
   return (
-
-        <section className="lg:col-span-3 space-y-6">
+        <section className="space-y-6">
 
 
           {/* The search input that was never rendered. appSearchTerm, its setter

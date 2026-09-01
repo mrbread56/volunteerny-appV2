@@ -994,11 +994,22 @@ export default function OrgDashboard() {
 
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 pb-2 border-b border-line">
         <div>
+          {/* The heading names the screen you are on, not the account.
+              It read "{Org name} Dashboard" on all four tabs, so the only
+              indication of which one you were looking at was a highlight in
+              the sidebar, and the word Dashboard was appended to an
+              organisation name that is often already long. The organisation is
+              identified in the sidebar footer. */}
           <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight leading-tight">
-            {orgProfile?.organizationName || "Organization"} Dashboard
+            {activeTab === "opportunities" ? "Opportunities"
+              : activeTab === "hours" ? "Hours to confirm"
+              : activeTab === "applications" ? "Applications"
+              : "Overview"}
           </h1>
-          <p className="text-ink-soft mt-2 font-medium">
-            Manage your opportunities and review volunteers across Toronto.
+          <p className="text-ink-soft mt-2">
+            {activeTab === "opportunities" ? "The postings students can see and apply to."
+              : activeTab === "hours" ? "Students have asked you to confirm these hours."
+              : "Students who applied to your postings."}
           </p>
         </div>
         <Link to="/org/opportunities/new">
@@ -1086,12 +1097,18 @@ export default function OrgDashboard() {
           The counts that matter are now on the tab labels, where they are read
           in passing rather than occupying the whole first screen. */}
 
-      {/* Opportunities + Applications grid */}
+      {/* One tab at a time, so no grid.
+          This was a five-column grid holding Opportunities at col-span-2 and
+          Applications at col-span-3, from when the two sat side by side. Each
+          is now behind its own activeTab check, so only one ever renders and it
+          kept its old fraction: the opportunities list used 40% of the row and
+          the applicant list 60%, with the rest of a 1200px content area empty.
+          Both are full width now. */}
       {(activeTab === "opportunities" || activeTab === "applications") && (
-      <div className="grid grid-cols-1 lg:grid-cols-5 gap-10">
+      <div className="space-y-10">
         {/* Managed Opportunities */}
         {activeTab === "opportunities" && (
-        <section className="lg:col-span-2 space-y-6">
+        <section className="space-y-6">
           <div className="space-y-3">
             <h2 className="text-xl font-semibold text-ink flex items-center gap-2">
               Active Opportunities

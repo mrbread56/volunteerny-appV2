@@ -615,11 +615,16 @@ export default function DeveloperDashboard() {
             <div className="w-16 h-16 bg-blue-dark/5 border border-blue-dark/10 text-blue-dark rounded-lg flex items-center justify-center mx-auto">
               <Lock className="w-8 h-8" />
             </div>
-            <h1 className="text-3xl font-bold text-ink uppercase tracking-tight font-sans">
+            {/* Same h1 style as every other page, and no York Region.
+                 York Region is a separate municipality with no relationship to
+                 this platform, which serves North York inside Toronto. The same
+                 invented authority was removed from the safety-report copy
+                 earlier and survived here. */}
+            <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
               Control Room
             </h1>
-            <p className="text-ink-muted font-semibold text-xs uppercase tracking-wider">
-              York Region Administrative Command Centre
+            <p className="text-sm text-ink-soft">
+              Developer tools for Volunteer North York
             </p>
             <p className="text-ink-muted text-xs max-w-sm mx-auto leading-relaxed font-semibold">
               Deploy the administrative dashboard to verify logged hours, ban/unban users, audit submissions, and run real-time support reviews.
@@ -999,7 +1004,7 @@ export default function DeveloperDashboard() {
                 Account Suspension Registry
               </h2>
               <p className="text-xs text-ink-muted font-semibold mt-0.5 max-w-2xl leading-relaxed">
-                York Region Trust safe-space enforcements. Lift locks on student volunteers or organization profiles to grant immediate login, posting, and action privileges.
+                Suspended accounts. Lifting a suspension restores sign-in, posting and every other action immediately.
               </p>
             </div>
           </div>
@@ -1033,7 +1038,7 @@ export default function DeveloperDashboard() {
                           <p className="text-sm font-bold text-ink-soft">{st.fullName || st.name || 'Anonymous Student'}</p>
                           <p className="text-xs text-ink-muted font-mono font-medium leading-none">{st.email || 'No email registered'}</p>
                           <span className="inline-block text-xs font-semibold uppercase px-1.5 py-0.5 rounded bg-paper-2 text-ink-muted border border-line mt-1">
-                            {st.school || 'York Region'}
+                            {st.school || 'School not set'}
                           </span>
                         </div>
                         <Button
