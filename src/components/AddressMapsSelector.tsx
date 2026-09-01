@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { MapContainer, TileLayer, Marker, useMap, useMapEvents, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
@@ -114,6 +114,43 @@ export default function AddressMapsSelector({
         const data = await resp.json();
         setSuggestions(data);
         setShowDropdown(true);
+
+        /*
+         * Move the pin as they type, not only when they click a suggestion.
+         *
+         * handleInputChange updated the address TEXT and nothing else, so an
+         * organisation that typed its full address and then tabbed on left
+         * coordinates pointing at wherever the pin happened to be — usually
+         * the map's default centre. The reviewer's screen then shows a
+         * location that is not the organisation's, and distance sorting puts
+         * their postings in front of the wrong students.
+         *
+         * Only for a query specific enough to be worth trusting: a street
+         * number plus something, or a reasonably long string. "5" should not
+         * teleport the map. The dropdown stays open the whole time, so a wrong
+         * guess is one click from being corrected, and clicking the map still
+         * wins over anything typed.
+         */
+        const top = data[0];
+        /*
+         * A bare street number is not an address. Nominatim answers "5100"
+         * with a place in Georgia (42.63, 42.79) — verified against the live
+         * API — so a number on its own must never move the pin. Require a
+         * number AND a name together, or a long enough name on its own for a
+         * landmark like "Mel Lastman Square".
+         */
+        const q = queryStr.trim();
+        const hasNumber = /\d/.test(q);
+        const hasWord = /[A-Za-z]{3,}/.test(q);
+        const looksSpecific = hasNumber ? hasWord : q.length >= 8;
+        if (top && looksSpecific && onCoordinatesChange) {
+          const lat = parseFloat(top.lat);
+          const lng = parseFloat(top.lon);
+          if (Number.isFinite(lat) && Number.isFinite(lng)) {
+            setCoords([lat, lng]);
+            onCoordinatesChange({ lat, lng });
+          }
+        }
       }
     } catch (err) {
       console.error('Error fetching address recommendations:', err);
@@ -130,12 +167,27 @@ export default function AddressMapsSelector({
       return;
     }
 
-    // Avoid requesting if the search query is exactly what we just selected to prevent infinite loop
-    if (searchQuery === value) return;
+    /*
+     * Skip only the string we ourselves just committed, not any string equal
+     * to the parent's value.
+     *
+     * This read `if (searchQuery === value) return`. handleInputChange calls
+     * onChange on every keystroke, the parent stores it, and it comes straight
+     * back as `value` — so searchQuery and value were always equal while
+     * typing and this returned every time. Suggestions never loaded from
+     * typing at all; the dropdown only ever appeared for text pasted or set
+     * from outside. The guard was written to stop a refetch after a suggestion
+     * is picked, and a ref holding that exact string does that without
+     * catching everything else.
+     */
+    if (searchQuery === lastCommitted.current) return;
 
+    // 1000ms, not 600. Nominatim's usage policy caps an application at one
+    // request per second absolute maximum, and this now fires on every
+    // keystroke pause rather than only when a suggestion list is wanted.
     const delayDebounceId = setTimeout(() => {
       fetchSuggestions(searchQuery);
-    }, 600);
+    }, 1000);
 
     return () => clearTimeout(delayDebounceId);
   }, [searchQuery]);
@@ -147,6 +199,10 @@ export default function AddressMapsSelector({
     onChange(val); // Pass typed change directly up to form
   };
 
+  // What we last wrote into the field ourselves, so the debounce can tell a
+  // programmatic value from something the user typed.
+  const lastCommitted = useRef<string>('');
+
   // Selection of suggestion
   const selectSuggestion = (item: any) => {
     const lat = parseFloat(item.lat);
@@ -155,6 +211,7 @@ export default function AddressMapsSelector({
     
     setCoords([lat, lng]);
     setSearchQuery(addressStr);
+    lastCommitted.current = addressStr;
     onChange(addressStr);
     setShowDropdown(false);
 
