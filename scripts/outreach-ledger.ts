@@ -81,9 +81,8 @@ const DELIVERED = [
 ];
 
 /**
- * 1 Sep, re-sent by hand from the list this file produces. Plain URL in the
- * body, no attachment, twelve messages over a few minutes. Zero bounces,
- * against 100% bounced on 19 August.
+ * 1 Sep, first batch of twelve. Plain URL in the body, no attachment. All
+ * twelve accepted.
  */
 const RESENT_2026_09_01 = [
   'admin@kccatoronto.ca', 'admin@workingwomencc.org', 'bfhub@unisonhcs.org',
@@ -91,6 +90,33 @@ const RESENT_2026_09_01 = [
   'crdbayview@amica.ca', 'delmanorwynford@delmanor.com',
   'fcreception@tno-toronto.org', 'info@apostlesrevelationsociety.com',
   'info@cicscanada.com', 'info@dukeheights.ca', 'info@ehcw.ca',
+];
+
+/**
+ * 1 Sep, second batch of twelve, sent about forty minutes after the first.
+ * FOUR were accepted and EIGHT were blocked 5.7.1, and the cut is clean: the
+ * first four went through, then every message from the fifth onward was
+ * refused. Counting the day, the account accepted sixteen and then stopped.
+ *
+ * This corrects the earlier reading of the 26 August blocks. Those were
+ * blamed on the google.com/url redirect wrappers in the body, and that was
+ * wrong. These eight carried a plain URL, no attachment and no wrapper, and
+ * were refused identically. The redirect links were a genuine defect and
+ * fixing them was right, but they are not what causes a 5.7.1 here.
+ *
+ * What causes it is volume from a consumer Gmail account, measured now rather
+ * than guessed at: SIXTEEN A DAY is the working ceiling on this mailbox. Not
+ * 500, which is Google's documented figure, and not 24.
+ */
+const BLOCKED_2026_09_01 = [
+  'info@newcomersincanada.ca', 'info@hawthorneplacecarecentre.ca',
+  'info@prossermanjcc.com', 'info@templesinai.net', 'info@veahavta.org',
+  'info@trca.ca', 'info@nyhs.ca', 'info@girlguides.ca',
+];
+
+/** Same batch, accepted before the ceiling was hit. */
+const RESENT_2026_09_01_B = [
+  'info@wknc.ca', 'info@nywc.org', 'info@fhc-chc.com', 'info@spanishservices.org',
 ];
 
 /** The address itself is broken. Resending changes nothing. */
@@ -122,7 +148,11 @@ const SELF = ['halalbeef67@gmail.com', '350343401@tdsb.ca'];
 const norm = (s: string) => s.trim().toLowerCase();
 
 export function buildLedger() {
-  const delivered = new Set([...DELIVERED, ...RESENT_2026_09_01].map(norm));
+  // BLOCKED_2026_09_01 is deliberately NOT here. Those eight never arrived and
+  // stay in the send pool.
+  const delivered = new Set(
+    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B].map(norm),
+  );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
   const declined = new Set(
@@ -145,12 +175,12 @@ export function buildLedger() {
 }
 
 /**
- * Gmail's published cap for a free account is 500 recipients a day, but the
- * 19 August batch was refused well under that: roughly ninety messages fired
- * twenty seconds apart, which trips the per-minute throttle rather than the
- * daily one. Spread the work out instead of testing where the edge is.
+ * Gmail's published cap for a free account is 500 recipients a day. The real
+ * ceiling on this mailbox, measured on 1 September, is SIXTEEN: twelve went
+ * through, then four more, then eight consecutive 5.7.1 blocks. Twelve a day
+ * is inside that with margin. Twenty-four is not.
  */
-const PER_DAY = 12;
+const PER_DAY = 12;   // ponytail: 12 held on 1 Sep, 16 was the measured ceiling. Drop to 8 if another 5.7.1 appears.
 
 function main() {
   const { send, skip, delivered, attempted } = buildLedger();
