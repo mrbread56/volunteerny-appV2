@@ -72,6 +72,46 @@ intervals. Consumer Gmail is not a bulk sender and treats that as one.
 
 ---
 
+## How many can actually go out in a day
+
+Two different ceilings, and the lower one is not Google's.
+
+**Google's technical cap.** A free Gmail account is 500 *recipients* a day, not
+500 messages: every address across To, Cc and Bcc counts, so one email to
+twenty people spends twenty. It resets on a rolling 24 hours from when the
+messages went out, not at local midnight, and the block lasts one to
+twenty-four hours. Google publishes no per-hour figure, but Gmail does throttle
+velocity separately from the daily count.
+
+**What we hit on 19 August was the daily cap, not the velocity throttle.** The
+timing settles it: the first message of that batch went out at 20:56:36 and its
+bounce arrived at 20:56:37, one second later. The block was already in force
+before the batch started, so the 500 had been spent earlier that day. Every
+message between 20:56 and 21:00, about eighty-six of them, was refused.
+
+**The deliverability cap, which is far lower.** For cold outreach the practical
+ceiling is 30 to 50 a day on an established mailbox and 10 to 30 on a new one;
+a well-warmed inbox reaches 50 to 100. That is an order of magnitude under
+Google's 500. Sending 500 cold emails a day from a young account is how the
+account gets suspended and how the sending reputation goes bad, and a bad
+reputation on this domain would take the password reset and hour confirmation
+emails down with it. So 12 a day is not a limitation being worked around, it is
+inside the safe band with room to spare.
+
+**If the list grows to hundreds.** Google Workspace on volunteernorthyork.org
+raises the technical cap to 2,000 a day and the safe cold-email rate to roughly
+50 to 100 once warmed. Business Starter is about USD 7 per user per month paid
+annually, or 8.40 monthly. Worth knowing that it would also close the inbound
+item this file's sibling roadmap has parked until 16 November: Workspace hosts
+hello@volunteernorthyork.org directly, so the forwardemail.net 90-day domain-age
+rule stops applying. One subscription, two problems.
+
+Do NOT move outreach onto the Resend sending domain to get volume. That domain
+carries password resets, verification codes and hour confirmations. Cold email
+reputation and transactional reputation must not share an identity.
+
+---
+
 ## Current text, with the links fixed
 
 Subject varies by the kind of organization. The ones used so far:
