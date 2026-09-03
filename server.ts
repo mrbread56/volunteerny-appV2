@@ -4431,6 +4431,75 @@ app.use(express.json());
     }
   }
 
+  /**
+   * Sign one stored attachment for a caller entitled to see it.
+   *
+   * AttachmentPreview used to read the object straight out of Storage with
+   * getBlob(), so the only thing standing between a moderator and the evidence
+   * on a safety report was storage.rules. That rule identifies a developer by
+   *
+   *   firestore.get(/databases/volunteerny/documents/users/$(uid)).data.role
+   *
+   * a CROSS-SERVICE read against a NAMED database. This project has no
+   * "(default)" Firestore database, and the result was a 403 on every feedback
+   * screenshot: the developer console showed the attachment slot and could
+   * never fill it. An attachment a moderator cannot open is the same as no
+   * attachment, on exactly the reports where the picture is the point.
+   *
+   * Signing here instead removes the dependency on cross-service rules and, as
+   * a bonus, fixes a second disagreement. The console admits a developer by
+   * role OR by the VITE_DEVELOPER_EMAILS allowlist, which is how a bootstrap
+   * developer works before anyone has promoted them; storage.rules only ever
+   * knew about the stored role. This route accepts both, the same test every
+   * other privileged route in this file uses.
+   *
+   * The owner may always fetch their own upload. Everyone else is refused, and
+   * the refusal does not say whether the object exists.
+   */
+  app.post('/api/attachments/sign', async (req, res) => {
+    try {
+      const authContext = await verifyAuth(req);
+      if (!authContext || !authContext.uid || authContext.error) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const raw = String((req.body || {}).path || '');
+      if (!raw.startsWith('storage:')) {
+        return res.status(400).json({ error: 'Not a stored attachment reference.' });
+      }
+      const path = raw.slice('storage:'.length);
+      // <prefix>/<uid>/<filename>, and nothing that climbs out of the bucket.
+      const parts = path.split('/');
+      if (parts.length < 3 || path.includes('..') || parts.some((seg) => !seg)) {
+        return res.status(400).json({ error: 'Malformed attachment path.' });
+      }
+      const ownerUid = parts[1];
+
+      let callerRole: string | undefined;
+      try {
+        const adb = adminFirestore();
+        callerRole = adb ? (await adb.collection('users').doc(authContext.uid).get()).data()?.role : undefined;
+      } catch { /* treated as not a developer */ }
+
+      const isOwner = ownerUid === authContext.uid;
+      const isDev = callerRole === 'developer' || isAllowlistedDeveloper(authContext);
+      if (!isOwner && !isDev) {
+        // Deliberately identical to the malformed-path answer above in shape:
+        // a distinct 404 would confirm which attachments exist.
+        return res.status(403).json({ error: 'You do not have access to that file.' });
+      }
+
+      const url = await signStoragePath(raw);
+      if (!url || url === SIGN_UNAVAILABLE) {
+        return res.status(502).json({ error: 'The file could not be prepared. It may have been removed.' });
+      }
+      return res.json({ url });
+    } catch (err: any) {
+      console.error('[attachments/sign]', err?.message || err);
+      return res.status(500).json({ error: 'Server error.' });
+    }
+  });
+
   async function orgApprovalStatus(uid: string): Promise<'approved' | 'not-approved' | 'unknown'> {
     try {
       const adb = adminFirestore();

@@ -40,7 +40,7 @@ export default function AttachmentPreview({
    * governed by storage.rules — which already permits a developer to read
    * reports/ and feedbacks/ — and the resulting blob URL dies with the tab.
    */
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
+  const [srcUrl, setSrcUrl] = useState<string | null>(null);
   const [resolveFailed, setResolveFailed] = useState(false);
   const raw = value ? decompressFile(value) : '';
   const isStoragePath = raw.startsWith('storage:') && raw !== 'storage:unavailable';
@@ -48,28 +48,58 @@ export default function AttachmentPreview({
   useEffect(() => {
     if (!isStoragePath) return;
     let cancelled = false;
-    let created = '';
     (async () => {
       try {
-        const [{ getStorage, ref, getBlob }, { app }] = await Promise.all([
-          import('firebase/storage'),
-          import('../firebase/config'),
-        ]);
-        const blob = await getBlob(ref(getStorage(app), raw.slice('storage:'.length)));
+        /*
+         * Signed by the server, not read straight out of Storage.
+         *
+         * getBlob() put the whole decision in storage.rules, and the rule
+         * identifies a developer with a CROSS-SERVICE firestore.get() against a
+         * NAMED database - a project with no "(default)" Firestore database, so
+         * it denied. Every feedback screenshot 403'd: the console rendered the
+         * attachment slot and could never fill it, on exactly the reports where
+         * the picture is the evidence.
+         *
+         * The server also settles a disagreement the rule could not. The
+         * console admits a developer by role OR by the VITE_DEVELOPER_EMAILS
+         * allowlist; storage.rules only knew about the stored role, so a
+         * bootstrap developer who was never promoted saw the console and none
+         * of the attachments in it.
+         */
+        const { auth } = await import('../firebase/config');
+        const user = auth.currentUser;
+        if (!user) throw new Error('not signed in');
+        const token = await user.getIdToken();
+        const res = await fetch('/api/attachments/sign', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ path: raw }),
+        });
+        if (!res.ok) throw new Error(`sign failed (${res.status})`);
+        const { url } = await res.json();
+        if (!url) throw new Error('no url returned');
         if (cancelled) return;
-        created = URL.createObjectURL(blob);
-        setBlobUrl(created);
+        /*
+         * Used directly, NOT fetched into a blob first.
+         *
+         * The blob version was written to keep the signed URL out of the DOM,
+         * and it could not work: storage.googleapis.com sends no CORS headers
+         * for a signed URL, so the fetch was blocked by the browser before it
+         * left. An <img src> is not a CORS request, so this loads. Configuring
+         * bucket CORS would also fix it and is a change to production
+         * infrastructure to buy nothing here - the five minute expiry is the
+         * control, and the previous blob: URL was equally copyable out of the
+         * page anyway.
+         */
+        setSrcUrl(url);
       } catch (err) {
         console.error('[AttachmentPreview] could not load', raw, err);
         if (!cancelled) setResolveFailed(true);
       }
     })();
-    return () => {
-      cancelled = true;
-      // Revoked, or every report a moderator opens leaks its evidence for the
-      // lifetime of the tab.
-      if (created) URL.revokeObjectURL(created);
-    };
+    // Nothing to revoke: the URL is signed by the server and expires on its
+    // own in five minutes, rather than being an object URL this component owns.
+    return () => { cancelled = true; };
   }, [raw, isStoragePath]);
 
   if (!value) return null;
@@ -85,11 +115,11 @@ export default function AttachmentPreview({
     );
   }
 
-  if (isStoragePath && !blobUrl) {
+  if (isStoragePath && !srcUrl) {
     return <p className="mt-2 text-xs text-ink-muted font-medium">Loading attachment…</p>;
   }
 
-  const resolved = isStoragePath ? (blobUrl as string) : raw;
+  const resolved = isStoragePath ? (srcUrl as string) : raw;
   const fileName = name || 'attachment';
 
   /*

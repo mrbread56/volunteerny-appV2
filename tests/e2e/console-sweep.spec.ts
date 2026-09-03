@@ -33,7 +33,13 @@ const seen = new Map<string, { count: number; routes: Set<string>; type: string 
  */
 const EXPECTED: { match: RegExp; why: string }[] = [
   {
-    match: /403 \(Forbidden\)/,
+    // Chromium reports this as "403 ()" with EMPTY parentheses, not
+    // "403 (Forbidden)" - it prints the status TEXT, which is absent on an
+    // HTTP/2 response because HTTP/2 has no reason phrase. The old pattern
+    // therefore matched nothing it was written for, and every real 403 in the
+    // app arrived as an unclassified finding while looking like it had been
+    // triaged. Both spellings now.
+    match: /403 \((Forbidden)?\)/,
     why:
       'the developer dashboard calls /api/email/history, which gates on the ' +
       'VITE_DEVELOPER_EMAILS allowlist rather than the Firestore role. The seeded ' +
