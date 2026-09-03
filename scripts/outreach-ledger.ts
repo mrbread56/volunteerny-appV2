@@ -119,10 +119,27 @@ const RESENT_2026_09_01_B = [
   'info@wknc.ca', 'info@nywc.org', 'info@fhc-chc.com', 'info@spanishservices.org',
 ];
 
+/**
+ * 3 Sep. Eleven accepted, one hard bounce, no quota block at all. Eight of
+ * these are the ones Google refused with 5.7.1 on 1 Sep, and they went through
+ * unchanged the moment the account was inside its limit again - which is the
+ * last word on that argument. The message was never the problem. Volume was.
+ */
+const RESENT_2026_09_03 = [
+  'info@girlguides.ca', 'info@hawthorneplacecarecentre.ca',
+  'info@newcomersincanada.ca', 'info@nyhs.ca', 'info@prossermanjcc.com',
+  'info@templesinai.net', 'info@trca.ca', 'info@veahavta.org',
+  'info@yorkmemorialpresbyterianchurch.ca', 'ladyballerscamp@gmail.com',
+  'jeffkb0567@gmail.com',
+];
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
   'drjparke@thetriumphantchurchofgod.org': 'domain has no MX record',
+  // 3 Sep: 554 30 Sorry, no mailbox here by that name. The Rotary Club of
+  // Willowdale contact is gone; this needs a NEW address, not another attempt.
+  'lyonrex@rogers.com': 'mailbox no longer exists (554)',
 };
 
 /** Recipient's server refused the message, 26 Aug, SMTP 5.7.1. */

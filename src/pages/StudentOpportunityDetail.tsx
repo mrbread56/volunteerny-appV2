@@ -707,19 +707,19 @@ export default function StudentOpportunityDetail() {
               <CardContent className="p-8 space-y-6">
                  <div className="space-y-4">
                     {opportunity.scheduleType === 'flexible' ? (
-                       <div className="flex items-center justify-between text-sm gap-4">
+                       <div className="flex items-start justify-between gap-3 text-sm">
                           <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Calendar className="w-4 h-4" /> Schedule</span>
-                          <span className="font-semibold text-ink text-right">Hours arranged with the office</span>
+                          <span className="font-semibold text-ink text-right min-w-0">Hours arranged with the office</span>
                        </div>
                     ) : opportunity.scheduleType === 'single' || !opportunity.scheduleType ? (
-                       <div className="flex items-center justify-between text-sm">
-                          <span className="text-ink-muted font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Date</span>
-                          <span className="font-bold text-ink">{formatDate(opportunity.dateTime?.toDate ? opportunity.dateTime.toDate() : opportunity.dateTime)}</span>
+                       <div className="flex items-start justify-between gap-3 text-sm">
+                          <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Calendar className="w-4 h-4" /> Date</span>
+                          <span className="font-bold text-ink text-right min-w-0">{formatDate(opportunity.dateTime?.toDate ? opportunity.dateTime.toDate() : opportunity.dateTime)}</span>
                        </div>
                     ) : (
                        <div className="space-y-3">
-                          <div className="flex items-center justify-between text-sm mb-2">
-                             <span className="text-ink-muted font-medium flex items-center gap-2"><Calendar className="w-4 h-4" /> Schedule</span>
+                          <div className="flex items-start justify-between gap-3 text-sm mb-2">
+                             <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Calendar className="w-4 h-4" /> Schedule</span>
                              <Badge variant="info" className="text-xs font-semibold tracking-wide bg-blue-dark/5 text-[#153343] border-none">
                                 {opportunity.scheduleType === 'recurring' ? 'Weekly' : 'Multi-day'}
                              </Badge>
@@ -741,9 +741,9 @@ export default function StudentOpportunityDetail() {
                           </div>
                        </div>
                     )}
-                    <div className="flex items-center justify-between text-sm">
-                       <span className="text-ink-muted font-medium flex items-center gap-2"><Clock className="w-4 h-4" /> Commitment</span>
-                       <span className="font-bold text-ink">{opportunity.timeCommitment}</span>
+                    <div className="flex items-start justify-between gap-3 text-sm">
+                       <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Clock className="w-4 h-4" /> Commitment</span>
+                       <span className="font-bold text-ink text-right min-w-0">{opportunity.timeCommitment}</span>
                     </div>
                     {/* How many places are LEFT, not just the capacity.
                         This read "10 total", so a student applying to a full
@@ -752,8 +752,8 @@ export default function StudentOpportunityDetail() {
                         anywhere. fetchAcceptedCount was already imported and
                         used inside handleApply — it just was not asked before
                         the decision to apply. */}
-                    <div className="flex items-center justify-between text-sm">
-                       <span className="text-ink-muted font-medium flex items-center gap-2"><Users className="w-4 h-4" /> Spots</span>
+                    <div className="flex items-start justify-between gap-3 text-sm">
+                       <span className="text-ink-muted font-medium flex items-center gap-2 shrink-0"><Users className="w-4 h-4" /> Spots</span>
                        {/* Blank or 0 means UNCAPPED, which is how the create
                            form, waitlistService and capacityRefusal all read it.
                            This tested `acceptedCount >= (maxVolunteers || 0)`,
@@ -761,7 +761,7 @@ export default function StudentOpportunityDetail() {
                            and a posting with zero accepted volunteers told every
                            student it was Full. The apply handler 380 lines up
                            used a THIRD reading, `|| 10`. One meaning now. */}
-                       <span className="font-bold text-ink">
+                       <span className="font-bold text-ink text-right min-w-0">
                          {(() => {
                            const cap = Number(opportunity.maxVolunteers) || 0;
                            if (cap <= 0) return 'Open to new volunteers';
@@ -816,7 +816,7 @@ export default function StudentOpportunityDetail() {
                          refused. Someone can still reach this page from a
                          bookmark or a shared link after it closes. */
                       <div className="flex flex-col items-center gap-2 p-4 bg-paper-2 rounded-lg border border-line text-center">
-                         <span className="font-bold text-ink">Applications are closed</span>
+                         <span className="font-bold text-ink text-right min-w-0">Applications are closed</span>
                          <p className="text-sm text-ink-muted leading-relaxed">
                            This organization has the volunteers it needs. Browse other opportunities.
                          </p>
