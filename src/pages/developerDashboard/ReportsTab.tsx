@@ -2,6 +2,7 @@ import React from 'react';
 import { ShieldAlert, ShieldCheck, Sparkles, Paperclip } from 'lucide-react';
 import { Card, CardContent } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { ConfirmButton } from '../../components/ui/ConfirmButton';
 import AttachmentPreview from '../../components/AttachmentPreview';
 
 /**
@@ -292,14 +293,14 @@ export default function ReportsTab({
                             </Button>
                           </div>
                         ) : (
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="bg-red-50 hover:bg-red-100 border-red-100 text-red-600 font-bold uppercase text-xs tracking-wider"
-                            onClick={() => handleToggleBan(report.reportedUserId, false)}
+                          <ConfirmButton
+                            confirmLabel={`Suspend the reported account`}
+                            onConfirm={() => handleToggleBan(report.reportedUserId, false)}
+                            className="h-8 px-3 bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 uppercase text-xs tracking-wider whitespace-nowrap"
+                            armedClassName="bg-red-600 text-white border-red-600 hover:bg-red-700"
                           >
-                            LOCK/SUSPEND OFFENDER
-                          </Button>
+                            Suspend account
+                          </ConfirmButton>
                         )}
                       </div>
                     </div>

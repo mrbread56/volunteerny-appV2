@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Building2, Lock, ShieldAlert, Users } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
+import { ConfirmButton } from '../../components/ui/ConfirmButton';
 
 /**
  * The user-management tab of the developer console: every student and
@@ -106,14 +107,14 @@ export default function UsersTab({
                             </Button>
                           </div>
                         ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="bg-red-50 text-red-600 hover:bg-red-100 border-red-100 text-xs font-semibold uppercase"
-                            onClick={() => onToggleBan(st.uid, false)}
+                          <ConfirmButton
+                            confirmLabel={`Suspend ${st.fullName || 'this account'}`}
+                            onConfirm={() => onToggleBan(st.uid, false)}
+                            className="h-8 px-3 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 text-xs uppercase whitespace-nowrap"
+                            armedClassName="bg-red-600 text-white border-red-600 hover:bg-red-700"
                           >
                             Suspend
-                          </Button>
+                          </ConfirmButton>
                         )}
 
                         {deleteTargetId !== st.uid ? (
@@ -146,13 +147,16 @@ export default function UsersTab({
                               >
                                 Cancel
                               </button>
-                              <button
-                                onClick={() => onDeleteUser(st.uid, 'student')}
+                              <ConfirmButton
+                                clicks={3}
+                                confirmLabel={`Permanently delete ${st.fullName || 'this account'}`}
+                                onConfirm={() => onDeleteUser(st.uid, 'student')}
                                 disabled={isUserDeletingId === st.uid}
-                                className="text-xs text-red-600 font-bold uppercase hover:underline"
+                                className="px-2 py-1 text-xs text-red-600 font-bold uppercase hover:bg-red-100"
+                                armedClassName="bg-red-600 text-white hover:bg-red-700"
                               >
-                                {isUserDeletingId === st.uid ? 'Purging...' : 'Purge!'}
-                              </button>
+                                {isUserDeletingId === st.uid ? 'Purging...' : 'Purge'}
+                              </ConfirmButton>
                             </div>
                           </div>
                         )}
@@ -224,14 +228,14 @@ export default function UsersTab({
                             </Button>
                           </div>
                         ) : (
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="bg-red-50 text-red-600 hover:bg-red-100 border-red-200 text-xs font-semibold uppercase border"
-                            onClick={() => onToggleBan(org.uid, false)}
+                          <ConfirmButton
+                            confirmLabel={`Suspend ${org.organizationName || 'this account'}`}
+                            onConfirm={() => onToggleBan(org.uid, false)}
+                            className="h-8 px-3 bg-red-50 text-red-600 hover:bg-red-100 border border-red-100 text-xs uppercase whitespace-nowrap"
+                            armedClassName="bg-red-600 text-white border-red-600 hover:bg-red-700"
                           >
                             Suspend
-                          </Button>
+                          </ConfirmButton>
                         )}
 
                         {deleteTargetId !== org.uid ? (
@@ -264,13 +268,16 @@ export default function UsersTab({
                               >
                                 Cancel
                               </button>
-                              <button
-                                onClick={() => onDeleteUser(org.uid, 'organization')}
+                              <ConfirmButton
+                                clicks={3}
+                                confirmLabel={`Permanently delete ${org.organizationName || 'this account'}`}
+                                onConfirm={() => onDeleteUser(org.uid, 'organization')}
                                 disabled={isUserDeletingId === org.uid}
-                                className="text-xs text-red-600 font-bold uppercase hover:underline"
+                                className="px-2 py-1 text-xs text-red-600 font-bold uppercase hover:bg-red-100"
+                                armedClassName="bg-red-600 text-white hover:bg-red-700"
                               >
-                                {isUserDeletingId === org.uid ? 'Purging...' : 'Purge!'}
-                              </button>
+                                {isUserDeletingId === org.uid ? 'Purging...' : 'Purge'}
+                              </ConfirmButton>
                             </div>
                           </div>
                         )}
