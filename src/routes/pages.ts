@@ -18,5 +18,6 @@ export const OrgProfile = lazy(() => import('../pages/OrgProfile'));
 export const FeedbackPage = lazy(() => import('../pages/FeedbackPage'));
 export const DeveloperDashboard = lazy(() => import('../pages/DeveloperDashboard'));
 export const TermsOfService = lazy(() => import('../pages/TermsOfService'));
+export const About = lazy(() => import('../pages/About'));
 export const PrivacyPolicy = lazy(() => import('../pages/PrivacyPolicy'));
 export const MfaChallenge = lazy(() => import('../pages/MfaChallenge'));

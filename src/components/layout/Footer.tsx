@@ -51,6 +51,7 @@ export default function Footer() {
                 24px minimum. They were 15px tall — the height of the text
                 itself — which is hard to hit accurately on a phone. */}
             <ul className="space-y-1">
+              <li><Link to="/about" className="inline-block py-1.5 text-xs text-paper/75 hover:text-paper transition-colors duration-200">About Us</Link></li>
               <li><Link to="/feedback" className="inline-block py-1.5 text-xs text-paper/75 hover:text-paper transition-colors duration-200">Feedback</Link></li>
             </ul>
           </div>

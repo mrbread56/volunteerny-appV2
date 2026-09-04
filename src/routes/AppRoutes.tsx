@@ -17,7 +17,7 @@ import {
   Home, Login, Signup, StudentDashboard, StudentOpportunities, StudentOpportunityDetail,
   StudentProfile, StudentOnboarding, OrgDashboard, OrgOpportunityCreate, OrgOpportunityEdit,
   OrgOpportunityApplicants, OrgProfile, FeedbackPage, DeveloperDashboard, TermsOfService,
-  PrivacyPolicy, MfaChallenge,
+  PrivacyPolicy, MfaChallenge, About,
   NotFound,
 } from './pages';
 
@@ -65,6 +65,7 @@ export default function AppRoutes() {
                 <Route path="/login" element={<PublicLayout><Login /></PublicLayout>} />
                 <Route path="/signup" element={<PublicLayout><Signup /></PublicLayout>} />
                 <Route path="/mfa" element={<PublicLayout><MfaChallenge /></PublicLayout>} />
+                <Route path="/about" element={<PublicLayout><About /></PublicLayout>} />
                 <Route path="/terms" element={<PublicLayout><TermsOfService /></PublicLayout>} />
                 <Route path="/privacy" element={<PublicLayout><PrivacyPolicy /></PublicLayout>} />
 
