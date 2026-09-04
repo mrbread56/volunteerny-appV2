@@ -133,6 +133,16 @@ const RESENT_2026_09_03 = [
   'jeffkb0567@gmail.com',
 ];
 
+/**
+ * 3 Sep, late. Three accepted, then the SIXTEENTH message of the day was
+ * blocked 5.7.1 - counting the eleven that morning and one reply to KCCA. The
+ * ceiling reproduced exactly: this mailbox takes fifteen and refuses the next.
+ * receptionhd@afghanwomen.org never arrived and stays in the pool.
+ */
+const RESENT_2026_09_03_B = [
+  'nych@nych.ca', 'media@taric.org', 'ntbaregistrar@bell.net',
+];
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
@@ -168,7 +178,7 @@ export function buildLedger() {
   // BLOCKED_2026_09_01 is deliberately NOT here. Those eight never arrived and
   // stay in the send pool.
   const delivered = new Set(
-    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B].map(norm),
+    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B].map(norm),
   );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
