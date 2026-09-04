@@ -111,7 +111,7 @@ export default function CookieBanner() {
                 <h2 className="font-bold text-sm">What this site stores</h2>
                 <p className="text-xs leading-relaxed text-paper-2">
                   We keep you signed in, remember your theme, and save a draft of
-                  an opportunity while you are writing one. That is all — there
+                  an opportunity while you are writing one. That is all. There
                   are <strong>no advertising or analytics trackers</strong> on
                   this site, and nothing here follows you to other websites.
                 </p>

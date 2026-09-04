@@ -563,7 +563,7 @@ export const emailTemplates = {
            student applies, with a link to your dashboard.</p>
         <p><strong>3. Confirm their hours.</strong> After they volunteer, they log
            their hours and you confirm them. Students still need their school
-           board's own form signed, so please sign that too if they ask — what
+           board's own form signed, so please sign that too if they ask. What
            you confirm here is the running record you both work from.</p>
       </div>
 

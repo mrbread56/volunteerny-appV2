@@ -384,7 +384,7 @@ async function organizationNotifications(uid: string, email?: string): Promise<A
     extra.push({
       id: `rating-${d.id}`, kind: 'rating',
       title: 'A student rated your organization',
-      body: `${r.stars}/5 for ${r.opportunityTitle || 'a placement'}${r.comment ? ` — "${String(r.comment).slice(0, 80)}"` : ''}.`,
+      body: `${r.stars}/5 for ${r.opportunityTitle || 'a placement'}${r.comment ? `, "${String(r.comment).slice(0, 80)}"` : ''}.`,
       at: toDate(r.createdAt), href: '/org/profile',
     });
   }

@@ -31,7 +31,7 @@ export default function TermsOfService() {
               We do not currently ask for your age and we do not collect a
               parent or guardian's permission before you sign up. We used to say
               on this page that we required "verifiable consent from a parent or
-              legal guardian" — we did not, and describing a check we do not
+              legal guardian". We did not, and describing a check we do not
               perform is worse than admitting we do not perform it.
             </p>
             <p className="mt-3">
@@ -83,8 +83,8 @@ export default function TermsOfService() {
             </h2>
             <p>
               Ontario's <em>Child, Youth and Family Services Act</em> places a duty
-              on <strong>every person</strong> — not only teachers, doctors or
-              social workers — to report immediately to a children's aid society
+              on <strong>every person</strong>. Not only teachers, doctors or
+              social workers, to report immediately to a children's aid society
               if they have reasonable grounds to suspect that a child is being
               abused, exploited or is at risk of it. The Act says this duty
               applies "despite the provisions of any other Act", which means

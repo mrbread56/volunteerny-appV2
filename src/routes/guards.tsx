@@ -90,7 +90,7 @@ const AccountSetupIncomplete: React.FC = () => {
           Let's finish setting up your account
         </h2>
         <p className="text-sm text-ink-soft leading-relaxed">
-          You're signed in, but your profile was never finished — usually because an
+          You're signed in, but your profile was never finished, usually because an
           earlier sign-up was interrupted. You can complete it now; you won't need to
           create a new account or use a different email address.
         </p>

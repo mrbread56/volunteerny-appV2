@@ -537,7 +537,7 @@ export default function OrgProfile() {
             <ChangePassword />
             <p className="text-xs text-ink-soft font-medium leading-relaxed border-t border-line-light pt-4">
               We send a 6-digit code to <strong className="text-ink-soft">{user?.email}</strong> each
-              time you sign in. Staying signed in on this device won't ask again — only a new sign-in will.
+              time you sign in. Staying signed in on this device won't ask again. Only a new sign-in will.
             </p>
           </Card>
 

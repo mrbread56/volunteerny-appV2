@@ -78,7 +78,7 @@ export default function ReportsTab({
             className="text-xs font-semibold tracking-wide px-4 py-2 rounded-lg border border-line hover:bg-paper-2 transition-colors shrink-0"
           >
             {showAll
-              ? `Showing all ${reports.length} — show only the ${open.length} open`
+              ? `Showing all ${reports.length}. Show only the ${open.length} open`
               : `Showing ${open.length} open. Show all ${reports.length}`}
           </button>
         </div>
@@ -278,7 +278,7 @@ export default function ReportsTab({
                       <div className="flex items-center gap-2">
                         {subjectUnknown ? (
                           <span className="text-xs font-semibold text-ink-muted bg-paper-2 border border-line px-3 py-1.5 rounded-lg">
-                            Account not in the loaded list — open the User Base tab to act on it
+                            Account not in the loaded list. Open the User Base tab to act on it
                           </span>
                         ) : isUserBanned ? (
                           <div className="flex items-center gap-2">

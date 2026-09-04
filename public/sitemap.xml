@@ -4,30 +4,50 @@
   (/student/*, /org/*, /developer/*, /mfa, /feedback) are deliberately omitted:
   they redirect to /login for anonymous crawlers, which wastes crawl budget and
   produces soft-404s in Search Console.
+
+  Keep this in step with the PublicLayout routes in src/routes/AppRoutes.tsx.
+  /about was added on 4 September 2026 and was missing from here until then,
+  which is exactly the failure mode this note exists to prevent.
+
+  Every loc uses www. The apex 308s to www, so an apex URL here would make
+  Google follow a redirect for every page and file them all as "Page with
+  redirect" rather than indexing them. Verified with curl on 4 Sep 2026:
+  apex/sitemap.xml -> 308 -> www/sitemap.xml -> 200 application/xml.
 -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://volunteernorthyork.org/</loc>
+    <loc>https://www.volunteernorthyork.org/</loc>
+    <lastmod>2026-09-04</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://volunteernorthyork.org/login</loc>
+    <loc>https://www.volunteernorthyork.org/about</loc>
+    <lastmod>2026-09-04</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.5</priority>
+    <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://volunteernorthyork.org/signup</loc>
+    <loc>https://www.volunteernorthyork.org/signup</loc>
+    <lastmod>2026-09-04</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://volunteernorthyork.org/terms</loc>
+    <loc>https://www.volunteernorthyork.org/login</loc>
+    <lastmod>2026-09-04</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://www.volunteernorthyork.org/terms</loc>
+    <lastmod>2026-09-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://volunteernorthyork.org/privacy</loc>
+    <loc>https://www.volunteernorthyork.org/privacy</loc>
+    <lastmod>2026-09-04</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.3</priority>
   </url>

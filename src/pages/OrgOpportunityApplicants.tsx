@@ -664,7 +664,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
       setReviewStudent(null);
       setErrorMessage(
         toUserMessage(err) ||
-        "We couldn't load this applicant's profile. Close this and try again — don't decide from a blank one.",
+        "We couldn't load this applicant's profile. Close this and try again. Don't decide from a blank one.",
       );
     }
   };
@@ -859,7 +859,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
 
           {opportunity.status === 'closed' && (
             <p className="text-sm text-ink-muted text-right">
-              This opportunity is closed — it no longer appears in browse and cannot receive new applications.
+              This opportunity is closed. It no longer appears in browse and cannot receive new applications.
             </p>
           )}
 
@@ -1186,7 +1186,7 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
               <X className="w-5 h-5" />
             </button>
             <h3 className="text-lg font-bold text-ink">Write a reference</h3>
-            <p className="text-sm text-ink-muted">For <strong>{recApp.studentName}</strong> — {recApp.opportunityTitle || opportunity?.title}</p>
+            <p className="text-sm text-ink-muted">For <strong>{recApp.studentName}</strong>, {recApp.opportunityTitle || opportunity?.title}</p>
             <div className="flex gap-1 py-2">
               {[1, 2, 3, 4, 5].map(s => (
                 <button key={s} onClick={() => setRecRating(s)} className="p-1 transition-transform hover:scale-110">

@@ -2239,7 +2239,7 @@ app.use(express.json());
       // The client's wording for this was unreachable because this message
       // always won the `result?.error ||` race.
       return res.status(500).json({
-        error: 'We could not finish deleting your account. Some of it may already be removed — please press Delete again to complete it.',
+        error: 'We could not finish deleting your account. Some of it may already be removed. Please press Delete again to complete it.',
       });
     }
   });
@@ -2328,7 +2328,7 @@ app.use(express.json());
          */
         return res.status(502).json({
           error: 'The deletion did not finish, and it may have removed part of the account.',
-          details: 'Press Delete again — it is safe to repeat and picks up wherever it stopped. ' +
+          details: 'Press Delete again. It is safe to repeat and picks up wherever it stopped. ' +
                    'Until it completes, that person may still be able to sign in.',
         });
       }
@@ -2597,7 +2597,7 @@ app.use(express.json());
 
       const accepted = status === 'accepted' || status === 'waitlist_promoted';
       const subject = status === 'waitlist_promoted'
-        ? `A spot opened up — you're in for "${oppTitle}"`
+        ? `A spot opened up. You're in for "${oppTitle}"`
         : accepted
           ? `Your application for "${oppTitle}" was accepted`
           : status === 'terminated'
@@ -2817,7 +2817,7 @@ app.use(express.json());
               oppTitle,
               orgName,
               status: 'rejected',
-              note: 'This opportunity has been withdrawn by the organization, so your application has been closed. Nothing went wrong with your application — please browse other opportunities.',
+              note: 'This opportunity has been withdrawn by the organization, so your application has been closed. Nothing went wrong with your application. Please browse other opportunities.',
             });
             if (!html) { uncontacted++; continue; }
             const { error: sendErr } = await resend.emails.send({
@@ -3640,7 +3640,7 @@ app.use(express.json());
               heading: "You've reached 40 volunteer hours",
               details:
                 `That is the community involvement requirement for your Ontario Secondary School Diploma, complete. ` +
-                `Print your hours record and take it to your guidance office — your school may also need its own signed form.`,
+                `Print your hours record and take it to your guidance office. Your school may also need its own signed form.`,
               actionLabel: 'Print your hours record',
               actionUrl: `${appOrigin()}/student/dashboard?tab=hours`,
             });
@@ -5227,7 +5227,7 @@ app.use(express.json());
             // membership oracle for a platform used by minors.
             console.warn(`[email/send] ${authContext.uid} tried to email ${refused.length} unrelated address(es).`);
             return res.status(403).json({
-              error: 'You can only email people connected to your account — an organization you applied to, a student who applied to you, or a coordinator you named.',
+              error: 'You can only email people connected to your account. An organization you applied to, a student who applied to you, or a coordinator you named.',
             });
           }
 
@@ -5622,7 +5622,7 @@ app.use(express.json());
       return res.json({
         category: 'other',
         priority: 'low',
-        overview: 'Demo mode does not run the AI triage — this is placeholder output.',
+        overview: 'Demo mode does not run the AI triage. This is placeholder output.',
       });
     }
 
@@ -5648,7 +5648,7 @@ app.use(express.json());
         // This branch is a graceful degradation, not an error — the ticket is
         // still filed and triaged by hand. Don't name the missing env var in a
         // response that reaches end users.
-        suggestedFix: 'Standard review required — this ticket will be triaged manually.',
+        suggestedFix: 'Standard review required. This ticket will be triaged manually.',
         aiAvailable: false,
       });
     }

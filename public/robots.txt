@@ -12,4 +12,4 @@ Disallow: /feedback
 # This previously advertised the sitemap on volunteernorthyork.indevs.in, which
 # does not resolve, and the file did not exist on either domain. Both now point
 # at the origin that actually serves the app.
-Sitemap: https://volunteernorthyork.org/sitemap.xml
+Sitemap: https://www.volunteernorthyork.org/sitemap.xml

@@ -354,7 +354,7 @@ export default function Signup() {
         setError(
           profileErr?.code === 'permission-denied'
             ? "Your account was created, but we couldn't save your profile. Please try submitting again."
-            : "We couldn't finish setting up your profile. Your account is safe — please try again."
+            : "We couldn't finish setting up your profile. Your account is safe. Please try again."
         );
         return;
       }

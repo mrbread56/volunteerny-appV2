@@ -117,7 +117,7 @@ export default function DeveloperDashboard() {
         if (body.mode === 'live') {
           setTestEmailStatus({
             success: true,
-            message: `Delivery succeeded — Resend accepted the message for ${testEmailTo}.`
+            message: `Delivery succeeded. Resend accepted the message for ${testEmailTo}.`
           });
         } else if (body.mode === 'demo') {
           setTestEmailStatus({
@@ -444,7 +444,7 @@ export default function DeveloperDashboard() {
     } catch (err) {
       console.error('Ban action write failure:', err);
       setActionError(
-        `Could not ${isCurrentlyBanned ? 'restore' : 'suspend'} that account — nothing was changed. Please try again.`
+        `Could not ${isCurrentlyBanned ? 'restore' : 'suspend'} that account. Nothing was changed. Please try again.`
       );
     }
   };
@@ -542,7 +542,7 @@ export default function DeveloperDashboard() {
     } catch (err) {
       // The reply stays in the box so it is not lost and can be retried.
       setConsoleNotice(
-        reportError('send feedback reply', err, "That reply wasn't saved. Your text is still here — try again."),
+        reportError('send feedback reply', err, "That reply wasn't saved. Your text is still here, try again."),
       );
     } finally {
       setIsReplying(null);
@@ -568,7 +568,7 @@ export default function DeveloperDashboard() {
     } catch (err) {
       console.error('Failed to change report status:', err);
       setActionError(
-        `That safety report is still ${newStatus === 'resolved' ? 'unresolved' : 'open'} — the change was not saved. Please try again.`
+        `That safety report is still ${newStatus === 'resolved' ? 'unresolved' : 'open'}. The change was not saved. Please try again.`
       );
       loadData();
     }
@@ -1129,7 +1129,7 @@ export default function DeveloperDashboard() {
               <p className="text-xs text-ink-muted leading-relaxed mt-1">
                 Walk the site as a fictional student or organization, on local fixture
                 data. Nothing here reaches the real database. Entering ends your
-                developer session — you will need to sign back in afterwards.
+                developer session. You will need to sign back in afterwards.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
@@ -1276,7 +1276,7 @@ export default function DeveloperDashboard() {
                       {emailLogs.slice(0, 25).map((log: any) => (
                         <tr key={log.id} className="border-b border-line-light last:border-0 align-top">
                           <td className="py-2 pr-4 whitespace-nowrap text-ink-muted">
-                            {log.at ? new Date(log.at).toLocaleString() : '—'}
+                            {log.at ? new Date(log.at).toLocaleString() : 'Not yet'}
                           </td>
                           <td className="py-2 pr-4 break-all">{log.to}</td>
                           <td className="py-2 pr-4">{log.subject}</td>
@@ -1309,7 +1309,7 @@ export default function DeveloperDashboard() {
         <h3 className="text-lg font-semibold uppercase text-ink-soft">Category Interest Requests</h3>
         <p className="text-sm text-ink-muted">
           Students who used "Join List" to say what they want to volunteer in. They were told they
-          were added to a waitlist, so these are worth acting on — recruit organizations in these
+          were added to a waitlist, so these are worth acting on. Recruit organizations in these
           categories, or email the students when something matches.
         </p>
         {interestRequests.length === 0 ? (

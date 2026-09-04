@@ -33,7 +33,7 @@ export default function EmailDeliveryNote({
       <MailWarning className="w-3.5 h-3.5 mt-px shrink-0" aria-hidden="true" />
       <span>
         Email can take a few minutes to arrive and sometimes lands in{' '}
-        {who} spam or junk folder — please check there if you don't see it.
+        {who} spam or junk folder. Please check there if you don't see it.
       </span>
     </p>
   );

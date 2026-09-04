@@ -641,7 +641,7 @@ export default function OrgOpportunityEdit() {
                      type="number"
                      min="0"
                      max="120"
-                     placeholder="e.g. 16 — leave blank if there is no minimum"
+                     placeholder="e.g. 16, leave blank if there is no minimum"
                      value={minAge}
                      onChange={(e) => setMinAge(e.target.value)}
                    />

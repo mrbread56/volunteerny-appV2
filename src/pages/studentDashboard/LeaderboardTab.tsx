@@ -48,7 +48,7 @@ export default function LeaderboardTab({
         <h3 className="text-lg font-bold text-ink">The leaderboard could not be loaded</h3>
         <p className="text-xs text-ink-soft font-semibold max-w-sm mx-auto leading-relaxed">
           We couldn't read the current rankings. Please refresh the page in a
-          moment — if this keeps happening, let us know through Feedback.
+          moment. If this keeps happening, let us know through Feedback.
         </p>
       </div>
     );

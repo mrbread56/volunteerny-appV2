@@ -187,14 +187,14 @@ export default function Login() {
           console.error('Could not remove the empty Google account, falling back to profile recovery:', cleanupErr);
           navigate("/signup", {
             replace: true,
-            state: { message: "Almost there — we just need a few details to finish setting up your account." },
+            state: { message: "Almost there. We just need a few details to finish setting up your account." },
           });
           return;
         }
         navigate("/signup", {
           replace: true,
           state: {
-            message: "There's no account for that Google address yet. Sign up here first — it takes a minute, and afterwards you can use Continue with Google to sign in.",
+            message: "There's no account for that Google address yet. Sign up here first. It takes a minute, and afterwards you can use Continue with Google to sign in.",
           },
         });
         return;

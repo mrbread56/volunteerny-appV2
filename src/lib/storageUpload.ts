@@ -113,7 +113,7 @@ export async function uploadFileToStorage(
       task.cancel();
       reject(
         new Error(
-          'The upload did not complete. File storage may not be set up for this site — ' +
+          'The upload did not complete. File storage may not be set up for this site, ' +
             'you can submit without an attachment, and please report this.',
         ),
       );

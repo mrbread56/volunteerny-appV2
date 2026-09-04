@@ -176,7 +176,7 @@ export default function ChangePassword() {
       {error && <p role="alert" className="text-xs font-semibold text-red-600">{error}</p>}
       {done && (
         <p role="status" className="text-xs font-semibold text-emerald-700">
-          Password changed. Use the new one next time you sign in. If you are asked for a code now, that is expected — changing a password starts a new session.
+          Password changed. Use the new one next time you sign in. If you are asked for a code now, that is expected. Changing a password starts a new session.
         </p>
       )}
     </div>

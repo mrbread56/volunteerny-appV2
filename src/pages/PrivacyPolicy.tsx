@@ -81,7 +81,7 @@ export default function PrivacyPolicy() {
             </p>
             <p className="mt-3">
               If you are a parent or guardian and you want your child's account
-              and data removed, email us and we will do it — you do not need to
+              and data removed, email us and we will do it. You do not need to
               give a reason.
             </p>
           </section>
@@ -113,7 +113,7 @@ export default function PrivacyPolicy() {
               <strong>Print or save your hours record before you delete your
               account.</strong> We do not keep a copy for you and cannot restore
               one afterwards. Your school holds the record that counts toward
-              graduation — this site is only your own tracking copy.
+              graduation. This site is only your own tracking copy.
             </p>
             <p className="mt-3">
               An organisation keeps its own record of the hours it confirmed, in

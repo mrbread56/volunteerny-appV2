@@ -103,7 +103,7 @@ export default function RecoveryCodes() {
       {codes ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 space-y-3">
           <p className="text-sm font-semibold text-amber-900">
-            Save these now — this is the only time they are shown.
+            Save these now. This is the only time they are shown.
           </p>
           <ul className="grid grid-cols-2 gap-x-4 gap-y-1 font-mono text-sm text-ink">
             {codes.map((c) => <li key={c}>{c}</li>)}

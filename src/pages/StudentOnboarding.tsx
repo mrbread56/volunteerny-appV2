@@ -139,7 +139,7 @@ export default function StudentOnboarding() {
       console.error("Error writing database onboarding:", err);
       setError(
         err?.code === 'permission-denied'
-          ? "We couldn't save your details. Please refresh and try again — if it keeps happening, contact support."
+          ? "We couldn't save your details. Please refresh and try again. If it keeps happening, contact support."
           : "We couldn't save your details. Please check your connection and try again."
       );
     } finally {

@@ -788,7 +788,7 @@ export default function OrgDashboard() {
       setReviewStudent(null);
       setErrorMessage(
         toUserMessage(err) ||
-        "We couldn't load this applicant's profile. Close this and try again — don't decide from a blank one.",
+        "We couldn't load this applicant's profile. Close this and try again. Don't decide from a blank one.",
       );
     }
   };
@@ -1065,7 +1065,7 @@ export default function OrgDashboard() {
           unverified: {
             tone: 'border-blue-dark/20 bg-blue-dark/5',
             title: 'One step before you can post',
-            body: 'Students meet organizations in person, and most of them are under 18, so a person reviews every organization before its opportunities are shown. You are already in the queue. Adding a website and your address helps us approve you faster — it usually takes a day or two.',
+            body: 'Students meet organizations in person, and most of them are under 18, so a person reviews every organization before its opportunities are shown. You are already in the queue. Adding a website and your address helps us approve you faster. It usually takes a day or two.',
             cta: { to: '/org/profile', label: 'Complete your profile' },
           },
           pending: {

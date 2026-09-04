@@ -105,7 +105,7 @@ export function useOrgDashboardData(
             reportError(
               'load opportunities',
               dbErr,
-              "We couldn't load your opportunities. Refresh to try again — they have not been deleted.",
+              "We couldn't load your opportunities. Refresh to try again. They have not been deleted.",
             ),
           );
         }

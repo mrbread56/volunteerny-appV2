@@ -478,7 +478,7 @@ export default function OrgOpportunityCreate() {
     const copy = {
       pending: {
         title: 'Your organization is being reviewed',
-        body: 'We check every organization before its opportunities reach students. This usually takes a day or two — we will email you the moment it is done, and you can post straight away.',
+        body: 'We check every organization before its opportunities reach students. This usually takes a day or two. We will email you the moment it is done, and you can post straight away.',
         cta: null,
       },
       rejected: {
@@ -488,7 +488,7 @@ export default function OrgOpportunityCreate() {
       },
       unverified: {
         title: 'Get verified before you post',
-        body: 'Students volunteer in person, often as minors, so a person checks every organization before its opportunities are shown. Add your details on your profile and ask for review — it usually takes a day or two.',
+        body: 'Students volunteer in person, often as minors, so a person checks every organization before its opportunities are shown. Add your details on your profile and ask for review. It usually takes a day or two.',
         cta: { to: '/org/profile', label: 'Go to your profile' },
       },
     }[verification === 'pending' ? 'pending' : verification === 'rejected' ? 'rejected' : 'unverified'];
@@ -596,7 +596,7 @@ export default function OrgOpportunityCreate() {
                     type="number"
                     min="0"
                     max="120"
-                    placeholder="e.g. 16 — leave blank if there is no minimum"
+                    placeholder="e.g. 16, leave blank if there is no minimum"
                     value={minAge}
                     onChange={(e) => setMinAge(e.target.value)}
                   />

@@ -51,7 +51,7 @@ const FIRESTORE_MESSAGES: Record<string, string> = {
   unauthenticated: 'Your session has expired. Please sign in again.',
   unavailable: 'We could not reach the server. Please check your connection and try again.',
   'deadline-exceeded': 'That took too long to complete. Please try again.',
-  'not-found': 'We could not find that item — it may have been removed.',
+  'not-found': 'We could not find that item. It may have been removed.',
   'already-exists': 'That already exists.',
   'resource-exhausted': 'The service is busy right now. Please try again in a moment.',
   cancelled: 'That request was cancelled.',

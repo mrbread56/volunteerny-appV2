@@ -323,7 +323,7 @@ export function useDeveloperDashboardData(
         reportError(
           'load developer admin lists',
           err,
-          "Couldn't load the admin lists. They may be incomplete — refresh to try again.",
+          "Couldn't load the admin lists. They may be incomplete. Refresh to try again.",
         ),
       );
     } finally {

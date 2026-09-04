@@ -509,7 +509,7 @@ export default function StudentDashboard() {
       `Withdraw your application for "${app.opportunityTitle || 'this opportunity'}"?
 
 ` +
-      `You can apply again afterwards. If you want, say why — it is sent to the ` +
+      `You can apply again afterwards. If you want, say why. It is sent to the ` +
       `organization so they know. Leave it blank to withdraw without a reason.`,
       '',
     );
@@ -1804,7 +1804,7 @@ export default function StudentDashboard() {
             <div className="space-y-2">
               <p className="text-sm leading-relaxed text-amber-800 font-semibold bg-amber/10 border border-amber/40 rounded-lg p-2.5">
                 ⚠️ These hours do NOT count toward your total yet. They are
-                added only after your coordinator approves the request — track
+                added only after your coordinator approves the request. Track
                 the status under Submitted Claims.
               </p>
               <EmailDeliveryNote who="your coordinator's" />

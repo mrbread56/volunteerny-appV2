@@ -147,7 +147,7 @@ export default function MetricsTab() {
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
               <TrendingUp className="w-4 h-4 text-blue-dark" />
-              Signal — both sides had to act for these to move
+              Signal, both sides had to act for these to move
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               <Figure
@@ -159,7 +159,7 @@ export default function MetricsTab() {
               <Figure
                 emphasis
                 label="Median days to decision"
-                value={s.medianDaysToDecision === null ? '—' : String(s.medianDaysToDecision)}
+                value={s.medianDaysToDecision === null ? 'Not yet' : String(s.medianDaysToDecision)}
                 hint={s.decisionsMeasured === 0
                   ? 'No application has been decided yet. Measurable from the very first one.'
                   : `Across ${s.decisionsMeasured} decided application${s.decisionsMeasured === 1 ? '' : 's'}. What a listings board structurally cannot improve.`}
@@ -194,7 +194,7 @@ export default function MetricsTab() {
           <section className="space-y-3">
             <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
               <Hash className="w-4 h-4 text-ink-muted" />
-              Counts — these rise whether or not anything happens
+              Counts. These rise whether or not anything happens
             </h3>
             <p className="text-xs text-ink-muted max-w-2xl leading-relaxed">
               Registrations are mandate-driven and cost nothing. Postings are free and

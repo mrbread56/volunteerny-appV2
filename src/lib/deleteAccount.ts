@@ -46,7 +46,7 @@ export async function deleteOwnAccount(confirmEmail: string): Promise<void> {
     throw new Error(
       result?.error ||
       (partial
-        ? 'We could not finish deleting your account. Some of it may already be removed — please press Delete again to complete it.'
+        ? 'We could not finish deleting your account. Some of it may already be removed. Please press Delete again to complete it.'
         : `Your account was not deleted (${response.status}).`),
     );
   }
