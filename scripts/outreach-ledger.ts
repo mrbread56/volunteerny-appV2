@@ -143,6 +143,29 @@ const RESENT_2026_09_03_B = [
   'nych@nych.ca', 'media@taric.org', 'ntbaregistrar@bell.net',
 ];
 
+/**
+ * 4 Sep. The rest of the list, and no quota block anywhere in it. Eighteen
+ * messages went out in one sitting, which is past the fifteen that had looked
+ * like a hard ceiling on 1 and 3 Sep. So the limit is the rolling daily count,
+ * not a per-session or per-hour throttle: once the previous day's messages
+ * aged out, the whole remaining list went in one run.
+ *
+ * Two hard bounces, both dead addresses rather than anything to do with us.
+ *
+ * This empties the pool. Every organisation on the original list has now
+ * received the outreach, or has an address that does not work.
+ */
+const RESENT_2026_09_04 = [
+  'michael.ellison@toronto.ca', 'receptionhd@afghanwomen.org',
+  'swoolner@symewoolner.org', 'storehouse@rhemaonline.ca',
+  'seung.lee@salvationarmy.ca', 'secretary@rcl66.com',
+  'rcl527president@hotmail.com', 'office@stgeorgestoronto.ca',
+  'stthomasaquinasto@archtoronto.org', 'nykha.knights@gmail.com',
+  'rcny.monica@gmail.com', 'tzuchi@tzuchi.ca', 'volunteers@hrh.ca',
+  'volunteer@nygh.on.ca', 'volunteering@villacolombo.on.ca',
+  'webmaster@northyorkstorm.com',
+];
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
@@ -150,6 +173,9 @@ const DEAD: Record<string, string> = {
   // 3 Sep: 554 30 Sorry, no mailbox here by that name. The Rotary Club of
   // Willowdale contact is gone; this needs a NEW address, not another attempt.
   'lyonrex@rogers.com': 'mailbox no longer exists (554)',
+  // 4 Sep, both hard bounces on first contact.
+  'nysa@nysoccer.ca': 'domain nysoccer.ca does not resolve',
+  'marinawilliams@rogers.com': 'address not found (552)',
 };
 
 /** Recipient's server refused the message, 26 Aug, SMTP 5.7.1. */
@@ -178,7 +204,7 @@ export function buildLedger() {
   // BLOCKED_2026_09_01 is deliberately NOT here. Those eight never arrived and
   // stay in the send pool.
   const delivered = new Set(
-    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B].map(norm),
+    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04].map(norm),
   );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
