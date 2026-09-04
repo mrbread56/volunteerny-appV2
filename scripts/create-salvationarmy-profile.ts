@@ -14,12 +14,13 @@
  *                            merely the street number
  *   services, catchment      same 211 record
  *
- * craNumber IS DELIBERATELY BLANK. The Salvation Army in Canada registers
- * every location under one business number with a different account suffix:
- * 107951618RR0001 is the Governing Council, and RR0067, RR0272 and RR0487 are
- * three other churches. Yorkwoods has its own and it cannot be derived, so it
- * is left empty for Seung to supply. Filling in the head office number would
- * record a charity registration that is not this location's.
+ * craNumber is 107951618RR0001, taken from ywccsa.ca itself rather than
+ * guessed. That is the Governing Council's number, and The Salvation Army
+ * registers locations under one business number with different account
+ * suffixes (RR0067, RR0272 and RR0487 are three other churches). Yorkwoods
+ * publishes RR0001 as its own registration, so that is what is recorded:
+ * the number the organisation states, not one inferred for it. craVerified
+ * stays false because nobody has checked it against the CRA registry.
  *
  * verificationStatus is 'pending', not 'verified'. Seung has said yes by email
  * but nobody has yet confirmed he speaks for the location, which is the whole
@@ -44,28 +45,28 @@ const PROFILE = {
   organizationType: 'Faith-based organization',
   organizationTypeOther: '',
   mission:
-    'The Salvation Army Yorkwoods Community Church runs community and family services for the Jane and Finch area, including a food bank, an after school homework club, a summer camp for children, and Christmas assistance.',
+    'A place for all ages to connect. Yorkwoods Community Church runs community and family services for the Jane and Finch area, including a food bank, an after school homework club, a summer camp for children, and Christmas programs. The church describes itself as creating a safe and inclusive environment where children, youth, adults and seniors can grow together.',
   address: '20 Yorkwoods Gate, North York, ON M3N 1J8',
   coordinates: { lat: 43.7514944, lng: -79.5141476 },
   phone: '(416) 631-7222 ext 102',
   contactEmail: 'Seung.Lee@salvationarmy.ca',
-  websiteUrl: '',
-  craNumber: '',
+  websiteUrl: 'https://ywccsa.ca',
+  craNumber: '107951618RR0001',
   craVerified: false,
-  hasCra: false,
+  hasCra: true,
   northYorkConfirmed: true,
   verificationStatus: 'pending',
 };
 
 /** What Seung still has to answer before any listing can go live. */
 const OUTSTANDING = [
-  'Charity registration number for THIS location, not the Governing Council',
   'Food bank: days, hours, how many volunteers at once, minimum age',
-  'Toy distribution: dates this year, same three answers',
+  'Toy Mountain: dates this year, same three answers',
   'Kettle campaign: dates, whether to list it as shifts, minimum age',
+  'Santa Shuffle: is it wanted as a listing too? It is on their volunteer page and was not in his email',
   'Who students report to on arrival, and where',
   'Anything students should bring or wear',
-  'A website for this location. sayorkcc.com is York Community Church on Weston Road, a different site',
+  'Whether a student who applies here must ALSO complete The Salvation Army volunteer application, and whether any screening applies at their age',
 ];
 
 async function main() {
