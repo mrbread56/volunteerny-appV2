@@ -4,14 +4,13 @@ import { usePageTitle } from '../hooks/usePageTitle';
 /**
  * Who built this and why.
  *
- * Deliberately does not name the founders. Everyone who built this is a minor,
- * the site is public, and a name on a public page is not something a fifteen
- * year old can take back later. "A couple of high school students in North
- * York" carries the part that matters, which is that the people who made it
- * are the people who needed it.
+ * Copy is the owner's, supplied verbatim. Do not rewrite it without being
+ * asked: earlier drafts of this page were rejected for sounding written rather
+ * than said, and this version is the one he wanted.
  *
- * Every number here is real and checkable. Nothing claims that hours logged on
- * this site are filed with a school board, because they are not.
+ * Deliberately names nobody. Everyone who built this is a minor and the page
+ * is public and indexable, so a name here is not something a fifteen year old
+ * can take back later.
  */
 export default function About() {
   usePageTitle('About us');
@@ -26,9 +25,10 @@ export default function About() {
           We built this because we needed it
         </h1>
         <p className="text-lg leading-[1.7] text-ink-soft mb-16">
-          Volunteer North York was made by a couple of high school students in
-          North York, for high school students in North York. We are not a
-          company and nobody is paid. The site is free, and it will stay free.
+          Volunteer North York was started by a couple of high school students
+          in North York who were having trouble finding volunteer opportunities
+          ourselves. We wanted to make that process easier for other students
+          going through the same thing.
         </p>
 
         <div className="space-y-12 text-base leading-[1.8] text-ink-muted">
@@ -37,54 +37,68 @@ export default function About() {
               Where this came from
             </h2>
             <p>
-              Every high school student in Ontario has to complete 40 hours of
-              community involvement before they can graduate. Between us we have
-              done more than 600. What surprised us was that the volunteering
-              was never the hard part. Finding it was.
+              Every high school student in Ontario needs 40 hours of community
+              involvement before graduating. Between us, we have completed more
+              than 600 hours.
             </p>
             <p className="mt-3">
-              We would come across an organization we genuinely wanted to help,
-              and they were not taking anyone that month. Or there was an
-              opening, but it was an hour away by bus. Or it ran during school.
-              Or the minimum age was 16 and we were 14. We wanted to help. We
-              just could not find the door.
+              Finding somewhere to volunteer was often harder than actually
+              volunteering.
             </p>
             <p className="mt-3">
-              We thought it might just be us, so before building anything we
-              asked other students one question: is finding a place to volunteer
-              one of the biggest challenges when you try to volunteer? Out of
-              the first 20 students, more than 70% said yes. Twenty is a small
-              number and we know it. It was enough to convince us the problem
-              was worth trying to solve.
+              We would find an organization we really wanted to help, only to
+              discover they were not accepting volunteers that month. Sometimes
+              an opportunity was an hour away by bus. Other times it was during
+              school hours, or the minimum age was 16 when we were 14.
+            </p>
+            <p className="mt-3">
+              We knew we could not be the only students dealing with this.
+            </p>
+            <p className="mt-3">
+              Before building Volunteer North York, we asked other students
+              whether finding a place to volunteer was one of the biggest
+              challenges they faced. More than 70% of the first 20 students we
+              asked said yes. We know 20 students is a small sample, but it was
+              enough for us to think the problem was worth trying to solve.
             </p>
           </section>
 
           <section>
             <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">
-              Asking people who knew better than us
+              We asked people who knew more than we did
             </h2>
             <p>
-              We spent months building it, and then did something that felt
-              terrifying at the time. We emailed professors who had no reason at
-              all to reply to a group of teenagers, and asked them to tear the
-              project apart.
+              After spending months working on the platform, we started reaching
+              out to professors and other people who could give us an outside
+              perspective.
             </p>
             <p className="mt-3">
-              Some of them wrote back. Professor Marsha Chechik at the
-              University of Toronto, who holds a chair in software engineering,
-              told us that what we were doing was "extremely useful," and pushed
-              us on scalability, privacy and security. Professor Jeff Avery at
-              the University of Waterloo went through the platform screen by
-              screen and asked the questions we had never thought of, like what
-              an organization is supposed to do when 200 people apply and there
-              are two places.
+              We were honestly not sure how many people would respond. We were
+              just high school students asking people with much more experience
+              to look at something we had built.
+            </p>
+            <p className="mt-3">Some did.</p>
+            <p className="mt-3">
+              Professor Marsha Chechik at the University of Toronto told us the
+              idea was "extremely useful" and challenged us to think more
+              seriously about things like scalability, privacy and security.
             </p>
             <p className="mt-3">
-              And a third professor at Waterloo asked the one question that
-              changed the most: students prove who they are with a school email,
-              but who checks the organizations? We did not have a good answer.
-              That question is the reason we now review every organization by
-              hand before it can post anything.
+              Professor Jeff Avery at the University of Waterloo went through the
+              platform with us and raised questions we had not considered. One
+              example was what happens if 200 students apply for an opportunity
+              that only has two spots.
+            </p>
+            <p className="mt-3">
+              Another Waterloo professor asked us a question that changed how we
+              handle organizations on the platform: students can use their school
+              email to help show who they are, but how do we know an
+              organization is legitimate?
+            </p>
+            <p className="mt-3">We did not have a good answer at the time.</p>
+            <p className="mt-3">
+              That is one of the reasons we now review organizations ourselves
+              before they can post opportunities.
             </p>
           </section>
 
@@ -93,54 +107,23 @@ export default function About() {
               How we think about safety
             </h2>
             <p>
-              Almost everyone using this site is between 14 and 18. That changes
-              what we are allowed to get wrong.
+              Most students using Volunteer North York are between 14 and 18, so
+              we take the organizations on the platform seriously.
             </p>
             <p className="mt-3">
-              No organization can post anything until we have reviewed it
-              ourselves. Registered charities give us their charity registration
-              number. For everyone else we look at the organization directly:
-              its website, its address, how to reach it. Organizations are also
-              required to use two step sign in, because they can see the contact
-              details of students who apply to them.
+              Organizations cannot post opportunities until we have reviewed
+              them. Registered charities provide their charity registration
+              number. For other organizations, we look at things such as their
+              website, address and contact information.
             </p>
             <p className="mt-3">
-              We would rather grow slowly and check everything than grow quickly
-              and find out later.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">
-              Where we are now
-            </h2>
-            <p>
-              We have written to more than seventy organizations across Toronto,
-              one at a time. Several are now on the site, among them Community
-              Share Food Bank, Flemingdon Food Bank, the Tirgan Centre for Art
-              and Culture and the Weston King Neighbourhood Centre.
+              Organizations are also required to use two-step sign-in because
+              they may receive contact information from students who apply to
+              their opportunities.
             </p>
             <p className="mt-3">
-              We are early, and we would rather say so than pretend otherwise.
-              If you are a student, the honest position is that there is more
-              coming than there is today. If you are an organization, the honest
-              position is that we will do the work of setting your listing up
-              for you, and you can take it down the moment it stops being
-              useful.
-            </p>
-          </section>
-
-          <section>
-            <h2 className="text-lg font-semibold text-ink tracking-[-0.02em] mb-3">
-              What we are not
-            </h2>
-            <p>
-              We are not your school board and we are not affiliated with one.
-              Hours confirmed on this site are confirmed by the organization you
-              volunteered with, which is worth something, but your school
-              decides on its own whether to count them, and you may still need
-              your board's own community involvement form. We would rather tell
-              you that plainly here than have you find out at the office.
+              We would rather take a little longer to review an organization
+              than let something questionable onto the platform.
             </p>
           </section>
 
@@ -149,11 +132,22 @@ export default function About() {
               Get in touch
             </h2>
             <p>
-              If you run an organization and want students, if you are a student
-              and something is broken, or if you just think we have got
-              something wrong, we would genuinely like to hear it.
+              We are still early in this project, and we want to be upfront
+              about that.
             </p>
             <p className="mt-3">
+              There is still a lot we want to improve and add. If you are a
+              student, you may not find everything you are looking for yet. If
+              you are an organization, we are happy to help set up your listing
+              and make changes if something is not working for you.
+            </p>
+            <p className="mt-3">
+              If you run an organization and want to work with students, if you
+              are a student and something is not working, or if you have an idea
+              for how we can make Volunteer North York better, we would like to
+              hear from you.
+            </p>
+            <p className="mt-4">
               <a
                 href="mailto:volunteernorthyorkbusiness@gmail.com"
                 className="font-semibold text-blue-dark hover:underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-blue-dark focus-visible:outline-offset-2 rounded"
@@ -162,14 +156,14 @@ export default function About() {
               </a>
             </p>
             <p className="mt-3">
-              You can also send us feedback from inside the site on the{' '}
+              You can also send feedback through the{' '}
               <Link
                 to="/feedback"
                 className="font-semibold text-blue-dark hover:underline underline-offset-2 focus-visible:outline-3 focus-visible:outline-blue-dark focus-visible:outline-offset-2 rounded"
               >
                 feedback page
-              </Link>
-              , which comes straight to us.
+              </Link>{' '}
+              inside the site. It comes directly to us.
             </p>
           </section>
         </div>
