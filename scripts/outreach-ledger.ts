@@ -166,6 +166,60 @@ const RESENT_2026_09_04 = [
   'webmaster@northyorkstorm.com',
 ];
 
+/**
+ * 7 Sep. A NEW list, not the original ninety. These come from
+ * outreach-prospects.ts, which is the queue of organisations found after the
+ * first list was exhausted on 4 Sep.
+ *
+ * Twelve out, eleven accepted, one hard bounce, no quota block anywhere. That
+ * is the third day running that twelve has been comfortable, so PER_DAY stays
+ * where it is.
+ */
+const SENT_2026_09_07 = [
+  'volunteer@baycrest.org', 'volunteer.admin@agakhanmuseum.org',
+  'volunteering@ymcagta.org', 'wrowney@trca.on.ca',
+  'volunteers@hollandbloorview.ca', 'tzvolunteers@torontozoo.ca',
+  'kstintz@varietyontario.ca', 'toronto.programs@specialolympicsontario.ca',
+  'picks@notfarfromthetree.org', 'volunteer@circleofcare.com',
+  'volunteer@marchofdimes.ca',
+  // three more the same evening, taking the day to fifteen. All accepted, so
+  // the block sits at sixteen exactly as it did on 3 Sep. Fifteen is the
+  // ceiling, not a coincidence, and twelve stays the number to plan on.
+  'volunteer@sprintseniorcare.org', 'volunteering@reena.org',
+  'swinter@cltoronto.ca',
+  // sixteenth of the day, accepted.
+  'volunteer@sunnybrook.ca',
+];
+
+/**
+ * 7 Sep. WoodGreen refused twice, and it is NOT a quota block.
+ *
+ * The two bounce texts are different things and had been conflated:
+ *
+ *   quota      "You have reached a limit for sending mail. Your message was
+ *              not sent."          (19 Aug, 2 Sep)
+ *   recipient  "Message blocked. Your message to X has been blocked...
+ *              Status: 5.7.1"      (26 Aug, and this)
+ *
+ * No quota bounce appeared anywhere on 7 Sep. Seventeen messages went out and
+ * sixteen were accepted, so the daily ceiling was never reached that day.
+ *
+ * volunteer@woodgreen.org was then attempted a SECOND time through an entirely
+ * different API client, minutes later, and returned the identical 5.7.1. Two
+ * unrelated send paths, same recipient, same refusal, while sixteen other
+ * recipients accepted mail from this mailbox in the same sitting. That is the
+ * receiving end refusing, not Google throttling the sender.
+ *
+ * So this is a recipient-side rejection to investigate, not a message to retry
+ * blindly. WoodGreen may filter cold mail, or the address may be defended by
+ * something that scores this message badly. Ask them by phone before spending
+ * another send: (416) 645-6000 ext 5235.
+ */
+const BLOCKED_2026_09_07 = [
+  'volunteer@woodgreen.org',
+];
+void BLOCKED_2026_09_07;   // referenced here so the record is not silently dropped
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
@@ -176,6 +230,12 @@ const DEAD: Record<string, string> = {
   // 4 Sep, both hard bounces on first contact.
   'nysa@nysoccer.ca': 'domain nysoccer.ca does not resolve',
   'marinawilliams@rogers.com': 'address not found (552)',
+  // 7 Sep. Published on North York Harvest's OWN volunteer page as the contact
+  // for community groups and schools, which is the best-matched address found
+  // in the whole second sweep, and it does not exist. Their page is stale.
+  // lisa@northyorkharvest.com is the replacement; call 416-635-7771 x2900
+  // before spending another send on a guess.
+  'leslie@northyorkharvest.com': 'address not found (550 5.2.1)',
 };
 
 /** Recipient's server refused the message, 26 Aug, SMTP 5.7.1. */
@@ -204,7 +264,8 @@ export function buildLedger() {
   // BLOCKED_2026_09_01 is deliberately NOT here. Those eight never arrived and
   // stay in the send pool.
   const delivered = new Set(
-    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04].map(norm),
+    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04,
+     ...SENT_2026_09_07].map(norm),
   );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
