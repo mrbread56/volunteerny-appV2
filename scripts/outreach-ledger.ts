@@ -192,31 +192,43 @@ const SENT_2026_09_07 = [
 ];
 
 /**
- * 7 Sep. WoodGreen refused twice, and it is NOT a quota block.
+ * 7 Sep, from 21:47 onward. Everything blocked. NONE of these arrived, so they
+ * stay in the pool and are deliberately NOT in the delivered set below.
  *
- * The two bounce texts are different things and had been conflated:
+ * This was misdiagnosed twice before the control case turned up, and the wrong
+ * turn is worth writing down because it is easy to repeat.
  *
- *   quota      "You have reached a limit for sending mail. Your message was
- *              not sent."          (19 Aug, 2 Sep)
- *   recipient  "Message blocked. Your message to X has been blocked...
- *              Status: 5.7.1"      (26 Aug, and this)
+ * The two bounce texts really are different things:
+ *   "You have reached a limit for sending mail"  - obvious quota message
+ *   "Message blocked ... Status 5.7.1"           - says nothing about quota
  *
- * No quota bounce appeared anywhere on 7 Sep. Seventeen messages went out and
- * sixteen were accepted, so the daily ceiling was never reached that day.
+ * The second one names the recipient, so it reads like the recipient refusing.
+ * WoodGreen returned it twice, through two different API clients minutes
+ * apart, which looked like proof of a recipient-side filter. It was not.
  *
- * volunteer@woodgreen.org was then attempted a SECOND time through an entirely
- * different API client, minutes later, and returned the identical 5.7.1. Two
- * unrelated send paths, same recipient, same refusal, while sixteen other
- * recipients accepted mail from this mailbox in the same sitting. That is the
- * receiving end refusing, not Google throttling the sender.
+ * What settled it: a throwaway message to a personal gmail address, 589 bytes,
+ * subject "=-[p'", body "-0po;kl", sent at 21:52. Blocked with the same 5.7.1.
+ * A few characters of nonsense to a Gmail account cannot be refused for content
+ * or by the receiving server. Only the SENDER can be the cause.
  *
- * So this is a recipient-side rejection to investigate, not a message to retry
- * blindly. WoodGreen may filter cold mail, or the address may be defended by
- * something that scores this message badly. Ask them by phone before spending
- * another send: (416) 645-6000 ext 5235.
+ * So 5.7.1 "Message blocked" is Google refusing to send, and it is what this
+ * account returns once the daily allowance is gone. It does not always
+ * announce itself as a limit.
+ *
+ * Sixteen were accepted today before the wall. The seventeenth and everything
+ * after it failed. That matches 3 Sep, where fifteen went and the sixteenth
+ * did not.
+ *
+ * If a 5.7.1 appears, STOP. Do not switch tools, do not retry, do not reword.
+ * The mailbox is done for the day and every further attempt looks like a
+ * delivered message in Sent while reaching nobody, which is the exact failure
+ * that cost three weeks in August.
  */
 const BLOCKED_2026_09_07 = [
   'volunteer@woodgreen.org',
+  'volunteers@torontowildlifecentre.com',
+  'volunteer@torontohumanesociety.com',
+  'lross@bgctk.org',
 ];
 void BLOCKED_2026_09_07;   // referenced here so the record is not silently dropped
 
