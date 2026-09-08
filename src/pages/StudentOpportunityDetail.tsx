@@ -786,12 +786,23 @@ export default function StudentOpportunityDetail() {
                          <span className="font-bold text-blue-dark">
                            {isFull ? "You're on the waitlist" : "You've Applied!"}
                          </span>
+                         {/* "You can withdraw any time from your dashboard" was
+                             wrong twice. Withdrawal is offered only while the
+                             application is undecided — the button is rendered
+                             for 'pending', 'reviewed' and 'waitlist' and not
+                             for 'accepted', because an accepted placement is
+                             the organization's to end, not the student's to
+                             delete. And it lives on the Applications tab, not
+                             the dashboard's landing view, so a student who
+                             followed this sentence arrived at a screen with no
+                             Withdraw button anywhere on it and concluded the
+                             feature did not exist. */}
                          <p className="text-sm text-ink-soft text-center max-w-[22rem] leading-relaxed">
                            {isFull
                              ? 'Every place is taken right now. If one frees up, the longest-waiting student is moved up automatically and emailed.'
-                             : 'You can withdraw any time from your dashboard.'}
+                             : 'You can withdraw from the Applications tab of your dashboard, up until the organization accepts you.'}
                          </p>
-                         <Link to="/student/dashboard" className="text-xs text-blue-dark hover:underline">View in dashboard</Link>
+                         <Link to="/student/dashboard?tab=applications" className="text-xs text-blue-dark hover:underline">View my applications</Link>
                       </div>
                     ) : eligibilityNote ? (
                       /* The browse card warns and this page did not, so a
