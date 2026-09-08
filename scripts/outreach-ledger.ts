@@ -265,7 +265,43 @@ const REPLIED: Record<string, string> = {
   'thistletownfoodbank@gmail.com': 'DECLINED. "that was great but no thank you"',
   'info@nyacswimming.ca': 'DECLINED. "No Thanks."',
   'foodbank@mtzion.ca': 'DECLINED. Not accepting new volunteers.',
+  'rcl527president@hotmail.com':
+    'SIGNED UP as Royal Canadian Legion, Wilson Branch 527. Terry Frewin, '
+    + 'Branch President. Account built and verified 8 Sep; he has not signed '
+    + 'in yet and there are no postings. Wants help with the poppy campaign. '
+    + 'Still unknown: dates, how many students at once, minimum age.',
 };
+
+/*
+ * The poppy campaign has a fixed deadline nobody sets.
+ *
+ * Legion poppy distribution runs from the last Friday of October to 11
+ * November, so roughly 30 Oct to 11 Nov 2026, and the preparation Terry means
+ * by "the next few weeks" happens before that. This is the first reply with a
+ * real calendar attached to it, and it wants an answer while the poppy boxes
+ * are still being packed rather than after.
+ *
+ * It is also the best shaped work on the whole list for a 14 year old: short
+ * shifts, a table in a public place, no training, and it repeats daily for two
+ * weeks so one organisation can absorb a lot of students at once.
+ */
+
+/*
+ * Terry Frewin writes from THREE addresses and they are one person.
+ *
+ *   rcl527president@hotmail.com   the branch role address, where outreach went
+ *                                 and where the account login now lives
+ *   t.frewin@rogers.com           what he actually replies from, on a phone
+ *   tyrida3@gmail.com             a third he listed himself
+ *
+ * The account is on the role address on purpose, because it survives a change
+ * of branch president in a way a personal Rogers address does not.
+ *
+ * THE CATCH: the six digit sign-in code goes to the account address. He was
+ * given the password at Rogers, where he reads mail, but the code will arrive
+ * at hotmail. If he says he cannot get in, that is why, and the fix is to move
+ * the auth email rather than to resend anything.
+ */
 
 /** Not organisations. The founder's own addresses, used to test. */
 const SELF = ['halalbeef67@gmail.com', '350343401@tdsb.ca'];

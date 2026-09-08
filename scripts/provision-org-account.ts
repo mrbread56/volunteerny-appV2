@@ -56,6 +56,37 @@ const PROFILES: Record<string, Record<string, unknown>> = {
     northYorkConfirmed: true,
     verificationStatus: 'verified',
   },
+  /*
+   * Wilson Branch 527, from the branch's own listings and the president's
+   * email of 8 Sep 2026.
+   *
+   * Two postal codes are in circulation for 948 Sheppard Ave W: business
+   * directories say M3H 2T6, and geocoding the street address returns
+   * M3H 2T7. M3H 2T6 is used here because it comes from the branch's own
+   * listing, but ask Terry to confirm it rather than trusting either.
+   *
+   * hasCra is false because no registration number was found, not because
+   * there isn't one. The verification here rests on a named branch president
+   * writing from the branch role address, which is the same standard the other
+   * verified organisations were held to.
+   */
+  legion527: {
+    organizationName: 'Royal Canadian Legion, Wilson Branch 527',
+    organizationType: 'Other',
+    organizationTypeOther: 'Veterans organization',
+    mission:
+      'Wilson Branch 527 of the Royal Canadian Legion serves veterans, serving members and their families in North York, and raises money for them through the annual poppy campaign in the two weeks before Remembrance Day. Like every Legion branch it is also a community hall: the building on Sheppard Avenue West hosts events and brings the neighbourhood together around remembrance.',
+    address: '948 Sheppard Ave W, North York, ON M3H 2T6',
+    coordinates: { lat: 43.75283, lng: -79.46032 },
+    phone: '(416) 633-0345',
+    contactEmail: 'rcl527president@hotmail.com',
+    websiteUrl: '',
+    craNumber: '',
+    craVerified: false,
+    hasCra: false,
+    northYorkConfirmed: true,
+    verificationStatus: 'verified',
+  },
 };
 
 /*

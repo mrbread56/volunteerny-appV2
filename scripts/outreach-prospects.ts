@@ -55,6 +55,15 @@ export const PROSPECTS: Prospect[] = [
     note: 'TRCA operates it, and info@trca.ca is already in the ledger. Different department, so not a duplicate, but say so if they mention it.' },
   { org: 'Community Living Toronto', email: 'swinter@cltoronto.ca', area: 'North York', fit: 'ok',
     note: 'Sarah Winter covers the Scarborough, North York and Etobicoke regions.' },
+  { org: 'North York Hearts Soccer Club', email: 'info@heartssoccer.com', area: 'North York', fit: 'ok',
+    note: '5720 Bathurst St, (647) 388-8135. Youth club with a house league, so game days and tournaments need bodies. Asked for as "Toronto Hearts", which is not a name that exists; this is the only club it can reasonably be.' },
+  /*
+   * "Toronto Knights" is NYKHA Knights, nykha.knights@gmail.com, and it is
+   * NOT listed here because it is already in the ledger as delivered on
+   * 4 September. Putting it in this file would queue a second cold email to an
+   * organisation that has already had one and simply not replied. If the lead
+   * is worth chasing it is a phone call, not another send.
+   */
   { org: 'Griffin Centre', email: '', area: 'North York', fit: 'ok',
     note: 'NO EMAIL FOUND. 24 Silverview Dr, 416-222-1153. Phone only.' },
 
