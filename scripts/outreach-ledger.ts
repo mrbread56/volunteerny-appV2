@@ -166,6 +166,72 @@ const RESENT_2026_09_04 = [
   'webmaster@northyorkstorm.com',
 ];
 
+/**
+ * 7 Sep. A NEW list, not the original ninety. These come from
+ * outreach-prospects.ts, which is the queue of organisations found after the
+ * first list was exhausted on 4 Sep.
+ *
+ * Twelve out, eleven accepted, one hard bounce, no quota block anywhere. That
+ * is the third day running that twelve has been comfortable, so PER_DAY stays
+ * where it is.
+ */
+const SENT_2026_09_07 = [
+  'volunteer@baycrest.org', 'volunteer.admin@agakhanmuseum.org',
+  'volunteering@ymcagta.org', 'wrowney@trca.on.ca',
+  'volunteers@hollandbloorview.ca', 'tzvolunteers@torontozoo.ca',
+  'kstintz@varietyontario.ca', 'toronto.programs@specialolympicsontario.ca',
+  'picks@notfarfromthetree.org', 'volunteer@circleofcare.com',
+  'volunteer@marchofdimes.ca',
+  // three more the same evening, taking the day to fifteen. All accepted, so
+  // the block sits at sixteen exactly as it did on 3 Sep. Fifteen is the
+  // ceiling, not a coincidence, and twelve stays the number to plan on.
+  'volunteer@sprintseniorcare.org', 'volunteering@reena.org',
+  'swinter@cltoronto.ca',
+  // sixteenth of the day, accepted.
+  'volunteer@sunnybrook.ca',
+];
+
+/**
+ * 7 Sep, from 21:47 onward. Everything blocked. NONE of these arrived, so they
+ * stay in the pool and are deliberately NOT in the delivered set below.
+ *
+ * This was misdiagnosed twice before the control case turned up, and the wrong
+ * turn is worth writing down because it is easy to repeat.
+ *
+ * The two bounce texts really are different things:
+ *   "You have reached a limit for sending mail"  - obvious quota message
+ *   "Message blocked ... Status 5.7.1"           - says nothing about quota
+ *
+ * The second one names the recipient, so it reads like the recipient refusing.
+ * WoodGreen returned it twice, through two different API clients minutes
+ * apart, which looked like proof of a recipient-side filter. It was not.
+ *
+ * What settled it: a throwaway message to a personal gmail address, 589 bytes,
+ * subject "=-[p'", body "-0po;kl", sent at 21:52. Blocked with the same 5.7.1.
+ * A few characters of nonsense to a Gmail account cannot be refused for content
+ * or by the receiving server. Only the SENDER can be the cause.
+ *
+ * So 5.7.1 "Message blocked" is Google refusing to send, and it is what this
+ * account returns once the daily allowance is gone. It does not always
+ * announce itself as a limit.
+ *
+ * Sixteen were accepted today before the wall. The seventeenth and everything
+ * after it failed. That matches 3 Sep, where fifteen went and the sixteenth
+ * did not.
+ *
+ * If a 5.7.1 appears, STOP. Do not switch tools, do not retry, do not reword.
+ * The mailbox is done for the day and every further attempt looks like a
+ * delivered message in Sent while reaching nobody, which is the exact failure
+ * that cost three weeks in August.
+ */
+const BLOCKED_2026_09_07 = [
+  'volunteer@woodgreen.org',
+  'volunteers@torontowildlifecentre.com',
+  'volunteer@torontohumanesociety.com',
+  'lross@bgctk.org',
+];
+void BLOCKED_2026_09_07;   // referenced here so the record is not silently dropped
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
@@ -176,6 +242,12 @@ const DEAD: Record<string, string> = {
   // 4 Sep, both hard bounces on first contact.
   'nysa@nysoccer.ca': 'domain nysoccer.ca does not resolve',
   'marinawilliams@rogers.com': 'address not found (552)',
+  // 7 Sep. Published on North York Harvest's OWN volunteer page as the contact
+  // for community groups and schools, which is the best-matched address found
+  // in the whole second sweep, and it does not exist. Their page is stale.
+  // lisa@northyorkharvest.com is the replacement; call 416-635-7771 x2900
+  // before spending another send on a guess.
+  'leslie@northyorkharvest.com': 'address not found (550 5.2.1)',
 };
 
 /** Recipient's server refused the message, 26 Aug, SMTP 5.7.1. */
@@ -193,7 +265,43 @@ const REPLIED: Record<string, string> = {
   'thistletownfoodbank@gmail.com': 'DECLINED. "that was great but no thank you"',
   'info@nyacswimming.ca': 'DECLINED. "No Thanks."',
   'foodbank@mtzion.ca': 'DECLINED. Not accepting new volunteers.',
+  'rcl527president@hotmail.com':
+    'SIGNED UP as Royal Canadian Legion, Wilson Branch 527. Terry Frewin, '
+    + 'Branch President. Account built and verified 8 Sep; he has not signed '
+    + 'in yet and there are no postings. Wants help with the poppy campaign. '
+    + 'Still unknown: dates, how many students at once, minimum age.',
 };
+
+/*
+ * The poppy campaign has a fixed deadline nobody sets.
+ *
+ * Legion poppy distribution runs from the last Friday of October to 11
+ * November, so roughly 30 Oct to 11 Nov 2026, and the preparation Terry means
+ * by "the next few weeks" happens before that. This is the first reply with a
+ * real calendar attached to it, and it wants an answer while the poppy boxes
+ * are still being packed rather than after.
+ *
+ * It is also the best shaped work on the whole list for a 14 year old: short
+ * shifts, a table in a public place, no training, and it repeats daily for two
+ * weeks so one organisation can absorb a lot of students at once.
+ */
+
+/*
+ * Terry Frewin writes from THREE addresses and they are one person.
+ *
+ *   rcl527president@hotmail.com   the branch role address, where outreach went
+ *                                 and where the account login now lives
+ *   t.frewin@rogers.com           what he actually replies from, on a phone
+ *   tyrida3@gmail.com             a third he listed himself
+ *
+ * The account is on the role address on purpose, because it survives a change
+ * of branch president in a way a personal Rogers address does not.
+ *
+ * THE CATCH: the six digit sign-in code goes to the account address. He was
+ * given the password at Rogers, where he reads mail, but the code will arrive
+ * at hotmail. If he says he cannot get in, that is why, and the fix is to move
+ * the auth email rather than to resend anything.
+ */
 
 /** Not organisations. The founder's own addresses, used to test. */
 const SELF = ['halalbeef67@gmail.com', '350343401@tdsb.ca'];
@@ -204,7 +312,8 @@ export function buildLedger() {
   // BLOCKED_2026_09_01 is deliberately NOT here. Those eight never arrived and
   // stay in the send pool.
   const delivered = new Set(
-    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04].map(norm),
+    [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04,
+     ...SENT_2026_09_07].map(norm),
   );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
