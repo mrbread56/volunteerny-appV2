@@ -340,6 +340,12 @@ const REPLIED: Record<string, string> = {
   'thistletownfoodbank@gmail.com': 'DECLINED. "that was great but no thank you"',
   'info@nyacswimming.ca': 'DECLINED. "No Thanks."',
   'foodbank@mtzion.ca': 'DECLINED. Not accepting new volunteers.',
+  'info@jfandcs.com':
+    'SIGNED UP as Jewish Family & Child Service. Andrea Pines, Coordinator of '
+    + 'Volunteer Services, replied 9 Sep from apines@jfandcs.com with the full '
+    + 'position description for the Online Homework Club, then confirmed the '
+    + 'listing could go live and that five volunteers is the right number. '
+    + 'Write to apines@ from here, not info@.',
   'lisa@northyorkharvest.com':
     'DECLINED, but not a rejection of the idea. Lisa Anderson, Manager of '
     + 'Volunteer Services, 9 Sep: "Currently, we do not have any volunteer '
@@ -384,6 +390,21 @@ const REPLIED: Record<string, string> = {
  * given the password at Rogers, where he reads mail, but the code will arrive
  * at hotmail. If he says he cannot get in, that is why, and the fix is to move
  * the auth email rather than to resend anything.
+ */
+
+/*
+ * The Homework Club is the strongest listing on the site and the reason is
+ * worth stating, because nothing else here has the same shape.
+ *
+ * It is on Zoom, so the travel problem that quietly kills most placements does
+ * not apply: a student in Scarborough can take a North York placement.
+ *
+ * It runs an hour a week until June, which is roughly 35 hours in one
+ * placement. A student needs 40 to graduate. Every other posting on the site
+ * is measured in single afternoons.
+ *
+ * The catch is that it is Grade 11 and 12 only, so it is closed to the Grade
+ * 10s who make up most of the students currently signed up.
  */
 
 /** Not organisations. The founder's own addresses, used to test. */

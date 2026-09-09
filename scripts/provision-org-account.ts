@@ -57,6 +57,35 @@ const PROFILES: Record<string, Record<string, unknown>> = {
     verificationStatus: 'verified',
   },
   /*
+   * Jewish Family & Child Service, from Andrea Pines's reply of 9 Sep 2026 and
+   * her own signature block.
+   *
+   * hasCra is false because no registration number was found, not because
+   * there isn't one. JF&CS is plainly a registered charity; the number was
+   * simply never stated and is not worth guessing into a public profile.
+   *
+   * 4600 Bathurst geocodes to 43.7626650 / -79.4404523, and Nominatim returns
+   * "Westminster-Branson, York Centre, North York", which is what
+   * northYorkConfirmed is asserting.
+   */
+  jfandcs: {
+    organizationName: 'Jewish Family & Child Service',
+    organizationType: 'Social service agency',
+    organizationTypeOther: '',
+    mission:
+      'Jewish Family & Child Service supports the healthy development of individuals, children, families and communities through prevention, protection, counselling, education and advocacy services, within the context of Jewish values. It runs an Online Homework Club pairing volunteer tutors with elementary and secondary students over Zoom through the school year.',
+    address: '4600 Bathurst Street, Toronto, ON M2R 3V3',
+    coordinates: { lat: 43.762665, lng: -79.4404523 },
+    phone: '(416) 638-7800 ext 6266',
+    contactEmail: 'apines@jfandcs.com',
+    websiteUrl: 'https://www.jfandcs.com',
+    craNumber: '',
+    craVerified: false,
+    hasCra: false,
+    northYorkConfirmed: true,
+    verificationStatus: 'verified',
+  },
+  /*
    * Wilson Branch 527, from the branch's own listings and the president's
    * email of 8 Sep 2026.
    *
