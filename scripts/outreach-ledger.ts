@@ -232,6 +232,44 @@ const BLOCKED_2026_09_07 = [
 ];
 void BLOCKED_2026_09_07;   // referenced here so the record is not silently dropped
 
+/**
+ * 9 Sep. The four above, sent again once the block cleared, and all four
+ * accepted with no bounce.
+ *
+ * Sent two minutes apart rather than in a burst, which is the only thing that
+ * changed. Same four addresses, same four messages, same mailbox. On 7 Sep
+ * every one of them was refused; on 9 Sep every one went through. Nothing was
+ * ever wrong with the recipients.
+ *
+ * The account had a full day untouched in between. That, and the spacing, is
+ * what the recovery looks like.
+ */
+const RESENT_2026_09_09 = [
+  'volunteers@torontowildlifecentre.com',
+  'volunteer@torontohumanesociety.com',
+  'lross@bgctk.org',
+  'volunteer@woodgreen.org',
+];
+
+/**
+ * 9 Sep, first contact. Seven from outreach-prospects.ts, all accepted.
+ *
+ * Twelve went out on 9 Sep counting the four resends above and one probe to a
+ * personal address, spaced two minutes apart across about half an hour. Not
+ * one bounced. The comparison worth keeping: 7 Sep put seventeen out as fast
+ * as the tool would go and the last six were refused.
+ */
+const SENT_2026_09_09 = [
+  'lisa@northyorkharvest.com',
+  'mail@yay.org',
+  'volunteerservices@alz.to',
+  'volunteer@runnymedehc.ca',
+  'info@jfandcs.com',
+  'contactsmc@kensingtonhealth.org',
+  'ontariovolunteer@redcross.ca',
+];
+void SENT_2026_09_09;   // first contact, not part of the original ninety
+
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
   'downsview@gemhealth.com': 'address does not exist',
@@ -313,7 +351,7 @@ export function buildLedger() {
   // stay in the send pool.
   const delivered = new Set(
     [...DELIVERED, ...RESENT_2026_09_01, ...RESENT_2026_09_01_B, ...RESENT_2026_09_03, ...RESENT_2026_09_03_B, ...RESENT_2026_09_04,
-     ...SENT_2026_09_07].map(norm),
+     ...SENT_2026_09_07, ...RESENT_2026_09_09].map(norm),
   );
   const dead = new Set(Object.keys(DEAD).map(norm));
   const self = new Set(SELF.map(norm));
