@@ -144,6 +144,31 @@ export const PROSPECTS: Prospect[] = [
  *   call), Ronald McDonald House, Massey Centre, Agincourt Community Services.
  */
 
+/*
+ * NOT prospects. Directories, which is to say competitors.
+ *
+ * Lisa Anderson at North York Harvest sent these four when she declined on
+ * 9 Sep, as the places she points people to instead:
+ *
+ *   volunteertoronto.ca      Toronto specific, organisations actually post there
+ *   charityvillage.com
+ *   volunteer.ca             Volunteer Canada
+ *   volunteerworld.ca
+ *
+ * None of them belongs in PROSPECTS and none should get the outreach email.
+ * That email offers to build an organisation's listing for them; these do not
+ * need volunteers, they broker them, and the offer would read as nonsense.
+ *
+ * Volunteer Toronto was contacted directly by Kiamehr on 9 Sep, outside this
+ * queue and not through the outreach mailbox. It is a possible partner rather
+ * than a target: a hub with a member directory that several organisations on
+ * this list already appear in.
+ *
+ * They are worth reading as a competitive brief. A Manager of Volunteer
+ * Services naming where she sends people is a straight answer to "what are we
+ * up against", and none of the four is built around the 40 hour requirement.
+ */
+
 function main() {
   const ledger = readFileSync(new URL('./outreach-ledger.ts', import.meta.url), 'utf8');
   const contacted = new Set(
