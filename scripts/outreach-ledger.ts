@@ -267,8 +267,19 @@ const SENT_2026_09_09 = [
   'info@jfandcs.com',
   'contactsmc@kensingtonhealth.org',
   'ontariovolunteer@redcross.ca',
+  // three more the same afternoon, taking the day to fifteen
+  'info@heartssoccer.com',
+  'volunteer@dixonhall.org',
+  'general@thestop.org',
 ];
 void SENT_2026_09_09;   // first contact, not part of the original ninety
+
+/*
+ * Fifteen on 9 Sep, none refused, which is the highest clean day this mailbox
+ * has had. Worth noting that fifteen is also where it broke on 3 Sep and one
+ * under where it broke on 7 Sep, so this is the edge and not a new ceiling.
+ * Twelve remains the number to plan on.
+ */
 
 /** The address itself is broken. Resending changes nothing. */
 const DEAD: Record<string, string> = {
