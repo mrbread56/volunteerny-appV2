@@ -267,18 +267,44 @@ const SENT_2026_09_09 = [
   'info@jfandcs.com',
   'contactsmc@kensingtonhealth.org',
   'ontariovolunteer@redcross.ca',
-  // three more the same afternoon, taking the day to fifteen
+  // two more the same afternoon, both accepted
   'info@heartssoccer.com',
   'volunteer@dixonhall.org',
-  'general@thestop.org',
 ];
 void SENT_2026_09_09;   // first contact, not part of the original ninety
 
+/**
+ * 9 Sep. The fourteenth message of the day was the last one accepted.
+ *
+ * general@thestop.org was the fifteenth and it was refused. It was briefly
+ * recorded above as sent, which was wrong: the bounce arrives about a second
+ * after the send returns success, and the check ran too early to see it. That
+ * is precisely the mistake this whole file exists to prevent, and it was made
+ * again here, so: NEVER read a send as delivered without waiting for the
+ * bounce. The API returning an id means Google accepted the request, not that
+ * anyone received anything.
+ *
+ * Three further messages to a personal address were also refused, which is how
+ * the ceiling was found.
+ */
+const BLOCKED_2026_09_09 = [
+  'general@thestop.org',
+];
+void BLOCKED_2026_09_09;
+
 /*
- * Fifteen on 9 Sep, none refused, which is the highest clean day this mailbox
- * has had. Worth noting that fifteen is also where it broke on 3 Sep and one
- * under where it broke on 7 Sep, so this is the edge and not a new ceiling.
- * Twelve remains the number to plan on.
+ * WHAT THE 9 SEP EXPERIMENT ACTUALLY SHOWED, since it is easy to misread.
+ *
+ * Fourteen delivered, fifteenth refused, with two minutes between every send.
+ * On 3 Sep, fifteen delivered and the sixteenth was refused, sent fast.
+ *
+ * So spacing did NOT raise the ceiling. Fourteen to sixteen is where this
+ * mailbox stops regardless of pace. What spacing appears to buy is a cleaner
+ * run up to the ceiling rather than a higher one, and possibly a shorter block
+ * afterwards, though one day is not enough to say that.
+ *
+ * The number to plan on stays twelve, and now for a better reason: it is the
+ * only figure that has never been near a refusal.
  */
 
 /** The address itself is broken. Resending changes nothing. */
