@@ -340,6 +340,14 @@ const REPLIED: Record<string, string> = {
   'thistletownfoodbank@gmail.com': 'DECLINED. "that was great but no thank you"',
   'info@nyacswimming.ca': 'DECLINED. "No Thanks."',
   'foodbank@mtzion.ca': 'DECLINED. Not accepting new volunteers.',
+  'lisa@northyorkharvest.com':
+    'DECLINED, but not a rejection of the idea. Lisa Anderson, Manager of '
+    + 'Volunteer Services, 9 Sep: "Currently, we do not have any volunteer '
+    + 'vacancies. I do not know when this situation will change." She has no '
+    + 'openings for anyone, which is a different thing from not wanting the '
+    + 'platform, so this one is worth asking again in a few months. She also '
+    + 'did not respond to the note that leslie@, published on their own '
+    + 'volunteer page as the contact for schools, bounces.',
   'rcl527president@hotmail.com':
     'SIGNED UP as Royal Canadian Legion, Wilson Branch 527. Terry Frewin, '
     + 'Branch President. Account built and verified 8 Sep; he has not signed '
