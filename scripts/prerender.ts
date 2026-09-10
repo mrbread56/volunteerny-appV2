@@ -25,7 +25,8 @@
  *
  *   npm run build   (runs automatically)
  */
-import { chromium } from '@playwright/test';
+import { chromium, type Browser } from '@playwright/test';
+import { execSync } from 'child_process';
 import { createServer } from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -65,7 +66,8 @@ async function main() {
   const server = serve();
   await new Promise<void>((r) => server.listen(PORT, r));
 
-  const browser = await chromium.launch();
+  const browser = await launchBrowser();
+  if (!browser) { server.close(); return; }
   const page = await browser.newPage();
 
   // The app writes to localStorage on first paint. A prerender must not carry
@@ -105,6 +107,52 @@ async function main() {
   await browser.close();
   server.close();
   console.log(`[prerender] wrote ${written} page(s)`);
+}
+
+/**
+ * Get a browser, or give up without taking the deployment down with us.
+ *
+ * `npm install` installs the Playwright PACKAGE but not the browser binary, so
+ * a machine that has never run `npx playwright install` has the import and no
+ * Chromium. That is every fresh CI box, and it is why every Vercel build from
+ * 4 September onward failed sixteen seconds in with "Executable doesn't
+ * exist". Five days of commits sat on main and never shipped, including a
+ * copy fix that was sending students to a screen with no button on it.
+ *
+ * So: try to install it, once. If that also fails, WARN LOUDLY AND CARRY ON.
+ *
+ * The trade is not close. Prerendering is an SEO improvement: without it the
+ * app still builds, still deploys and still works, it just serves the SPA
+ * shell to crawlers the way it did for the first three weeks of its life.
+ * Blocking every deployment of the entire site to protect that is the wrong
+ * way round, and it failed silently enough that nobody noticed for most of a
+ * week.
+ *
+ * A real prerendering bug still fails the build. This only forgives a missing
+ * browser, which is an environment problem rather than a defect in the code.
+ */
+async function launchBrowser(): Promise<Browser | null> {
+  try {
+    return await chromium.launch();
+  } catch (e: any) {
+    if (!String(e?.message || e).includes("Executable doesn't exist")) throw e;
+    console.warn('[prerender] no Chromium binary. Installing it, once.');
+    try {
+      execSync('npx playwright install chromium', { stdio: 'inherit' });
+      return await chromium.launch();
+    } catch {
+      console.warn('');
+      console.warn('[prerender] ================================================');
+      console.warn('[prerender] SKIPPED. Chromium could not be installed here.');
+      console.warn('[prerender] The build continues and the site will deploy,');
+      console.warn('[prerender] but every public page ships as an empty SPA');
+      console.warn('[prerender] shell, so crawlers and link previews see');
+      console.warn('[prerender] nothing. Fix the browser install to restore it.');
+      console.warn('[prerender] ================================================');
+      console.warn('');
+      return null;
+    }
+  }
 }
 
 main().catch((e) => { console.error('[prerender]', e); process.exit(1); });
