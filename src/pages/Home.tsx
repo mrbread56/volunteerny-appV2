@@ -175,22 +175,66 @@ export default function Home() {
     <div className="min-h-screen bg-white">
 
       {/* ── HERO ── */}
-      <section ref={heroRef} className="relative pt-20 lg:pt-28 overflow-hidden">
-        {/* Background image - full natural coverage. bg-blue-dark is the
-            fallback: the headline above it is white, so if hero-bg.png ever
-            fails to load (bad deploy, blocked asset, flaky network) the text
-            would render white-on-white and the hero would read as empty. */}
-        <div className="absolute inset-0 bg-blue-dark bg-[url('/hero-bg.png')] bg-cover bg-center bg-no-repeat" />
-        
-        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[56vw] sm:pb-[45vw] lg:pb-[38vw]">
+      {/* pt-6 on a phone, not pt-20.
+
+          The sky in this illustration runs out about 45% of the way down, and
+          the volunteer's hair rises higher than the treeline. At 36px over
+          three lines the headline was 130px tall starting 95px in, which put
+          the italic line straight through his hair. Starting higher and
+          setting smaller keeps all three lines inside the sky. Nothing changes
+          from sm upward, where there is room. */}
+      <section ref={heroRef} className="relative pt-6 sm:pt-20 lg:pt-28 overflow-hidden">
+        {/* Background image, full natural coverage.
+
+            bg-paper is the fallback rather than bg-blue-dark, because the
+            headline is now INK. A failed image used to leave white text on a
+            dark blue box; with dark text it has to leave dark text on a light
+            one, or the hero reads as empty. */}
+        <div className="absolute inset-0 bg-paper bg-[url('/hero-bg.jpg')] bg-cover bg-center bg-no-repeat" />
+
+        {/* The bottom padding sets the hero's height, and therefore how much of
+            the illustration survives bg-cover.
+
+            The image is 1.79 wide. At 1440 the container lands at about 1.78,
+            so essentially the whole picture shows. At 375 the old pb-[56vw]
+            gave a container of roughly 0.89, which is nearly square against a
+            wide image: bg-cover then scaled to fill the height and threw away
+            half the width, cutting the schoolhouse and the skyline off both
+            edges. Dropping the phone value widens the container and gives the
+            picture back. It also closes the band of empty grass that used to
+            sit between the illustration and the section below. */}
+        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[30vw] sm:pb-[40vw] lg:pb-[38vw]">
           <motion.div variants={stagger} initial="hidden" animate="visible" className="flex flex-col items-center text-center">
+            {/* INK, not white, and the drop shadow is gone.
+
+                The sky in this illustration is mid-tone: measured luminance
+                0.215 to 0.560 across the band the headline sits in. White
+                never gets above 2.15:1 anywhere on it, which is invisible, and
+                blue-dark manages 2.33:1. Ink is the only colour in the palette
+                that works, and it needed the sky lifting to get there.
+
+                Measured after the lift, worst case per horizontal strip of the
+                headline band:
+
+                    0-5%   5.35     20-25%  5.73
+                    5-10%  5.53     25-30%  5.76
+                   10-15%  5.61     30-35%  6.03
+                   15-20%  5.62     35-40%  6.04
+
+                5.32:1 at the very worst pixel once JPEG compression is
+                included. AA needs 3:1 for text this size, so there is room to
+                add a line of body text later, which there would not have been
+                at the 3.67:1 the unmodified image gave.
+
+                The drop-shadow was there to rescue white text. Dark text on a
+                light sky does not need it, and it only muddied the edges. */}
             <motion.h1
               variants={riseUp}
-              className="text-[2.25rem] sm:text-[3rem] lg:text-[3.5rem] font-semibold text-white tracking-[-0.03em] leading-[1.2] drop-shadow-[0_2px_12px_rgba(0,0,0,0.15)]"
+              className="text-[1.875rem] sm:text-[3rem] lg:text-[3.5rem] font-semibold text-ink tracking-[-0.03em] leading-[1.2]"
             >
               Your community needs you.
               <br />
-              <span className="font-display italic text-white">
+              <span className="font-display italic text-ink">
                 Find where you belong.
               </span>
             </motion.h1>
@@ -198,12 +242,19 @@ export default function Home() {
         </motion.div>
 
         {/* Bottom fade to white.
-            Was h-32 from-white: a linear ramp over 128px, which is too short
-            and too even for a photograph — the eye reads the point where the
-            gradient starts as a hard horizontal band across the image. Taller,
-            and stepped through a mid stop so the falloff is gradual at the top
-            and quick at the bottom, which is how light actually falls off. */}
-        <div className="absolute bottom-0 left-0 right-0 h-56 sm:h-64 bg-[linear-gradient(to_top,#fff_0%,#fff_18%,rgba(255,255,255,0.82)_42%,rgba(255,255,255,0.35)_72%,rgba(255,255,255,0)_100%)] pointer-events-none z-10" />
+
+            Shorter and lower than it was. At h-56 the fade began 224px up and
+            was already at 82% white a third of the way in, so on this
+            illustration it was washing out the children, the bowls and the
+            table — the part of the picture doing the work. The old photograph
+            had nothing but foreground clutter down there, so eating it cost
+            nothing; this one has the subject.
+
+            Still stepped rather than linear: a single even ramp reads as a
+            hard horizontal band where it starts, which is what h-32 from-white
+            did originally. The mid stops keep the falloff gradual at the top
+            and quick at the bottom, which is how light actually behaves. */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 sm:h-40 bg-[linear-gradient(to_top,#fff_0%,#fff_10%,rgba(255,255,255,0.72)_38%,rgba(255,255,255,0.24)_70%,rgba(255,255,255,0)_100%)] pointer-events-none z-10" />
       </section>
 
       {/* ── OUR PURPOSE ──
