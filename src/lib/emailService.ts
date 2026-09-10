@@ -149,6 +149,22 @@ export interface ApplicantContact {
   studentName: string;
   status: string;
   email: string | null;
+  /*
+   * The profile fields the student filled in to be matched. All optional: a
+   * student who signed up before completing onboarding has no students/
+   * document, and the server omits the block entirely rather than sending a
+   * row of nulls.
+   *
+   * gender, phone, loggedHours and resumeUrl are NOT here and must not be
+   * added. See the note on the server endpoint for why each one is withheld.
+   */
+  school?: string | null;
+  grade?: string | null;
+  neighborhood?: string | null;
+  interests?: string[];
+  skills?: string[];
+  availability?: string[];
+  previousExperience?: string | null;
 }
 
 /**

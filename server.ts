@@ -2925,10 +2925,51 @@ app.use(express.json());
         .map((d: any) => String(d.data()?.studentId || ''))
         .filter((v: string) => !!v)));
       const emails = new Map<string, string>();
+      const profiles = new Map<string, Record<string, unknown>>();
       await Promise.all(studentIds.map(async (uid) => {
-        const u = await adb.collection('users').doc(uid).get().catch(() => null);
+        const [u, s] = await Promise.all([
+          adb.collection('users').doc(uid).get().catch(() => null),
+          adb.collection('students').doc(uid).get().catch(() => null),
+        ]);
         const email = u?.exists ? u.data()?.email : null;
         if (email) emails.set(uid, email);
+
+        /*
+         * The profile, minus the parts that are none of an organization's
+         * business.
+         *
+         * This used to return a name and an email and nothing else, while the
+         * students/ document held school, grade, neighbourhood, interests,
+         * skills, availability and previous experience the whole time. A
+         * coordinator choosing between four applicants was shown four names.
+         * On 10 Sep the Rotary Club of North York had to be sent all of it by
+         * hand, in an email, because the product would not show it.
+         *
+         * WHAT IS DELIBERATELY WITHHELD, and why:
+         *   gender        irrelevant to picking a volunteer, and sensitive
+         *   phone         a minor's phone number should be given by the
+         *                 student in conversation, not published to every
+         *                 organization they apply to. Email is the channel.
+         *   loggedHours   their entire volunteering history across every other
+         *                 organization. Not this one's business.
+         *   resumeUrl     a storage link that outlives the application
+         *
+         * Everything included is something the student typed in order to be
+         * matched, which is the whole purpose they entered it for.
+         */
+        if (s?.exists) {
+          const d = s.data() || {};
+          const arr = (v: unknown) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : []);
+          profiles.set(uid, {
+            school: typeof d.school === 'string' ? d.school : null,
+            grade: typeof d.grade === 'string' ? d.grade : null,
+            neighborhood: typeof d.neighborhood === 'string' ? d.neighborhood : null,
+            interests: arr(d.interests),
+            skills: arr(d.skills),
+            availability: arr(d.availability),
+            previousExperience: typeof d.previousExperience === 'string' ? d.previousExperience : null,
+          });
+        }
       }));
 
       const contacts = appsSnap.docs.map((d: any) => {
@@ -2939,6 +2980,7 @@ app.use(express.json());
           studentName: a.studentName || 'Student',
           status: a.status,
           email: emails.get(String(a.studentId)) || null,
+          ...(profiles.get(String(a.studentId)) || {}),
         };
       });
 

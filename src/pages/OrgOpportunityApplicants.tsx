@@ -975,6 +975,69 @@ The ${stillWaiting.length} applicant(s) still waiting will be declined and email
                           </button>
                         )}
                       </div>
+
+                      {/* The student's profile.
+
+                          This screen used to show a name, a status and a
+                          message that is usually blank, and nothing else. Every
+                          field below was already stored on the students/
+                          document and simply never asked for, so a coordinator
+                          choosing between four applicants was choosing between
+                          four names.
+
+                          It stopped being theoretical on 10 Sep: the Rotary
+                          Club of North York had four applicants for ten places
+                          and had to be sent all of this by hand, in an email,
+                          because the product would not show it.
+
+                          Rendered only when the profile came back. A student
+                          who signed up but never finished onboarding has no
+                          students/ document, and an empty grid of labels with
+                          nothing under them is worse than no grid. */}
+                      {(() => {
+                        const c = contacts[app.studentId];
+                        if (!c) return null;
+                        const where = [c.school, c.grade ? `Grade ${c.grade}` : null, c.neighborhood]
+                          .filter(Boolean).join(' · ');
+                        const groups: Array<[string, string[]]> = [
+                          ['Interests', c.interests || []],
+                          ['Skills', c.skills || []],
+                          ['Available', c.availability || []],
+                        ].filter(([, v]) => v.length > 0) as Array<[string, string[]]>;
+                        if (!where && groups.length === 0 && !c.previousExperience) return null;
+                        return (
+                          <div className="mt-4 bg-white p-6 rounded-lg border border-line-light space-y-4">
+                            {where && (
+                              <p className="text-sm font-semibold text-ink">{where}</p>
+                            )}
+                            {groups.map(([label, values]) => (
+                              <div key={label}>
+                                <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">
+                                  {label}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {values.map((v) => (
+                                    <span
+                                      key={v}
+                                      className="text-xs font-medium px-2.5 py-1 rounded-full bg-paper-2 text-ink-soft border border-line-light"
+                                    >
+                                      {v}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ))}
+                            {c.previousExperience && (
+                              <div>
+                                <p className="text-xs font-bold text-ink-muted uppercase tracking-widest mb-2">
+                                  Previous experience
+                                </p>
+                                <p className="text-sm text-ink-soft leading-relaxed">{c.previousExperience}</p>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div className="flex flex-col md:w-56 gap-4 self-start w-full">

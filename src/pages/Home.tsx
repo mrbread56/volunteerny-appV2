@@ -183,14 +183,43 @@ export default function Home() {
           the italic line straight through his hair. Starting higher and
           setting smaller keeps all three lines inside the sky. Nothing changes
           from sm upward, where there is room. */}
-      <section ref={heroRef} className="relative pt-6 sm:pt-20 lg:pt-28 overflow-hidden">
+      <section ref={heroRef} className="relative min-h-[62svh] sm:min-h-0 pt-14 sm:pt-20 lg:pt-28 overflow-hidden">
         {/* Background image, full natural coverage.
 
             bg-paper is the fallback rather than bg-blue-dark, because the
             headline is now INK. A failed image used to leave white text on a
             dark blue box; with dark text it has to leave dark text on a light
             one, or the hero reads as empty. */}
-        <div className="absolute inset-0 bg-paper bg-[url('/hero-bg.jpg')] bg-cover bg-center bg-no-repeat" />
+        <div className="absolute inset-0 bg-blue-dark bg-[url('/hero-bg.jpg')] bg-cover bg-center bg-no-repeat" />
+
+        {/* Scrim for the headline, on phones only.
+
+            White cannot survive this illustration unaided. Measured against
+            the sky under the headline at three different crops it came out at
+            1.72, 2.06 and 1.10 to one, and the sky is too pale to darken into
+            range without turning a summer afternoon into dusk: getting white
+            to 4.5 by darkening the image needs about 60%.
+
+            So the text gets its own ground instead. 48% ink at the top, gone by
+            62%, which is above the treeline and well above the volunteer. The
+            palest sky pixel under the headline is rgb(113,188,245); at 48% it
+            becomes rgb(71,118,153) and white reads 4.8:1 against it.
+
+            Every width, not just phones. It was scoped to phones first on the
+            assumption that a wider crop put the headline over deeper sky; at
+            1440 the worst pixel under it is rgb(131,195,241) and white read
+            1.90:1, so that assumption was wrong.
+
+            The stops were then pushed further down because 768 still failed at
+            3.62:1. The headline sits at a different fraction of the section at
+            every width, since the top padding is fixed in pixels while the
+            section height is not: about 11 to 30% of the way down at 390, but
+            16 to 38% at 768. A scrim that had faded to 0.20 by 48% was already
+            thin where the tablet crop puts the last line. */}
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(26,43,54,0.56)_0%,rgba(26,43,54,0.54)_40%,rgba(26,43,54,0.38)_50%,rgba(26,43,54,0.14)_60%,rgba(26,43,54,0)_68%)]"
+        />
 
         {/* The bottom padding sets the hero's height, and therefore how much of
             the illustration survives bg-cover.
@@ -203,7 +232,7 @@ export default function Home() {
             edges. Dropping the phone value widens the container and gives the
             picture back. It also closes the band of empty grass that used to
             sit between the illustration and the section below. */}
-        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[30vw] sm:pb-[40vw] lg:pb-[38vw]">
+        <motion.div style={{ opacity: heroOpacity, y: heroY }} className="max-w-6xl mx-auto px-6 relative z-10 pb-[38vw] sm:pb-[40vw] lg:pb-[38vw]">
           <motion.div variants={stagger} initial="hidden" animate="visible" className="flex flex-col items-center text-center">
             {/* INK, not white, and the drop shadow is gone.
 
@@ -230,11 +259,11 @@ export default function Home() {
                 light sky does not need it, and it only muddied the edges. */}
             <motion.h1
               variants={riseUp}
-              className="text-[1.875rem] sm:text-[3rem] lg:text-[3.5rem] font-semibold text-ink tracking-[-0.03em] leading-[1.2]"
+              className="text-[2.125rem] sm:text-[3rem] lg:text-[3.5rem] font-semibold text-white tracking-[-0.03em] leading-[1.2] drop-shadow-[0_2px_16px_rgba(0,0,0,0.45)]"
             >
               Your community needs you.
               <br />
-              <span className="font-display italic text-ink">
+              <span className="font-display italic text-white">
                 Find where you belong.
               </span>
             </motion.h1>
