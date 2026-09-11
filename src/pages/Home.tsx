@@ -218,7 +218,7 @@ export default function Home() {
             thin where the tablet crop puts the last line. */}
         <div
           aria-hidden="true"
-          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(26,43,54,0.56)_0%,rgba(26,43,54,0.54)_40%,rgba(26,43,54,0.38)_50%,rgba(26,43,54,0.14)_60%,rgba(26,43,54,0)_68%)]"
+          className="absolute inset-0 bg-[linear-gradient(to_bottom,rgba(26,43,54,0.42)_0%,rgba(26,43,54,0.40)_40%,rgba(26,43,54,0.29)_50%,rgba(26,43,54,0.11)_60%,rgba(26,43,54,0)_68%)]"
         />
 
         {/* The bottom padding sets the hero's height, and therefore how much of

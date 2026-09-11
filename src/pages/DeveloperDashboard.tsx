@@ -11,7 +11,7 @@ import { isDeveloperEmail, isDeveloperUser } from '../lib/devAccess';
 import { reportError } from '../lib/errors';
 import { useAuth } from '../contexts/AuthContext';
 import { db } from '../firebase/config';
-import { doc, updateDoc, getDoc, serverTimestamp, writeBatch, getDocs, query, collection, where } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, getDoc, serverTimestamp, writeBatch, getDocs, query, collection, where } from 'firebase/firestore';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { 
@@ -36,6 +36,7 @@ import {
 import { cn } from '../lib/utils';
 import AttachmentPreview from '../components/AttachmentPreview';
 import EmailDeliveryNote from '../components/ui/EmailDeliveryNote';
+import { ConfirmButton } from '../components/ui/ConfirmButton';
 import ReportsTab from './developerDashboard/ReportsTab';
 import MetricsTab from './developerDashboard/MetricsTab';
 import { useDeveloperDashboardData } from '../hooks/useDeveloperDashboardData';
@@ -574,6 +575,36 @@ export default function DeveloperDashboard() {
     }
   };
 
+  /**
+   * Delete a feedback ticket outright.
+   *
+   * The dashboard could reply to a ticket but never clear it, so the queue only
+   * ever grew and there was no way to remove a duplicate, a test submission, or
+   * something filed by mistake.
+   *
+   * Behind ConfirmButton rather than a window.confirm, because this is
+   * irreversible and there is no tombstone: the document is gone, along with
+   * the reply and any attachment reference on it. Two deliberate presses is the
+   * same bar the dashboard already sets for suspending an account.
+   */
+  const handleDeleteFeedback = async (fbId: string) => {
+    const previous = feedbacks;
+    // Optimistic, because the row vanishing is the whole feedback of the
+    // action. Restored below if the write is refused.
+    setFeedbacks((list) => list.filter((f) => f.id !== fbId));
+    try {
+      if (isDemoMode) {
+        const stored = JSON.parse(localStorage.getItem('demo_feedbacks') || '[]');
+        localStorage.setItem('demo_feedbacks', JSON.stringify(stored.filter((f: any) => f.id !== fbId)));
+        return;
+      }
+      await deleteDoc(doc(db, 'feedbacks', fbId));
+    } catch (err) {
+      setFeedbacks(previous);
+      reportError('delete feedback', err, "That ticket was not deleted. Nothing has changed.");
+    }
+  };
+
   const filteredFeedbacks = feedbacks.filter(fb => {
     const matchesFilter = filterType === 'all' || fb.type === filterType;
     const matchesSearch = 
@@ -866,6 +897,14 @@ export default function DeveloperDashboard() {
                             {fb.type || 'SUPPORT'}
                           </span>
                           <span className="text-xs text-ink-muted font-semibold font-mono">ID: {fb.id}</span>
+                          <ConfirmButton
+                            confirmLabel={`Delete this ticket permanently`}
+                            onConfirm={() => handleDeleteFeedback(fb.id)}
+                            className="h-7 px-2.5 bg-red-50 hover:bg-red-100 border border-red-100 text-red-600 uppercase text-xs tracking-wider"
+                            armedClassName="bg-red-600 text-white border-red-600 hover:bg-red-700"
+                          >
+                            Delete
+                          </ConfirmButton>
                         </div>
                         <h3 className="text-lg font-bold text-ink leading-tight">{fb.subject}</h3>
                         <p className="text-xs text-ink-muted font-semibold font-mono">

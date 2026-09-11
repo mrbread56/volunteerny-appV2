@@ -991,6 +991,13 @@ service cloud.firestore {
       // announce "we answered your feedback". A user could manufacture a reply
       // from us to themselves. Only the developer branch below writes them.
       allow create: if isSignedIn() && isNotBanned() && incoming().userId == request.auth.uid && isValidId(feedbackId) && isValidFeedback(incoming()) && incoming().diff({}).affectedKeys().hasOnly(['userId', 'userEmail', 'type', 'subject', 'message', 'userRole', 'id', 'attachmentName', 'attachmentSize', 'attachmentDescription', 'attachmentData', 'createdAt']);
+
+      // Developers may delete a ticket outright. There was no delete rule at
+      // all, so the dashboard could reply to feedback but never clear it, and
+      // the queue only ever grew. Deliberately NOT extended to the ticket's
+      // author: someone who files a report about an organisation should not be
+      // able to erase it once a developer has seen it.
+      allow delete: if isSignedIn() && isDeveloper();
       allow update: if isSignedIn() && isValidId(feedbackId) && (
         isDeveloper() || 
         (resource.data.userId == request.auth.uid && isValidFeedback(incoming()) && incoming().diff(existing()).affectedKeys().hasOnly(['message', 'subject']))
